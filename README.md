@@ -4,7 +4,7 @@
 - COUSIN Bastien
 - DELDALLE Pierre
 - DEQUIDT Clément
-- FASQUEL Willard Nathan
+- FASQUEL WILLARD Nathan
 
 **Liens utiles :**
 - Trello : https://trello.com/invite/b/6a9e69cd9e7ecc7f81be4bd1/ATTI6d5ce03476f4f8542936dcd7c278e0caA8BD6A55/sae-application-intelligente-accessicode
