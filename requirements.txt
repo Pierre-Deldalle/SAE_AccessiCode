@@ -1,0 +1,7 @@
+aiohttp==3.13.3
+beautifulsoup4==4.15.0
+gradio==6.27.0
+json_repair==0.63.4
+pydantic_settings==2.15.0
+pywebview==6.2.1
+playwright==1.63.0
