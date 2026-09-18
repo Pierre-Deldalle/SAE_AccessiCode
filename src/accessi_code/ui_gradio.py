@@ -13,9 +13,12 @@ import threading
 import webview
 import gradio as gr
 from src.accessi_code.service.core import AuditService
+from src.accessi_code.config import settings
+from src.accessi_code.ollama_client.vlm import OllamaVLM
 
 # Initialisation du service métier d'audit
 audit_service = AuditService()
+vlm_client = OllamaVLM(host=settings.OLLAMA_HOST, model=settings.VLM_MODEL)
 
 def run_audit(html_text: str, file_obj):
     """
@@ -51,41 +54,83 @@ def run_audit(html_text: str, file_obj):
     return json_formatted, table_data
 
 
+def test_vlm(image_file, prompt: str):
+    """Envoie une image au VLM pour tester directement le modèle configuré."""
+    if image_file is None:
+        return "Veuillez charger une image."
+
+    if not prompt or not prompt.strip():
+        prompt = "Décris cette image en une phrase et indique son texte alternatif accessible."
+
+    try:
+        response = asyncio.run(vlm_client.generate(prompt=prompt, image=image_file))
+        return response
+    except Exception as e:
+        return f"Erreur lors de l'exécution du test VLM : {str(e)}"
+
+
 def build_ui():
     """
     Construction de l'interface Gradio Blocks.
     """
     with gr.Blocks(title="AccessiCode - Audit Accessibilité A11y") as demo:
-        gr.Markdown("# ♿ AccessiCode - Audit d'accessibilité Web (LLM - RGAA / WCAG)")
+        gr.Markdown("# ♿ AccessiCode - Audit d'accessibilité Web")
         gr.Markdown("Application de bureau pour l'audit d'accessibilité des images HTML.")
 
-        with gr.Row():
-            with gr.Column(scale=1):
-                html_input = gr.Textbox(
-                    lines=12,
-                    placeholder="Collez votre code HTML ici...",
-                    label="Code HTML à analyser"
-                )
-                file_input = gr.File(
-                    label="Ou chargez un fichier HTML (ex: tests/index.html)",
-                    file_types=[".html"]
-                )
-                btn_audit = gr.Button("🔍 Lancer l'audit LLM", variant="primary")
+        with gr.Tabs():
+            with gr.Tab("LLM - Audit HTML"):
+                with gr.Row():
+                    with gr.Column(scale=1):
+                        html_input = gr.Textbox(
+                            lines=12,
+                            placeholder="Collez votre code HTML ici...",
+                            label="Code HTML à analyser"
+                        )
+                        file_input = gr.File(
+                            label="Ou chargez un fichier HTML (ex: tests/index.html)",
+                            file_types=[".html"]
+                        )
+                        btn_audit = gr.Button("🔍 Lancer l'audit LLM", variant="primary")
 
-            with gr.Column(scale=1):
-                dataframe_output = gr.Dataframe(
-                    headers=["ID", "Source", "Statut RGAA", "Décorative", "Suggestion Code"],
-                    label="Synthèse des évaluations"
-                )
-                json_output = gr.Code(
-                    language="json",
-                    label="Rapport JSON Détaillé (Retour LLM)"
-                )
+                    with gr.Column(scale=1):
+                        dataframe_output = gr.Dataframe(
+                            headers=["ID", "Source", "Statut RGAA", "Décorative", "Suggestion Code"],
+                            label="Synthèse des évaluations"
+                        )
+                        json_output = gr.Code(
+                            language="json",
+                            label="Rapport JSON Détaillé (Retour LLM)"
+                        )
+
+            with gr.Tab("VLM - Audit d'image"):
+                with gr.Row():
+                    with gr.Column(scale=1):
+                        vlm_image_input = gr.File(
+                            label="Image à analyser",
+                            file_types=["image"],
+                            type="filepath"
+                        )
+                        vlm_prompt_input = gr.Textbox(
+                            label="Prompt VLM",
+                            value="Décris cette image en une phrase et indique son texte alternatif accessible."
+                        )
+                        btn_vlm = gr.Button("🔍 Tester le VLM", variant="primary")
+
+                    with gr.Column(scale=1):
+                        vlm_output = gr.Textbox(
+                            label="Réponse du VLM",
+                            lines=12
+                        )
 
         btn_audit.click(
             fn=run_audit,
             inputs=[html_input, file_input],
             outputs=[json_output, dataframe_output]
+        )
+        btn_vlm.click(
+            fn=test_vlm,
+            inputs=[vlm_image_input, vlm_prompt_input],
+            outputs=[vlm_output]
         )
     return demo
 
