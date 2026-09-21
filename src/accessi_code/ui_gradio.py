@@ -1,24 +1,53 @@
 import sys
 from pathlib import Path
 
-# Inclusion de la racine du projet au PYTHONPATH
+# Les deux chemins sont nécessaires : l'UI importe via src.accessi_code,
+# tandis que les critères utilisent le package interne accessi_code.
 ROOT_DIR = Path(__file__).resolve().parent.parent.parent
-if str(ROOT_DIR) not in sys.path:
-    sys.path.insert(0, str(ROOT_DIR))
+SRC_DIR = ROOT_DIR / "src"
+for project_path in (ROOT_DIR, SRC_DIR):
+    if str(project_path) not in sys.path:
+        sys.path.insert(0, str(project_path))
 
 import asyncio
 import json
 import time
 import threading
+from dataclasses import asdict
 import webview
 import gradio as gr
 from src.accessi_code.service.core import AuditService
 from src.accessi_code.config import settings
 from src.accessi_code.ollama_client.vlm import OllamaVLM
+from src.accessi_code.tests.theme_01_images.critere_1_1_1 import Criterion111
+from src.accessi_code.tests.theme_01_images.critere_1_1_2 import Criterion112
+from src.accessi_code.tests.theme_01_images.critere_1_1_3 import Criterion113
+from src.accessi_code.tests.theme_05_tableaux.criterion_5_1_1 import Criterion511
+from src.accessi_code.tests.theme_08_elements_obligatoires.criterion_8_1_1 import Criterion811
+from src.accessi_code.tests.theme_11_formulaires.criterion_11_1_1 import Criterion111 as Criterion111Form
 
 # Initialisation du service métier d'audit
 audit_service = AuditService()
 vlm_client = OllamaVLM(host=settings.OLLAMA_HOST, model=settings.VLM_MODEL)
+DOM_CRITERIA = (
+    Criterion111(),
+    Criterion112(),
+    Criterion113(),
+    Criterion511(),
+    Criterion811(),
+    Criterion111Form(),
+)
+
+
+def run_dom_criteria(html_text: str) -> list[dict]:
+    """Exécute les critères DOM commencés sur le HTML fourni."""
+    results = []
+    for criterion in DOM_CRITERIA:
+        result = criterion.run(html_text)
+        serialized = asdict(result)
+        serialized["status"] = result.status.value
+        results.append(serialized)
+    return results
 
 def run_audit(html_text: str, file_obj):
     """
@@ -34,21 +63,29 @@ def run_audit(html_text: str, file_obj):
     if not html_text or not html_text.strip():
         return "Veuillez coller du HTML ou charger un fichier .html.", []
 
-    try:
-        result = asyncio.run(audit_service.audit_html_content(html_text))
-    except Exception as e:
-        return f"Erreur lors de l'exécution de l'audit LLM : {str(e)}", []
+    dom_results = run_dom_criteria(html_text)
 
-    table_data = []
-    if isinstance(result, dict) and "evaluations" in result:
-        for ev in result["evaluations"]:
-            table_data.append([
-                ev.get("image_id", "-"),
-                ev.get("src", "-"),
-                ev.get("rgpa_wcag_status", "-"),
-                ev.get("is_decorative", False),
-                ev.get("suggested_code", "-")
-            ])
+    try:
+        llm_result = asyncio.run(audit_service.audit_html_content(html_text))
+    except Exception as e:
+        llm_result = {
+            "error": f"Erreur lors de l'exécution de l'audit LLM : {str(e)}"
+        }
+
+    result = {
+        "dom_tests": dom_results,
+        "llm_audit": llm_result,
+    }
+    table_data = [
+        [
+            dom_result["test_id"],
+            dom_result["status"],
+            dom_result["tested_elements"],
+            dom_result["summary"],
+            len(dom_result["findings"]),
+        ]
+        for dom_result in dom_results
+    ]
 
     json_formatted = json.dumps(result, indent=2, ensure_ascii=False)
     return json_formatted, table_data
@@ -94,12 +131,12 @@ def build_ui():
 
                     with gr.Column(scale=1):
                         dataframe_output = gr.Dataframe(
-                            headers=["ID", "Source", "Statut RGAA", "Décorative", "Suggestion Code"],
-                            label="Synthèse des évaluations"
+                            headers=["Critère", "Statut", "Éléments testés", "Résumé", "Anomalies"],
+                            label="Résultats des critères DOM"
                         )
                         json_output = gr.Code(
                             language="json",
-                            label="Rapport JSON Détaillé (Retour LLM)"
+                            label="Rapport JSON Détaillé (DOM + LLM)"
                         )
 
             with gr.Tab("VLM - Audit d'image"):

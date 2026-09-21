@@ -1,5 +1,5 @@
 
-from accessi_code.models.result import TestStatus
+from accessi_code.models.result import TestStatus as ResultStatus
 from accessi_code.tests.theme_05_tableaux.criterion_5_1_1 import (
     Criterion511,
 )
@@ -22,7 +22,7 @@ def test_simple_table_not_applicable():
 
     result = Criterion511().run(html)
 
-    assert result.status == TestStatus.NOT_APPLICABLE
+    assert result.status == ResultStatus.NOT_APPLICABLE
     assert result.tested_elements == 1
 
 
@@ -47,7 +47,7 @@ def test_complex_table_with_caption():
 
     result = Criterion511().run(html)
 
-    assert result.status == TestStatus.PASS
+    assert result.status == ResultStatus.PASS
     assert len(result.findings) == 0
 
 
@@ -71,7 +71,7 @@ def test_complex_table_without_summary():
 
     result = Criterion511().run(html)
 
-    assert result.status == TestStatus.FAIL
+    assert result.status == ResultStatus.FAIL
     assert len(result.findings) == 1
 
 
@@ -100,7 +100,7 @@ def test_complex_table_with_aria_describedby():
 
     result = Criterion511().run(html)
 
-    assert result.status == TestStatus.PASS
+    assert result.status == ResultStatus.PASS
     assert len(result.findings) == 0
 
 
@@ -114,5 +114,5 @@ def test_no_tables():
 
     result = Criterion511().run(html)
 
-    assert result.status == TestStatus.NOT_APPLICABLE
+    assert result.status == ResultStatus.NOT_APPLICABLE
     assert result.tested_elements == 0

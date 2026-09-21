@@ -1,5 +1,5 @@
 
-from accessi_code.models.result import TestStatus
+from accessi_code.models.result import TestStatus as ResultStatus
 from accessi_code.tests.theme_11_formulaires.criterion_11_1_1 import (
     Criterion111,
 )
@@ -16,7 +16,7 @@ def test_field_with_label_for():
 
     result = Criterion111().run(html)
 
-    assert result.status == TestStatus.PASS
+    assert result.status == ResultStatus.PASS
     assert result.tested_elements == 1
     assert len(result.findings) == 0
 
@@ -31,7 +31,7 @@ def test_field_with_aria_label():
 
     result = Criterion111().run(html)
 
-    assert result.status == TestStatus.PASS
+    assert result.status == ResultStatus.PASS
     assert len(result.findings) == 0
 
 
@@ -46,7 +46,7 @@ def test_field_with_aria_labelledby():
 
     result = Criterion111().run(html)
 
-    assert result.status == TestStatus.PASS
+    assert result.status == ResultStatus.PASS
     assert len(result.findings) == 0
 
 
@@ -60,7 +60,7 @@ def test_field_with_title():
 
     result = Criterion111().run(html)
 
-    assert result.status == TestStatus.PASS
+    assert result.status == ResultStatus.PASS
     assert len(result.findings) == 0
 
 
@@ -74,7 +74,7 @@ def test_field_without_label():
 
     result = Criterion111().run(html)
 
-    assert result.status == TestStatus.FAIL
+    assert result.status == ResultStatus.FAIL
     assert len(result.findings) == 1
     assert result.findings[0].element == "input#username"
 
@@ -89,7 +89,7 @@ def test_field_with_invalid_labelledby_reference():
 
     result = Criterion111().run(html)
 
-    assert result.status == TestStatus.FAIL
+    assert result.status == ResultStatus.FAIL
     assert len(result.findings) == 1
 
 
@@ -104,5 +104,5 @@ def test_no_form_fields():
 
     result = Criterion111().run(html)
 
-    assert result.status == TestStatus.NOT_APPLICABLE
+    assert result.status == ResultStatus.NOT_APPLICABLE
     assert result.tested_elements == 0
