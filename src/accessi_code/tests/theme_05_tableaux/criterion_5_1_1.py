@@ -31,6 +31,7 @@ class Criterion511:
     criterion_id = "5.1"
 
     def run(self, html: str) -> TestResult:
+        # Le document est analysé comme un arbre HTML pour repérer les tableaux.
         soup = BeautifulSoup(html, "html.parser")
 
         tables = find_tables(soup)
@@ -48,6 +49,7 @@ class Criterion511:
         findings: list[Finding] = []
 
         for index, table in enumerate(tables):
+            # Les tableaux simples ne sont pas concernés par ce test.
             if not has_complex_header_structure(table):
                 continue
 
@@ -55,6 +57,7 @@ class Criterion511:
 
             evidence = get_table_summary_evidence(table, soup)
 
+            # La présence d'au moins un mécanisme de résumé valide suffit ici.
             if evidence:
                 continue
 
@@ -85,6 +88,8 @@ class Criterion511:
                 )
             )
 
+        # Un document contenant des tableaux, mais aucun tableau complexe,
+        # est hors du périmètre fonctionnel de ce test.
         if not complex_tables:
             return TestResult(
                 test_id=self.test_id,
@@ -102,6 +107,7 @@ class Criterion511:
                 },
             )
 
+        # Le statut global dépend uniquement des tableaux complexes détectés.
         if findings:
             status = TestStatus.FAIL
             summary = (

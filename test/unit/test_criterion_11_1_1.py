@@ -5,6 +5,7 @@ from accessi_code.tests.theme_11_formulaires.criterion_11_1_1 import (
 )
 
 
+# Un label associé explicitement avec l'attribut for est accepté.
 def test_field_with_label_for():
     html = """
     <form>
@@ -20,6 +21,7 @@ def test_field_with_label_for():
     assert len(result.findings) == 0
 
 
+# Un nom accessible fourni par aria-label est accepté.
 def test_field_with_aria_label():
     html = """
     <form>
@@ -33,6 +35,7 @@ def test_field_with_aria_label():
     assert len(result.findings) == 0
 
 
+# Un texte référencé par aria-labelledby est accepté.
 def test_field_with_aria_labelledby():
     html = """
     <form>
@@ -47,6 +50,7 @@ def test_field_with_aria_labelledby():
     assert len(result.findings) == 0
 
 
+# L'attribut title constitue ici un mécanisme d'étiquetage valide.
 def test_field_with_title():
     html = """
     <form>
@@ -60,6 +64,7 @@ def test_field_with_title():
     assert len(result.findings) == 0
 
 
+# Un champ sans mécanisme d'étiquetage doit être signalé en échec.
 def test_field_without_label():
     html = """
     <form>
@@ -74,6 +79,7 @@ def test_field_without_label():
     assert result.findings[0].element == "input#username"
 
 
+# Une référence aria-labelledby inexistante ne fournit pas de nom accessible.
 def test_field_with_invalid_labelledby_reference():
     html = """
     <form>
@@ -87,6 +93,7 @@ def test_field_with_invalid_labelledby_reference():
     assert len(result.findings) == 1
 
 
+# Une page sans champ de formulaire n'est pas concernée par le test.
 def test_no_form_fields():
     html = """
     <main>

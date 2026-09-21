@@ -14,15 +14,18 @@ class Criterion811:
 	criterion_id = "8.1"
 
 	def run(self, html: str) -> TestResult:
+		# BeautifulSoup conserve les déclarations DOCTYPE dans le document.
 		soup = BeautifulSoup(html, "html.parser")
 		doctypes = [node for node in soup.contents if isinstance(node, Doctype)]
 		html_element = soup.find("html")
 
+		# Le test exige un seul doctype dont la syntaxe est reconnue.
 		valid_doctype = (
 			len(doctypes) == 1
 			and self._is_valid_doctype(str(doctypes[0]))
 		)
 		doctype_before_html = (
+			# Le doctype doit apparaître avant l'élément racine html.
 			valid_doctype
 			and isinstance(html_element, Tag)
 			and soup.contents.index(doctypes[0])
@@ -30,6 +33,7 @@ class Criterion811:
 		)
 
 		if doctype_before_html:
+			# Toutes les conditions du test sont satisfaites.
 			return TestResult(
 				test_id=self.test_id,
 				criterion_id=self.criterion_id,
@@ -39,6 +43,7 @@ class Criterion811:
 				metadata={"doctype": str(doctypes[0]).strip()},
 			)
 
+		# Le message précise la première condition qui n'est pas respectée.
 		if not doctypes:
 			message = "Aucune balise DOCTYPE détectée."
 		elif len(doctypes) > 1:
@@ -69,6 +74,7 @@ class Criterion811:
 
 	@staticmethod
 	def _is_valid_doctype(doctype: str) -> bool:
+		# Les formes HTML5, PUBLIC et SYSTEM sont acceptées par le RGAA.
 		normalized = " ".join(doctype.split()).strip()
 		return bool(
 			re.fullmatch(r"html", normalized, flags=re.IGNORECASE)

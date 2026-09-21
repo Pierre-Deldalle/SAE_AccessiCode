@@ -5,6 +5,7 @@ from accessi_code.tests.theme_05_tableaux.criterion_5_1_1 import (
 )
 
 
+# Un tableau avec une seule ligne d'en-têtes n'est pas considéré comme complexe.
 def test_simple_table_not_applicable():
     html = """
     <table>
@@ -25,6 +26,7 @@ def test_simple_table_not_applicable():
     assert result.tested_elements == 1
 
 
+# Une légende caption fournit le résumé attendu pour un tableau complexe.
 def test_complex_table_with_caption():
     html = """
     <table>
@@ -49,6 +51,7 @@ def test_complex_table_with_caption():
     assert len(result.findings) == 0
 
 
+# Un tableau complexe sans mécanisme de résumé doit échouer.
 def test_complex_table_without_summary():
     html = """
     <table>
@@ -72,6 +75,7 @@ def test_complex_table_without_summary():
     assert len(result.findings) == 1
 
 
+# Une description référencée par aria-describedby est également acceptée.
 def test_complex_table_with_aria_describedby():
     html = """
     <p id="table-description">
@@ -100,6 +104,7 @@ def test_complex_table_with_aria_describedby():
     assert len(result.findings) == 0
 
 
+# Une page sans tableau ne relève pas du périmètre de ce critère.
 def test_no_tables():
     html = """
     <main>

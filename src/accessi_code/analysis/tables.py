@@ -7,6 +7,7 @@ from bs4 import BeautifulSoup, Tag
 def find_tables(soup: BeautifulSoup) -> list[Tag]:
     """Retourne les tableaux HTML et les éléments role=table."""
 
+    # Les tableaux natifs et les tableaux ARIA doivent être analysés.
     return soup.select("table, [role='table']")
 
 
@@ -48,7 +49,6 @@ def has_complex_header_structure(table: Tag) -> bool:
 
     Indices utilisés :
     - Une cellule th après la première ligne.
-    - Une cellule th après la première colonne.
     - Un rowspan ou colspan supérieur à 1.
     """
 
@@ -68,6 +68,8 @@ def has_complex_header_structure(table: Tag) -> bool:
 
             has_header = True
 
+            # Une fusion de cellules révèle une structure de relations entre
+            # plusieurs lignes ou colonnes, caractéristique d'un tableau complexe.
             rowspan = get_int_attribute(cell, "rowspan")
             colspan = get_int_attribute(cell, "colspan")
 
@@ -100,6 +102,8 @@ def get_referenced_text(
     referenced_elements: list[Tag] = []
 
     for identifier in identifiers:
+        # Toutes les références doivent être résolues pour que le nom associé
+        # au tableau soit considéré comme exploitable.
         referenced = soup.find(id=identifier)
 
         if not isinstance(referenced, Tag):
@@ -133,6 +137,7 @@ def get_table_summary_evidence(
 
     evidence: list[str] = []
 
+    # Plusieurs mécanismes peuvent coexister : on conserve toutes les preuves.
     caption = table.find("caption", recursive=False)
 
     if isinstance(caption, Tag):

@@ -36,11 +36,13 @@ class Criterion111:
     criterion_id = "11.1"
 
     def run(self, html: str) -> TestResult:
+        # Le HTML est converti en arbre pour rechercher les champs du formulaire.
         soup = BeautifulSoup(html, "html.parser")
 
         fields = find_form_fields(soup)
 
         if not fields:
+            # Sans champ à évaluer, le test ne s'applique pas à la page.
             return TestResult(
                 test_id=self.test_id,
                 criterion_id=self.criterion_id,
@@ -53,11 +55,14 @@ class Criterion111:
         labelled_fields = 0
 
         for index, field in enumerate(fields):
+            # Chaque champ est vérifié indépendamment afin d'identifier les
+            # éléments précis qui ne disposent d'aucun nom accessible.
             identifier = get_element_identifier(field, index)
 
             evidence = get_labeling_evidence(field, soup)
 
             if evidence:
+                # Plusieurs mécanismes peuvent être valides pour un même champ.
                 labelled_fields += 1
 
                 continue
@@ -82,6 +87,7 @@ class Criterion111:
                 )
             )
 
+        # Un seul champ sans étiquette suffit à faire échouer le test.
         if findings:
             status = TestStatus.FAIL
             summary = (

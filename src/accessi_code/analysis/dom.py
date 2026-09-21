@@ -4,7 +4,8 @@ from __future__ import annotations
 from bs4 import BeautifulSoup, Tag
 
 
-# Types de champs de formulaire pris en charge
+# Les contrôles qui ne recueillent pas de valeur utilisateur ne sont pas
+# concernés par le test d'étiquetage des champs de formulaire.
 FORM_FIELD_SELECTORS = (
     "input:not([type='hidden']):not([type='submit'])"
     ":not([type='reset']):not([type='button'])"
@@ -20,6 +21,8 @@ def find_form_fields(soup: BeautifulSoup) -> list[Tag]:
     fields: list[Tag] = []
 
     for selector in FORM_FIELD_SELECTORS:
+        # Un sélecteur par type permet de conserver une liste homogène de
+        # champs tout en excluant les boutons et les champs cachés.
         fields.extend(soup.select(selector))
 
     return fields
@@ -76,6 +79,7 @@ def get_labelledby_text(
     referenced_elements: list[Tag] = []
 
     for identifier in identifiers:
+        # Chaque identifiant doit pointer vers un élément existant et lisible.
         referenced = soup.find(id=identifier)
 
         if not isinstance(referenced, Tag):
@@ -155,6 +159,8 @@ def get_labeling_evidence(
 
     evidence: list[str] = []
 
+    # Chaque mécanisme est vérifié séparément afin de conserver toutes les
+    # preuves disponibles dans le résultat d'analyse.
     labelledby_valid, _ = get_labelledby_text(element, soup)
 
     if labelledby_valid:
