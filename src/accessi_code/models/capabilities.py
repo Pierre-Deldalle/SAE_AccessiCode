@@ -1,10 +1,14 @@
+"""Capacités nécessaires à l'exécution des contrôles d'accessibilité."""
+
 from enum import Enum
 
 
 class Capability(str, Enum):
     """
-    Représente une information ou une capacité disponible
-    pour l'exécution des tests RGAA.
+    Représente une information ou une capacité disponible pour un test RGAA.
+
+    Les valeurs futures permettent de réserver les noms des ressources qui
+    seront produites par les prochaines étapes d'analyse.
     """
 
     SOURCE_FILES = "source_files"

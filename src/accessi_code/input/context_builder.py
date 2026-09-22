@@ -1,3 +1,5 @@
+"""Construction du contexte d'audit à partir des fichiers importés."""
+
 from pathlib import Path
 
 from accessi_code.input.extractors.html import extract_html
@@ -19,6 +21,8 @@ class AuditContextBuilder:
         self,
         workspace_root: Path,
     ):
+        """Crée un builder qui stockera les audits sous ``workspace_root``."""
+
         self.collector = FileCollector(
             workspace_root=workspace_root
         )
@@ -30,6 +34,13 @@ class AuditContextBuilder:
         """
         Construit un contexte complet à partir
         des fichiers reçus.
+
+        Args:
+            input_files: Fichiers source à copier et analyser.
+
+        Returns:
+            Le contexte contenant les fichiers copiés, les images détectées
+            et le premier document HTML extrait, le cas échéant.
         """
 
         (
@@ -53,7 +64,10 @@ class AuditContextBuilder:
         context: AuditContext,
     ) -> None:
         """
-        Extrait les informations utiles de chaque fichier.
+        Extrait les informations utiles de chaque fichier du contexte.
+
+        Les fichiers HTML sont analysés uniquement pour le premier document
+        détecté ; tous les fichiers image sont conservés dans ``image_files``.
         """
 
         html_files = [
@@ -89,6 +103,10 @@ class AuditContextBuilder:
 
         Pour le prototype, le premier fichier HTML
         rencontré est considéré comme la page principale.
+
+        Args:
+            context: Contexte à enrichir en place.
+            html_path: Chemin du document HTML à analyser.
         """
 
         extraction = extract_html(

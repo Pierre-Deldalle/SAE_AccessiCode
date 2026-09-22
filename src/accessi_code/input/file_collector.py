@@ -1,3 +1,5 @@
+"""Import et isolation des fichiers d'un audit."""
+
 import mimetypes
 import shutil
 import uuid
@@ -9,9 +11,17 @@ from accessi_code.models.audit_file import AuditFile
 class FileCollector:
     """
     Prépare les fichiers d'un audit dans un workspace dédié.
+
+    Le collecteur ne déplace ni ne modifie les fichiers d'origine : il crée
+    une copie dans ``<workspace_root>/audits/<audit_id>/source``.
+
+    Attributes:
+        workspace_root: Répertoire parent des workspaces d'audit.
     """
 
     def __init__(self, workspace_root: Path):
+        """Initialise un collecteur utilisant le workspace indiqué."""
+
         self.workspace_root = workspace_root
 
     def collect(
@@ -21,10 +31,16 @@ class FileCollector:
         """
         Copie les fichiers reçus dans un nouveau workspace.
 
+        Args:
+            input_files: Chemins des fichiers à importer. L'ordre est
+                conservé dans la liste retournée.
+
         Returns:
-            audit_id
-            workspace_path
-            liste des AuditFile créés
+            Un tuple contenant l'identifiant d'audit, le chemin du workspace
+            créé et les métadonnées des fichiers copiés.
+
+        Raises:
+            FileNotFoundError: Si l'un des fichiers d'entrée n'existe pas.
         """
 
         audit_id = uuid.uuid4().hex
@@ -87,8 +103,10 @@ class FileCollector:
         filename: str,
     ) -> Path:
         """
-        Évite d'écraser un fichier si plusieurs fichiers
-        possèdent le même nom.
+        Retourne un chemin libre sans écraser un fichier existant.
+
+        En cas de collision, un suffixe numérique est ajouté au nom de base
+        (par exemple ``style.css``, puis ``style_1.css``).
         """
 
         destination = directory / filename

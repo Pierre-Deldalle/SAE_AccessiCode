@@ -1,3 +1,5 @@
+"""Affiche le contenu extrait d'un audit local pour faciliter le debug."""
+
 from pathlib import Path
 
 from accessi_code.input.context_builder import (

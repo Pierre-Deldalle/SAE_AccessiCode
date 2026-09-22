@@ -1,3 +1,5 @@
+"""Contexte de travail partagé par les étapes d'un audit."""
+
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -9,10 +11,22 @@ from accessi_code.models.capabilities import Capability
 @dataclass
 class AuditContext:
     """
-    Regroupe toutes les informations disponibles pour réaliser
-    un audit d'accessibilité.
+    Regroupe les fichiers et les ressources extraites pour un audit.
 
-    L'objet est construit avant l'exécution des tests RGAA.
+    Le contexte est construit avant l'exécution des tests RGAA. Les champs
+    optionnels sont remplis progressivement par les extracteurs ; les
+    capacités retournées par :meth:`get_capabilities` reflètent cet état.
+
+    Attributes:
+        audit_id: Identifiant unique de l'audit.
+        workspace_path: Répertoire de travail contenant les copies importées.
+        files: Fichiers importés et leurs métadonnées.
+        html_path: Chemin du premier document HTML détecté, s'il existe.
+        html_source: Contenu source du document HTML principal.
+        dom: Arbre DOM BeautifulSoup du document HTML principal.
+        doctype: Déclaration DOCTYPE extraite du document HTML.
+        image_files: Chemins des fichiers reconnus comme images.
+        screenshots: Chemins des captures disponibles pour l'audit.
     """
 
     audit_id: str
@@ -37,8 +51,11 @@ class AuditContext:
 
     def get_capabilities(self) -> set[Capability]:
         """
-        Retourne les capacités disponibles à partir
-        des informations présentes dans le contexte.
+        Calcule les capacités disponibles dans l'état courant.
+
+        Returns:
+            Un ensemble de capacités. Une liste vide ne donne aucune capacité,
+            tandis que les champs HTML et DOM sont évalués indépendamment.
         """
 
         capabilities: set[Capability] = set()
@@ -62,7 +79,13 @@ class AuditContext:
 
     def has_capability(self, capability: Capability) -> bool:
         """
-        Vérifie si une capacité est disponible.
+        Vérifie la présence d'une capacité particulière.
+
+        Args:
+            capability: Capacité à rechercher.
+
+        Returns:
+            ``True`` si la capacité est disponible, sinon ``False``.
         """
 
         return capability in self.get_capabilities()
@@ -72,7 +95,14 @@ class AuditContext:
         capabilities: set[Capability],
     ) -> bool:
         """
-        Vérifie si toutes les capacités demandées sont disponibles.
+        Vérifie que toutes les capacités demandées sont disponibles.
+
+        Args:
+            capabilities: Ensemble des capacités requises.
+
+        Returns:
+            ``True`` si l'ensemble demandé est inclus dans les capacités
+            courantes. Un ensemble vide est donc toujours satisfait.
         """
 
         available = self.get_capabilities()
