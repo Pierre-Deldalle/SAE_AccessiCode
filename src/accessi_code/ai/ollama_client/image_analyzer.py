@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 from pathlib import Path
 from urllib.parse import urlparse
@@ -131,9 +132,7 @@ class OllamaImageAnalyzer:
         # relancer l'analyse avec une autre image ou un autre contexte.
         for prompt in (IMAGE_INFORMATION_PROMPT, strict_prompt):
             try:
-                response = await self.vlm.generate(
-                    prompt, image=image_input, format="json", max_tokens=800, temperature=0
-                )
+                response = await self._generate_vlm_with_retry(prompt, image_input)
                 return _json_object(response)
             except (json.JSONDecodeError, ValueError) as error:
                 last_error = error
@@ -150,10 +149,42 @@ class OllamaImageAnalyzer:
         # une consigne de format si la réponse JSON est inexploitable.
         for candidate in (prompt, strict_prompt):
             try:
-                response = await self.llm.generate(
-                    candidate, format="json", max_tokens=800, temperature=0
-                )
+                response = await self._generate_llm_with_retry(candidate)
                 return _json_object(response)
             except (json.JSONDecodeError, ValueError) as error:
                 last_error = error
         raise ValueError(f"Réponse JSON LLM inexploitable : {last_error}")
+
+    async def _generate_vlm_with_retry(self, prompt: str, image_input: str | bytes) -> str:
+        """Relance une génération vision après une coupure réseau transitoire."""
+        last_error: Exception | None = None
+        for attempt in range(2):
+            try:
+                return await self.vlm.generate(
+                    prompt, image=image_input, format="json", max_tokens=800, temperature=0
+                )
+            except (aiohttp.ClientError, OSError, asyncio.TimeoutError) as error:
+                last_error = error
+                if attempt == 0:
+                    await asyncio.sleep(0.5)
+        raise RuntimeError(
+            "La connexion avec Ollama a été interrompue pendant l'analyse de l'image. "
+            f"Vérifiez que le modèle de vision est disponible puis réessayez : {last_error}"
+        ) from last_error
+
+    async def _generate_llm_with_retry(self, prompt: str) -> str:
+        """Relance une génération texte après une coupure réseau transitoire."""
+        last_error: Exception | None = None
+        for attempt in range(2):
+            try:
+                return await self.llm.generate(
+                    prompt, format="json", max_tokens=800, temperature=0
+                )
+            except (aiohttp.ClientError, OSError, asyncio.TimeoutError) as error:
+                last_error = error
+                if attempt == 0:
+                    await asyncio.sleep(0.5)
+        raise RuntimeError(
+            "La connexion avec Ollama a été interrompue pendant l'analyse de la description. "
+            f"Vérifiez que le modèle textuel est disponible puis réessayez : {last_error}"
+        ) from last_error

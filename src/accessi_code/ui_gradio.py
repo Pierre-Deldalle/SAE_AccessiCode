@@ -22,12 +22,17 @@ from src.accessi_code.ollama_client.vlm import OllamaVLM
 # L'analyseur 1.7.1 combine les observations visuelles de Qwen et
 # la comparaison des descriptions réalisée par Gemma.
 from src.accessi_code.ai.ollama_client.image_analyzer import OllamaImageAnalyzer
+from src.accessi_code.ai.ollama_client.page_analyzer import OllamaPageAnalyzer
 from src.accessi_code.tests.theme_01_images.critere_1_1_1 import Criterion111
 from src.accessi_code.tests.theme_01_images.critere_1_1_2 import Criterion112
 from src.accessi_code.tests.theme_01_images.critere_1_1_3 import Criterion113
-from src.accessi_code.tests.theme_01_images.criterion_1_7 import Criterion17
+from accessi_code.tests.theme_01_images.criterion_1_7_1 import Criterion17
 from src.accessi_code.tests.theme_05_tableaux.criterion_5_1_1 import Criterion511
 from src.accessi_code.tests.theme_08_elements_obligatoires.criterion_8_1_1 import Criterion811
+# Ces deux critères utilisent le LLM pour comparer les informations textuelles
+# de la page, contrairement aux contrôles purement structurels du DOM.
+from src.accessi_code.tests.theme_08_elements_obligatoires.criterion_8_4_1 import Criterion841
+from src.accessi_code.tests.theme_08_elements_obligatoires.criterion_8_6_1 import Criterion861
 from src.accessi_code.tests.theme_11_formulaires.criterion_11_1_1 import Criterion111 as Criterion111Form
 
 # Initialisation du service métier d'audit
@@ -36,6 +41,8 @@ vlm_client = OllamaVLM(host=settings.OLLAMA_HOST, model=settings.VLM_MODEL)
 # Le même client LLM est partagé avec l'audit général pour éviter de recréer
 # une connexion et une configuration de modèle à chaque image.
 image_analyzer = OllamaImageAnalyzer(vlm_client, audit_service.llm)
+page_analyzer = OllamaPageAnalyzer(audit_service.llm)
+# Tous les critères sont instanciés une seule fois puis exécutés à chaque audit.
 DOM_CRITERIA = (
     Criterion111(),
     Criterion112(),
@@ -43,6 +50,8 @@ DOM_CRITERIA = (
     Criterion17(),
     Criterion511(),
     Criterion811(),
+    Criterion841(),
+    Criterion861(),
     Criterion111Form(),
 )
 
@@ -93,6 +102,22 @@ def run_dom_criteria(
                 ))
 
             result = criterion.run(html_text, analyzer=analyze_image, base_dir=base_dir)
+        elif isinstance(criterion, Criterion841):
+            # Le critère reste synchrone ; asyncio fait le pont vers Ollama.
+            result = criterion.run(
+                html_text,
+                analyzer=lambda lang, content: asyncio.run(
+                    page_analyzer.analyze_language(lang, content)
+                ),
+            )
+        elif isinstance(criterion, Criterion861):
+            # Le même analyseur partagé évite de recréer le client LLM.
+            result = criterion.run(
+                html_text,
+                analyzer=lambda title, heading, content: asyncio.run(
+                    page_analyzer.analyze_title(title, heading, content)
+                ),
+            )
         else:
             result = criterion.run(html_text)
         serialized = asdict(result)

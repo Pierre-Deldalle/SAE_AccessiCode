@@ -1,7 +1,7 @@
 from accessi_code.ai.schemas import DescriptionAnalysis
 from accessi_code.analysis.images import extract_images
 from accessi_code.models.result import TestStatus as ResultStatus
-from accessi_code.tests.theme_01_images.criterion_1_7 import Criterion17
+from accessi_code.tests.theme_01_images.criterion_1_7_1 import Criterion17
 
 
 # Vérifie que les sources de descriptions sont extraites séparément et que

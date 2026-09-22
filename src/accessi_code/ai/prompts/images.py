@@ -19,6 +19,8 @@ missing_information, contradictions, uncertainties et confidence.
 Une description n'est pas pertinente uniquement parce qu'elle partage des mots
 avec l'image. Utilise null si les preuves sont insuffisantes et ne prétends pas
 avoir vérifié une information absente des entrées.
+Rédige explanation en français, avec une phrase courte et directement exploitable.
+N'utilise pas de LaTeX, de symboles mathématiques ni de caractères de contrôle.
 
 Rôle apparent : {image_role}
 Description : {description}

@@ -32,3 +32,31 @@ class DescriptionAnalysis:
     uncertainties: list[str] = field(default_factory=list)
     # Indication qualitative à afficher avec prudence dans le rapport.
     confidence: AIConfidence = "low"
+
+
+@dataclass
+class LanguageAnalysis:
+    """Résultat de la comparaison IA entre lang et le contenu principal."""
+
+    # None indique que le modèle ne dispose pas de suffisamment d'éléments.
+    relevant: bool | None
+    # Langue détectée par le modèle, par exemple ``fr`` ou ``en``.
+    detected_language: str
+    explanation: str
+    # Points qui empêchent éventuellement une conclusion certaine.
+    uncertainties: list[str] = field(default_factory=list)
+    # Confiance déclarée par le modèle, sans valeur statistique.
+    confidence: AIConfidence = "low"
+
+
+@dataclass
+class TitleAnalysis:
+    """Résultat de l'évaluation IA de la pertinence du titre de page."""
+
+    # None permet de distinguer l'incertitude d'un titre réellement incorrect.
+    relevant: bool | None
+    explanation: str
+    # Contradictions et incertitudes sont conservées comme éléments de preuve.
+    contradictions: list[str] = field(default_factory=list)
+    uncertainties: list[str] = field(default_factory=list)
+    confidence: AIConfidence = "low"
