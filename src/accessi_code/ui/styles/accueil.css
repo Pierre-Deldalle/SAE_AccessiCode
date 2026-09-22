@@ -1,3 +1,9 @@
+/*
+Styles spécifiques à la page d'accueil :
+mise en page, titre, logo et bouton principal.
+*/
+
+/* Conteneur principal de la page d'accueil. */
 #accueil-page {
     position: relative;
 
@@ -17,6 +23,7 @@
     background: #ffffff !important;
 }
 
+/* Titre de bienvenue. */
 #welcome-title {
     text-align: center !important;
     margin: 0 !important;
@@ -32,6 +39,8 @@
 
     color: #10243a !important;
 }
+
+/* Logo principal. */
 #accueil-logo {
     width: clamp(300px, 25vw, 430px) !important;
     max-width: 430px !important;
@@ -46,6 +55,7 @@
     object-fit: contain !important;
 }
 
+/* Bouton principal d'accès à l'application. */
 #accueil-button {
     width: clamp(220px, 18vw, 280px) !important;
 
@@ -67,10 +77,12 @@
     cursor: pointer;
 }
 
+/* Retour visuel au survol. */
 #accueil-button:hover {
     background: #158fa1 !important;
 }
 
+/* Indicateur visible pour la navigation clavier. */
 #accueil-button:focus-visible {
     outline: 3px solid #005fcc !important;
     outline-offset: 3px !important;

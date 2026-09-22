@@ -1,9 +1,16 @@
+/*
+Styles globaux de l'interface AccessiCode :
+polices, dimensions générales, fond et comportement de la page.
+*/
+
+/* Polices utilisées par la charte graphique. */
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@400;500;600;700&display=swap");
 
 * {
     box-sizing: border-box;
 }
 
+/* Variables globales pour réutiliser facilement les polices. */
 :root {
     --font-title: "Sora", sans-serif;
     --font-body: "Inter", sans-serif;
@@ -17,7 +24,9 @@ body {
     margin: 0 !important;
     padding: 0 !important;
 
+    /* Évite l'apparition d'une barre de défilement globale inutile. */
     overflow: hidden !important;
+
     font-family: var(--font-body) !important;
 }
 
@@ -35,6 +44,7 @@ body {
     font-family: var(--font-body) !important;
 }
 
+/* Cache le footer ajouté automatiquement par Gradio. */
 footer {
     display: none !important;
 }
