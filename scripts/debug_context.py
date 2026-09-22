@@ -6,7 +6,6 @@ from accessi_code.input.context_builder import (
     AuditContextBuilder,
 )
 
-
 builder = AuditContextBuilder(
     workspace_root=Path("workspace"),
 )

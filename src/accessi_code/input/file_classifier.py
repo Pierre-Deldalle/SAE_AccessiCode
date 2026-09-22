@@ -2,7 +2,6 @@
 
 from pathlib import Path
 
-
 HTML_EXTENSIONS = {".html", ".htm"}
 
 IMAGE_EXTENSIONS = {
