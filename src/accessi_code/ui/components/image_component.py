@@ -9,6 +9,7 @@ def create_image(
     height: int | None = None,
     width: int | None = None,
     elem_id: str | None = None,
+    elem_classes: list[str] | None = None,
 ) -> gr.Image:
     return gr.Image(
         value=str(image_path),
@@ -17,5 +18,7 @@ def create_image(
         show_label=False,
         interactive=False,
         container=False,
+        buttons=[],
         elem_id=elem_id,
+        elem_classes=elem_classes,
     )
