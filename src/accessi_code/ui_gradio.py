@@ -19,9 +19,13 @@ import gradio as gr
 from src.accessi_code.service.core import AuditService
 from src.accessi_code.config import settings
 from src.accessi_code.ollama_client.vlm import OllamaVLM
+# L'analyseur 1.7.1 combine les observations visuelles de Qwen et
+# la comparaison des descriptions réalisée par Gemma.
+from src.accessi_code.ai.ollama_client.image_analyzer import OllamaImageAnalyzer
 from src.accessi_code.tests.theme_01_images.critere_1_1_1 import Criterion111
 from src.accessi_code.tests.theme_01_images.critere_1_1_2 import Criterion112
 from src.accessi_code.tests.theme_01_images.critere_1_1_3 import Criterion113
+from src.accessi_code.tests.theme_01_images.criterion_1_7 import Criterion17
 from src.accessi_code.tests.theme_05_tableaux.criterion_5_1_1 import Criterion511
 from src.accessi_code.tests.theme_08_elements_obligatoires.criterion_8_1_1 import Criterion811
 from src.accessi_code.tests.theme_11_formulaires.criterion_11_1_1 import Criterion111 as Criterion111Form
@@ -29,21 +33,68 @@ from src.accessi_code.tests.theme_11_formulaires.criterion_11_1_1 import Criteri
 # Initialisation du service métier d'audit
 audit_service = AuditService()
 vlm_client = OllamaVLM(host=settings.OLLAMA_HOST, model=settings.VLM_MODEL)
+# Le même client LLM est partagé avec l'audit général pour éviter de recréer
+# une connexion et une configuration de modèle à chaque image.
+image_analyzer = OllamaImageAnalyzer(vlm_client, audit_service.llm)
 DOM_CRITERIA = (
     Criterion111(),
     Criterion112(),
     Criterion113(),
+    Criterion17(),
     Criterion511(),
     Criterion811(),
     Criterion111Form(),
 )
 
 
-def run_dom_criteria(html_text: str) -> list[dict]:
+def run_dom_criteria(
+    html_text: str,
+    base_dir: str | None = None,
+    asset_paths: list[str] | None = None,
+) -> list[dict]:
     """Exécute les critères DOM commencés sur le HTML fourni."""
+    asset_by_name = {
+        Path(path).name: path
+        for path in (asset_paths or [])
+        if path
+    }
     results = []
     for criterion in DOM_CRITERIA:
-        result = criterion.run(html_text)
+        if isinstance(criterion, Criterion17):
+            def analyze_image(image, description):
+                # Le HTML fournit le src ; on résout ensuite ce src vers le
+                # fichier local avant de transmettre l'image au modèle de vision.
+                image_path = image.image_path
+                if not image_path or not Path(image_path).is_file():
+                    image_path = asset_by_name.get(Path(image.src).name)
+                if not image_path or not Path(image_path).is_file():
+                    project_asset = ROOT_DIR / "test" / Path(image.src).name
+                    if project_asset.is_file():
+                        image_path = str(project_asset)
+                if not image_path or not Path(image_path).is_file():
+                    raise FileNotFoundError(
+                        f"Image référencée introuvable : {image.src}. "
+                        "Téléversez-la dans les ressources image."
+                    )
+                # Le critère reste synchrone, tandis que les clients Ollama
+                # sont asynchrones : ce pont exécute une analyse complète.
+                return asyncio.run(image_analyzer.analyze(
+                    image.__class__(
+                        src=image_path,
+                        alt=image.alt,
+                        element_html=image.element_html,
+                        descriptions=image.descriptions,
+                        context_text=image.context_text,
+                        index=image.index,
+                        image_path=image_path,
+                        image_data=image.image_data,
+                    ),
+                    description,
+                ))
+
+            result = criterion.run(html_text, analyzer=analyze_image, base_dir=base_dir)
+        else:
+            result = criterion.run(html_text)
         serialized = asdict(result)
         serialized["status"] = result.status.value
         results.append(serialized)
@@ -53,9 +104,16 @@ def run_audit(html_text: str, file_obj):
     """
     Fonction d'audit déclenchée par l'UI.
     """
-    if file_obj is not None:
+    uploaded_files = file_obj if isinstance(file_obj, list) else [file_obj]
+    uploaded_files = [file for file in uploaded_files if file is not None]
+    html_file = next(
+        (file for file in uploaded_files if str(getattr(file, "name", file)).lower().endswith(".html")),
+        None,
+    )
+    if html_file is not None:
         try:
-            with open(file_obj.name, 'r', encoding='utf-8') as f:
+            html_path = getattr(html_file, "name", html_file)
+            with open(html_path, 'r', encoding='utf-8') as f:
                 html_text = f.read()
         except Exception as e:
             return f"Erreur de lecture du fichier : {str(e)}", []
@@ -63,7 +121,9 @@ def run_audit(html_text: str, file_obj):
     if not html_text or not html_text.strip():
         return "Veuillez coller du HTML ou charger un fichier .html.", []
 
-    dom_results = run_dom_criteria(html_text)
+    # Les chemins relatifs des images sont interprétés depuis le dossier HTML.
+    base_dir = str(Path(html_path).resolve().parent) if html_file is not None else None
+    dom_results = run_dom_criteria(html_text, base_dir=base_dir)
 
     try:
         llm_result = asyncio.run(audit_service.audit_html_content(html_text))
