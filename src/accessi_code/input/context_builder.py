@@ -23,9 +23,7 @@ class AuditContextBuilder:
     ):
         """Crée un builder qui stockera les audits sous ``workspace_root``."""
 
-        self.collector = FileCollector(
-            workspace_root=workspace_root
-        )
+        self.collector = FileCollector(workspace_root=workspace_root)
 
     def build(
         self,
@@ -70,22 +68,11 @@ class AuditContextBuilder:
         détecté ; tous les fichiers image sont conservés dans ``image_files``.
         """
 
-        html_files = [
-            file
-            for file in context.files
-            if is_html_file(file.path)
-        ]
+        html_files = [file for file in context.files if is_html_file(file.path)]
 
-        image_files = [
-            file
-            for file in context.files
-            if is_image_file(file.path)
-        ]
+        image_files = [file for file in context.files if is_image_file(file.path)]
 
-        context.image_files = [
-            file.path
-            for file in image_files
-        ]
+        context.image_files = [file.path for file in image_files]
 
         if html_files:
             self._extract_main_html(
@@ -109,9 +96,7 @@ class AuditContextBuilder:
             html_path: Chemin du document HTML à analyser.
         """
 
-        extraction = extract_html(
-            html_path
-        )
+        extraction = extract_html(html_path)
 
         context.html_path = html_path
         context.html_source = extraction.source

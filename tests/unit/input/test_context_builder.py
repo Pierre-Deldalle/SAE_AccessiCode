@@ -120,10 +120,7 @@ def test_context_contains_all_input_files(tmp_path: Path):
 
     assert len(context.files) == 4
 
-    original_names = {
-        file.original_name
-        for file in context.files
-    }
+    original_names = {file.original_name for file in context.files}
 
     assert original_names == {
         "index.html",
@@ -164,19 +161,14 @@ def test_image_files_are_detected(tmp_path: Path):
 
     assert len(context.image_files) == 2
 
-    names = {
-        image.name
-        for image in context.image_files
-    }
+    names = {image.name for image in context.image_files}
 
     assert names == {
         "logo.png",
         "banner.webp",
     }
 
-    assert context.has_capability(
-        Capability.IMAGES
-    )
+    assert context.has_capability(Capability.IMAGES)
 
 
 def test_no_images_means_no_image_capability(tmp_path: Path):
@@ -192,9 +184,7 @@ def test_no_images_means_no_image_capability(tmp_path: Path):
 
     assert context.image_files == []
 
-    assert not context.has_capability(
-        Capability.IMAGES
-    )
+    assert not context.has_capability(Capability.IMAGES)
 
 
 def test_context_without_html_is_still_created(tmp_path: Path):
@@ -212,21 +202,13 @@ def test_context_without_html_is_still_created(tmp_path: Path):
     assert context.dom is None
     assert context.doctype is None
 
-    assert context.has_capability(
-        Capability.SOURCE_FILES
-    )
+    assert context.has_capability(Capability.SOURCE_FILES)
 
-    assert context.has_capability(
-        Capability.IMAGES
-    )
+    assert context.has_capability(Capability.IMAGES)
 
-    assert not context.has_capability(
-        Capability.HTML_SOURCE
-    )
+    assert not context.has_capability(Capability.HTML_SOURCE)
 
-    assert not context.has_capability(
-        Capability.DOM
-    )
+    assert not context.has_capability(Capability.DOM)
 
 
 def test_empty_input_creates_empty_context(tmp_path: Path):
@@ -262,9 +244,7 @@ def test_non_html_files_are_preserved(tmp_path: Path):
     assert context.html_source is None
     assert context.dom is None
 
-    assert context.has_capability(
-        Capability.SOURCE_FILES
-    )
+    assert context.has_capability(Capability.SOURCE_FILES)
 
 
 def test_multiple_html_files_use_first_one(tmp_path: Path):

@@ -45,11 +45,7 @@ class FileCollector:
 
         audit_id = uuid.uuid4().hex
 
-        workspace_path = (
-            self.workspace_root
-            / "audits"
-            / audit_id
-        )
+        workspace_path = self.workspace_root / "audits" / audit_id
 
         source_path = workspace_path / "source"
 
@@ -64,9 +60,7 @@ class FileCollector:
             input_path = Path(input_path)
 
             if not input_path.exists():
-                raise FileNotFoundError(
-                    f"Le fichier n'existe pas : {input_path}"
-                )
+                raise FileNotFoundError(f"Le fichier n'existe pas : {input_path}")
 
             destination = self._get_unique_destination(
                 source_path,
@@ -78,9 +72,7 @@ class FileCollector:
                 destination,
             )
 
-            mime_type, _ = mimetypes.guess_type(
-                destination
-            )
+            mime_type, _ = mimetypes.guess_type(destination)
 
             audit_files.append(
                 AuditFile(
@@ -119,9 +111,7 @@ class FileCollector:
         index = 1
 
         while True:
-            candidate = directory / (
-                f"{original.stem}_{index}{original.suffix}"
-            )
+            candidate = directory / (f"{original.stem}_{index}{original.suffix}")
 
             if not candidate.exists():
                 return candidate

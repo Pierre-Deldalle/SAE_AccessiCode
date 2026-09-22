@@ -25,10 +25,7 @@ print(f"DOCTYPE : {context.doctype}")
 
 print("\n=== FICHIERS ===")
 for file in context.files:
-    print(
-        f"- {file.original_name} "
-        f"({file.mime_type}) -> {file.path}"
-    )
+    print(f"- {file.original_name} ({file.mime_type}) -> {file.path}")
 
 print("\n=== IMAGES ===")
 for image in context.image_files:

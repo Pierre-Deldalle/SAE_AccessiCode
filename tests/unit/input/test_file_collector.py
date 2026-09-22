@@ -149,11 +149,7 @@ def test_audit_file_metadata_is_created(tmp_path: Path):
 
 
 def test_missing_input_file_raises_error(tmp_path: Path):
-    missing_file = (
-        tmp_path
-        / "inputs"
-        / "does_not_exist.html"
-    )
+    missing_file = tmp_path / "inputs" / "does_not_exist.html"
 
     collector = create_collector(tmp_path)
 
@@ -188,20 +184,14 @@ def test_files_with_same_name_are_not_overwritten(tmp_path: Path):
 
     assert len(files) == 2
 
-    stored_names = {
-        file.path.name
-        for file in files
-    }
+    stored_names = {file.path.name for file in files}
 
     assert stored_names == {
         "style.css",
         "style_1.css",
     }
 
-    contents = {
-        file.path.read_text(encoding="utf-8")
-        for file in files
-    }
+    contents = {file.path.read_text(encoding="utf-8") for file in files}
 
     assert contents == {
         "body { color: red; }",
