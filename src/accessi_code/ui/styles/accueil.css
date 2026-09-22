@@ -1,0 +1,77 @@
+#accueil-page {
+    position: relative;
+
+    width: 100% !important;
+    height: 100vh !important;
+
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    gap: 30px;
+
+    margin: 0 !important;
+    padding: 40px !important;
+
+    background: #ffffff !important;
+}
+
+#welcome-title {
+    text-align: center !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+#welcome-title h2 {
+    font-family: var(--font-title) !important;
+
+    margin: 0 !important;
+    font-size: clamp(28px, 2.5vw, 42px) !important;
+    font-weight: 600 !important;
+
+    color: #10243a !important;
+}
+#accueil-logo {
+    width: clamp(300px, 25vw, 430px) !important;
+    max-width: 430px !important;
+
+    margin: 0 auto !important;
+}
+
+#accueil-logo img {
+    width: 100% !important;
+    height: auto !important;
+
+    object-fit: contain !important;
+}
+
+#accueil-button {
+    width: clamp(220px, 18vw, 280px) !important;
+
+    min-height: 62px !important;
+
+    margin: 0 auto !important;
+
+    background: #1aa3b8 !important;
+
+    border: 1px solid #777777 !important;
+    border-radius: 3px !important;
+
+    color: #000000 !important;
+
+    font-family: var(--font-body) !important;
+    font-size: 19px !important;
+    font-weight: 400 !important;
+
+    cursor: pointer;
+}
+
+#accueil-button:hover {
+    background: #158fa1 !important;
+}
+
+#accueil-button:focus-visible {
+    outline: 3px solid #005fcc !important;
+    outline-offset: 3px !important;
+}
