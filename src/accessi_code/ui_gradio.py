@@ -19,6 +19,7 @@ import gradio as gr
 from src.accessi_code.service.core import AuditService
 from src.accessi_code.config import settings
 from src.accessi_code.ollama_client.vlm import OllamaVLM
+from src.accessi_code.service.vision import VisionAuditService
 # L'analyseur 1.7.1 combine les observations visuelles de Qwen et
 # la comparaison des descriptions réalisée par Gemma.
 from src.accessi_code.ai.ollama_client.image_analyzer import OllamaImageAnalyzer
@@ -38,6 +39,7 @@ from src.accessi_code.tests.theme_11_formulaires.criterion_11_1_1 import Criteri
 # Initialisation du service métier d'audit
 audit_service = AuditService()
 vlm_client = OllamaVLM(host=settings.OLLAMA_HOST, model=settings.VLM_MODEL)
+vision_audit_service = VisionAuditService(vlm_client)
 # Le même client LLM est partagé avec l'audit général pour éviter de recréer
 # une connexion et une configuration de modèle à chaque image.
 image_analyzer = OllamaImageAnalyzer(vlm_client, audit_service.llm)
@@ -176,19 +178,26 @@ def run_audit(html_text: str, file_obj):
     return json_formatted, table_data
 
 
-def test_vlm(image_file, prompt: str):
-    """Envoie une image au VLM pour tester directement le modèle configuré."""
+def test_vlm(image_file):
+    """Lance l'audit vision structuré sur l'image fournie."""
     if image_file is None:
-        return "Veuillez charger une image."
-
-    if not prompt or not prompt.strip():
-        prompt = "Décris cette image en une phrase et indique son texte alternatif accessible."
+        return "Veuillez charger une image.", []
 
     try:
-        response = asyncio.run(vlm_client.generate(prompt=prompt, image=image_file))
-        return response
+        result = asyncio.run(vision_audit_service.audit_image(image_file))
+        table_data = [
+            [
+                test["test_id"],
+                test["status"],
+                test["tested_elements"],
+                test["summary"],
+                test["issues_found"],
+            ]
+            for test in result["tests"]
+        ]
+        return json.dumps(result, indent=2, ensure_ascii=False), table_data
     except Exception as e:
-        return f"Erreur lors de l'exécution du test VLM : {str(e)}"
+        return f"Erreur lors de l'exécution du test VLM : {str(e)}", []
 
 
 def build_ui():
@@ -232,13 +241,13 @@ def build_ui():
                             file_types=["image"],
                             type="filepath"
                         )
-                        vlm_prompt_input = gr.Textbox(
-                            label="Prompt VLM",
-                            value="Décris cette image en une phrase et indique son texte alternatif accessible."
-                        )
-                        btn_vlm = gr.Button("🔍 Tester le VLM", variant="primary")
+                        btn_vlm = gr.Button("🔍 Lancer l'audit VLM", variant="primary")
 
                     with gr.Column(scale=1):
+                        vlm_dataframe_output = gr.Dataframe(
+                            headers=["Critère", "Statut", "Éléments testés", "Résumé", "Anomalies"],
+                            label="Résultats de l'audit VLM"
+                        )
                         vlm_output = gr.Textbox(
                             label="Réponse du VLM",
                             lines=12
@@ -251,8 +260,8 @@ def build_ui():
         )
         btn_vlm.click(
             fn=test_vlm,
-            inputs=[vlm_image_input, vlm_prompt_input],
-            outputs=[vlm_output]
+            inputs=[vlm_image_input],
+            outputs=[vlm_output, vlm_dataframe_output]
         )
     return demo
 
