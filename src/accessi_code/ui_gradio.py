@@ -19,6 +19,7 @@ import gradio as gr
 from src.accessi_code.service.core import AuditService
 from src.accessi_code.config import settings
 from src.accessi_code.ollama_client.vlm import OllamaVLM
+from src.accessi_code.service.vision import VisionAuditService
 # L'analyseur 1.7.1 combine les observations visuelles de Qwen et
 # la comparaison des descriptions réalisée par Gemma.
 from src.accessi_code.ai.ollama_client.image_analyzer import OllamaImageAnalyzer
@@ -38,6 +39,7 @@ from src.accessi_code.tests.theme_11_formulaires.criterion_11_1_1 import Criteri
 # Initialisation du service métier d'audit
 audit_service = AuditService()
 vlm_client = OllamaVLM(host=settings.OLLAMA_HOST, model=settings.VLM_MODEL)
+vision_audit_service = VisionAuditService(vlm_client)
 # Le même client LLM est partagé avec l'audit général pour éviter de recréer
 # une connexion et une configuration de modèle à chaque image.
 image_analyzer = OllamaImageAnalyzer(vlm_client, audit_service.llm)
@@ -62,6 +64,8 @@ def run_dom_criteria(
     asset_paths: list[str] | None = None,
 ) -> list[dict]:
     """Exécute les critères DOM commencés sur le HTML fourni."""
+    # Les ressources éventuellement téléversées servent de solution de
+    # secours lorsque le src HTML ne pointe pas directement vers un fichier.
     asset_by_name = {
         Path(path).name: path
         for path in (asset_paths or [])
@@ -129,6 +133,8 @@ def run_audit(html_text: str, file_obj):
     """
     Fonction d'audit déclenchée par l'UI.
     """
+    # Gradio peut fournir un fichier unique ou une liste selon le composant
+    # utilisé ; on uniformise la valeur avant de chercher le document HTML.
     uploaded_files = file_obj if isinstance(file_obj, list) else [file_obj]
     uploaded_files = [file for file in uploaded_files if file is not None]
     html_file = next(
@@ -148,6 +154,8 @@ def run_audit(html_text: str, file_obj):
 
     # Les chemins relatifs des images sont interprétés depuis le dossier HTML.
     base_dir = str(Path(html_path).resolve().parent) if html_file is not None else None
+    # Les critères DOM sont déterministes ; l'audit LLM complète ensuite les
+    # contrôles qui nécessitent une interprétation sémantique.
     dom_results = run_dom_criteria(html_text, base_dir=base_dir)
 
     try:
@@ -172,23 +180,34 @@ def run_audit(html_text: str, file_obj):
         for dom_result in dom_results
     ]
 
+    # Le JSON conserve les détails, tandis que le tableau facilite la lecture
+    # rapide du statut de chaque critère.
     json_formatted = json.dumps(result, indent=2, ensure_ascii=False)
     return json_formatted, table_data
 
 
-def test_vlm(image_file, prompt: str):
-    """Envoie une image au VLM pour tester directement le modèle configuré."""
+def test_vlm(image_file):
+    """Lance l'audit vision structuré sur l'image fournie."""
     if image_file is None:
-        return "Veuillez charger une image."
-
-    if not prompt or not prompt.strip():
-        prompt = "Décris cette image en une phrase et indique son texte alternatif accessible."
+        return "Veuillez charger une image.", []
 
     try:
-        response = asyncio.run(vlm_client.generate(prompt=prompt, image=image_file))
-        return response
+        result = asyncio.run(vision_audit_service.audit_image(image_file))
+        # Le service renvoie un résultat par critère, avec le même format de
+        # colonnes que le tableau de l'audit HTML.
+        table_data = [
+            [
+                test["test_id"],
+                test["status"],
+                test["tested_elements"],
+                test["summary"],
+                test["issues_found"],
+            ]
+            for test in result["tests"]
+        ]
+        return json.dumps(result, indent=2, ensure_ascii=False), table_data
     except Exception as e:
-        return f"Erreur lors de l'exécution du test VLM : {str(e)}"
+        return f"Erreur lors de l'exécution du test VLM : {str(e)}", []
 
 
 def build_ui():
@@ -199,6 +218,8 @@ def build_ui():
         gr.Markdown("# ♿ AccessiCode - Audit d'accessibilité Web")
         gr.Markdown("Application de bureau pour l'audit d'accessibilité des images HTML.")
 
+        # Les deux onglets partagent une présentation identique : saisie à
+        # gauche, résultats détaillés et synthèse tabulaire à droite.
         with gr.Tabs():
             with gr.Tab("LLM - Audit HTML"):
                 with gr.Row():
@@ -232,18 +253,19 @@ def build_ui():
                             file_types=["image"],
                             type="filepath"
                         )
-                        vlm_prompt_input = gr.Textbox(
-                            label="Prompt VLM",
-                            value="Décris cette image en une phrase et indique son texte alternatif accessible."
-                        )
-                        btn_vlm = gr.Button("🔍 Tester le VLM", variant="primary")
+                        btn_vlm = gr.Button("🔍 Lancer l'audit VLM", variant="primary")
 
                     with gr.Column(scale=1):
+                        vlm_dataframe_output = gr.Dataframe(
+                            headers=["Critère", "Statut", "Éléments testés", "Résumé", "Anomalies"],
+                            label="Résultats de l'audit VLM"
+                        )
                         vlm_output = gr.Textbox(
                             label="Réponse du VLM",
                             lines=12
                         )
 
+        # Chaque événement associe les entrées de son onglet à ses sorties.
         btn_audit.click(
             fn=run_audit,
             inputs=[html_input, file_input],
@@ -251,8 +273,8 @@ def build_ui():
         )
         btn_vlm.click(
             fn=test_vlm,
-            inputs=[vlm_image_input, vlm_prompt_input],
-            outputs=[vlm_output]
+            inputs=[vlm_image_input],
+            outputs=[vlm_output, vlm_dataframe_output]
         )
     return demo
 
@@ -263,7 +285,8 @@ def launch_desktop():
     """
     demo = build_ui()
 
-    # 1. Démarrage de Gradio dans un thread secondaire
+    # Gradio tourne en arrière-plan pour laisser la boucle native de pywebview
+    # gérer la fenêtre sans bloquer le serveur local.
     thread = threading.Thread(
         target=lambda: demo.launch(
             server_name="127.0.0.1",
@@ -275,10 +298,10 @@ def launch_desktop():
     )
     thread.start()
 
-    # 2. Attente de l'initialisation du serveur HTTP local
+    # L'attente laisse le temps au serveur Gradio de commencer à écouter.
     time.sleep(1.2)
 
-    # 3. Création et ouverture de la fenêtre Desktop native
+    # La fenêtre native expose l'interface Gradio locale à l'utilisateur.
     window = webview.create_window(
         title="AccessiCode - Desktop App",
         url="http://127.0.0.1:7860",
