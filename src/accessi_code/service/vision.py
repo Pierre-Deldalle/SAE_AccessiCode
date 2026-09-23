@@ -13,6 +13,7 @@ from ..ollama_client.vlm import OllamaVLM
 
 
 VLM_TESTS = (
+    # Cette liste impose le même périmètre de critères que le tableau LLM.
     ("1.1.1", "Alternative textuelle des images (attribut non visible)"),
     ("1.1.2", "Pertinence de l'alternative des images (contenu visuel)"),
     ("1.1.3", "Alternative des images contenant du texte"),
@@ -35,6 +36,8 @@ def _json_object(value: str) -> dict[str, Any]:
     try:
         result = json.loads(text)
     except json.JSONDecodeError:
+        # Les modèles peuvent produire un JSON presque valide ; la réparation
+        # évite de perdre tout le rapport pour une erreur de ponctuation.
         result = json.loads(repair_json(text))
     if not isinstance(result, dict):
         raise ValueError("La réponse IA n'est pas un objet JSON.")
@@ -49,6 +52,8 @@ class VisionAuditService:
 
     @staticmethod
     def _audit_prompt() -> str:
+        # Le catalogue est injecté dans le prompt pour obtenir un résultat
+        # séparé et comparable pour chaque critère du tableau.
         criteria = "\n".join(
             f"- {test_id} : {description}" for test_id, description in VLM_TESTS
         )
@@ -74,6 +79,8 @@ class VisionAuditService:
             return 0
 
     async def audit_image(self, image: str | Path | bytes | bytearray) -> dict[str, Any]:
+        # Le format JSON réduit le travail de parsing et rend la réponse
+        # directement exploitable par l'interface Gradio.
         response = await self.vlm.generate(
             prompt=self._audit_prompt(),
             image=image,
@@ -82,10 +89,12 @@ class VisionAuditService:
             temperature=0,
         )
         data = _json_object(response)
+        # Toute valeur inattendue est ramenée à un statut prudent.
         status = data.get("status", "INCONCLUSIF")
         if status not in {"CONFORME", "NON_CONFORME", "INCONCLUSIF"}:
             status = "INCONCLUSIF"
 
+        # On normalise les anomalies avant de les exposer au reste de l'app.
         findings = data.get("findings", [])
         if not isinstance(findings, list):
             findings = []
@@ -105,6 +114,8 @@ class VisionAuditService:
         recommendations = data.get("recommendations", [])
         if not isinstance(recommendations, list):
             recommendations = []
+        # Le modèle peut oublier un test : le dictionnaire permet de retrouver
+        # rapidement ceux présents et de compléter les autres ci-dessous.
         raw_tests = data.get("tests", [])
         tests_by_id = {
             test.get("test_id"): test
@@ -114,6 +125,8 @@ class VisionAuditService:
         tests = []
         for test_id, description in VLM_TESTS:
             test = tests_by_id.get(test_id, {})
+            # Un critère absent de la réponse reste visible dans le tableau,
+            # mais avec un statut INCONCLUSIF plutôt qu'un verdict inventé.
             test_status = test.get("status", "INCONCLUSIF")
             if test_status not in {"CONFORME", "NON_CONFORME", "INCONCLUSIF"}:
                 test_status = "INCONCLUSIF"
@@ -125,6 +138,8 @@ class VisionAuditService:
                 "issues_found": self._number(test.get("issues_found", 0)),
             })
 
+        # Les compteurs sont convertis en entiers pour éviter les valeurs
+        # invalides ou négatives dans le rapport et le Dataframe.
         elements_analyzed = self._number(data.get("elements_analyzed", 0))
 
         return {

@@ -64,6 +64,8 @@ def run_dom_criteria(
     asset_paths: list[str] | None = None,
 ) -> list[dict]:
     """Exécute les critères DOM commencés sur le HTML fourni."""
+    # Les ressources éventuellement téléversées servent de solution de
+    # secours lorsque le src HTML ne pointe pas directement vers un fichier.
     asset_by_name = {
         Path(path).name: path
         for path in (asset_paths or [])
@@ -131,6 +133,8 @@ def run_audit(html_text: str, file_obj):
     """
     Fonction d'audit déclenchée par l'UI.
     """
+    # Gradio peut fournir un fichier unique ou une liste selon le composant
+    # utilisé ; on uniformise la valeur avant de chercher le document HTML.
     uploaded_files = file_obj if isinstance(file_obj, list) else [file_obj]
     uploaded_files = [file for file in uploaded_files if file is not None]
     html_file = next(
@@ -150,6 +154,8 @@ def run_audit(html_text: str, file_obj):
 
     # Les chemins relatifs des images sont interprétés depuis le dossier HTML.
     base_dir = str(Path(html_path).resolve().parent) if html_file is not None else None
+    # Les critères DOM sont déterministes ; l'audit LLM complète ensuite les
+    # contrôles qui nécessitent une interprétation sémantique.
     dom_results = run_dom_criteria(html_text, base_dir=base_dir)
 
     try:
@@ -174,6 +180,8 @@ def run_audit(html_text: str, file_obj):
         for dom_result in dom_results
     ]
 
+    # Le JSON conserve les détails, tandis que le tableau facilite la lecture
+    # rapide du statut de chaque critère.
     json_formatted = json.dumps(result, indent=2, ensure_ascii=False)
     return json_formatted, table_data
 
@@ -185,6 +193,8 @@ def test_vlm(image_file):
 
     try:
         result = asyncio.run(vision_audit_service.audit_image(image_file))
+        # Le service renvoie un résultat par critère, avec le même format de
+        # colonnes que le tableau de l'audit HTML.
         table_data = [
             [
                 test["test_id"],
@@ -208,6 +218,8 @@ def build_ui():
         gr.Markdown("# ♿ AccessiCode - Audit d'accessibilité Web")
         gr.Markdown("Application de bureau pour l'audit d'accessibilité des images HTML.")
 
+        # Les deux onglets partagent une présentation identique : saisie à
+        # gauche, résultats détaillés et synthèse tabulaire à droite.
         with gr.Tabs():
             with gr.Tab("LLM - Audit HTML"):
                 with gr.Row():
@@ -253,6 +265,7 @@ def build_ui():
                             lines=12
                         )
 
+        # Chaque événement associe les entrées de son onglet à ses sorties.
         btn_audit.click(
             fn=run_audit,
             inputs=[html_input, file_input],
@@ -272,7 +285,8 @@ def launch_desktop():
     """
     demo = build_ui()
 
-    # 1. Démarrage de Gradio dans un thread secondaire
+    # Gradio tourne en arrière-plan pour laisser la boucle native de pywebview
+    # gérer la fenêtre sans bloquer le serveur local.
     thread = threading.Thread(
         target=lambda: demo.launch(
             server_name="127.0.0.1",
@@ -284,10 +298,10 @@ def launch_desktop():
     )
     thread.start()
 
-    # 2. Attente de l'initialisation du serveur HTTP local
+    # L'attente laisse le temps au serveur Gradio de commencer à écouter.
     time.sleep(1.2)
 
-    # 3. Création et ouverture de la fenêtre Desktop native
+    # La fenêtre native expose l'interface Gradio locale à l'utilisateur.
     window = webview.create_window(
         title="AccessiCode - Desktop App",
         url="http://127.0.0.1:7860",
