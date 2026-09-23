@@ -6,6 +6,7 @@ import gradio as gr
 
 from accessi_code.ui.components.bouton_component import create_button
 from accessi_code.ui.components.file_drop_component import create_file_drop
+from accessi_code.ui.components.texte_box_component import create_textbox
 
 
 def build_application_page():
@@ -38,10 +39,8 @@ def build_application_page():
                 elem_id="website-title",
             )
 
-            website_input = gr.Textbox(
+            website_input = create_textbox(
                 placeholder="https://www.exemple.com",
-                show_label=False,
-                container=False,
                 elem_id="website-input",
             )
 
