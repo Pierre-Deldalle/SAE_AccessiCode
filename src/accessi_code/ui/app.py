@@ -7,6 +7,7 @@ from pathlib import Path
 import gradio as gr
 
 from accessi_code.ui.pages.accueil import build_accueil_page
+from accessi_code.ui.pages.application import build_application_page
 
 
 # Répertoires utilisés pour retrouver les fichiers CSS de l'interface.
@@ -25,11 +26,20 @@ def load_css(*filenames: str) -> str:
     return "\n".join(css_parts)
 
 
-# Styles globaux et spécifiques à la page d'accueil.
+# Styles globaux et spécifiques aux pages.
 CSS = load_css(
     "global.css",
     "accueil.css",
+    "application.css",
 )
+
+
+def open_application():
+    """Cache l'accueil et affiche l'application."""
+    return (
+        gr.update(visible=False),
+        gr.update(visible=True),
+    )
 
 
 def create_app():
@@ -39,11 +49,26 @@ def create_app():
         css=CSS,
         theme=gr.themes.Base(),
     ) as app:
-        # Ajoute la page d'accueil à l'application.
-        build_accueil_page()
+
+        # Page d'accueil.
+        accueil_page, start_button = build_accueil_page()
+
+        # Deuxième interface.
+        application_page, files_input, file_button, help_button = (
+            build_application_page()
+        )
+
+        # Navigation accueil -> application.
+        start_button.click(
+            fn=open_application,
+            inputs=[],
+            outputs=[
+                accueil_page,
+                application_page,
+            ],
+        )
 
     return app
-
 
 if __name__ == "__main__":
     create_app().launch()

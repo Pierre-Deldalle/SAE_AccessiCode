@@ -4,8 +4,16 @@ Lance l'interface Gradio dans une fenêtre desktop avec PyWebView.
 
 import threading
 import time
+import sys
+from pathlib import Path
 
 import webview
+
+# Permet le lancement direct avec `python src/accessi_code/ui/desktop.py`.
+# Dans ce cas, Python ajoute le dossier `ui` au chemin, mais pas `src`.
+SRC_DIR = Path(__file__).resolve().parents[2]
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
 
 from accessi_code.ui.app import create_app
 
