@@ -30,4 +30,5 @@ dist/
 .DS_Store
 Thumbs.db
 
+# Workspace d'audits
 workspace/audits/*

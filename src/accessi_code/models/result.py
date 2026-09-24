@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -12,7 +11,8 @@ class TestStatus(str, Enum):
     FAIL = "fail"
     NOT_APPLICABLE = "not_applicable"
     NOT_TESTED = "not_tested"
-    INCONCLUSIVE = "inconclusive"
+    NEEDS_REVIEW = "needs_review"
+    ERROR = "error"
 
 
 @dataclass
