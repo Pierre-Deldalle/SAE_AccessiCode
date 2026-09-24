@@ -1,4 +1,4 @@
-from typing import Any, Dict, List
+"""from typing import Any, Dict, List
 
 class AuditStorage:
     def __init__(self):
@@ -8,4 +8,4 @@ class AuditStorage:
         self._audits.append(audit_result)
 
     def get_all_audits(self) -> List[Dict[str, Any]]:
-        return self._audits
+        return self._audits"""

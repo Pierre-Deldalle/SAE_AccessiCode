@@ -1,125 +1,221 @@
-
 from __future__ import annotations
 
 from bs4 import BeautifulSoup, Tag
 
 
-def find_tables(soup: BeautifulSoup) -> list[Tag]:
-    """Retourne les tableaux HTML et les éléments role=table."""
-
-    # Les tableaux natifs et les tableaux ARIA doivent être analysés.
-    return soup.select("table, [role='table']")
-
-
-def get_table_rows(table: Tag) -> list[Tag]:
+def find_tables(
+    soup: BeautifulSoup,
+) -> list[Tag]:
     """
-    Retourne les lignes d'un tableau.
-
-    Supporte les tableaux HTML natifs et les structures
-    utilisant role=table.
+    Retourne les tableaux HTML natifs et les tableaux ARIA.
     """
+    return list(
+        soup.select(
+            "table, [role='table']"
+        )
+    )
 
-    return table.find_all("tr")
+
+def get_table_rows(
+    table: Tag,
+) -> list[Tag]:
+    """
+    Retourne les lignes d'un tableau natif ou ARIA.
+    """
+    rows: list[Tag] = []
+
+    for element in table.find_all(
+        [
+            "tr",
+            "div",
+        ]
+    ):
+        if element.name == "tr":
+            rows.append(element)
+
+        elif (
+            element.get("role")
+            == "row"
+        ):
+            rows.append(element)
+
+    return rows
 
 
-def get_row_cells(row: Tag) -> list[Tag]:
-    """Retourne les cellules d'une ligne."""
+def get_row_cells(
+    row: Tag,
+) -> list[Tag]:
+    """
+    Retourne les cellules directes d'une ligne HTML ou ARIA.
+    """
+    cells: list[Tag] = []
 
-    return row.find_all(["th", "td"], recursive=False)
+    for element in row.find_all(
+        recursive=False
+    ):
+        if not isinstance(
+            element,
+            Tag,
+        ):
+            continue
+
+        if element.name in {
+            "th",
+            "td",
+        }:
+            cells.append(element)
+
+        elif element.get(
+            "role"
+        ) in {
+            "cell",
+            "columnheader",
+            "rowheader",
+        }:
+            cells.append(element)
+
+    return cells
 
 
 def get_int_attribute(
     element: Tag,
     attribute_name: str,
 ) -> int:
-    """Retourne un attribut entier positif ou 1 par défaut."""
+    """
+    Retourne un attribut entier strictement positif.
 
-    value = element.get(attribute_name)
+    Une valeur manquante ou invalide correspond à 1.
+    """
+    value = element.get(
+        attribute_name
+    )
 
     try:
-        parsed = int(str(value))
-        return parsed if parsed > 0 else 1
-    except (TypeError, ValueError):
+        parsed = int(
+            str(value)
+        )
+
+    except (
+        TypeError,
+        ValueError,
+    ):
         return 1
 
+    return (
+        parsed
+        if parsed > 0
+        else 1
+    )
 
-def has_complex_header_structure(table: Tag) -> bool:
+
+def is_header_cell(
+    cell: Tag,
+) -> bool:
     """
-    Heuristique pour détecter un tableau potentiellement complexe.
-
-    Indices utilisés :
-    - Une cellule th après la première ligne.
-    - Un rowspan ou colspan supérieur à 1.
+    Détermine si une cellule représente un en-tête.
     """
+    return (
+        cell.name == "th"
+        or cell.get("role")
+        in {
+            "columnheader",
+            "rowheader",
+        }
+    )
 
-    rows = get_table_rows(table)
+
+def has_complex_header_structure(
+    table: Tag,
+) -> bool:
+    """
+    Détecte plusieurs indices de structure potentiellement complexe.
+
+    Il s'agit volontairement d'une heuristique et non d'un verdict RGAA.
+    """
+    rows = get_table_rows(
+        table
+    )
 
     if not rows:
         return False
 
-    has_header = False
+    for row_index, row in enumerate(
+        rows
+    ):
+        cells = get_row_cells(
+            row
+        )
 
-    for row_index, row in enumerate(rows):
-        cells = get_row_cells(row)
-
-        for column_index, cell in enumerate(cells):
-            if cell.name != "th":
+        for cell in cells:
+            if not is_header_cell(
+                cell
+            ):
                 continue
 
-            has_header = True
+            rowspan = get_int_attribute(
+                cell,
+                "rowspan",
+            )
 
-            # Une fusion de cellules révèle une structure de relations entre
-            # plusieurs lignes ou colonnes, caractéristique d'un tableau complexe.
-            rowspan = get_int_attribute(cell, "rowspan")
-            colspan = get_int_attribute(cell, "colspan")
+            colspan = get_int_attribute(
+                cell,
+                "colspan",
+            )
 
-            if rowspan > 1 or colspan > 1:
+            if (
+                rowspan > 1
+                or colspan > 1
+            ):
                 return True
 
             if row_index > 0:
                 return True
 
-    return False if has_header else False
+    return False
 
 
 def get_referenced_text(
     element: Tag,
     soup: BeautifulSoup,
+    attribute_name: str = "aria-describedby",
 ) -> tuple[bool, str]:
     """
-    Résout les identifiants d'un attribut aria-describedby.
-
-    Retourne :
-        (références présentes et non vides, texte)
+    Résout une liste d'identifiants référencés par un attribut ARIA.
     """
-
-    value = element.get("aria-describedby")
-
-    if not isinstance(value, str) or not value.strip():
-        return False, ""
-
-    identifiers = value.split()
-    referenced_elements: list[Tag] = []
-
-    for identifier in identifiers:
-        # Toutes les références doivent être résolues pour que le nom associé
-        # au tableau soit considéré comme exploitable.
-        referenced = soup.find(id=identifier)
-
-        if not isinstance(referenced, Tag):
-            return False, ""
-
-        referenced_elements.append(referenced)
-
-    text = " ".join(
-        referenced.get_text(" ", strip=True)
-        for referenced in referenced_elements
+    value = element.get(
+        attribute_name
     )
 
-    if not text.strip():
+    if (
+        not isinstance(value, str)
+        or not value.strip()
+    ):
         return False, ""
 
-    return True, text
+    texts: list[str] = []
+
+    for identifier in value.split():
+        referenced = soup.find(
+            id=identifier
+        )
+
+        if not isinstance(
+            referenced,
+            Tag,
+        ):
+            return False, ""
+
+        text = referenced.get_text(
+            " ",
+            strip=True,
+        )
+
+        if not text:
+            return False, ""
+
+        texts.append(text)
+
+    return True, " ".join(texts)
 
 
 def get_table_summary_evidence(
@@ -127,31 +223,51 @@ def get_table_summary_evidence(
     soup: BeautifulSoup,
 ) -> list[str]:
     """
-    Retourne les mécanismes de résumé détectés pour un tableau.
+    Retourne les mécanismes de description/résumé détectés.
 
-    Mécanismes :
-    - caption
-    - summary (ancien HTML/XHTML)
-    - aria-describedby
+    Cette fonction collecte uniquement des preuves structurelles.
     """
-
     evidence: list[str] = []
 
-    # Plusieurs mécanismes peuvent coexister : on conserve toutes les preuves.
-    caption = table.find("caption", recursive=False)
+    caption = table.find(
+        "caption",
+        recursive=False,
+    )
 
-    if isinstance(caption, Tag):
-        if caption.get_text(" ", strip=True):
-            evidence.append("caption")
+    if (
+        isinstance(caption, Tag)
+        and caption.get_text(
+            " ",
+            strip=True,
+        )
+    ):
+        evidence.append(
+            "caption"
+        )
 
-    summary = table.get("summary")
+    summary = table.get(
+        "summary"
+    )
 
-    if isinstance(summary, str) and summary.strip():
-        evidence.append("summary")
+    if (
+        isinstance(summary, str)
+        and summary.strip()
+    ):
+        evidence.append(
+            "summary"
+        )
 
-    aria_valid, _ = get_referenced_text(table, soup)
+    aria_valid, _ = (
+        get_referenced_text(
+            table,
+            soup,
+            "aria-describedby",
+        )
+    )
 
     if aria_valid:
-        evidence.append("aria-describedby")
+        evidence.append(
+            "aria-describedby"
+        )
 
     return evidence

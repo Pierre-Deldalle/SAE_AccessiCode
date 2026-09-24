@@ -1,62 +1,109 @@
-"""Structures de réponses attendues des modèles d'analyse d'images."""
+from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Literal
 
-# Ce niveau indique la confiance déclarée par le modèle ; il ne constitue
-# pas une mesure statistique de conformité au RGAA.
-AIConfidence = Literal["low", "medium", "high"]
+
+AIConfidence = Literal[
+    "low",
+    "medium",
+    "high",
+]
 
 
 @dataclass
 class VisualObservation:
-    """Observations produites par le VLM, sans verdict de conformité."""
+    """
+    Observations produites par le VLM.
+
+    Ce modèle ne représente pas un verdict RGAA.
+    """
 
     summary: str
-    # Informations visibles que la description devrait idéalement couvrir.
-    important_information: list[str] = field(default_factory=list)
-    # Éléments flous, illisibles ou impossibles à confirmer dans l'image.
-    uncertainties: list[str] = field(default_factory=list)
+
+    important_information: list[str] = field(
+        default_factory=list
+    )
+
+    uncertainties: list[str] = field(
+        default_factory=list
+    )
 
 
 @dataclass
 class DescriptionAnalysis:
-    """Comparaison LLM entre une description, l'image et son contexte HTML."""
+    """
+    Comparaison entre une description textuelle et le contenu visuel.
+    """
 
-    # None est volontaire : le modèle peut manquer d'éléments pour conclure.
     relevant: bool | None
     explanation: str
-    # Preuves permettant d'expliquer un verdict négatif ou incertain.
-    missing_information: list[str] = field(default_factory=list)
-    contradictions: list[str] = field(default_factory=list)
-    uncertainties: list[str] = field(default_factory=list)
-    # Indication qualitative à afficher avec prudence dans le rapport.
+
+    missing_information: list[str] = field(
+        default_factory=list
+    )
+
+    contradictions: list[str] = field(
+        default_factory=list
+    )
+
+    uncertainties: list[str] = field(
+        default_factory=list
+    )
+
     confidence: AIConfidence = "low"
 
 
 @dataclass
 class LanguageAnalysis:
-    """Résultat de la comparaison IA entre lang et le contenu principal."""
+    """
+    Résultat de l'analyse sémantique de la langue principale.
+    """
 
-    # None indique que le modèle ne dispose pas de suffisamment d'éléments.
     relevant: bool | None
-    # Langue détectée par le modèle, par exemple ``fr`` ou ``en``.
     detected_language: str
     explanation: str
-    # Points qui empêchent éventuellement une conclusion certaine.
-    uncertainties: list[str] = field(default_factory=list)
-    # Confiance déclarée par le modèle, sans valeur statistique.
+
+    uncertainties: list[str] = field(
+        default_factory=list
+    )
+
     confidence: AIConfidence = "low"
 
 
 @dataclass
 class TitleAnalysis:
-    """Résultat de l'évaluation IA de la pertinence du titre de page."""
+    """
+    Résultat de l'analyse sémantique de la pertinence du titre.
+    """
 
-    # None permet de distinguer l'incertitude d'un titre réellement incorrect.
     relevant: bool | None
     explanation: str
-    # Contradictions et incertitudes sont conservées comme éléments de preuve.
-    contradictions: list[str] = field(default_factory=list)
-    uncertainties: list[str] = field(default_factory=list)
+
+    contradictions: list[str] = field(
+        default_factory=list
+    )
+
+    uncertainties: list[str] = field(
+        default_factory=list
+    )
+
+    confidence: AIConfidence = "low"
+
+@dataclass
+class ImageRoleAnalysis:
+    """
+    Résultat de l'analyse du rôle informationnel d'une image.
+
+    None indique que les informations disponibles ne permettent
+    pas de conclure avec suffisamment de confiance.
+    """
+
+    information_bearing: bool | None
+    explanation: str
+
+    uncertainties: list[str] = field(
+        default_factory=list
+    )
+
     confidence: AIConfidence = "low"

@@ -1,88 +1,118 @@
-"""Prompts spécialisés : audit visuel et comparaison textuelle."""
+IMAGE_INFORMATION_PROMPT = """
+Analyse uniquement le contenu visuel de l'image fournie dans le cadre
+d'une vérification d'accessibilité numérique.
 
-# Audit autonome de l'interface rendue, sans prompt fourni par l'utilisateur.
-IMAGE_AUDIT_PROMPT = """
-Tu es un auditeur expert en accessibilité web RGAA et WCAG.
-Analyse l'image comme si elle était la capture du rendu d'un document HTML.
-Repère les éléments visibles (textes, titres, boutons, liens, formulaires,
-images, tableaux, groupes et zones de navigation) et évalue uniquement ce qui
-peut être observé dans l'image. Tu dois exploiter les indices visuels : lis le
-texte pour identifier sa langue apparente, examine les contrastes entre texte
-et arrière-plan, la taille et la lisibilité des caractères, les états visibles
-des contrôles, la hiérarchie des titres, la structure apparente des tableaux,
-la présence d'images porteuses d'information et la complexité des images.
-N'invente pas le DOM, les attributs HTML, le clavier ou un comportement qui
-n'est pas visible.
+Retourne uniquement un objet JSON contenant exactement les champs suivants :
 
-Retourne exclusivement un objet JSON valide avec cette structure :
 {
-	"status": "INCONCLUSIF",
-	"summary": "résumé court de l'audit",
-	"elements_analyzed": 0,
-	"issues_found": 0,
-	"tests": [
-		{
-			"test_id": "1.1.1",
-			"status": "INCONCLUSIF",
-			"tested_elements": 0,
-			"summary": "résultat du critère",
-			"issues_found": 0
-		}
-	],
-	"findings": [
-		{
-			"test_id": "5.1.1",
-			"element": "élément visible concerné",
-			"issue": "problème observé ou null",
-			"recommendation": "correction HTML/CSS/ARIA proposée ou null",
-			"confidence": "low" ou "medium" ou "high"
-		}
-	],
-	"recommendations": ["correction prioritaire"]
+  "summary": "description générale du contenu et du rôle apparent de l'image",
+  "important_information": ["information importante 1", "information importante 2"],
+  "uncertainties": ["élément impossible à identifier avec certitude"]
 }
 
 Règles :
-- Pour les propriétés visuelles observables, rends un verdict lorsque les
-	indices sont suffisants. Signale notamment les contrastes insuffisants, les
-	textes trop petits ou illisibles, les titres ou contrôles ambigus, les
-	images porteuses d'information, les images complexes et les structures
-	difficiles à comprendre.
-- Pour les propriétés invisibles, ne prétends pas les avoir vérifiées :
-	l'attribut alt, lang, le doctype, les labels associés, l'ordre clavier et
-	les comportements au focus nécessitent le code ou une interaction. Utilise
-	INCONCLUSIF pour ces aspects, mais ne rends pas tout le critère inconclusif
-	si une partie visuelle du critère reste réellement évaluable.
-- Si un contraste ou un texte pose problème, crée une entrée dans findings et
-	incrémente issues_found. Ne te contente pas de le mentionner dans summary.
-- Pour chaque anomalie, explique le problème puis propose une correction
-	concrète sous forme HTML, CSS ou ARIA quand elle est pertinente.
-- Rédige tout le contenu en français, sans markdown ni commentaire hors JSON.
+- décris uniquement les éléments réellement observables ;
+- n'invente aucune information invisible ou illisible ;
+- indique dans uncertainties tout élément incertain ;
+- ne rends aucun verdict de conformité RGAA ;
+- ne propose aucune correction HTML ;
+- n'ajoute aucun commentaire en dehors du JSON.
 """.strip()
 
-# Qwen/VLM décrit uniquement ce qu'il observe dans l'image. Il ne rend pas de
-# verdict RGAA : ses observations servent ensuite de preuves à Gemma.
-IMAGE_INFORMATION_PROMPT = """
-Analyse l'image fournie pour une vérification d'accessibilité.
-Retourne uniquement un JSON avec summary, important_information et uncertainties.
-Décris les informations visuelles importantes, le rôle apparent de l'image et
-ce qui devrait figurer dans une description détaillée. Ne rends aucun verdict
-RGAA et n'invente pas les informations illisibles.
-""".strip()
 
-# Gemma/LLM compare les observations visuelles avec la description réellement
-# extraite du HTML et peut répondre null lorsque les éléments sont insuffisants.
 DETAILED_DESCRIPTION_PROMPT = """
-Compare la description détaillée à l'image et à son contexte HTML.
-Retourne uniquement un JSON avec relevant (true, false ou null), explanation,
-missing_information, contradictions, uncertainties et confidence.
-Une description n'est pas pertinente uniquement parce qu'elle partage des mots
-avec l'image. Utilise null si les preuves sont insuffisantes et ne prétends pas
-avoir vérifié une information absente des entrées.
-Rédige explanation en français, avec une phrase courte et directement exploitable.
-N'utilise pas de LaTeX, de symboles mathématiques ni de caractères de contrôle.
+Compare une description détaillée d'image avec les observations visuelles
+et le contexte HTML fournis.
 
-Rôle apparent : {image_role}
-Description : {description}
-Contexte HTML : {context}
-Observations visuelles : {visual_observations}
+Retourne uniquement un objet JSON contenant exactement les champs suivants :
+
+{
+  "relevant": true,
+  "explanation": "explication courte",
+  "missing_information": [],
+  "contradictions": [],
+  "uncertainties": [],
+  "confidence": "low"
+}
+
+Le champ relevant doit valoir :
+- true si la description est pertinente ;
+- false si elle est clairement insuffisante ou contradictoire ;
+- null si les informations disponibles ne permettent pas de conclure.
+
+Le champ confidence doit valoir uniquement :
+- "low"
+- "medium"
+- "high"
+
+Règles :
+- une description n'est pas pertinente uniquement parce qu'elle partage
+  des mots avec l'image ;
+- ne prétends jamais avoir observé une information absente des données ;
+- utilise null lorsque les preuves sont insuffisantes ;
+- rédige explanation en français ;
+- n'ajoute aucun texte en dehors du JSON.
+
+Rôle apparent de l'image :
+{image_role}
+
+Description détaillée :
+{description}
+
+Contexte HTML :
+{context}
+
+Observations visuelles :
+{visual_observations}
+""".strip()
+
+
+IMAGE_INFORMATION_ROLE_PROMPT = """
+Détermine si l'image analysée semble porteuse d'information dans le contexte
+de la page web.
+
+Une image est porteuse d'information lorsqu'elle transmet une information
+nécessaire ou utile à la compréhension du contenu ou à l'utilisation
+de la page.
+
+Une image purement décorative, qui pourrait être retirée sans perte
+d'information ou de fonctionnalité, n'est pas considérée comme porteuse
+d'information.
+
+Retourne uniquement un objet JSON sous cette forme :
+
+{
+  "information_bearing": true,
+  "explanation": "explication courte",
+  "uncertainties": [],
+  "confidence": "low"
+}
+
+Le champ information_bearing doit valoir :
+- true si l'image semble clairement porteuse d'information ;
+- false si elle semble clairement décorative ;
+- null si les informations disponibles ne permettent pas de conclure.
+
+Le champ confidence doit valoir uniquement :
+- "low"
+- "medium"
+- "high"
+
+Important :
+- utilise à la fois les observations visuelles et le contexte de la page ;
+- la présence ou l'absence d'un attribut alt ne doit pas servir à déterminer
+  si l'image est porteuse d'information ;
+- n'invente aucune information absente ;
+- utilise null en cas de doute ;
+- ne rends aucun verdict RGAA ;
+- n'ajoute aucun texte en dehors du JSON.
+
+Élément HTML :
+{element_html}
+
+Contexte textuel :
+{context}
+
+Observations visuelles :
+{visual_observations}
 """.strip()

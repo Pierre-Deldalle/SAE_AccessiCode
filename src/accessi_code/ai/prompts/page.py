@@ -1,24 +1,75 @@
-"""Prompts pour les vérifications sémantiques d'une page HTML."""
-
-# Prompt utilisé pour comparer la langue déclarée par la page à son contenu.
 LANGUAGE_PROMPT = """
-Compare le code de langue HTML avec la langue réellement utilisée dans le contenu principal.
-Retourne uniquement un JSON avec relevant (true, false ou null), detected_language,
-explanation, uncertainties et confidence.
-Considère le contenu fourni comme la source de vérité. Utilise null si le contenu est
-trop court, mélangé ou insuffisant pour identifier une langue avec confiance.
-Code lang HTML : {lang}
-Contenu principal : {content}
+Compare la langue déclarée par la page avec la langue réellement utilisée
+dans son contenu principal.
+
+Retourne uniquement un objet JSON contenant exactement :
+
+{
+  "relevant": true,
+  "detected_language": "fr",
+  "explanation": "explication courte",
+  "uncertainties": [],
+  "confidence": "low"
+}
+
+Le champ relevant doit valoir :
+- true si la langue déclarée correspond au contenu ;
+- false si elle ne correspond clairement pas ;
+- null si le contenu ne permet pas de conclure.
+
+Le champ confidence doit valoir uniquement :
+- "low"
+- "medium"
+- "high"
+
+Règles :
+- utilise le contenu fourni comme seule source d'information ;
+- utilise null si le texte est trop court, multilingue ou ambigu ;
+- ne rends aucun autre verdict RGAA ;
+- n'ajoute aucun texte en dehors du JSON.
+
+Langue déclarée :
+{lang}
+
+Contenu principal :
+{content}
 """.strip()
 
-# Prompt utilisé pour évaluer si le titre permet d'identifier la page.
+
 TITLE_PROMPT = """
-Évalue si le titre HTML est pertinent pour identifier la page.
-Compare le contenu de title au titre principal h1 et à l'objectif déductible du contenu.
-Retourne uniquement un JSON avec relevant (true, false ou null), explanation,
-contradictions, uncertainties et confidence.
-Utilise null si les éléments fournis ne permettent pas de conclure.
-Titre HTML : {title}
-Titre principal h1 : {heading}
-Contenu principal : {content}
+Évalue si le titre HTML fourni permet d'identifier correctement le contenu
+de la page.
+
+Retourne uniquement un objet JSON contenant exactement :
+
+{
+  "relevant": true,
+  "explanation": "explication courte",
+  "contradictions": [],
+  "uncertainties": [],
+  "confidence": "low"
+}
+
+Le champ relevant doit valoir :
+- true si le titre est pertinent ;
+- false s'il est clairement générique, trompeur ou sans rapport ;
+- null si le contenu ne permet pas de conclure.
+
+Le champ confidence doit valoir uniquement :
+- "low"
+- "medium"
+- "high"
+
+Compare notamment le titre HTML, le titre principal et le contenu de la page.
+
+N'ajoute aucun texte en dehors du JSON.
+
+Titre HTML :
+{title}
+
+Titre principal :
+{heading}
+
+Contenu principal :
+{content}
 """.strip()
