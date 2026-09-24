@@ -7,7 +7,7 @@ from pathlib import Path
 import gradio as gr
 
 from accessi_code.ui.pages.accueil import build_accueil_page
-from accessi_code.ui.pages.prepapration_audit import build_application_page
+from accessi_code.ui.pages.prepapration_audit import build_preparation_audit_page
 
 
 # Répertoires utilisés pour retrouver les fichiers CSS de l'interface.
@@ -30,7 +30,7 @@ def load_css(*filenames: str) -> str:
 CSS = load_css(
     "global.css",
     "accueil.css",
-    "application.css",
+    "preparation_audit.css",
 )
 
 
@@ -54,8 +54,8 @@ def create_app():
         accueil_page, start_button = build_accueil_page()
 
         # Deuxième interface.
-        application_page, files_input, file_button, help_button = (
-            build_application_page()
+        preparation_audit_page, website_input, files_input, validate_button, help_button = (
+            build_preparation_audit_page()
         )
 
         # Navigation accueil -> application.
@@ -64,7 +64,7 @@ def create_app():
             inputs=[],
             outputs=[
                 accueil_page,
-                application_page,
+                preparation_audit_page,
             ],
         )
 

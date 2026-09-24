@@ -9,7 +9,7 @@ from accessi_code.ui.components.file_drop_component import create_file_drop
 from accessi_code.ui.components.texte_box_component import create_textbox
 
 
-def build_application_page():
+def build_preparation_audit_page():
     """Crée l'interface principale de l'application."""
 
     with gr.Column(
@@ -47,6 +47,13 @@ def build_application_page():
                 elem_id="file-drop-zone",
             )
 
+            # Bouton de validation
+            validate_button = create_button(
+                "Lancer les audits",
+                variant="primary",
+                elem_id="validate-files-button",
+            )
+
         help_button = create_button(
             "?",
             elem_id="help-button",
@@ -56,5 +63,6 @@ def build_application_page():
         application_page,
         website_input,
         files_input,
+        validate_button,
         help_button,
     )

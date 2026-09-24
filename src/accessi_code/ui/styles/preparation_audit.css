@@ -8,7 +8,7 @@
     width: 100%;
     min-height: 100vh;
 
-    padding: 38px 70px 100px 70px;
+    padding: 22px 70px 70px 70px;
 
     background-color: #ffffff;
 }
@@ -21,7 +21,7 @@
 #application-title {
     text-align: center;
 
-    margin-bottom: 55px;
+    margin-bottom: 30px;
 }
 
 #application-title h1 {
@@ -59,6 +59,7 @@
 #website-title h3,
 #documents-title h3 {
     font-family: var(--font-title) !important;
+
     margin: 0 0 12px 0;
 
     font-size: 18px;
@@ -68,7 +69,7 @@
 }
 
 #documents-title {
-    margin-top: 35px;
+    margin-top: 25px;
 }
 
 
@@ -87,7 +88,7 @@
     border-radius: 10px !important;
 
     background-color: #f8fafb !important;
-    color : black !important;
+    color: black !important;
 
     box-shadow: none !important;
 
@@ -111,6 +112,7 @@
     padding: 0 !important;
 
     border: none !important;
+
     color: black !important;
 
     background: transparent !important;
@@ -128,7 +130,7 @@
 #file-drop-zone {
     width: 100%;
 
-    min-height: 390px;
+    min-height: 330px;
 
     border: 2px dashed #0CA0B0 !important;
     border-radius: 14px !important;
@@ -152,19 +154,21 @@
 }
 
 #file-drop-zone > div {
-    min-height: 390px !important;
+    min-height: 330px !important;
 
     background-color: transparent !important;
 }
 
 #file-drop-zone .wrap {
-    min-height: 390px !important;
+    min-height: 330px !important;
 
     background-color: transparent !important;
 }
 
 
-/* Texte interne Gradio */
+/* =========================
+   TEXTE INTERNE DRAG & DROP
+   ========================= */
 
 #file-drop-zone button {
     background: transparent !important;
@@ -183,6 +187,43 @@
 
 
 /* =========================
+   BOUTON VALIDATION FICHIERS
+   ========================= */
+
+#validate-files-button {
+    width: 220px !important;
+
+    margin: 15px auto 0 auto !important;
+
+    padding: 12px 24px !important;
+
+    border: none !important;
+    border-radius: 10px !important;
+
+    background-color: #0153C6 !important;
+
+    color: white !important;
+
+    font-size: 16px !important;
+    font-weight: 500 !important;
+
+    cursor: pointer;
+
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+
+    transition:
+        background-color 0.2s ease,
+        transform 0.2s ease;
+}
+
+#validate-files-button:hover {
+    background-color: #013e93 !important;
+
+    transform: translateY(-2px);
+}
+
+
+/* =========================
    BOUTON AIDE
    ========================= */
 
@@ -190,7 +231,7 @@
     position: absolute !important;
 
     right: 35px;
-    bottom: 75px;
+    bottom: 35px;
 
     width: 58px !important;
     min-width: 58px !important;
