@@ -1,0 +1,43 @@
+name: Generate User Guide
+
+on:
+  push:
+    paths:
+      - "src/accessi_code/docs/user-guide/**"
+
+jobs:
+  generate-guide:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Récupérer le projet
+        uses: actions/checkout@v4
+
+      - name: Installer Pandoc et LaTeX
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pandoc texlive-latex-base texlive-latex-recommended texlive-fonts-recommended
+
+      - name: Créer le dossier build
+        run: mkdir -p src/accessi_code/docs/user-guide/build
+
+      - name: Générer le HTML
+        run: |
+          pandoc src/accessi_code/docs/user-guide/guide_utilisateur.md \
+            -o src/accessi_code/docs/user-guide/build/guide_utilisateur.html \
+            --standalone \
+            --toc
+
+      - name: Générer le PDF
+        run: |
+          pandoc src/accessi_code/docs/user-guide/guide_utilisateur.md \
+            -o src/accessi_code/docs/user-guide/build/guide_utilisateur.pdf \
+            --toc
+
+      - name: Sauvegarder les fichiers générés
+        uses: actions/upload-artifact@v4
+        with:
+          name: guide-utilisateur
+          path: |
+            src/accessi_code/docs/user-guide/build/guide_utilisateur.html
+            src/accessi_code/docs/user-guide/build/guide_utilisateur.pdf

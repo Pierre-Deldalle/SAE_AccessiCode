@@ -32,3 +32,6 @@ Thumbs.db
 
 # Workspace d'audits
 workspace/audits/*
+
+#Dossier build de la documentation utilisateur
+src/accessi_code/docs/user-guide/build/
