@@ -13,6 +13,7 @@ class TestStatus(str, Enum):
     NEEDS_REVIEW = "needs_review"
     ERROR = "error"
 
+
 @dataclass
 class Finding:
     element: str
@@ -20,12 +21,13 @@ class Finding:
     recommendation: str | None = None
     evidence: dict[str, Any] = field(default_factory=dict)
 
+
 @dataclass
 class TestResult:
     test_id: str
     criterion_id: str
     status: TestStatus
     summary: str
-    findings: list[Finding]
-    tested_elements: int
-    metadata: dict[str, Any]
+    findings: list[Finding] = field(default_factory=list)
+    tested_elements: int = 0
+    metadata: dict[str, Any] = field(default_factory=dict)
