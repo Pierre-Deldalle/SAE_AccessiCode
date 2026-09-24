@@ -1,0 +1,141 @@
+/* =========================
+   PAGE EXPLICATIONS
+   ========================= */
+
+#explications-page {
+    position: relative;
+
+    width: 100%;
+    min-height: 100vh;
+
+    padding: 35px 55px 50px 55px;
+
+    background-color: #ffffff;
+}
+
+
+/* =========================
+   TITRE
+   ========================= */
+
+#explications-title {
+    text-align: center;
+
+    margin-bottom: 55px;
+}
+
+#explications-title h1 {
+    margin: 0;
+
+    font-family: var(--font-title) !important;
+
+    font-size: 32px;
+    font-weight: 500;
+
+    color: #151515;
+}
+
+
+/* =========================
+   BOUTON RETOUR
+   ========================= */
+
+#back-button {
+    position: absolute !important;
+
+    top: 20px;
+    left: 20px;
+
+    width: 55px !important;
+    min-width: 55px !important;
+
+    height: 42px !important;
+    min-height: 42px !important;
+
+    padding: 0 !important;
+
+    border: none !important;
+    border-radius: 4px !important;
+
+    background-color: #60bbc6 !important;
+
+    color: white !important;
+
+    font-size: 27px !important;
+
+    cursor: pointer;
+
+    transition:
+        background-color 0.2s ease,
+        transform 0.2s ease;
+}
+
+#back-button:hover {
+    background-color: #0ca0b0 !important;
+
+    transform: translateX(-2px);
+}
+
+
+/* =========================
+   PARTIE HAUTE
+   ========================= */
+
+#explications-top {
+    display: flex;
+
+    align-items: center;
+
+    gap: 80px;
+
+    margin-bottom: 45px;
+}
+
+
+/* =========================
+   TEXTE HAUT
+   ========================= */
+
+#explications-text-top {
+    flex: 1;
+
+    font-size: 16px;
+
+    line-height: 1.4;
+
+    color: #202020;
+}
+
+
+/* =========================
+   LOGO
+   ========================= */
+
+#explications-logo {
+    width: 290px !important;
+    max-width: 290px !important;
+
+    flex-shrink: 0;
+}
+
+#explications-logo img {
+    width: 100% !important;
+    height: auto !important;
+
+    object-fit: contain;
+}
+
+
+/* =========================
+   TEXTE BAS
+   ========================= */
+
+#explications-text-bottom {
+    width: 100%;
+
+    font-size: 16px;
+
+    line-height: 1.4;
+
+    color: #202020;
+}
