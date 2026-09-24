@@ -1,0 +1,226 @@
+/* =========================
+   PAGE
+   ========================= */
+
+#application-page {
+    position: relative;
+
+    width: 100%;
+    min-height: 100vh;
+
+    padding: 38px 70px 100px 70px;
+
+    background-color: #ffffff;
+}
+
+
+/* =========================
+   TITRE PRINCIPAL
+   ========================= */
+
+#application-title {
+    text-align: center;
+
+    margin-bottom: 55px;
+}
+
+#application-title h1 {
+    margin: 0;
+
+    font-size: 36px;
+    font-family: var(--font-title) !important;
+    font-weight: 600;
+
+    color: #151515;
+}
+
+
+/* =========================
+   CONTENU PRINCIPAL
+   ========================= */
+
+#application-content {
+    width: 90%;
+    max-width: 1350px;
+
+    margin: 0 auto;
+}
+
+
+/* =========================
+   TITRES
+   ========================= */
+
+#website-title,
+#documents-title {
+    margin: 0;
+}
+
+#website-title h3,
+#documents-title h3 {
+    font-family: var(--font-title) !important;
+    margin: 0 0 12px 0;
+
+    font-size: 18px;
+    font-weight: 500;
+
+    color: #202020;
+}
+
+#documents-title {
+    margin-top: 35px;
+}
+
+
+/* =========================
+   CHAMP URL
+   ========================= */
+
+#website-input {
+    width: 100%;
+
+    min-height: 52px;
+
+    padding: 0 16px !important;
+
+    border: 1px solid #d5dadd !important;
+    border-radius: 10px !important;
+
+    background-color: #f8fafb !important;
+    color : black !important;
+
+    box-shadow: none !important;
+
+    font-size: 15px !important;
+
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+#website-input:focus-within {
+    border-color: #21aebc !important;
+
+    box-shadow: 0 0 0 3px rgba(33, 174, 188, 0.12) !important;
+}
+
+#website-input textarea,
+#website-input input {
+    min-height: 52px !important;
+
+    padding: 0 !important;
+
+    border: none !important;
+    color: black !important;
+
+    background: transparent !important;
+
+    box-shadow: none !important;
+
+    font-size: 15px !important;
+}
+
+
+/* =========================
+   DRAG & DROP
+   ========================= */
+
+#file-drop-zone {
+    width: 100%;
+
+    min-height: 390px;
+
+    border: 2px dashed #0CA0B0 !important;
+    border-radius: 14px !important;
+
+    background-color: #0CA0B0 !important;
+
+    box-shadow: none !important;
+
+    overflow: hidden;
+
+    transition:
+        background-color 0.2s ease,
+        border-color 0.2s ease,
+        transform 0.2s ease;
+}
+
+#file-drop-zone:hover {
+    background-color: #60bbc6 !important;
+
+    border-color: #168f9d !important;
+}
+
+#file-drop-zone > div {
+    min-height: 390px !important;
+
+    background-color: transparent !important;
+}
+
+#file-drop-zone .wrap {
+    min-height: 390px !important;
+
+    background-color: transparent !important;
+}
+
+
+/* Texte interne Gradio */
+
+#file-drop-zone button {
+    background: transparent !important;
+
+    border: none !important;
+
+    box-shadow: none !important;
+
+    color: white !important;
+}
+
+#file-drop-zone span,
+#file-drop-zone p {
+    color: white !important;
+}
+
+
+/* =========================
+   BOUTON AIDE
+   ========================= */
+
+#help-button {
+    position: absolute !important;
+
+    right: 35px;
+    bottom: 75px;
+
+    width: 58px !important;
+    min-width: 58px !important;
+
+    height: 58px !important;
+    min-height: 58px !important;
+
+    padding: 0 !important;
+
+    border: 1px solid #0153C6 !important;
+    border-radius: 50% !important;
+
+    background-color: #0153C6 !important;
+
+    color: white !important;
+
+    font-size: 24px;
+    font-weight: 500;
+
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+
+    z-index: 100;
+
+    transition:
+        transform 0.2s ease,
+        background-color 0.2s ease;
+}
+
+#help-button:hover {
+    background-color: #013e93 !important;
+
+    transform: translateY(-2px);
+}
