@@ -31,12 +31,12 @@ from accessi_code.ai.analyzers.page_analyzer import (
 
 """@dataclass(slots=True)
 class AuditServices:
-    
+
     Services externes utilisables par les tests RGAA.
 
     Ils sont optionnels afin que les contrôles déterministes puissent
     fonctionner même lorsque les modèles IA ne sont pas disponibles.
-    
+
 
     image_analyzer: OllamaImageAnalyzer | None = None
 
@@ -44,12 +44,12 @@ class AuditServices:
 
 
 """def build_default_audit_services() -> AuditServices:
-    
+
     Construit les services IA configurés pour l'application.
 
     Les imports de configuration sont volontairement réalisés ici afin
     que l'import du moteur n'exige pas immédiatement un fichier .env.
-    
+
     from accessi_code.ai.clients.llm import (
         OllamaLLM,
     )
