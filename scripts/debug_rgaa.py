@@ -6,6 +6,7 @@ from typing import Any
 
 from debug_context import build_debug_context
 
+from accessi_code.config import settings
 from accessi_code.models.result import Finding, TestResult
 from accessi_code.rgaa.default_registry import build_default_registry
 from accessi_code.service.audit_service import AuditService
@@ -13,7 +14,6 @@ from accessi_code.service.audit_services import AuditServices
 from accessi_code.service.default_services import (
     build_default_audit_services,
 )
-from accessi_code.config import settings
 
 
 def print_separator(
@@ -28,52 +28,30 @@ def print_separator(
 def print_finding(
     finding: Finding,
 ) -> None:
-    print(
-        f"      Élément : {finding.element}"
-    )
+    print(f"      Élément : {finding.element}")
 
-    print(
-        f"      Message : {finding.message}"
-    )
+    print(f"      Message : {finding.message}")
 
     if finding.recommendation:
-        print(
-            f"      Recommandation : "
-            f"{finding.recommendation}"
-        )
+        print(f"      Recommandation : {finding.recommendation}")
 
     if finding.evidence:
-        print(
-            f"      Preuves : "
-            f"{finding.evidence}"
-        )
+        print(f"      Preuves : {finding.evidence}")
 
 
 def print_test_result(
     result: TestResult,
 ) -> None:
-    print(
-        f"  {result.test_id:<8} "
-        f"{result.status.value:<16} "
-        f"{result.summary}"
-    )
+    print(f"  {result.test_id:<8} {result.status.value:<16} {result.summary}")
 
     if result.tested_elements:
-        print(
-            f"      Éléments testés : "
-            f"{result.tested_elements}"
-        )
+        print(f"      Éléments testés : {result.tested_elements}")
 
     for finding in result.findings:
-        print_finding(
-            finding
-        )
+        print_finding(finding)
 
     if result.metadata:
-        print(
-            f"      Métadonnées : "
-            f"{result.metadata}"
-        )
+        print(f"      Métadonnées : {result.metadata}")
 
 
 def build_services(
@@ -107,25 +85,15 @@ async def run_debug(
 
     context = build_debug_context(site_name)
 
-    print_separator(
-        "AUDIT CONTEXT"
-    )
+    print_separator("AUDIT CONTEXT")
 
-    print(
-        f"Audit ID  : {context.audit_id}"
-    )
+    print(f"Audit ID  : {context.audit_id}")
 
-    print(
-        f"Workspace : {context.workspace_path}"
-    )
+    print(f"Workspace : {context.workspace_path}")
 
-    print(
-        f"HTML      : {context.html_path}"
-    )
+    print(f"HTML      : {context.html_path}")
 
-    print(
-        f"DOCTYPE   : {context.doctype}"
-    )
+    print(f"DOCTYPE   : {context.doctype}")
 
     print()
     print("Capabilities :")
@@ -134,9 +102,7 @@ async def run_debug(
         context.get_capabilities(),
         key=lambda item: item.value,
     ):
-        print(
-            f"- {capability.value}"
-        )
+        print(f"- {capability.value}")
 
     # ---------------------------------------------------------
     # US 0.0.2 : vrais tests RGAA
@@ -144,61 +110,35 @@ async def run_debug(
 
     registry = build_default_registry()
 
-    print_separator(
-        "REGISTRE RGAA"
-    )
+    print_separator("REGISTRE RGAA")
 
-    print(
-        f"{len(registry)} test(s) enregistré(s)"
-    )
+    print(f"{len(registry)} test(s) enregistré(s)")
 
     for test in registry:
-        required = sorted(
-            capability.value
-            for capability
-            in test.required_capabilities
-        )
+        required = sorted(capability.value for capability in test.required_capabilities)
 
-        optional = sorted(
-            capability.value
-            for capability
-            in test.optional_capabilities
-        )
+        optional = sorted(capability.value for capability in test.optional_capabilities)
 
-        print(
-            f"- {test.test_id}"
-            f" | critère {test.criterion_id}"
-            f" | requis={required}"
-            f" | optionnel={optional}"
-        )
+        print(f"- {test.test_id} | critère {test.criterion_id} | requis={required} | optionnel={optional}")
 
     # ---------------------------------------------------------
     # Services IA
     # ---------------------------------------------------------
 
-    print_separator(
-        "SERVICES"
-    )
+    print_separator("SERVICES")
+
+    print(f"IA activée : {'oui' if use_ai else 'non'}")
+
+    services = build_services(use_ai=use_ai)
 
     print(
-        f"IA activée : "
-        f"{'oui' if use_ai else 'non'}"
-    )
-
-    services = build_services(
-        use_ai=use_ai
-    )
-
-    print(
-        "Image analyzer : "
-        f"{type(services.image_analyzer).__name__}"
+        f"Image analyzer : {type(services.image_analyzer).__name__}"
         if services.image_analyzer is not None
         else "Image analyzer : indisponible"
     )
 
     print(
-        "Page analyzer  : "
-        f"{type(services.page_analyzer).__name__}"
+        f"Page analyzer  : {type(services.page_analyzer).__name__}"
         if services.page_analyzer is not None
         else "Page analyzer  : indisponible"
     )
@@ -212,115 +152,65 @@ async def run_debug(
         services=services,
     )
 
-    print_separator(
-        "EXÉCUTION DE L'AUDIT"
-    )
+    print_separator("EXÉCUTION DE L'AUDIT")
 
-    print(
-        "Exécution des tests..."
-    )
+    print("Exécution des tests...")
 
-    result = await service.audit(
-        context
-    )
+    result = await service.audit(context)
 
     # ---------------------------------------------------------
     # Résultat global
     # ---------------------------------------------------------
 
-    print_separator(
-        "RÉSULTAT GLOBAL"
-    )
+    print_separator("RÉSULTAT GLOBAL")
 
-    print(
-        f"Statut : {result.status.value}"
-    )
+    print(f"Statut : {result.status.value}")
 
     stats = result.statistics
 
     print()
-    print(
-        f"Critères           : {stats.total_criteria}"
-    )
-    print(
-        f"Tests              : {stats.total_tests}"
-    )
-    print(
-        f"PASS               : {stats.passed_tests}"
-    )
-    print(
-        f"FAIL               : {stats.failed_tests}"
-    )
-    print(
-        f"NOT_APPLICABLE     : "
-        f"{stats.not_applicable_tests}"
-    )
-    print(
-        f"NOT_TESTED         : "
-        f"{stats.not_tested_tests}"
-    )
-    print(
-        f"NEEDS_REVIEW       : "
-        f"{stats.needs_review_tests}"
-    )
-    print(
-        f"ERROR              : "
-        f"{stats.error_tests}"
-    )
+    print(f"Critères           : {stats.total_criteria}")
+    print(f"Tests              : {stats.total_tests}")
+    print(f"PASS               : {stats.passed_tests}")
+    print(f"FAIL               : {stats.failed_tests}")
+    print(f"NOT_APPLICABLE     : {stats.not_applicable_tests}")
+    print(f"NOT_TESTED         : {stats.not_tested_tests}")
+    print(f"NEEDS_REVIEW       : {stats.needs_review_tests}")
+    print(f"ERROR              : {stats.error_tests}")
 
     # ---------------------------------------------------------
     # Résultats détaillés
     # ---------------------------------------------------------
 
-    print_separator(
-        "RÉSULTATS RGAA"
-    )
+    print_separator("RÉSULTATS RGAA")
 
     for criterion in result.criteria:
         print()
-        print(
-            f"Critère {criterion.criterion_id} "
-            f"→ {criterion.status.value}"
-        )
+        print(f"Critère {criterion.criterion_id} → {criterion.status.value}")
 
-        print(
-            f"  {criterion.summary}"
-        )
+        print(f"  {criterion.summary}")
 
         for test in criterion.tests:
-            print_test_result(
-                test
-            )
+            print_test_result(test)
 
-    print_separator(
-        "FIN DE L'AUDIT"
-    )
+    print_separator("FIN DE L'AUDIT")
 
 
 def parse_arguments() -> Any:
     parser = argparse.ArgumentParser(
-        description=(
-            "Exécute les vrais tests RGAA AccessiCode "
-            "sur un site présent dans test_files."
-        )
+        description=("Exécute les vrais tests RGAA AccessiCode sur un site présent dans test_files.")
     )
 
     parser.add_argument(
         "--no-ai",
         action="store_true",
-        help=(
-            "Exécute les vrais tests RGAA sans "
-            "les services Ollama."
-        ),
+        help=("Exécute les vrais tests RGAA sans les services Ollama."),
     )
-    
+
     parser.add_argument(
         "--site",
         default="basic_site",
-        help=(
-            "Nom du dossier de test situé dans test_files "
-            "(défaut : basic_site)."
-        ),
+        help=("Nom du dossier de test situé dans test_files (défaut : basic_site)."),
     )
 
     return parser.parse_args()

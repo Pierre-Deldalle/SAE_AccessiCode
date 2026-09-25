@@ -12,46 +12,24 @@ def build_debug_context(
     """
     Construit un AuditContext à partir d'un site présent dans test_files.
     """
-    site_directory = (
-        Path("test_files")
-        / site_name
-    )
+    site_directory = Path("test_files") / site_name
 
-    index_path = (
-        site_directory
-        / "index.html"
-    )
+    index_path = site_directory / "index.html"
 
     if not index_path.is_file():
-        raise FileNotFoundError(
-            f"Fichier principal introuvable : {index_path}"
-        )
+        raise FileNotFoundError(f"Fichier principal introuvable : {index_path}")
 
     files = [
         index_path,
     ]
 
-    files.extend(
-        sorted(
-            path
-            for path
-            in site_directory.iterdir()
-            if (
-                path.is_file()
-                and path != index_path
-            )
-        )
-    )
+    files.extend(sorted(path for path in site_directory.iterdir() if (path.is_file() and path != index_path)))
 
     builder = AuditContextBuilder(
-        workspace_root=Path(
-            "workspace"
-        ),
+        workspace_root=Path("workspace"),
     )
 
-    return builder.build(
-        files
-    )
+    return builder.build(files)
 
 
 def print_debug_context(

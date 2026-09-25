@@ -27,6 +27,7 @@ from accessi_code.rgaa.base import RGAATest
 
 class Test111(RGAATest):
     test_id = "1.1.1"
+
     criterion_id = "1.1"
 
     required_capabilities = frozenset(
@@ -46,6 +47,7 @@ class Test111(RGAATest):
         context: AuditContext,
         services: Any | None = None,
     ) -> TestResult:
+
         soup = self._get_dom(context)
 
         elements = list(soup.select("img, [role='img']"))
@@ -78,10 +80,15 @@ class Test111(RGAATest):
         findings: list[Finding] = []
 
         informative = 0
+
         compliant = 0
+
         non_informative = 0
+
         failed = 0
+
         needs_review = 0
+
         errors = 0
 
         for index, element in enumerate(elements):
@@ -108,6 +115,7 @@ class Test111(RGAATest):
                         recommendation=("Exécuter le test avec le service IA ou vérifier manuellement l'image."),
                     )
                 )
+
                 continue
 
             try:
@@ -163,10 +171,32 @@ class Test111(RGAATest):
                         },
                     )
                 )
+
+                continue
+
+            if analysis.confidence == "low":
+                needs_review += 1
+
+                findings.append(
+                    Finding(
+                        element=self._identifier(
+                            element,
+                            index,
+                        ),
+                        message=(analysis.explanation or "Le rôle informationnel reste incertain."),
+                        recommendation=("Vérifier manuellement le rôle de l'image."),
+                        evidence={
+                            "analysis_confidence": analysis.confidence,
+                            "uncertainties": analysis.uncertainties,
+                        },
+                    )
+                )
+
                 continue
 
             if analysis.information_bearing is False:
                 non_informative += 1
+
                 continue
 
             if analysis.information_bearing is None:
@@ -186,6 +216,7 @@ class Test111(RGAATest):
                         },
                     )
                 )
+
                 continue
 
             informative += 1
@@ -212,6 +243,7 @@ class Test111(RGAATest):
 
             if evidence:
                 compliant += 1
+
                 continue
 
             failed += 1
@@ -285,6 +317,7 @@ class Test111(RGAATest):
         soup: BeautifulSoup,
         attributes: tuple[str, ...],
     ) -> list[str]:
+
         evidence: list[str] = []
 
         if "aria-labelledby" in attributes:
@@ -316,6 +349,7 @@ class Test111(RGAATest):
         element: Tag,
         index: int,
     ) -> str:
+
         element_id = element.get("id")
 
         if isinstance(element_id, str) and element_id.strip():
@@ -330,12 +364,14 @@ class Test111(RGAATest):
     def _get_base_dir(
         context: AuditContext,
     ) -> Path | None:
+
         return context.html_path.parent if context.html_path is not None else None
 
     @staticmethod
     def _get_dom(
         context: AuditContext,
     ) -> BeautifulSoup:
+
         if not isinstance(
             context.dom,
             BeautifulSoup,
@@ -347,6 +383,7 @@ class Test111(RGAATest):
 
 class Test112(RGAATest):
     test_id = "1.1.2"
+
     criterion_id = "1.1"
 
     required_capabilities = frozenset(
@@ -360,6 +397,7 @@ class Test112(RGAATest):
         context: AuditContext,
         services: Any | None = None,
     ) -> TestResult:
+
         soup = self._get_dom(context)
 
         areas = [
@@ -392,19 +430,31 @@ class Test112(RGAATest):
         findings: list[Finding] = []
 
         informative = 0
+
         valid = 0
+
         outside_scope = 0
+
         failed = 0
+
         review = 0
+
         errors = 0
 
         for area in areas:
             if analyzer is None:
                 review += 1
+
                 continue
 
             try:
                 analysis = await analyzer.analyze_area_information_role(area)
+
+                if not isinstance(
+                    analysis,
+                    ImageRoleAnalysis,
+                ):
+                    raise TypeError("L'analyseur doit retourner ImageRoleAnalysis.")
 
             except Exception as error:
                 errors += 1
@@ -418,14 +468,34 @@ class Test112(RGAATest):
                         },
                     )
                 )
+
+                continue
+
+            if analysis.confidence == "low":
+                review += 1
+
+                findings.append(
+                    Finding(
+                        element=f"area[index={area.index}]",
+                        message=(analysis.explanation or "Le rôle informationnel de la zone reste incertain."),
+                        recommendation=("Vérifier manuellement le rôle de la zone réactive."),
+                        evidence={
+                            "analysis_confidence": analysis.confidence,
+                            "uncertainties": analysis.uncertainties,
+                        },
+                    )
+                )
+
                 continue
 
             if analysis.information_bearing is False:
                 outside_scope += 1
+
                 continue
 
             if analysis.information_bearing is None:
                 review += 1
+
                 continue
 
             informative += 1
@@ -447,6 +517,7 @@ class Test112(RGAATest):
 
             if alternatives:
                 valid += 1
+
                 continue
 
             failed += 1
@@ -466,12 +537,16 @@ class Test112(RGAATest):
 
         if failed:
             status = TestStatus.FAIL
+
         elif errors:
             status = TestStatus.ERROR
+
         elif review:
             status = TestStatus.NEEDS_REVIEW
+
         elif informative == 0:
             status = TestStatus.NOT_APPLICABLE
+
         else:
             status = TestStatus.PASS
 
@@ -497,6 +572,7 @@ class Test112(RGAATest):
     def _get_dom(
         context: AuditContext,
     ) -> BeautifulSoup:
+
         if not isinstance(
             context.dom,
             BeautifulSoup,
@@ -508,6 +584,7 @@ class Test112(RGAATest):
 
 class Test113(RGAATest):
     test_id = "1.1.3"
+
     criterion_id = "1.1"
 
     required_capabilities = frozenset(
@@ -521,6 +598,7 @@ class Test113(RGAATest):
         context: AuditContext,
         services: Any | None = None,
     ) -> TestResult:
+
         soup = self._get_dom(context)
 
         image_inputs = [
@@ -598,6 +676,7 @@ class Test113(RGAATest):
     def _get_dom(
         context: AuditContext,
     ) -> BeautifulSoup:
+
         if not isinstance(
             context.dom,
             BeautifulSoup,

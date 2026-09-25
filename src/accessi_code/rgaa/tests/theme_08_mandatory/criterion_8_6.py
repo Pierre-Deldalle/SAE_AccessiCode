@@ -125,30 +125,18 @@ class Test861(RGAATest):
             "heading": page.main_heading,
             "analysis": asdict(analysis),
         }
-        
+
         if analysis.confidence == "low":
             return TestResult(
                 self.test_id,
                 self.criterion_id,
                 TestStatus.NEEDS_REVIEW,
-                (
-                    analysis.explanation
-                    or (
-                        "L'analyse automatique du titre "
-                        "n'est pas suffisamment fiable."
-                    )
-                ),
+                (analysis.explanation or ("L'analyse automatique du titre n'est pas suffisamment fiable.")),
                 findings=[
                     Finding(
                         element="title",
-                        message=(
-                            "L'analyse IA possède un niveau "
-                            "de confiance insuffisant."
-                        ),
-                        recommendation=(
-                            "Vérifier manuellement la pertinence "
-                            "du titre de la page."
-                        ),
+                        message=("L'analyse IA possède un niveau de confiance insuffisant."),
+                        recommendation=("Vérifier manuellement la pertinence du titre de la page."),
                         evidence=evidence,
                     )
                 ],

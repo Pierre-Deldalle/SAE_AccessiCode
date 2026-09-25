@@ -101,9 +101,27 @@ class Test171(RGAATest):
                 findings.append(
                     Finding(
                         element=f"img[index={image.index}]",
-                        message=("L'analyse du rôle de l'image a échoué."),
+                        message="L'analyse du rôle de l'image a échoué.",
                         evidence={
                             "error": str(error),
+                        },
+                    )
+                )
+                continue
+
+            # Une réponse IA à faible confiance ne doit jamais produire
+            # un verdict RGAA ferme.
+            if role.confidence == "low":
+                review += 1
+
+                findings.append(
+                    Finding(
+                        element=f"img[index={image.index}]",
+                        message=(role.explanation or "Le rôle informationnel de l'image reste incertain."),
+                        recommendation=("Vérifier manuellement le rôle de l'image."),
+                        evidence={
+                            "analysis_confidence": role.confidence,
+                            "uncertainties": role.uncertainties,
                         },
                     )
                 )
@@ -115,6 +133,18 @@ class Test171(RGAATest):
 
             if role.information_bearing is None:
                 review += 1
+
+                findings.append(
+                    Finding(
+                        element=f"img[index={image.index}]",
+                        message=(role.explanation or "Le rôle informationnel de l'image reste incertain."),
+                        recommendation=("Vérifier manuellement le rôle de l'image."),
+                        evidence={
+                            "analysis_confidence": role.confidence,
+                            "uncertainties": role.uncertainties,
+                        },
+                    )
+                )
                 continue
 
             for description in image.descriptions:
@@ -152,7 +182,7 @@ class Test171(RGAATest):
                     findings.append(
                         Finding(
                             element=f"img[index={image.index}]",
-                            message=("L'analyse de la description a échoué."),
+                            message="L'analyse de la description a échoué.",
                             evidence={
                                 "error": str(error),
                             },
@@ -167,12 +197,38 @@ class Test171(RGAATest):
                     "analysis": asdict(analysis),
                 }
 
+                # Même garde-fou pour la décision sur la description.
+                if analysis.confidence == "low":
+                    review += 1
+
+                    findings.append(
+                        Finding(
+                            element=f"img[index={image.index}]",
+                            message=(
+                                analysis.explanation
+                                or ("La description détaillée n'a pas pu être évaluée avec une confiance suffisante.")
+                            ),
+                            recommendation=("Vérifier manuellement la pertinence de la description détaillée."),
+                            evidence=evidence,
+                        )
+                    )
+                    continue
+
                 if analysis.is_detailed_description is False:
                     non_detailed += 1
                     continue
 
                 if analysis.is_detailed_description is None:
                     review += 1
+
+                    findings.append(
+                        Finding(
+                            element=f"img[index={image.index}]",
+                            message=("La nature détaillée de la description n'a pas pu être déterminée."),
+                            recommendation=("Vérifier manuellement si ce contenu constitue une description détaillée."),
+                            evidence=evidence,
+                        )
+                    )
                     continue
 
                 detailed_descriptions += 1
@@ -186,7 +242,7 @@ class Test171(RGAATest):
                     findings.append(
                         Finding(
                             element=f"img[index={image.index}]",
-                            message=(analysis.explanation or "La description détaillée n'est pas pertinente."),
+                            message=(analysis.explanation or ("La description détaillée n'est pas pertinente.")),
                             recommendation=("Compléter ou corriger la description."),
                             evidence=evidence,
                         )
@@ -194,6 +250,18 @@ class Test171(RGAATest):
 
                 else:
                     review += 1
+
+                    findings.append(
+                        Finding(
+                            element=f"img[index={image.index}]",
+                            message=(
+                                analysis.explanation
+                                or ("La pertinence de la description détaillée n'a pas pu être déterminée.")
+                            ),
+                            recommendation=("Vérifier manuellement la pertinence de la description détaillée."),
+                            evidence=evidence,
+                        )
+                    )
 
         if irrelevant:
             status = TestStatus.FAIL
