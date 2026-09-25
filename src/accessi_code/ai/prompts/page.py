@@ -4,13 +4,13 @@ dans son contenu principal.
 
 Retourne uniquement un objet JSON contenant exactement :
 
-{
+{{
   "relevant": true,
   "detected_language": "fr",
   "explanation": "explication courte",
   "uncertainties": [],
   "confidence": "low"
-}
+}}
 
 Le champ relevant doit valoir :
 - true si la langue déclarée correspond au contenu ;
@@ -42,13 +42,13 @@ de la page.
 
 Retourne uniquement un objet JSON contenant exactement :
 
-{
+{{
   "relevant": true,
   "explanation": "explication courte",
   "contradictions": [],
   "uncertainties": [],
   "confidence": "low"
-}
+}}
 
 Le champ relevant doit valoir :
 - true si le titre est pertinent ;
