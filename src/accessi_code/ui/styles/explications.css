@@ -3,14 +3,14 @@
    ========================= */
 
 #explications-page {
-    position: relative;
+    position: relative !important;
 
-    width: 100%;
-    min-height: 100vh;
+    width: 100% !important;
+    min-height: 100vh !important;
 
-    padding: 35px 55px 50px 55px;
+    padding: 35px 55px 50px 55px !important;
 
-    background-color: #ffffff;
+    background-color: #ffffff !important;
 }
 
 
@@ -19,20 +19,20 @@
    ========================= */
 
 #explications-title {
-    text-align: center;
+    text-align: center !important;
 
-    margin-bottom: 55px;
+    margin-bottom: 55px !important;
 }
 
 #explications-title h1 {
-    margin: 0;
+    margin: 0 !important;
 
     font-family: var(--font-title) !important;
 
-    font-size: 32px;
-    font-weight: 500;
+    font-size: 32px !important;
+    font-weight: 500 !important;
 
-    color: #151515;
+    color: #151515 !important;
 }
 
 
@@ -43,8 +43,8 @@
 #back-button {
     position: absolute !important;
 
-    top: 20px;
-    left: 20px;
+    top: 20px !important;
+    left: 20px !important;
 
     width: 55px !important;
     min-width: 55px !important;
@@ -63,17 +63,19 @@
 
     font-size: 27px !important;
 
-    cursor: pointer;
+    cursor: pointer !important;
+
+    z-index: 100 !important;
 
     transition:
         background-color 0.2s ease,
-        transform 0.2s ease;
+        transform 0.2s ease !important;
 }
 
 #back-button:hover {
     background-color: #0ca0b0 !important;
 
-    transform: translateX(-2px);
+    transform: translateX(-2px) !important;
 }
 
 
@@ -82,47 +84,38 @@
    ========================= */
 
 #explications-top {
-    display: flex;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
 
-    align-items: center;
-
-    gap: 80px;
-
-    margin-bottom: 45px;
+    gap: 60px !important;
+    margin-bottom: 45px !important;
 }
 
+#explications-logo {
+    width: 220px !important;
+    max-width: 220px !important;
+    flex-shrink: 0 !important;
+}
 
 /* =========================
    TEXTE HAUT
    ========================= */
 
 #explications-text-top {
-    flex: 1;
-
-    font-size: 16px;
-
-    line-height: 1.4;
-
-    color: #202020;
+    flex: 1 !important;
 }
 
+#explications-text-top p,
+#explications-text-top span,
+#explications-text-top div {
+    margin: 0 !important;
 
-/* =========================
-   LOGO
-   ========================= */
+    font-family: var(--font-body) !important;
+    font-size: 16px !important;
+    line-height: 1.4 !important;
 
-#explications-logo {
-    width: 290px !important;
-    max-width: 290px !important;
-
-    flex-shrink: 0;
-}
-
-#explications-logo img {
-    width: 100% !important;
-    height: auto !important;
-
-    object-fit: contain;
+    color: #202020 !important;
 }
 
 
@@ -131,11 +124,15 @@
    ========================= */
 
 #explications-text-bottom {
-    width: 100%;
+    width: 100% !important;
+}
 
-    font-size: 16px;
+#explications-text-bottom p,
+#explications-text-bottom span,
+#explications-text-bottom div {
+    font-family: var(--font-body) !important;
+    font-size: 16px !important;
+    line-height: 1.4 !important;
 
-    line-height: 1.4;
-
-    color: #202020;
+    color: #202020 !important;
 }
