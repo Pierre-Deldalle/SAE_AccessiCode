@@ -124,6 +124,36 @@ class Test841(RGAATest):
             "lang": page.lang,
             "analysis": asdict(analysis),
         }
+        
+        if analysis.confidence == "low":
+            return TestResult(
+                self.test_id,
+                self.criterion_id,
+                TestStatus.NEEDS_REVIEW,
+                (
+                    analysis.explanation
+                    or (
+                        "L'analyse automatique de la langue "
+                        "n'est pas suffisamment fiable."
+                    )
+                ),
+                findings=[
+                    Finding(
+                        element="html",
+                        message=(
+                            "L'analyse IA possède un niveau "
+                            "de confiance insuffisant."
+                        ),
+                        recommendation=(
+                            "Vérifier manuellement que la langue "
+                            "déclarée correspond au contenu."
+                        ),
+                        evidence=evidence,
+                    )
+                ],
+                tested_elements=1,
+                metadata=evidence,
+            )
 
         if analysis.relevant is True:
             return TestResult(
