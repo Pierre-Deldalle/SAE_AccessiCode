@@ -60,7 +60,7 @@ def test_multiple_areas_are_checked_individually():
 
 
 def test_no_areas():
-    result = Criterion112().run('<main><p>Aucune zone réactive.</p></main>')
+    result = Criterion112().run("<main><p>Aucune zone réactive.</p></main>")
 
     assert result.status == ResultStatus.NOT_APPLICABLE
     assert result.tested_elements == 0

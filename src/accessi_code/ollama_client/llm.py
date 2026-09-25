@@ -6,9 +6,12 @@ désérialisées depuis l'API Ollama et le texte généré est retourné à la c
 de service d'audit.
 """
 
-import aiohttp
 from typing import Any, Dict, List
+
+import aiohttp
+
 from .base import BaseModelEndpoint
+
 
 class OllamaLLM(BaseModelEndpoint):
     """Envoie des requêtes de génération textuelle à un serveur Ollama."""
@@ -16,7 +19,7 @@ class OllamaLLM(BaseModelEndpoint):
     def __init__(self, model: str = "gemma:26b", host: str = "http://localhost:11434"):
         """Configure le modèle et l'adresse du serveur Ollama."""
         self.model = model
-        self.host = host.rstrip('/')
+        self.host = host.rstrip("/")
 
     async def _post(self, endpoint: str, payload: Dict[str, Any]) -> Dict[str, Any]:
         """POSTe une charge utile JSON et lève une erreur si Ollama échoue."""
@@ -28,7 +31,9 @@ class OllamaLLM(BaseModelEndpoint):
                     raise RuntimeError(f"Erreur HTTP Ollama {response.status} sur {url}: {text}")
                 return await response.json()
 
-    async def generate(self, prompt: str, system_prompt: str = "", max_tokens: int = 1500, temperature: float = 0.2, **kw) -> str:
+    async def generate(
+        self, prompt: str, system_prompt: str = "", max_tokens: int = 1500, temperature: float = 0.2, **kw
+    ) -> str:
         """Génère une réponse textuelle à partir d'un prompt utilisateur."""
         # Extraire format s'il est transmis dans kw
         format_param = kw.pop("format", None)
@@ -42,22 +47,22 @@ class OllamaLLM(BaseModelEndpoint):
                 "num_predict": max_tokens,
                 "repeat_penalty": 1.25,
                 "repeat_last_n": 64,
-                "top_p": 0.85
+                "top_p": 0.85,
             },
-            "stream": False
+            "stream": False,
         }
-        
+
         if format_param:
             payload["format"] = format_param
 
         payload.update(kw)
-        
+
         resp = await self._post("/api/generate", payload)
-        
+
         response_text = resp.get("response", "")
         if not response_text:
             raise ValueError(f"Ollama a renvoyé un texte vide. Réponse brute : {resp}")
-            
+
         return response_text
 
     async def chat(self, messages: List[Dict[str, str]], max_tokens: int = 1500, temperature: float = 0.2, **kw) -> str:
@@ -70,14 +75,14 @@ class OllamaLLM(BaseModelEndpoint):
                 "temperature": temperature,
                 "num_predict": max_tokens,
                 "repeat_penalty": 1.25,
-                "repeat_last_n": 64
+                "repeat_last_n": 64,
             },
-            "stream": False
+            "stream": False,
         }
         if format_param:
             payload["format"] = format_param
-            
+
         payload.update(kw)
-        
+
         resp = await self._post("/api/chat", payload)
         return resp.get("message", {}).get("content", "")

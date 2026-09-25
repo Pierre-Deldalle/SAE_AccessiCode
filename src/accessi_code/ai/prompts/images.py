@@ -1,118 +1,179 @@
 IMAGE_INFORMATION_PROMPT = """
-Analyse uniquement le contenu visuel de l'image fournie dans le cadre
-d'une vérification d'accessibilité numérique.
+Observe uniquement l'image fournie.
 
-Retourne uniquement un objet JSON contenant exactement les champs suivants :
+Décris de manière factuelle :
+- ce qui est représenté ;
+- les textes visibles ;
+- les informations, valeurs, relations, actions ou données importantes ;
+- les éléments que tu ne peux pas déterminer avec certitude.
 
-{
-  "summary": "description générale du contenu et du rôle apparent de l'image",
-  "important_information": ["information importante 1", "information importante 2"],
-  "uncertainties": ["élément impossible à identifier avec certitude"]
-}
+Ne juge pas la conformité RGAA.
 
-Règles :
-- décris uniquement les éléments réellement observables ;
-- n'invente aucune information invisible ou illisible ;
-- indique dans uncertainties tout élément incertain ;
-- ne rends aucun verdict de conformité RGAA ;
-- ne propose aucune correction HTML ;
-- n'ajoute aucun commentaire en dehors du JSON.
-""".strip()
+Retourne uniquement ce JSON :
 
-
-DETAILED_DESCRIPTION_PROMPT = """
-Compare une description détaillée d'image avec les observations visuelles
-et le contexte HTML fournis.
-
-Retourne uniquement un objet JSON contenant exactement les champs suivants :
-
-{
-  "relevant": true,
-  "explanation": "explication courte",
-  "missing_information": [],
-  "contradictions": [],
-  "uncertainties": [],
-  "confidence": "low"
-}
-
-Le champ relevant doit valoir :
-- true si la description est pertinente ;
-- false si elle est clairement insuffisante ou contradictoire ;
-- null si les informations disponibles ne permettent pas de conclure.
-
-Le champ confidence doit valoir uniquement :
-- "low"
-- "medium"
-- "high"
-
-Règles :
-- une description n'est pas pertinente uniquement parce qu'elle partage
-  des mots avec l'image ;
-- ne prétends jamais avoir observé une information absente des données ;
-- utilise null lorsque les preuves sont insuffisantes ;
-- rédige explanation en français ;
-- n'ajoute aucun texte en dehors du JSON.
-
-Rôle apparent de l'image :
-{image_role}
-
-Description détaillée :
-{description}
-
-Contexte HTML :
-{context}
-
-Observations visuelles :
-{visual_observations}
-""".strip()
+{{
+    "summary": "description synthétique",
+    "important_information": [
+        "information importante"
+    ],
+    "uncertainties": [
+        "incertitude éventuelle"
+    ]
+}}
+"""
 
 
 IMAGE_INFORMATION_ROLE_PROMPT = """
-Détermine si l'image analysée semble porteuse d'information dans le contexte
-de la page web.
+Tu dois déterminer le rôle informationnel d'une image dans le contexte
+d'une page web.
 
-Une image est porteuse d'information lorsqu'elle transmet une information
-nécessaire ou utile à la compréhension du contenu ou à l'utilisation
-de la page.
+Une image est porteuse d'information si elle véhicule une information
+nécessaire à la compréhension du contenu auquel elle est associée.
+Une illustration purement décorative qui n'apporte aucune information
+nécessaire n'est pas porteuse d'information.
 
-Une image purement décorative, qui pourrait être retirée sans perte
-d'information ou de fonctionnalité, n'est pas considérée comme porteuse
-d'information.
-
-Retourne uniquement un objet JSON sous cette forme :
-
-{
-  "information_bearing": true,
-  "explanation": "explication courte",
-  "uncertainties": [],
-  "confidence": "low"
-}
-
-Le champ information_bearing doit valoir :
-- true si l'image semble clairement porteuse d'information ;
-- false si elle semble clairement décorative ;
-- null si les informations disponibles ne permettent pas de conclure.
-
-Le champ confidence doit valoir uniquement :
-- "low"
-- "medium"
-- "high"
-
-Important :
-- utilise à la fois les observations visuelles et le contexte de la page ;
-- la présence ou l'absence d'un attribut alt ne doit pas servir à déterminer
-  si l'image est porteuse d'information ;
-- n'invente aucune information absente ;
-- utilise null en cas de doute ;
-- ne rends aucun verdict RGAA ;
-- n'ajoute aucun texte en dehors du JSON.
+IMPORTANT :
+- ne déduis jamais le rôle de l'image de la présence ou de l'absence
+  d'un attribut alt ;
+- ne rends aucun verdict de conformité RGAA ;
+- utilise l'observation visuelle, l'élément HTML et le contexte ;
+- retourne null si les informations ne permettent pas de conclure.
 
 Élément HTML :
 {element_html}
 
-Contexte textuel :
+Contexte :
+{context}
+
+Observation visuelle :
+{visual_observations}
+
+Retourne uniquement :
+
+{{
+    "information_bearing": true,
+    "explanation": "explication",
+    "uncertainties": [],
+    "confidence": "high"
+}}
+
+information_bearing doit être true, false ou null.
+confidence doit être "low", "medium" ou "high".
+"""
+
+
+IMAGE_ELEMENT_ROLE_PROMPT = """
+Tu dois déterminer si un élément HTML possédant role="img" semble
+porter une information nécessaire à la compréhension du contenu.
+
+Tu ne disposes pas nécessairement de l'image rendue.
+
+Base-toi uniquement sur :
+- le code de l'élément ;
+- son contenu ;
+- ses attributs ;
+- le contexte textuel environnant.
+
+Ne déduis jamais le rôle informationnel uniquement de la présence
+d'une alternative textuelle.
+Ne rends aucun verdict RGAA.
+Retourne null si tu ne peux pas conclure.
+
+Élément :
+{element_html}
+
+Contexte :
+{context}
+
+Retourne uniquement :
+
+{{
+    "information_bearing": true,
+    "explanation": "explication",
+    "uncertainties": [],
+    "confidence": "medium"
+}}
+"""
+
+
+IMAGE_MAP_AREA_ROLE_PROMPT = """
+Une zone <area> appartient à une image réactive.
+
+Détermine si cette zone semble porter une information ou une fonction
+nécessaire pour l'utilisateur.
+
+Ne juge pas la présence de son alternative textuelle et ne rends pas
+de verdict RGAA.
+
+Zone :
+{area_html}
+
+Destination :
+{href}
+
+Forme :
+{shape}
+
+Coordonnées :
+{coords}
+
+Contexte :
+{context}
+
+Observation de l'image associée :
+{visual_observations}
+
+Retourne uniquement :
+
+{{
+    "information_bearing": true,
+    "explanation": "explication",
+    "uncertainties": [],
+    "confidence": "medium"
+}}
+
+information_bearing doit être true, false ou null.
+"""
+
+
+DETAILED_DESCRIPTION_PROMPT = """
+Tu dois analyser un texte candidat à une description détaillée d'une image.
+
+Une description détaillée doit restituer les informations importantes
+portées par l'image lorsqu'une alternative courte ne suffit pas.
+
+Tu dois déterminer séparément :
+1. si le texte constitue réellement une description détaillée ;
+2. si, lorsqu'il s'agit bien d'une description détaillée, elle est
+   pertinente par rapport à l'image.
+
+Rôle visuel synthétique :
+{image_role}
+
+Description candidate :
+{description}
+
+Contexte :
 {context}
 
 Observations visuelles :
 {visual_observations}
-""".strip()
+
+Ne rends aucun verdict RGAA.
+
+Retourne uniquement :
+
+{{
+    "is_detailed_description": true,
+    "relevant": true,
+    "explanation": "explication",
+    "missing_information": [],
+    "contradictions": [],
+    "uncertainties": [],
+    "confidence": "high"
+}}
+
+is_detailed_description doit être true, false ou null.
+relevant doit être true, false ou null.
+Si is_detailed_description vaut false, relevant doit être null.
+"""

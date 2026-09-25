@@ -49,10 +49,7 @@ def test_input_image_without_textual_alternative():
 
 
 def test_empty_alternative_attributes_are_invalid():
-    html = (
-        '<input type="image" src="send.png" alt="" '
-        'aria-label=" " title="">'
-    )
+    html = '<input type="image" src="send.png" alt="" aria-label=" " title="">'
 
     result = Criterion113().run(html)
 
@@ -61,11 +58,7 @@ def test_empty_alternative_attributes_are_invalid():
 
 
 def test_only_input_image_elements_are_checked():
-    html = (
-        '<input type="text" aria-label="Nom">'
-        '<img src="logo.png">'
-        '<input type="image" src="send.png" alt="Envoyer">'
-    )
+    html = '<input type="text" aria-label="Nom"><img src="logo.png"><input type="image" src="send.png" alt="Envoyer">'
 
     result = Criterion113().run(html)
 

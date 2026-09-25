@@ -26,9 +26,7 @@ def test_language_analysis_passes_when_declared_language_matches_content():
 def test_language_analysis_fails_when_declared_language_is_incorrect():
     """Un verdict négatif conserve la langue détectée dans les preuves."""
     result = Criterion841(
-        analyzer=lambda lang, content: LanguageAnalysis(
-            False, "en", "Le contenu principal est en anglais."
-        )
+        analyzer=lambda lang, content: LanguageAnalysis(False, "en", "Le contenu principal est en anglais.")
     ).run('<html lang="fr"><body><p>Welcome to our service.</p></body></html>')
 
     assert result.status == ResultStatus.FAIL
@@ -37,7 +35,7 @@ def test_language_analysis_fails_when_declared_language_is_incorrect():
 
 def test_missing_language_is_a_deterministic_failure():
     """Une page sans lang échoue avant toute sollicitation de l'IA."""
-    result = Criterion841().run('<html><body><p>Bienvenue.</p></body></html>')
+    result = Criterion841().run("<html><body><p>Bienvenue.</p></body></html>")
 
     assert result.status == ResultStatus.FAIL
     assert "lang" in result.findings[0].message
@@ -68,10 +66,7 @@ def test_title_analysis_fails_when_title_is_not_relevant():
         analyzer=lambda title, heading, content: TitleAnalysis(
             False, "Le titre ne correspond pas à l'objectif de la page."
         )
-    ).run(
-        "<html><head><title>Accueil</title></head>"
-        "<body><h1>Réinitialiser son mot de passe</h1></body></html>"
-    )
+    ).run("<html><head><title>Accueil</title></head><body><h1>Réinitialiser son mot de passe</h1></body></html>")
 
     assert result.status == ResultStatus.FAIL
     assert "objectif" in result.findings[0].message
@@ -80,9 +75,7 @@ def test_title_analysis_fails_when_title_is_not_relevant():
 
 def test_missing_title_is_a_deterministic_failure():
     """Une page sans title échoue de façon déterministe."""
-    result = Criterion861().run(
-        "<html><body><h1>Accueil</h1><p>Bienvenue.</p></body></html>"
-    )
+    result = Criterion861().run("<html><body><h1>Accueil</h1><p>Bienvenue.</p></body></html>")
 
     assert result.status == ResultStatus.FAIL
     assert result.findings[0].element == "title"

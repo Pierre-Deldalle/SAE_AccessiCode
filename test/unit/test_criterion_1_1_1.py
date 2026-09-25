@@ -27,8 +27,7 @@ def test_img_with_aria_label():
 
 
 def test_img_with_aria_labelledby():
-    html = '<span id="logo-label">Logo de la société</span>' \
-        '<img src="logo.png" aria-labelledby="logo-label">'
+    html = '<span id="logo-label">Logo de la société</span><img src="logo.png" aria-labelledby="logo-label">'
 
     result = Criterion111().run(html)
 
@@ -72,7 +71,7 @@ def test_empty_alternative_attributes_are_invalid():
 
 
 def test_no_images():
-    result = Criterion111().run('<main><p>Aucune image.</p></main>')
+    result = Criterion111().run("<main><p>Aucune image.</p></main>")
 
     assert result.status == ResultStatus.NOT_APPLICABLE
     assert result.tested_elements == 0

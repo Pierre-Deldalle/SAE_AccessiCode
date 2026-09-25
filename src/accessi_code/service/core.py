@@ -1,11 +1,13 @@
 """Service d'audit LLM complémentaire aux contrôles DOM déterministes."""
 
 import json
-from typing import Dict, Any
+from typing import Any, Dict
+
 from json_repair import repair_json
+
+from ..config import settings
 from ..ollama_client.llm import OllamaLLM
 from .utils import extract_images_and_context
-from ..config import settings
 
 # Ce prompt ne remplace pas les critères DOM : il intervient surtout lorsque
 # une image ne possède pas d'alternative détectable automatiquement.
@@ -25,6 +27,7 @@ Consignes :
 - Dans "recommendations", indique toujours le problème puis la solution.
 """
 
+
 class AuditService:
     """Orchestre l'analyse textuelle des images qui nécessitent le LLM."""
 
@@ -36,19 +39,16 @@ class AuditService:
     async def _audit_single_image(self, img_data: dict) -> dict:
         messages = [
             {"role": "system", "content": SYSTEM_SINGLE_IMAGE_PROMPT},
-            {"role": "user", "content": f"Analyse cette image :\n{json.dumps(img_data, ensure_ascii=False)}"}
+            {"role": "user", "content": f"Analyse cette image :\n{json.dumps(img_data, ensure_ascii=False)}"},
         ]
-        
+
         try:
             # L'endpoint chat est utilisé sans format forcé, puis la réponse
             # est nettoyée et réparée ci-dessous si nécessaire.
-            response_str = await self.llm.chat(
-                messages=messages,
-                temperature=0.1
-            )
-            
+            response_str = await self.llm.chat(messages=messages, temperature=0.1)
+
             clean_resp = (response_str or "").strip()
-            
+
             # Une réponse vide ne doit pas interrompre tout le rapport d'audit.
             if not clean_resp:
                 return {
@@ -56,14 +56,14 @@ class AuditService:
                     "src": img_data.get("src", ""),
                     "rgpa_wcag_status": "NON_CONFORME",
                     "suggested_code": f"<img src='{img_data.get('src')}' alt='Description requise'>",
-                    "recommendations": "Problème : Absence d'attribut alt valide. Solution : Ajouter un attribut alt renseigné avec une alternative textuelle concise."
+                    "recommendations": "Problème : Absence d'attribut alt valide. Solution : Ajouter un attribut alt renseigné avec une alternative textuelle concise.",
                 }
 
             # Le modèle peut entourer le JSON d'une phrase ou de balises Markdown.
-            start_idx = clean_resp.find('{')
-            end_idx = clean_resp.rfind('}')
+            start_idx = clean_resp.find("{")
+            end_idx = clean_resp.rfind("}")
             if start_idx != -1 and end_idx != -1:
-                clean_resp = clean_resp[start_idx:end_idx + 1]
+                clean_resp = clean_resp[start_idx : end_idx + 1]
 
             try:
                 parsed = json.loads(clean_resp)
@@ -75,16 +75,18 @@ class AuditService:
                 "src": img_data.get("src", ""),
                 "rgpa_wcag_status": parsed.get("rgpa_wcag_status", "NON_CONFORME"),
                 "suggested_code": parsed.get("suggested_code", f"<img src='{img_data.get('src')}' alt='...'>"),
-                "recommendations": parsed.get("recommendations", "Problème : Absence d'alternative textuelle. Solution : Ajouter un attribut alt.")
+                "recommendations": parsed.get(
+                    "recommendations", "Problème : Absence d'alternative textuelle. Solution : Ajouter un attribut alt."
+                ),
             }
 
-        except Exception as e:
+        except Exception:
             return {
                 "image_id": img_data.get("image_id", "img_1"),
                 "src": img_data.get("src", ""),
                 "rgpa_wcag_status": "NON_CONFORME",
                 "suggested_code": f"<img src='{img_data.get('src')}' alt='Description requise'>",
-                "recommendations": "Problème : Balise img mal configurée ou absente d'alternative. Solution : Ajouter un attribut alt approprié."
+                "recommendations": "Problème : Balise img mal configurée ou absente d'alternative. Solution : Ajouter un attribut alt approprié.",
             }
 
     async def audit_html_content(self, html_content: str) -> Dict[str, Any]:
@@ -94,7 +96,7 @@ class AuditService:
             return {
                 "audit_summary": {"total_images": 0, "issues_found": 0},
                 "evaluations": [],
-                "message": "Aucune image n'a été trouvée dans le code HTML."
+                "message": "Aucune image n'a été trouvée dans le code HTML.",
             }
 
         evaluations = []
@@ -106,13 +108,15 @@ class AuditService:
             # évite aussi que le modèle contredise à tort le résultat DOM.
             alt = img.get("alt")
             if isinstance(alt, str) and alt.strip():
-                evaluations.append({
-                    "image_id": img.get("image_id", "img_1"),
-                    "src": img.get("src", ""),
-                    "rgpa_wcag_status": "CONFORME",
-                    "suggested_code": None,
-                    "recommendations": "Alternative textuelle présente ; aucune analyse LLM supplémentaire nécessaire.",
-                })
+                evaluations.append(
+                    {
+                        "image_id": img.get("image_id", "img_1"),
+                        "src": img.get("src", ""),
+                        "rgpa_wcag_status": "CONFORME",
+                        "suggested_code": None,
+                        "recommendations": "Alternative textuelle présente ; aucune analyse LLM supplémentaire nécessaire.",
+                    }
+                )
                 continue
 
             eval_result = await self._audit_single_image(img)
@@ -123,9 +127,6 @@ class AuditService:
                 issues_count += 1
 
         return {
-            "audit_summary": {
-                "total_images": len(images_data),
-                "issues_found": issues_count
-            },
-            "evaluations": evaluations
+            "audit_summary": {"total_images": len(images_data), "issues_found": issues_count},
+            "evaluations": evaluations,
         }

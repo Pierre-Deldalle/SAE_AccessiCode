@@ -9,7 +9,6 @@ import aiohttp
 
 from accessi_code.ai.clients.base import BaseModelEndpoint
 
-
 ImageInput = str | Path | bytes | bytearray
 
 
@@ -38,9 +37,7 @@ class OllamaVLM(BaseModelEndpoint):
 
         timeout = aiohttp.ClientTimeout(total=180)
 
-        async with aiohttp.ClientSession(
-            timeout=timeout
-        ) as session:
+        async with aiohttp.ClientSession(timeout=timeout) as session:
             async with session.post(
                 url,
                 json=payload,
@@ -48,17 +45,12 @@ class OllamaVLM(BaseModelEndpoint):
                 if response.status != 200:
                     text = await response.text()
 
-                    raise RuntimeError(
-                        "Erreur HTTP Ollama "
-                        f"{response.status} sur {url}: {text}"
-                    )
+                    raise RuntimeError(f"Erreur HTTP Ollama {response.status} sur {url}: {text}")
 
                 data = await response.json()
 
         if not isinstance(data, dict):
-            raise ValueError(
-                "La réponse Ollama n'est pas un objet JSON."
-            )
+            raise ValueError("La réponse Ollama n'est pas un objet JSON.")
 
         return data
 
@@ -73,9 +65,7 @@ class OllamaVLM(BaseModelEndpoint):
             path = Path(image)
 
             if not path.is_file():
-                raise FileNotFoundError(
-                    f"Image introuvable : {path}"
-                )
+                raise FileNotFoundError(f"Image introuvable : {path}")
 
             image_bytes = path.read_bytes()
 
@@ -83,18 +73,12 @@ class OllamaVLM(BaseModelEndpoint):
             image_bytes = bytes(image)
 
         else:
-            raise TypeError(
-                "L'image doit être un chemin ou des données binaires."
-            )
+            raise TypeError("L'image doit être un chemin ou des données binaires.")
 
         if not image_bytes:
-            raise ValueError(
-                "L'image fournie est vide."
-            )
+            raise ValueError("L'image fournie est vide.")
 
-        return base64.b64encode(
-            image_bytes
-        ).decode("ascii")
+        return base64.b64encode(image_bytes).decode("ascii")
 
     async def generate(
         self,
@@ -113,9 +97,7 @@ class OllamaVLM(BaseModelEndpoint):
         payload: dict[str, Any] = {
             "model": self.model,
             "prompt": prompt,
-            "images": [
-                self._image_to_base64(image)
-            ],
+            "images": [self._image_to_base64(image)],
             "stream": False,
             "options": {
                 "temperature": temperature,
@@ -139,9 +121,7 @@ class OllamaVLM(BaseModelEndpoint):
         text = response.get("response")
 
         if not isinstance(text, str) or not text.strip():
-            raise ValueError(
-                "Ollama a renvoyé une réponse VLM vide."
-            )
+            raise ValueError("Ollama a renvoyé une réponse VLM vide.")
 
         return text
 
@@ -160,17 +140,9 @@ class OllamaVLM(BaseModelEndpoint):
 
         Les messages sont regroupés en prompt système et prompt utilisateur.
         """
-        system_prompt = "\n".join(
-            message["content"]
-            for message in messages
-            if message.get("role") == "system"
-        )
+        system_prompt = "\n".join(message["content"] for message in messages if message.get("role") == "system")
 
-        prompt = "\n".join(
-            message["content"]
-            for message in messages
-            if message.get("role") == "user"
-        )
+        prompt = "\n".join(message["content"] for message in messages if message.get("role") == "user")
 
         return await self.generate(
             prompt,

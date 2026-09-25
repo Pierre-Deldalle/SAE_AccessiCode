@@ -33,9 +33,7 @@ class OllamaLLM(BaseModelEndpoint):
 
         timeout = aiohttp.ClientTimeout(total=180)
 
-        async with aiohttp.ClientSession(
-            timeout=timeout
-        ) as session:
+        async with aiohttp.ClientSession(timeout=timeout) as session:
             async with session.post(
                 url,
                 json=payload,
@@ -43,17 +41,12 @@ class OllamaLLM(BaseModelEndpoint):
                 if response.status != 200:
                     text = await response.text()
 
-                    raise RuntimeError(
-                        "Erreur HTTP Ollama "
-                        f"{response.status} sur {url}: {text}"
-                    )
+                    raise RuntimeError(f"Erreur HTTP Ollama {response.status} sur {url}: {text}")
 
                 data = await response.json()
 
         if not isinstance(data, dict):
-            raise ValueError(
-                "La réponse Ollama n'est pas un objet JSON."
-            )
+            raise ValueError("La réponse Ollama n'est pas un objet JSON.")
 
         return data
 
@@ -99,9 +92,7 @@ class OllamaLLM(BaseModelEndpoint):
         text = response.get("response")
 
         if not isinstance(text, str) or not text.strip():
-            raise ValueError(
-                "Ollama a renvoyé une réponse textuelle vide."
-            )
+            raise ValueError("Ollama a renvoyé une réponse textuelle vide.")
 
         return text
 
@@ -143,15 +134,11 @@ class OllamaLLM(BaseModelEndpoint):
         message = response.get("message")
 
         if not isinstance(message, dict):
-            raise ValueError(
-                "La réponse Ollama ne contient pas de message."
-            )
+            raise ValueError("La réponse Ollama ne contient pas de message.")
 
         content = message.get("content")
 
         if not isinstance(content, str) or not content.strip():
-            raise ValueError(
-                "Ollama a renvoyé une réponse textuelle vide."
-            )
+            raise ValueError("Ollama a renvoyé une réponse textuelle vide.")
 
         return content

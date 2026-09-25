@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Literal
 
-
 AIConfidence = Literal[
     "low",
     "medium",
@@ -21,13 +20,9 @@ class VisualObservation:
 
     summary: str
 
-    important_information: list[str] = field(
-        default_factory=list
-    )
+    important_information: list[str] = field(default_factory=list)
 
-    uncertainties: list[str] = field(
-        default_factory=list
-    )
+    uncertainties: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -39,17 +34,13 @@ class DescriptionAnalysis:
     relevant: bool | None
     explanation: str
 
-    missing_information: list[str] = field(
-        default_factory=list
-    )
+    is_detailed_description: bool | None = None
 
-    contradictions: list[str] = field(
-        default_factory=list
-    )
+    missing_information: list[str] = field(default_factory=list)
 
-    uncertainties: list[str] = field(
-        default_factory=list
-    )
+    contradictions: list[str] = field(default_factory=list)
+
+    uncertainties: list[str] = field(default_factory=list)
 
     confidence: AIConfidence = "low"
 
@@ -64,9 +55,7 @@ class LanguageAnalysis:
     detected_language: str
     explanation: str
 
-    uncertainties: list[str] = field(
-        default_factory=list
-    )
+    uncertainties: list[str] = field(default_factory=list)
 
     confidence: AIConfidence = "low"
 
@@ -80,15 +69,12 @@ class TitleAnalysis:
     relevant: bool | None
     explanation: str
 
-    contradictions: list[str] = field(
-        default_factory=list
-    )
+    contradictions: list[str] = field(default_factory=list)
 
-    uncertainties: list[str] = field(
-        default_factory=list
-    )
+    uncertainties: list[str] = field(default_factory=list)
 
     confidence: AIConfidence = "low"
+
 
 @dataclass
 class ImageRoleAnalysis:
@@ -102,8 +88,6 @@ class ImageRoleAnalysis:
     information_bearing: bool | None
     explanation: str
 
-    uncertainties: list[str] = field(
-        default_factory=list
-    )
+    uncertainties: list[str] = field(default_factory=list)
 
     confidence: AIConfidence = "low"

@@ -1,4 +1,3 @@
-
 from accessi_code.models.result import TestStatus as ResultStatus
 from accessi_code.tests.theme_11_formulaires.criterion_11_1_1 import (
     Criterion111,

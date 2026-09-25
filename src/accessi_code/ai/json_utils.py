@@ -20,9 +20,7 @@ def parse_ai_json(
     text = value.strip()
 
     if not text:
-        raise ValueError(
-            "La réponse IA est vide."
-        )
+        raise ValueError("La réponse IA est vide.")
 
     if text.startswith("```"):
         lines = text.splitlines()
@@ -42,9 +40,7 @@ def parse_ai_json(
         text = text[start : end + 1]
 
     if not text:
-        raise ValueError(
-            "La réponse IA ne contient aucun objet JSON."
-        )
+        raise ValueError("La réponse IA ne contient aucun objet JSON.")
 
     try:
         parsed = json.loads(text)
@@ -60,13 +56,9 @@ def parse_ai_json(
             TypeError,
             ValueError,
         ) as error:
-            raise ValueError(
-                "La réponse IA ne contient pas de JSON exploitable."
-            ) from error
+            raise ValueError("La réponse IA ne contient pas de JSON exploitable.") from error
 
     if not isinstance(parsed, dict):
-        raise ValueError(
-            "La réponse IA n'est pas un objet JSON."
-        )
+        raise ValueError("La réponse IA n'est pas un objet JSON.")
 
     return parsed

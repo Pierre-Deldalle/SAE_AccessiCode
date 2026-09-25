@@ -11,15 +11,14 @@ for project_path in (ROOT_DIR, SRC_DIR):
 
 import asyncio
 import json
-import time
 import threading
+import time
 from dataclasses import asdict
-import webview
+
 import gradio as gr
-from src.accessi_code.service.core import AuditService
-from src.accessi_code.config import settings
-from src.accessi_code.ollama_client.vlm import OllamaVLM
-from src.accessi_code.service.vision import VisionAuditService
+import webview
+from accessi_code.tests.theme_01_images.criterion_1_7_1 import Criterion17
+
 # L'analyseur 1.7.1 combine les observations visuelles de Qwen et
 # la comparaison des descriptions réalisée par Gemma.
 from src.accessi_code.ai.ollama_client.image_analyzer import OllamaImageAnalyzer
@@ -27,14 +26,19 @@ from src.accessi_code.ai.ollama_client.page_analyzer import OllamaPageAnalyzer
 from src.accessi_code.tests.theme_01_images.critere_1_1_1 import Criterion111
 from src.accessi_code.tests.theme_01_images.critere_1_1_2 import Criterion112
 from src.accessi_code.tests.theme_01_images.critere_1_1_3 import Criterion113
-from accessi_code.tests.theme_01_images.criterion_1_7_1 import Criterion17
 from src.accessi_code.tests.theme_05_tableaux.criterion_5_1_1 import Criterion511
 from src.accessi_code.tests.theme_08_elements_obligatoires.criterion_8_1_1 import Criterion811
+
 # Ces deux critères utilisent le LLM pour comparer les informations textuelles
 # de la page, contrairement aux contrôles purement structurels du DOM.
 from src.accessi_code.tests.theme_08_elements_obligatoires.criterion_8_4_1 import Criterion841
 from src.accessi_code.tests.theme_08_elements_obligatoires.criterion_8_6_1 import Criterion861
 from src.accessi_code.tests.theme_11_formulaires.criterion_11_1_1 import Criterion111 as Criterion111Form
+
+from src.accessi_code.config import settings
+from src.accessi_code.ollama_client.vlm import OllamaVLM
+from src.accessi_code.service.core import AuditService
+from src.accessi_code.service.vision import VisionAuditService
 
 # Initialisation du service métier d'audit
 audit_service = AuditService()
@@ -66,14 +70,11 @@ def run_dom_criteria(
     """Exécute les critères DOM commencés sur le HTML fourni."""
     # Les ressources éventuellement téléversées servent de solution de
     # secours lorsque le src HTML ne pointe pas directement vers un fichier.
-    asset_by_name = {
-        Path(path).name: path
-        for path in (asset_paths or [])
-        if path
-    }
+    asset_by_name = {Path(path).name: path for path in (asset_paths or []) if path}
     results = []
     for criterion in DOM_CRITERIA:
         if isinstance(criterion, Criterion17):
+
             def analyze_image(image, description):
                 # Le HTML fournit le src ; on résout ensuite ce src vers le
                 # fichier local avant de transmettre l'image au modèle de vision.
@@ -86,33 +87,32 @@ def run_dom_criteria(
                         image_path = str(project_asset)
                 if not image_path or not Path(image_path).is_file():
                     raise FileNotFoundError(
-                        f"Image référencée introuvable : {image.src}. "
-                        "Téléversez-la dans les ressources image."
+                        f"Image référencée introuvable : {image.src}. Téléversez-la dans les ressources image."
                     )
                 # Le critère reste synchrone, tandis que les clients Ollama
                 # sont asynchrones : ce pont exécute une analyse complète.
-                return asyncio.run(image_analyzer.analyze(
-                    image.__class__(
-                        src=image_path,
-                        alt=image.alt,
-                        element_html=image.element_html,
-                        descriptions=image.descriptions,
-                        context_text=image.context_text,
-                        index=image.index,
-                        image_path=image_path,
-                        image_data=image.image_data,
-                    ),
-                    description,
-                ))
+                return asyncio.run(
+                    image_analyzer.analyze(
+                        image.__class__(
+                            src=image_path,
+                            alt=image.alt,
+                            element_html=image.element_html,
+                            descriptions=image.descriptions,
+                            context_text=image.context_text,
+                            index=image.index,
+                            image_path=image_path,
+                            image_data=image.image_data,
+                        ),
+                        description,
+                    )
+                )
 
             result = criterion.run(html_text, analyzer=analyze_image, base_dir=base_dir)
         elif isinstance(criterion, Criterion841):
             # Le critère reste synchrone ; asyncio fait le pont vers Ollama.
             result = criterion.run(
                 html_text,
-                analyzer=lambda lang, content: asyncio.run(
-                    page_analyzer.analyze_language(lang, content)
-                ),
+                analyzer=lambda lang, content: asyncio.run(page_analyzer.analyze_language(lang, content)),
             )
         elif isinstance(criterion, Criterion861):
             # Le même analyseur partagé évite de recréer le client LLM.
@@ -129,6 +129,7 @@ def run_dom_criteria(
         results.append(serialized)
     return results
 
+
 def run_audit(html_text: str, file_obj):
     """
     Fonction d'audit déclenchée par l'UI.
@@ -144,7 +145,7 @@ def run_audit(html_text: str, file_obj):
     if html_file is not None:
         try:
             html_path = getattr(html_file, "name", html_file)
-            with open(html_path, 'r', encoding='utf-8') as f:
+            with open(html_path, "r", encoding="utf-8") as f:
                 html_text = f.read()
         except Exception as e:
             return f"Erreur de lecture du fichier : {str(e)}", []
@@ -161,9 +162,7 @@ def run_audit(html_text: str, file_obj):
     try:
         llm_result = asyncio.run(audit_service.audit_html_content(html_text))
     except Exception as e:
-        llm_result = {
-            "error": f"Erreur lors de l'exécution de l'audit LLM : {str(e)}"
-        }
+        llm_result = {"error": f"Erreur lors de l'exécution de l'audit LLM : {str(e)}"}
 
     result = {
         "dom_tests": dom_results,
@@ -225,57 +224,36 @@ def build_ui():
                 with gr.Row():
                     with gr.Column(scale=1):
                         html_input = gr.Textbox(
-                            lines=12,
-                            placeholder="Collez votre code HTML ici...",
-                            label="Code HTML à analyser"
+                            lines=12, placeholder="Collez votre code HTML ici...", label="Code HTML à analyser"
                         )
                         file_input = gr.File(
-                            label="Ou chargez un fichier HTML (ex: tests/index.html)",
-                            file_types=[".html"]
+                            label="Ou chargez un fichier HTML (ex: tests/index.html)", file_types=[".html"]
                         )
                         btn_audit = gr.Button("🔍 Lancer l'audit LLM", variant="primary")
 
                     with gr.Column(scale=1):
                         dataframe_output = gr.Dataframe(
                             headers=["Critère", "Statut", "Éléments testés", "Résumé", "Anomalies"],
-                            label="Résultats des critères DOM"
+                            label="Résultats des critères DOM",
                         )
-                        json_output = gr.Code(
-                            language="json",
-                            label="Rapport JSON Détaillé (DOM + LLM)"
-                        )
+                        json_output = gr.Code(language="json", label="Rapport JSON Détaillé (DOM + LLM)")
 
             with gr.Tab("VLM - Audit d'image"):
                 with gr.Row():
                     with gr.Column(scale=1):
-                        vlm_image_input = gr.File(
-                            label="Image à analyser",
-                            file_types=["image"],
-                            type="filepath"
-                        )
+                        vlm_image_input = gr.File(label="Image à analyser", file_types=["image"], type="filepath")
                         btn_vlm = gr.Button("🔍 Lancer l'audit VLM", variant="primary")
 
                     with gr.Column(scale=1):
                         vlm_dataframe_output = gr.Dataframe(
                             headers=["Critère", "Statut", "Éléments testés", "Résumé", "Anomalies"],
-                            label="Résultats de l'audit VLM"
+                            label="Résultats de l'audit VLM",
                         )
-                        vlm_output = gr.Textbox(
-                            label="Réponse du VLM",
-                            lines=12
-                        )
+                        vlm_output = gr.Textbox(label="Réponse du VLM", lines=12)
 
         # Chaque événement associe les entrées de son onglet à ses sorties.
-        btn_audit.click(
-            fn=run_audit,
-            inputs=[html_input, file_input],
-            outputs=[json_output, dataframe_output]
-        )
-        btn_vlm.click(
-            fn=test_vlm,
-            inputs=[vlm_image_input],
-            outputs=[vlm_output, vlm_dataframe_output]
-        )
+        btn_audit.click(fn=run_audit, inputs=[html_input, file_input], outputs=[json_output, dataframe_output])
+        btn_vlm.click(fn=test_vlm, inputs=[vlm_image_input], outputs=[vlm_output, vlm_dataframe_output])
     return demo
 
 
@@ -289,12 +267,9 @@ def launch_desktop():
     # gérer la fenêtre sans bloquer le serveur local.
     thread = threading.Thread(
         target=lambda: demo.launch(
-            server_name="127.0.0.1",
-            server_port=7860,
-            prevent_thread_lock=True,
-            show_error=False
+            server_name="127.0.0.1", server_port=7860, prevent_thread_lock=True, show_error=False
         ),
-        daemon=True
+        daemon=True,
     )
     thread.start()
 
@@ -303,15 +278,12 @@ def launch_desktop():
 
     # La fenêtre native expose l'interface Gradio locale à l'utilisateur.
     window = webview.create_window(
-        title="AccessiCode - Desktop App",
-        url="http://127.0.0.1:7860",
-        width=1280,
-        height=850,
-        resizable=True
+        title="AccessiCode - Desktop App", url="http://127.0.0.1:7860", width=1280, height=850, resizable=True
     )
-    
+
     # Démarrage de la boucle GUI native
     webview.start()
+
 
 if __name__ == "__main__":
     launch_desktop()

@@ -2,30 +2,55 @@ from __future__ import annotations
 
 from bs4 import BeautifulSoup, Tag
 
-
 FORM_FIELD_SELECTORS = (
-    "input:not([type='hidden'])"
-    ":not([type='submit'])"
-    ":not([type='reset'])"
-    ":not([type='button'])"
-    ":not([type='image'])",
+    "input:not([type='hidden']):not([type='submit']):not([type='reset']):not([type='button']):not([type='image'])",
     "textarea",
     "select",
+    "output",
+    "progress",
+    "meter",
+    "[role='progressbar']",
+    "[role='slider']",
+    "[role='spinbutton']",
+    "[role='textbox']",
+    "[role='listbox']",
+    "[role='searchbox']",
+    "[role='combobox']",
+    "[role='checkbox']",
+    "[role='radio']",
+    "[role='switch']",
 )
+
+
+LABELABLE_NATIVE_ELEMENTS = {
+    "input",
+    "textarea",
+    "select",
+    "output",
+    "progress",
+    "meter",
+}
 
 
 def find_form_fields(
     soup: BeautifulSoup,
 ) -> list[Tag]:
     """
-    Retourne les champs de formulaire nécessitant potentiellement une étiquette.
+    Retourne les champs de formulaire entrant dans le périmètre
+    des contrôles d'étiquetage.
     """
     fields: list[Tag] = []
+    seen: set[int] = set()
 
     for selector in FORM_FIELD_SELECTORS:
-        fields.extend(
-            soup.select(selector)
-        )
+        for element in soup.select(selector):
+            element_id = id(element)
+
+            if element_id in seen:
+                continue
+
+            seen.add(element_id)
+            fields.append(element)
 
     return fields
 
@@ -34,51 +59,31 @@ def get_element_identifier(
     element: Tag,
     index: int,
 ) -> str:
-    """
-    Génère un identifiant humainement lisible pour un élément.
-    """
     element_id = element.get("id")
 
-    if (
-        isinstance(element_id, str)
-        and element_id.strip()
-    ):
-        return (
-            f"{element.name}#{element_id}"
-        )
+    if isinstance(element_id, str) and element_id.strip():
+        return f"{element.name}#{element_id}"
 
     name = element.get("name")
 
-    if (
-        isinstance(name, str)
-        and name.strip()
-    ):
-        return (
-            f"{element.name}"
-            f"[name='{name}']"
-        )
+    if isinstance(name, str) and name.strip():
+        return f"{element.name}[name='{name}']"
 
-    return (
-        f"{element.name}"
-        f"[index={index}]"
-    )
+    role = element.get("role")
+
+    if isinstance(role, str) and role.strip():
+        return f"[role='{role}'][index={index}]"
+
+    return f"{element.name}[index={index}]"
 
 
 def get_non_empty_attribute(
     element: Tag,
     attribute_name: str,
 ) -> str | None:
-    """
-    Retourne la valeur nettoyée d'un attribut texte non vide.
-    """
-    value = element.get(
-        attribute_name
-    )
+    value = element.get(attribute_name)
 
-    if (
-        isinstance(value, str)
-        and value.strip()
-    ):
+    if isinstance(value, str) and value.strip():
         return value.strip()
 
     return None
@@ -89,7 +94,10 @@ def get_labelledby_text(
     soup: BeautifulSoup,
 ) -> tuple[bool, str]:
     """
-    Résout les éléments référencés par aria-labelledby.
+    Résout aria-labelledby.
+
+    Chaque identifiant doit exister une seule fois et référencer
+    un passage de texte non vide.
     """
     value = get_non_empty_attribute(
         element,
@@ -99,14 +107,15 @@ def get_labelledby_text(
     if value is None:
         return False, ""
 
-    identifiers = value.split()
-
     texts: list[str] = []
 
-    for identifier in identifiers:
-        referenced = soup.find(
-            id=identifier
-        )
+    for identifier in value.split():
+        matches = soup.find_all(id=identifier)
+
+        if len(matches) != 1:
+            return False, ""
+
+        referenced = matches[0]
 
         if not isinstance(
             referenced,
@@ -156,8 +165,11 @@ def get_matching_label(
     soup: BeautifulSoup,
 ) -> Tag | None:
     """
-    Recherche un label explicitement lié par for/id.
+    Recherche un label explicitement associé via for/id.
     """
+    if element.name not in LABELABLE_NATIVE_ELEMENTS:
+        return None
+
     element_id = get_non_empty_attribute(
         element,
         "id",
@@ -166,18 +178,19 @@ def get_matching_label(
     if element_id is None:
         return None
 
-    label = soup.find(
+    labels = soup.find_all(
         "label",
         attrs={
             "for": element_id,
         },
     )
 
-    return (
-        label
-        if isinstance(label, Tag)
-        else None
-    )
+    if len(labels) != 1:
+        return None
+
+    label = labels[0]
+
+    return label if isinstance(label, Tag) else None
 
 
 def has_matching_label(
@@ -203,25 +216,15 @@ def has_matching_label(
 def get_wrapping_label(
     element: Tag,
 ) -> Tag | None:
-    """
-    Recherche un label englobant directement le champ.
-    """
-    label = element.find_parent(
-        "label"
-    )
+    label = element.find_parent("label")
 
-    if isinstance(label, Tag):
-        return label
-
-    return None
+    return label if isinstance(label, Tag) else None
 
 
 def has_wrapping_label(
     element: Tag,
 ) -> bool:
-    label = get_wrapping_label(
-        element
-    )
+    label = get_wrapping_label(element)
 
     if label is None:
         return False
@@ -237,50 +240,38 @@ def has_wrapping_label(
 def get_labeling_evidence(
     element: Tag,
     soup: BeautifulSoup,
+    *,
+    include_wrapping_label: bool = False,
 ) -> list[str]:
     """
     Retourne les mécanismes d'étiquetage structurels détectés.
 
-    Cette fonction collecte des preuves mais ne décide pas à elle seule
-    de la conformité RGAA.
+    Pour le test RGAA 11.1.1, include_wrapping_label doit rester False :
+    la méthodologie officielle cite explicitement label[for].
     """
     evidence: list[str] = []
 
-    labelledby_valid, _ = (
-        get_labelledby_text(
-            element,
-            soup,
-        )
+    labelledby_valid, _ = get_labelledby_text(
+        element,
+        soup,
     )
 
     if labelledby_valid:
-        evidence.append(
-            "aria-labelledby"
-        )
+        evidence.append("aria-labelledby")
 
     if has_aria_label(element):
-        evidence.append(
-            "aria-label"
-        )
+        evidence.append("aria-label")
 
     if has_matching_label(
         element,
         soup,
     ):
-        evidence.append(
-            "label-for"
-        )
+        evidence.append("label-for")
 
-    if has_wrapping_label(
-        element
-    ):
-        evidence.append(
-            "label-wrapper"
-        )
+    if include_wrapping_label and has_wrapping_label(element):
+        evidence.append("label-wrapper")
 
     if has_title(element):
-        evidence.append(
-            "title"
-        )
+        evidence.append("title")
 
     return evidence

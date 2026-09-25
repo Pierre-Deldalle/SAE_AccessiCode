@@ -6,22 +6,12 @@ from bs4 import BeautifulSoup, Tag
 def find_tables(
     soup: BeautifulSoup,
 ) -> list[Tag]:
-    """
-    Retourne les tableaux HTML natifs et les tableaux ARIA.
-    """
-    return list(
-        soup.select(
-            "table, [role='table']"
-        )
-    )
+    return list(soup.select("table, [role='table']"))
 
 
 def get_table_rows(
     table: Tag,
 ) -> list[Tag]:
-    """
-    Retourne les lignes d'un tableau natif ou ARIA.
-    """
     rows: list[Tag] = []
 
     for element in table.find_all(
@@ -33,10 +23,7 @@ def get_table_rows(
         if element.name == "tr":
             rows.append(element)
 
-        elif (
-            element.get("role")
-            == "row"
-        ):
+        elif element.get("role") == "row":
             rows.append(element)
 
     return rows
@@ -45,14 +32,9 @@ def get_table_rows(
 def get_row_cells(
     row: Tag,
 ) -> list[Tag]:
-    """
-    Retourne les cellules directes d'une ligne HTML ou ARIA.
-    """
     cells: list[Tag] = []
 
-    for element in row.find_all(
-        recursive=False
-    ):
+    for element in row.find_all(recursive=False):
         if not isinstance(
             element,
             Tag,
@@ -65,9 +47,7 @@ def get_row_cells(
         }:
             cells.append(element)
 
-        elif element.get(
-            "role"
-        ) in {
+        elif element.get("role") in {
             "cell",
             "columnheader",
             "rowheader",
@@ -81,19 +61,10 @@ def get_int_attribute(
     element: Tag,
     attribute_name: str,
 ) -> int:
-    """
-    Retourne un attribut entier strictement positif.
-
-    Une valeur manquante ou invalide correspond à 1.
-    """
-    value = element.get(
-        attribute_name
-    )
+    value = element.get(attribute_name)
 
     try:
-        parsed = int(
-            str(value)
-        )
+        parsed = int(str(value))
 
     except (
         TypeError,
@@ -101,74 +72,90 @@ def get_int_attribute(
     ):
         return 1
 
-    return (
-        parsed
-        if parsed > 0
-        else 1
-    )
+    return parsed if parsed > 0 else 1
 
 
 def is_header_cell(
     cell: Tag,
 ) -> bool:
-    """
-    Détermine si une cellule représente un en-tête.
-    """
-    return (
-        cell.name == "th"
-        or cell.get("role")
-        in {
-            "columnheader",
-            "rowheader",
-        }
-    )
+    return cell.name == "th" or cell.get("role") in {
+        "columnheader",
+        "rowheader",
+    }
 
 
 def has_complex_header_structure(
     table: Tag,
 ) -> bool:
     """
-    Détecte plusieurs indices de structure potentiellement complexe.
+    Recherche des indices structurels correspondant à la définition
+    RGAA d'un tableau de données complexe.
 
-    Il s'agit volontairement d'une heuristique et non d'un verdict RGAA.
+    Ce test reste volontairement prudent : il analyse la structure
+    déclarée par l'auteur, pas l'intention visuelle.
     """
-    rows = get_table_rows(
-        table
-    )
+    role = table.get("role")
+
+    if role in {
+        "presentation",
+        "none",
+    }:
+        return False
+
+    rows = get_table_rows(table)
 
     if not rows:
         return False
 
-    for row_index, row in enumerate(
-        rows
-    ):
-        cells = get_row_cells(
-            row
-        )
+    for row_index, row in enumerate(rows):
+        cells = get_row_cells(row)
 
-        for cell in cells:
-            if not is_header_cell(
-                cell
+        for column_index, cell in enumerate(cells):
+            if is_header_cell(cell):
+                rowspan = get_int_attribute(
+                    cell,
+                    "rowspan",
+                )
+
+                colspan = get_int_attribute(
+                    cell,
+                    "colspan",
+                )
+
+                if rowspan > 1 or colspan > 1:
+                    return True
+
+                scope = cell.get("scope")
+
+                if scope in {
+                    "rowgroup",
+                    "colgroup",
+                }:
+                    return True
+
+                # Un en-tête ailleurs que sur la première ligne
+                # ou la première colonne indique une structure imbriquée.
+                if row_index > 0 and column_index > 0:
+                    return True
+
+            headers = cell.get("headers")
+
+            if isinstance(
+                headers,
+                list,
             ):
-                continue
+                header_ids = [str(value) for value in headers]
 
-            rowspan = get_int_attribute(
-                cell,
-                "rowspan",
-            )
-
-            colspan = get_int_attribute(
-                cell,
-                "colspan",
-            )
-
-            if (
-                rowspan > 1
-                or colspan > 1
+            elif isinstance(
+                headers,
+                str,
             ):
-                return True
+                header_ids = headers.split()
 
-            if row_index > 0:
+            else:
+                header_ids = []
+
+            if len(header_ids) > 1:
                 return True
 
     return False
@@ -179,25 +166,20 @@ def get_referenced_text(
     soup: BeautifulSoup,
     attribute_name: str = "aria-describedby",
 ) -> tuple[bool, str]:
-    """
-    Résout une liste d'identifiants référencés par un attribut ARIA.
-    """
-    value = element.get(
-        attribute_name
-    )
+    value = element.get(attribute_name)
 
-    if (
-        not isinstance(value, str)
-        or not value.strip()
-    ):
+    if not isinstance(value, str) or not value.strip():
         return False, ""
 
     texts: list[str] = []
 
     for identifier in value.split():
-        referenced = soup.find(
-            id=identifier
-        )
+        matches = soup.find_all(id=identifier)
+
+        if len(matches) != 1:
+            return False, ""
+
+        referenced = matches[0]
 
         if not isinstance(
             referenced,
@@ -221,11 +203,11 @@ def get_referenced_text(
 def get_table_summary_evidence(
     table: Tag,
     soup: BeautifulSoup,
+    *,
+    allow_legacy_summary: bool = False,
 ) -> list[str]:
     """
-    Retourne les mécanismes de description/résumé détectés.
-
-    Cette fonction collecte uniquement des preuves structurelles.
+    Retourne les mécanismes de résumé utilisables pour le test 5.1.1.
     """
     evidence: list[str] = []
 
@@ -234,40 +216,24 @@ def get_table_summary_evidence(
         recursive=False,
     )
 
-    if (
-        isinstance(caption, Tag)
-        and caption.get_text(
-            " ",
-            strip=True,
-        )
+    if isinstance(caption, Tag) and caption.get_text(
+        " ",
+        strip=True,
     ):
-        evidence.append(
-            "caption"
-        )
+        evidence.append("caption")
 
-    summary = table.get(
-        "summary"
-    )
+    if allow_legacy_summary:
+        summary = table.get("summary")
 
-    if (
-        isinstance(summary, str)
-        and summary.strip()
-    ):
-        evidence.append(
-            "summary"
-        )
+        if isinstance(summary, str) and summary.strip():
+            evidence.append("summary")
 
-    aria_valid, _ = (
-        get_referenced_text(
-            table,
-            soup,
-            "aria-describedby",
-        )
+    aria_valid, _ = get_referenced_text(
+        table,
+        soup,
     )
 
     if aria_valid:
-        evidence.append(
-            "aria-describedby"
-        )
+        evidence.append("aria-describedby")
 
     return evidence

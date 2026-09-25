@@ -43,13 +43,9 @@ class OllamaPageAnalyzer:
             content=content,
         )
 
-        data = await self._generate_json(
-            prompt
-        )
+        data = await self._generate_json(prompt)
 
-        relevant = self._get_relevant(
-            data
-        )
+        relevant = self._get_relevant(data)
 
         return LanguageAnalysis(
             relevant=relevant,
@@ -61,17 +57,10 @@ class OllamaPageAnalyzer:
             ),
             explanation=self._get_explanation(
                 data.get("explanation"),
-                fallback=(
-                    "La correspondance entre la langue déclarée "
-                    "et le contenu n'a pas pu être déterminée."
-                ),
+                fallback=("La correspondance entre la langue déclarée et le contenu n'a pas pu être déterminée."),
             ),
-            uncertainties=self._get_strings(
-                data.get("uncertainties")
-            ),
-            confidence=self._get_confidence(
-                data.get("confidence")
-            ),
+            uncertainties=self._get_strings(data.get("uncertainties")),
+            confidence=self._get_confidence(data.get("confidence")),
         )
 
     async def analyze_title(
@@ -89,31 +78,19 @@ class OllamaPageAnalyzer:
             content=content,
         )
 
-        data = await self._generate_json(
-            prompt
-        )
+        data = await self._generate_json(prompt)
 
-        relevant = self._get_relevant(
-            data
-        )
+        relevant = self._get_relevant(data)
 
         return TitleAnalysis(
             relevant=relevant,
             explanation=self._get_explanation(
                 data.get("explanation"),
-                fallback=(
-                    "La pertinence du titre n'a pas pu être déterminée."
-                ),
+                fallback=("La pertinence du titre n'a pas pu être déterminée."),
             ),
-            contradictions=self._get_strings(
-                data.get("contradictions")
-            ),
-            uncertainties=self._get_strings(
-                data.get("uncertainties")
-            ),
-            confidence=self._get_confidence(
-                data.get("confidence")
-            ),
+            contradictions=self._get_strings(data.get("contradictions")),
+            uncertainties=self._get_strings(data.get("uncertainties")),
+            confidence=self._get_confidence(data.get("confidence")),
         )
 
     async def _generate_json(
@@ -126,9 +103,7 @@ class OllamaPageAnalyzer:
         Une deuxième tentative ajoute une consigne de format plus stricte.
         """
         strict_prompt = (
-            f"{prompt}\n\n"
-            "IMPORTANT : retourne un unique objet JSON valide "
-            "sans Markdown ni texte supplémentaire."
+            f"{prompt}\n\nIMPORTANT : retourne un unique objet JSON valide sans Markdown ni texte supplémentaire."
         )
 
         last_error: Exception | None = None
@@ -138,23 +113,14 @@ class OllamaPageAnalyzer:
             strict_prompt,
         ):
             try:
-                response = (
-                    await self._generate_with_retry(
-                        candidate
-                    )
-                )
+                response = await self._generate_with_retry(candidate)
 
-                return parse_ai_json(
-                    response
-                )
+                return parse_ai_json(response)
 
             except ValueError as error:
                 last_error = error
 
-        raise ValueError(
-            "Réponse JSON LLM inexploitable : "
-            f"{last_error}"
-        )
+        raise ValueError(f"Réponse JSON LLM inexploitable : {last_error}")
 
     async def _generate_with_retry(
         self,
@@ -184,10 +150,7 @@ class OllamaPageAnalyzer:
                 if attempt == 0:
                     await asyncio.sleep(0.5)
 
-        raise RuntimeError(
-            "La connexion avec Ollama a été interrompue : "
-            f"{last_error}"
-        ) from last_error
+        raise RuntimeError(f"La connexion avec Ollama a été interrompue : {last_error}") from last_error
 
     @staticmethod
     def _get_relevant(
@@ -200,9 +163,7 @@ class OllamaPageAnalyzer:
             False,
             None,
         }:
-            raise ValueError(
-                "Le champ relevant doit être true, false ou null."
-            )
+            raise ValueError("Le champ relevant doit être true, false ou null.")
 
         return relevant
 
@@ -213,10 +174,7 @@ class OllamaPageAnalyzer:
         if not isinstance(value, list):
             return []
 
-        return [
-            str(item)
-            for item in value
-        ]
+        return [str(item) for item in value]
 
     @staticmethod
     def _get_explanation(
@@ -227,9 +185,7 @@ class OllamaPageAnalyzer:
         if not isinstance(value, str):
             return fallback
 
-        explanation = " ".join(
-            value.split()
-        ).strip()
+        explanation = " ".join(value.split()).strip()
 
         if not explanation:
             return fallback

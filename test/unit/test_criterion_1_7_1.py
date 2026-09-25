@@ -24,9 +24,7 @@ def test_extracts_all_detailed_description_sources():
     )
 
     assert len(images) == 1
-    assert {description.source for description in images[0].descriptions} == {
-        "longdesc", "in_page", "aria-describedby"
-    }
+    assert {description.source for description in images[0].descriptions} == {"longdesc", "in_page", "aria-describedby"}
     assert images[0].descriptions[0].reference == "https://example.test/graph.html"
 
 
@@ -54,7 +52,9 @@ def test_missing_longdesc_is_inconclusive_not_passed():
 # sans produire de finding.
 def test_analyzer_result_is_aggregated_without_guessing():
     def analyzer(image, description):
-        return DescriptionAnalysis(relevant=True, explanation="La description couvre les données visibles.", confidence="medium")
+        return DescriptionAnalysis(
+            relevant=True, explanation="La description couvre les données visibles.", confidence="medium"
+        )
 
     result = Criterion17(analyzer=analyzer).run(
         '<img src="graph.png" alt="Graphique" aria-describedby="details">'

@@ -15,9 +15,7 @@ def test_valid_html5_doctype():
 
 # La casse et les espaces superflus ne rendent pas le doctype invalide.
 def test_doctype_is_case_insensitive_and_can_have_whitespace():
-    result = Criterion811().run(
-        "<!doctype   HTML>\n<html><body></body></html>"
-    )
+    result = Criterion811().run("<!doctype   HTML>\n<html><body></body></html>")
 
     assert result.status == ResultStatus.PASS
 
