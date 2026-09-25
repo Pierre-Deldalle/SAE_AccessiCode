@@ -6,21 +6,51 @@ from accessi_code.input.context_builder import AuditContextBuilder
 from accessi_code.models.audit_context import AuditContext
 
 
-def build_debug_context() -> AuditContext:
+def build_debug_context(
+    site_name: str = "basic_site",
+) -> AuditContext:
     """
-    Construit un AuditContext à partir des fichiers du site de test local.
+    Construit un AuditContext à partir d'un site présent dans test_files.
+    """
+    site_directory = (
+        Path("test_files")
+        / site_name
+    )
 
-    Cette fonction peut être réutilisée par d'autres scripts de debug.
-    """
+    index_path = (
+        site_directory
+        / "index.html"
+    )
+
+    if not index_path.is_file():
+        raise FileNotFoundError(
+            f"Fichier principal introuvable : {index_path}"
+        )
+
+    files = [
+        index_path,
+    ]
+
+    files.extend(
+        sorted(
+            path
+            for path
+            in site_directory.iterdir()
+            if (
+                path.is_file()
+                and path != index_path
+            )
+        )
+    )
+
     builder = AuditContextBuilder(
-        workspace_root=Path("workspace"),
+        workspace_root=Path(
+            "workspace"
+        ),
     )
 
     return builder.build(
-        [
-            Path("test_files/basic_site/index.html"),
-            Path("test_files/basic_site/logo.png"),
-        ]
+        files
     )
 
 

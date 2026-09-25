@@ -99,12 +99,13 @@ def build_services(
 async def run_debug(
     *,
     use_ai: bool,
+    site_name: str,
 ) -> None:
     # ---------------------------------------------------------
     # US 0.0.1 : construction du vrai AuditContext
     # ---------------------------------------------------------
 
-    context = build_debug_context()
+    context = build_debug_context(site_name)
 
     print_separator(
         "AUDIT CONTEXT"
@@ -300,7 +301,7 @@ def parse_arguments() -> Any:
     parser = argparse.ArgumentParser(
         description=(
             "Exécute les vrais tests RGAA AccessiCode "
-            "sur test_files/basic_site."
+            "sur un site présent dans test_files."
         )
     )
 
@@ -310,6 +311,15 @@ def parse_arguments() -> Any:
         help=(
             "Exécute les vrais tests RGAA sans "
             "les services Ollama."
+        ),
+    )
+    
+    parser.add_argument(
+        "--site",
+        default="basic_site",
+        help=(
+            "Nom du dossier de test situé dans test_files "
+            "(défaut : basic_site)."
         ),
     )
 
@@ -322,6 +332,7 @@ def main() -> None:
     asyncio.run(
         run_debug(
             use_ai=not arguments.no_ai,
+            site_name=arguments.site,
         )
     )
 
