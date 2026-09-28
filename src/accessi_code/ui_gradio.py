@@ -85,9 +85,7 @@ def _uploaded_file_path(file: Any) -> Path:
         file,
     )
 
-    return Path(
-        str(path)
-    )
+    return Path(str(path))
 
 
 def _json_default(value: Any) -> Any:
@@ -109,9 +107,7 @@ def _json_default(value: Any) -> Any:
     if is_dataclass(value):
         return asdict(value)
 
-    raise TypeError(
-        f"Objet non sérialisable en JSON : {type(value).__name__}"
-    )
+    raise TypeError(f"Objet non sérialisable en JSON : {type(value).__name__}")
 
 
 def _format_json(value: Any) -> str:
@@ -157,14 +153,9 @@ def _build_context_from_html_text(
     with TemporaryDirectory(
         prefix="accessicode_ui_",
     ) as temporary_directory:
-        temporary_path = Path(
-            temporary_directory
-        )
+        temporary_path = Path(temporary_directory)
 
-        html_path = (
-            temporary_path
-            / "index.html"
-        )
+        html_path = temporary_path / "index.html"
 
         html_path.write_text(
             html_text,
@@ -184,15 +175,9 @@ def _build_context_from_uploaded_files(
     """
     Construit un AuditContext à partir des fichiers reçus par Gradio.
     """
-    paths = [
-        _uploaded_file_path(file)
-        for file in uploaded_files
-        if file is not None
-    ]
+    paths = [_uploaded_file_path(file) for file in uploaded_files if file is not None]
 
-    return context_builder.build(
-        paths
-    )
+    return context_builder.build(paths)
 
 
 # ---------------------------------------------------------------------------
@@ -228,35 +213,19 @@ async def run_audit(
         ]
     )
 
-    uploaded_files = [
-        file
-        for file in uploaded_files
-        if file is not None
-    ]
+    uploaded_files = [file for file in uploaded_files if file is not None]
 
     html_file = next(
-        (
-            file
-            for file in uploaded_files
-            if str(
-                _uploaded_file_path(file)
-            )
-            .lower()
-            .endswith(".html")
-        ),
+        (file for file in uploaded_files if str(_uploaded_file_path(file)).lower().endswith(".html")),
         None,
     )
 
     try:
         if html_file is not None:
-            context = _build_context_from_uploaded_files(
-                uploaded_files
-            )
+            context = _build_context_from_uploaded_files(uploaded_files)
 
         elif html_text and html_text.strip():
-            context = _build_context_from_html_text(
-                html_text
-            )
+            context = _build_context_from_html_text(html_text)
 
         else:
             return (
@@ -264,26 +233,17 @@ async def run_audit(
                 [],
             )
 
-        audit_result = await audit_service.audit(
-            context
-        )
+        audit_result = await audit_service.audit(context)
 
     except Exception as error:
         return (
-            (
-                "Erreur lors de l'exécution de l'audit : "
-                f"{error}"
-            ),
+            (f"Erreur lors de l'exécution de l'audit : {error}"),
             [],
         )
 
-    table_data = _result_table(
-        audit_result
-    )
+    table_data = _result_table(audit_result)
 
-    json_formatted = _format_json(
-        audit_result
-    )
+    json_formatted = _format_json(audit_result)
 
     return (
         json_formatted,
@@ -313,30 +273,20 @@ async def test_vlm(
         )
 
     try:
-        image_path = _uploaded_file_path(
-            image_file
-        )
+        image_path = _uploaded_file_path(image_file)
 
         if not image_path.is_file():
             return (
-                (
-                    "Le fichier image fourni est introuvable : "
-                    f"{image_path}"
-                ),
+                (f"Le fichier image fourni est introuvable : {image_path}"),
                 [],
             )
 
         with TemporaryDirectory(
             prefix="accessicode_vlm_",
         ) as temporary_directory:
-            temporary_path = Path(
-                temporary_directory
-            )
+            temporary_path = Path(temporary_directory)
 
-            html_path = (
-                temporary_path
-                / "index.html"
-            )
+            html_path = temporary_path / "index.html"
 
             image_name = html.escape(
                 image_path.name,
@@ -367,27 +317,18 @@ async def test_vlm(
                 ]
             )
 
-        audit_result = await image_audit_service.audit(
-            context
-        )
+        audit_result = await image_audit_service.audit(context)
 
-        table_data = _result_table(
-            audit_result
-        )
+        table_data = _result_table(audit_result)
 
         return (
-            _format_json(
-                audit_result
-            ),
+            _format_json(audit_result),
             table_data,
         )
 
     except Exception as error:
         return (
-            (
-                "Erreur lors de l'exécution du test VLM : "
-                f"{error}"
-            ),
+            (f"Erreur lors de l'exécution du test VLM : {error}"),
             [],
         )
 
@@ -404,14 +345,9 @@ def build_ui():
     with gr.Blocks(
         title="AccessiCode - Audit Accessibilité A11y",
     ) as demo:
-        gr.Markdown(
-            "# ♿ AccessiCode - Audit d'accessibilité Web"
-        )
+        gr.Markdown("# ♿ AccessiCode - Audit d'accessibilité Web")
 
-        gr.Markdown(
-            "Application de bureau pour l'audit "
-            "d'accessibilité des images HTML."
-        )
+        gr.Markdown("Application de bureau pour l'audit d'accessibilité des images HTML.")
 
         with gr.Tabs():
             with gr.Tab(
@@ -423,17 +359,12 @@ def build_ui():
                     ):
                         html_input = gr.Textbox(
                             lines=12,
-                            placeholder=(
-                                "Collez votre code HTML ici..."
-                            ),
+                            placeholder=("Collez votre code HTML ici..."),
                             label="Code HTML à analyser",
                         )
 
                         file_input = gr.File(
-                            label=(
-                                "Ou chargez un fichier HTML "
-                                "(ex: tests/index.html)"
-                            ),
+                            label=("Ou chargez un fichier HTML (ex: tests/index.html)"),
                             file_types=[
                                 ".html",
                             ],
@@ -460,10 +391,7 @@ def build_ui():
 
                         json_output = gr.Code(
                             language="json",
-                            label=(
-                                "Rapport JSON Détaillé "
-                                "(DOM + LLM)"
-                            ),
+                            label=("Rapport JSON Détaillé (DOM + LLM)"),
                         )
 
             with gr.Tab(
@@ -555,9 +483,7 @@ def launch_desktop():
 
     thread.start()
 
-    time.sleep(
-        1.2
-    )
+    time.sleep(1.2)
 
     webview.create_window(
         title="AccessiCode - Desktop App",
