@@ -5,3 +5,4 @@ json_repair==0.63.4
 pydantic_settings==2.15.0
 pywebview==6.2.1
 playwright==1.63.0
+langcodes==3.5.1
