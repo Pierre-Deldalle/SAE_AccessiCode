@@ -560,9 +560,7 @@ Exemple :
 Finding(
     element="img[index=2]",
     message="Le rôle informationnel reste incertain.",
-    recommendation=(
-        "Vérifier manuellement le rôle de l'image."
-    ),
+    recommendation=("Vérifier manuellement le rôle de l'image."),
     evidence={
         "confidence": analysis.confidence,
     },
@@ -587,7 +585,7 @@ metadata
 Exemple :
 
 ```python
-metadata={
+metadata = {
     "candidate_images": 4,
     "informative_images": 2,
     "needs_review": 1,
