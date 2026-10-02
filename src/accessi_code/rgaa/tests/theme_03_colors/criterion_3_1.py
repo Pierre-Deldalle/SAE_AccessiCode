@@ -153,10 +153,7 @@ class Test311(RGAATest):
                 self.test_id,
                 self.criterion_id,
                 TestStatus.NEEDS_REVIEW,
-                (
-                    "Aucune mise en couleur inline n'a été détectée, "
-                    "mais les styles calculés ne sont pas disponibles."
-                ),
+                ("Aucune mise en couleur inline n'a été détectée, mais les styles calculés ne sont pas disponibles."),
                 tested_elements=0,
                 metadata={
                     "candidate_elements": 0,
@@ -291,8 +288,7 @@ class Test313(RGAATest):
                 "du DOM seul."
             ),
             recommendation=(
-                "Vérifier qu'une information transmise par la couleur est "
-                "également disponible par un autre moyen."
+                "Vérifier qu'une information transmise par la couleur est également disponible par un autre moyen."
             ),
         )
 
@@ -339,13 +335,10 @@ class Test314(RGAATest):
         return _review_result(
             self,
             summary=(
-                "Des propriétés CSS de couleur ont été détectées ; "
-                "leur éventuel rôle informationnel doit être vérifié."
+                "Des propriétés CSS de couleur ont été détectées ; leur éventuel rôle informationnel doit être vérifié."
             ),
             candidates=candidates,
-            message=(
-                "Cet élément possède une propriété CSS liée à la couleur."
-            ),
+            message=("Cet élément possède une propriété CSS liée à la couleur."),
             recommendation=(
                 "Si cette propriété CSS transmet une information, vérifier "
                 "qu'un autre moyen permet également de récupérer cette information."
@@ -387,19 +380,12 @@ class Test315(RGAATest):
 
         return _review_result(
             self,
-            summary=(
-                "Des médias temporels sont présents ; leur utilisation "
-                "de la couleur doit être vérifiée."
-            ),
+            summary=("Des médias temporels sont présents ; leur utilisation de la couleur doit être vérifiée."),
             candidates=candidates,
             message=(
-                "Le média doit être examiné afin de déterminer si une "
-                "information repose uniquement sur la couleur."
+                "Le média doit être examiné afin de déterminer si une information repose uniquement sur la couleur."
             ),
-            recommendation=(
-                "Prévoir un autre moyen de transmettre toute information "
-                "présentée par la couleur."
-            ),
+            recommendation=("Prévoir un autre moyen de transmettre toute information présentée par la couleur."),
         )
 
 
@@ -437,17 +423,10 @@ class Test316(RGAATest):
 
         return _review_result(
             self,
-            summary=(
-                "Des médias non temporels sont présents ; leur utilisation "
-                "de la couleur doit être vérifiée."
-            ),
+            summary=("Des médias non temporels sont présents ; leur utilisation de la couleur doit être vérifiée."),
             candidates=candidates,
             message=(
-                "Le média doit être examiné afin de déterminer si une "
-                "information repose uniquement sur la couleur."
+                "Le média doit être examiné afin de déterminer si une information repose uniquement sur la couleur."
             ),
-            recommendation=(
-                "Prévoir un autre moyen de transmettre toute information "
-                "présentée par la couleur."
-            ),
+            recommendation=("Prévoir un autre moyen de transmettre toute information présentée par la couleur."),
         )

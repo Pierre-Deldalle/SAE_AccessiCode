@@ -6,6 +6,10 @@ from typing import Any
 
 from accessi_code.models.audit_file import AuditFile
 from accessi_code.models.capabilities import Capability
+from accessi_code.models.color_style import (
+    NonTextContrastSample,
+    TextContrastSample,
+)
 
 
 @dataclass
@@ -27,6 +31,8 @@ class AuditContext:
         doctype: Déclaration DOCTYPE extraite du document HTML.
         image_files: Chemins des fichiers reconnus comme images.
         screenshots: Chemins des captures disponibles pour l'audit.
+        text_contrast_samples: Styles calculés des textes à contrôler.
+        non_text_contrast_samples: Styles calculés des éléments non textuels.
     """
 
     audit_id: str
@@ -48,6 +54,10 @@ class AuditContext:
     # Ressources visuelles disponibles
     image_files: list[Path] = field(default_factory=list)
     screenshots: list[Path] = field(default_factory=list)
+
+    # Styles calculés utilisés pour les contrôles de contraste
+    text_contrast_samples: list[TextContrastSample] = field(default_factory=list)
+    non_text_contrast_samples: list[NonTextContrastSample] = field(default_factory=list)
 
     def get_capabilities(self) -> set[Capability]:
         """
@@ -74,6 +84,9 @@ class AuditContext:
 
         if self.screenshots:
             capabilities.add(Capability.SCREENSHOT)
+
+        if self.text_contrast_samples or self.non_text_contrast_samples:
+            capabilities.add(Capability.COMPUTED_STYLES)
 
         return capabilities
 

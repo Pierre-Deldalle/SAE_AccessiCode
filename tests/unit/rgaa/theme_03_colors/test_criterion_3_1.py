@@ -27,9 +27,7 @@ def test_311_inline_colored_text_requires_review(
     context_factory,
     run_rgaa,
 ):
-    context = context_factory(
-        '<p style="color: red;">Attention</p>'
-    )
+    context = context_factory('<p style="color: red;">Attention</p>')
 
     result = run_rgaa(RGAA311(), context)
 
@@ -42,9 +40,7 @@ def test_311_background_color_requires_review(
     context_factory,
     run_rgaa,
 ):
-    context = context_factory(
-        '<span style="background-color: yellow;">Information</span>'
-    )
+    context = context_factory('<span style="background-color: yellow;">Information</span>')
 
     result = run_rgaa(RGAA311(), context)
 
@@ -56,18 +52,13 @@ def test_311_without_inline_color_still_requires_review(
     context_factory,
     run_rgaa,
 ):
-    context = context_factory(
-        '<p class="warning">Attention</p>'
-    )
+    context = context_factory('<p class="warning">Attention</p>')
 
     result = run_rgaa(RGAA311(), context)
 
     assert result.status == Status.NEEDS_REVIEW
     assert result.tested_elements == 0
-    assert (
-        result.metadata["computed_styles_available"]
-        is False
-    )
+    assert result.metadata["computed_styles_available"] is False
 
 
 def test_311_multiple_colored_elements_are_reported(
@@ -97,9 +88,7 @@ def test_312_page_with_text_requires_review(
     context_factory,
     run_rgaa,
 ):
-    context = context_factory(
-        "<p>Les champs en rouge sont obligatoires.</p>"
-    )
+    context = context_factory("<p>Les champs en rouge sont obligatoires.</p>")
 
     result = run_rgaa(RGAA312(), context)
 
@@ -112,9 +101,7 @@ def test_312_empty_page_is_not_applicable(
     context_factory,
     run_rgaa,
 ):
-    context = context_factory(
-        "<main></main>"
-    )
+    context = context_factory("<main></main>")
 
     result = run_rgaa(RGAA312(), context)
 
@@ -126,9 +113,7 @@ def test_312_whitespace_only_page_is_not_applicable(
     context_factory,
     run_rgaa,
 ):
-    context = context_factory(
-        "<main>     </main>"
-    )
+    context = context_factory("<main>     </main>")
 
     result = run_rgaa(RGAA312(), context)
 
@@ -144,9 +129,7 @@ def test_313_image_requires_review(
     context_factory,
     run_rgaa,
 ):
-    context = context_factory(
-        '<img src="chart.png" alt="Résultats">'
-    )
+    context = context_factory('<img src="chart.png" alt="Résultats">')
 
     result = run_rgaa(RGAA313(), context)
 
@@ -159,9 +142,7 @@ def test_313_role_img_requires_review(
     context_factory,
     run_rgaa,
 ):
-    context = context_factory(
-        '<div role="img" aria-label="Graphique"></div>'
-    )
+    context = context_factory('<div role="img" aria-label="Graphique"></div>')
 
     result = run_rgaa(RGAA313(), context)
 
@@ -191,9 +172,7 @@ def test_313_without_image_is_not_applicable(
     context_factory,
     run_rgaa,
 ):
-    context = context_factory(
-        "<main><p>Texte seulement.</p></main>"
-    )
+    context = context_factory("<main><p>Texte seulement.</p></main>")
 
     result = run_rgaa(RGAA313(), context)
 
@@ -210,9 +189,7 @@ def test_314_css_color_property_requires_review(
     context_factory,
     run_rgaa,
 ):
-    context = context_factory(
-        '<p style="color: #ff0000;">Erreur</p>'
-    )
+    context = context_factory('<p style="color: #ff0000;">Erreur</p>')
 
     result = run_rgaa(RGAA314(), context)
 
@@ -224,9 +201,7 @@ def test_314_border_color_requires_review(
     context_factory,
     run_rgaa,
 ):
-    context = context_factory(
-        '<input style="border-color: red;">'
-    )
+    context = context_factory('<input style="border-color: red;">')
 
     result = run_rgaa(RGAA314(), context)
 
@@ -238,18 +213,13 @@ def test_314_without_inline_color_still_requires_review(
     context_factory,
     run_rgaa,
 ):
-    context = context_factory(
-        '<p class="error">Erreur</p>'
-    )
+    context = context_factory('<p class="error">Erreur</p>')
 
     result = run_rgaa(RGAA314(), context)
 
     assert result.status == Status.NEEDS_REVIEW
     assert result.tested_elements == 0
-    assert (
-        result.metadata["computed_styles_available"]
-        is False
-    )
+    assert result.metadata["computed_styles_available"] is False
 
 
 # ---------------------------------------------------------------------------
@@ -261,9 +231,7 @@ def test_315_video_requires_review(
     context_factory,
     run_rgaa,
 ):
-    context = context_factory(
-        '<video src="tutorial.mp4"></video>'
-    )
+    context = context_factory('<video src="tutorial.mp4"></video>')
 
     result = run_rgaa(RGAA315(), context)
 
@@ -275,9 +243,7 @@ def test_315_audio_requires_review(
     context_factory,
     run_rgaa,
 ):
-    context = context_factory(
-        '<audio src="instructions.mp3"></audio>'
-    )
+    context = context_factory('<audio src="instructions.mp3"></audio>')
 
     result = run_rgaa(RGAA315(), context)
 
@@ -307,9 +273,7 @@ def test_315_without_temporal_media_is_not_applicable(
     context_factory,
     run_rgaa,
 ):
-    context = context_factory(
-        "<main><p>Texte.</p></main>"
-    )
+    context = context_factory("<main><p>Texte.</p></main>")
 
     result = run_rgaa(RGAA315(), context)
 
@@ -326,9 +290,7 @@ def test_316_object_requires_review(
     context_factory,
     run_rgaa,
 ):
-    context = context_factory(
-        '<object data="diagram.pdf"></object>'
-    )
+    context = context_factory('<object data="diagram.pdf"></object>')
 
     result = run_rgaa(RGAA316(), context)
 
@@ -340,9 +302,7 @@ def test_316_embed_requires_review(
     context_factory,
     run_rgaa,
 ):
-    context = context_factory(
-        '<embed src="diagram.svg">'
-    )
+    context = context_factory('<embed src="diagram.svg">')
 
     result = run_rgaa(RGAA316(), context)
 
@@ -354,9 +314,7 @@ def test_316_canvas_requires_review(
     context_factory,
     run_rgaa,
 ):
-    context = context_factory(
-        '<canvas id="chart"></canvas>'
-    )
+    context = context_factory('<canvas id="chart"></canvas>')
 
     result = run_rgaa(RGAA316(), context)
 
@@ -386,9 +344,7 @@ def test_316_without_non_temporal_media_is_not_applicable(
     context_factory,
     run_rgaa,
 ):
-    context = context_factory(
-        "<main><p>Texte uniquement.</p></main>"
-    )
+    context = context_factory("<main><p>Texte uniquement.</p></main>")
 
     result = run_rgaa(RGAA316(), context)
 
