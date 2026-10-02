@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Démonstration des tests multimédia AccessiCode</title>
+</head>
+<body>
+    <main>
+        <h1>Démonstration des tests multimédia</h1>
+        <p>
+            Cette page contient des exemples pour vérifier la détection des médias du critère RGAA 4.1.
+            Les chemins audio et vidéo sont des emplacements de démonstration; ajoute des fichiers dans
+            le dossier media pour pouvoir lire les médias dans un navigateur.
+        </p>
+
+        <section aria-labelledby="audio-title">
+            <h2 id="audio-title">Média seulement audio</h2>
+            <p>Extrait audio de démonstration. Le lien adjacent mène à sa transcription.</p>
+            <audio controls src="media/extrait-audio.mp3">
+                Votre navigateur ne prend pas en charge la lecture audio.
+            </audio>
+            <a href="#transcription-audio">Lire la transcription de l'extrait audio</a>
+            <p id="transcription-audio">
+                Transcription de démonstration : une voix annonce le début de l'extrait, puis décrit le sujet
+                présenté dans l'enregistrement.
+            </p>
+        </section>
+
+        <section aria-labelledby="video-only-title">
+            <h2 id="video-only-title">Média seulement vidéo</h2>
+            <p>Exemple de vidéo sans piste audio, à vérifier pour le test 4.1.2.</p>
+            <video controls muted src="media/video-seule.mp4">
+                Votre navigateur ne prend pas en charge la lecture vidéo.
+            </video>
+            <a href="media/version-audio.mp3">Écouter la version audio de cette vidéo</a>
+            <p>
+                La version audio de démonstration décrit les informations visuelles importantes de la vidéo.
+            </p>
+        </section>
+
+        <section aria-labelledby="synchronized-title">
+            <h2 id="synchronized-title">Média vidéo avec son</h2>
+            <p>Exemple de média synchronisé, à vérifier pour le test 4.1.3.</p>
+            <video controls src="media/video-synchronisee.mp4">
+                Votre navigateur ne prend pas en charge la lecture vidéo.
+            </video>
+            <a href="#transcription-video">Lire la transcription de la vidéo</a>
+            <p id="transcription-video">
+                Transcription de démonstration : une personne explique le sujet pendant que la vidéo montre
+                plusieurs scènes et des informations visuelles complémentaires.
+            </p>
+        </section>
+    </main>
+</body>
+</html>

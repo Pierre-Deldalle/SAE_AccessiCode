@@ -6,6 +6,11 @@ from accessi_code.rgaa.tests.theme_01_images.criterion_1_1 import (
     Test112,
     Test113,
 )
+from accessi_code.rgaa.tests.theme_04_multimedia.criterion_4_1 import (
+    Test411,
+    Test412,
+    Test413,
+)
 from accessi_code.rgaa.tests.theme_01_images.criterion_1_7 import (
     Test171,
 )
@@ -41,6 +46,9 @@ def build_default_registry() -> TestRegistry:
             Test112(),
             Test113(),
             Test171(),
+            Test411(),
+            Test412(),
+            Test413(),
             Test511(),
             Test811(),
             Test812(),
