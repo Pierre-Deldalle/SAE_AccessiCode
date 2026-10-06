@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
@@ -8,49 +9,235 @@
 <body>
     <main>
         <h1>Démonstration des tests multimédia</h1>
+
+    <p>
+        Cette page contient des exemples pour vérifier la détection des médias
+        et les tests du thème RGAA 4 — Multimédia.
+    </p>
+
+    <section aria-labelledby="audio-title">
+        <h2 id="audio-title">Média seulement audio</h2>
+
         <p>
-            Cette page contient des exemples pour vérifier la détection des médias du critère RGAA 4.1.
-            Les chemins audio et vidéo sont des emplacements de démonstration; ajoute des fichiers dans
-            le dossier media pour pouvoir lire les médias dans un navigateur.
+            Extrait audio de démonstration. Le lien adjacent mène à sa transcription.
         </p>
 
-        <section aria-labelledby="audio-title">
-            <h2 id="audio-title">Média seulement audio</h2>
-            <p>Extrait audio de démonstration. Le lien adjacent mène à sa transcription.</p>
-            <audio controls src="media/extrait-audio.mp3">
-                Votre navigateur ne prend pas en charge la lecture audio.
-            </audio>
-            <a href="#transcription-audio">Lire la transcription de l'extrait audio</a>
-            <p id="transcription-audio">
-                Transcription de démonstration : une voix annonce le début de l'extrait, puis décrit le sujet
-                présenté dans l'enregistrement.
-            </p>
-        </section>
+        <audio controls src="media/extrait-audio.mp3">
+            Votre navigateur ne prend pas en charge la lecture audio.
+        </audio>
 
-        <section aria-labelledby="video-only-title">
-            <h2 id="video-only-title">Média seulement vidéo</h2>
-            <p>Exemple de vidéo sans piste audio, à vérifier pour le test 4.1.2.</p>
-            <video controls muted src="media/video-seule.mp4">
-                Votre navigateur ne prend pas en charge la lecture vidéo.
-            </video>
-            <a href="media/version-audio.mp3">Écouter la version audio de cette vidéo</a>
+        <a href="#transcription-audio">
+            Lire la transcription de l'extrait audio
+        </a>
+
+        <p id="transcription-audio">
+            Transcription de démonstration : une voix annonce le début de
+            l'extrait, puis décrit le sujet présenté dans l'enregistrement.
+        </p>
+    </section>
+
+
+    <section aria-labelledby="video-only-title">
+        <h2 id="video-only-title">Média seulement vidéo</h2>
+
+        <p>
+            Exemple de vidéo sans piste audio, à vérifier pour le test 4.1.2.
+        </p>
+
+        <video controls muted src="media/video-seule.mp4">
+            Votre navigateur ne prend pas en charge la lecture vidéo.
+        </video>
+
+        <a href="media/version-audio.mp3">
+            Écouter la version audio de cette vidéo
+        </a>
+
+        <p>
+            La version audio de démonstration décrit les informations visuelles
+            importantes de la vidéo.
+        </p>
+    </section>
+
+
+    <section aria-labelledby="synchronized-title">
+        <h2 id="synchronized-title">Média vidéo avec son</h2>
+
+        <p>
+            Exemple de média synchronisé, à vérifier pour le test 4.1.3.
+        </p>
+
+        <video controls src="media/video-synchronisee.mp4">
+            Votre navigateur ne prend pas en charge la lecture vidéo.
+        </video>
+
+        <a href="#transcription-video">
+            Lire la transcription de la vidéo
+        </a>
+
+        <p id="transcription-video">
+            Transcription de démonstration : une personne explique le sujet
+            pendant que la vidéo montre plusieurs scènes et des informations
+            visuelles complémentaires.
+        </p>
+    </section>
+
+    <section aria-labelledby="non-temporal-title">
+        <h2 id="non-temporal-title">
+            Critère 4.8 — Médias non temporels
+        </h2>
+
+        <p>
+            Cette section contient plusieurs cas permettant de tester les
+            tests 4.8.1 et 4.8.2.
+        </p>
+
+        <article aria-labelledby="object-ok-title">
+            <h3 id="object-ok-title">
+                4.8 — Object avec alternative
+            </h3>
+
             <p>
-                La version audio de démonstration décrit les informations visuelles importantes de la vidéo.
+                Ce média possède un lien adjacent permettant d'accéder
+                à une alternative.
             </p>
-        </section>
 
-        <section aria-labelledby="synchronized-title">
-            <h2 id="synchronized-title">Média vidéo avec son</h2>
-            <p>Exemple de média synchronisé, à vérifier pour le test 4.1.3.</p>
-            <video controls src="media/video-synchronisee.mp4">
-                Votre navigateur ne prend pas en charge la lecture vidéo.
-            </video>
-            <a href="#transcription-video">Lire la transcription de la vidéo</a>
-            <p id="transcription-video">
-                Transcription de démonstration : une personne explique le sujet pendant que la vidéo montre
-                plusieurs scènes et des informations visuelles complémentaires.
+            <object
+                id="document-accessible"
+                data="media/document.pdf"
+                type="application/pdf"
+                width="400"
+                height="250">
+                Document PDF de démonstration.
+            </object>
+
+            <a href="media/document-alternative.html">
+                Lire l'alternative du document PDF
+            </a>
+        </article>
+
+        <article aria-labelledby="embed-ok-title">
+            <h3 id="embed-ok-title">
+                4.8 — Embed avec alternative
+            </h3>
+
+            <p>
+                Ce média est associé à un bouton permettant d'accéder
+                à son alternative.
             </p>
-        </section>
-    </main>
+
+            <embed
+                id="document-embed"
+                src="media/document.pdf"
+                type="application/pdf"
+                width="400"
+                height="250">
+
+            <button
+                aria-controls="alternative-embed">
+                Afficher l'alternative du document
+            </button>
+
+            <p id="alternative-embed">
+                Alternative textuelle du document PDF :
+                ce document présente les informations de démonstration
+                utilisées pour tester le critère 4.8.
+            </p>
+        </article>
+
+        <article aria-labelledby="object-fail-title">
+            <h3 id="object-fail-title">
+                4.8 — Object sans alternative
+            </h3>
+
+            <p>
+                Ce média ne possède aucun lien ni bouton adjacent
+                permettant d'accéder à une alternative.
+            </p>
+
+            <object
+                id="document-sans-alternative"
+                data="media/document-sans-alternative.pdf"
+                type="application/pdf"
+                width="400"
+                height="250">
+                Document PDF sans alternative.
+            </object>
+        </article>
+
+        <article aria-labelledby="invalid-destination-title">
+            <h3 id="invalid-destination-title">
+                4.8 — Lien sans destination exploitable
+            </h3>
+
+            <p>
+                Le lien est identifiable mais son attribut href ne permet
+                pas d'accéder à une alternative.
+            </p>
+
+            <object
+                id="document-lien-invalide"
+                data="media/document-invalide.pdf"
+                type="application/pdf"
+                width="400"
+                height="250">
+                Document PDF de démonstration.
+            </object>
+
+            <a href="#">
+                Lire l'alternative
+            </a>
+        </article>
+
+        <article aria-labelledby="button-title">
+            <h3 id="button-title">
+                4.8 — Bouton avec destination
+            </h3>
+
+            <p>
+                Le bouton adjacent possède un aria-controls permettant
+                d'identifier l'alternative présente dans la page.
+            </p>
+
+            <object
+                id="document-bouton"
+                data="media/document-bouton.pdf"
+                type="application/pdf"
+                width="400"
+                height="250">
+                Document PDF de démonstration.
+            </object>
+
+            <button
+                aria-controls="alternative-bouton">
+                Afficher l'alternative
+            </button>
+
+            <p id="alternative-bouton">
+                Alternative textuelle du média non temporel.
+                Cette alternative permet de consulter les informations
+                contenues dans le document.
+            </p>
+        </article>
+
+        <article aria-labelledby="decorative-title">
+            <h3 id="decorative-title">
+                4.8 — Média décoratif
+            </h3>
+
+            <p>
+                Ce média est explicitement déclaré comme décoratif.
+            </p>
+
+            <object
+                id="media-decoratif"
+                data="media/icone.svg"
+                type="image/svg+xml"
+                aria-hidden="true">
+            </object>
+        </article>
+
+    </section>
+</main>
+
 </body>
 </html>
