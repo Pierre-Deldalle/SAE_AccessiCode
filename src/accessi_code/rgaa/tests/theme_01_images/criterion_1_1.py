@@ -684,3 +684,203 @@ class Test113(RGAATest):
             raise ValueError("Le test 1.1.3 nécessite un DOM.")
 
         return context.dom
+
+
+class Test114(RGAATest):
+    test_id = "1.1.4"
+
+    criterion_id = "1.1"
+
+    required_capabilities = frozenset(
+        {
+            Capability.DOM,
+        }
+    )
+
+    async def run(
+        self,
+        context: AuditContext,
+        services: Any | None = None,
+    ) -> TestResult:
+        soup = self._get_dom(context)
+
+        image_maps = [image for image in soup.find_all("img") if image.has_attr("ismap")]
+
+        if not image_maps:
+            return TestResult(
+                test_id=self.test_id,
+                criterion_id=self.criterion_id,
+                status=TestStatus.NOT_APPLICABLE,
+                summary="Aucune image réactive côté serveur détectée.",
+            )
+
+        findings: list[Finding] = []
+
+        compliant = 0
+        failed = 0
+        needs_review = 0
+
+        for index, image in enumerate(image_maps):
+            identifier = self._identifier(
+                image,
+                index,
+            )
+
+            mechanisms = self._find_alternative_mechanisms(
+                image,
+                soup,
+            )
+
+            if not mechanisms:
+                failed += 1
+
+                findings.append(
+                    Finding(
+                        element=identifier,
+                        message=(
+                            "Aucun mécanisme alternatif permettant "
+                            "d'accéder aux ressources de l'image "
+                            "réactive côté serveur n'a été détecté."
+                        ),
+                        recommendation=(
+                            "Ajouter un ou plusieurs mécanismes "
+                            "utilisables quel que soit le dispositif "
+                            "de pointage et permettant d'accéder aux "
+                            "mêmes ressources que l'image réactive."
+                        ),
+                    )
+                )
+
+                continue
+
+            needs_review += 1
+
+            findings.append(
+                Finding(
+                    element=identifier,
+                    message=(
+                        "Un ou plusieurs mécanismes alternatifs ont "
+                        "été détectés, mais l'équivalence de leurs "
+                        "destinations avec les zones de l'image "
+                        "réactive ne peut pas être vérifiée "
+                        "automatiquement."
+                    ),
+                    recommendation=(
+                        "Vérifier manuellement que chaque zone "
+                        "cliquable de l'image réactive est doublée "
+                        "par un mécanisme permettant d'accéder "
+                        "à la même destination."
+                    ),
+                    evidence={
+                        "alternative_mechanisms": mechanisms,
+                    },
+                )
+            )
+
+        if failed:
+            status = TestStatus.FAIL
+        elif needs_review:
+            status = TestStatus.NEEDS_REVIEW
+        else:
+            status = TestStatus.PASS
+
+        return TestResult(
+            test_id=self.test_id,
+            criterion_id=self.criterion_id,
+            status=status,
+            summary=(
+                f"{len(image_maps)} image(s) réactive(s) côté serveur : "
+                f"{compliant} conforme(s), "
+                f"{failed} non conforme(s), "
+                f"{needs_review} à vérifier."
+            ),
+            findings=findings,
+            tested_elements=len(image_maps),
+            metadata={
+                "candidate_images": len(image_maps),
+                "compliant_images": compliant,
+                "failed_images": failed,
+                "needs_review": needs_review,
+            },
+        )
+
+    @staticmethod
+    def _find_alternative_mechanisms(
+        image: Tag,
+        soup: BeautifulSoup,
+    ) -> list[str]:
+        mechanisms: list[str] = []
+
+        for sibling in image.next_siblings:
+            if not isinstance(sibling, Tag):
+                continue
+
+            # Une nouvelle image réactive commence une nouvelle zone.
+            if sibling.name == "img" and sibling.has_attr("ismap"):
+                break
+
+            # Le sibling lui-même peut être le mécanisme.
+            if sibling.name == "a":
+                href = sibling.get("href")
+
+                if isinstance(href, str) and href.strip():
+                    text = sibling.get_text(" ", strip=True)
+
+                    if text:
+                        mechanisms.append("a[href]")
+                    else:
+                        mechanisms.append("a[href]")
+
+            elif sibling.name == "select":
+                mechanisms.append("select")
+
+            elif sibling.name == "button":
+                mechanisms.append("button")
+
+            # Le mécanisme peut également être contenu dans un
+            # conteneur intermédiaire.
+            for index, link in enumerate(sibling.find_all("a")):
+                href = link.get("href")
+
+                if not isinstance(href, str) or not href.strip():
+                    continue
+
+                mechanisms.append(f"a[href][index={index}]")
+
+            for index, select in enumerate(sibling.find_all("select")):
+                mechanisms.append(f"select[index={index}]")
+
+            for index, button in enumerate(sibling.find_all("button")):
+                mechanisms.append(f"button[index={index}]")
+
+        return mechanisms
+
+    @staticmethod
+    def _identifier(
+        element: Tag,
+        index: int,
+    ) -> str:
+        element_id = element.get("id")
+
+        if (
+            isinstance(
+                element_id,
+                str,
+            )
+            and element_id.strip()
+        ):
+            return f"{element.name}#{element_id}"
+
+        return f"img[ismap][index={index}]"
+
+    @staticmethod
+    def _get_dom(
+        context: AuditContext,
+    ) -> BeautifulSoup:
+        if not isinstance(
+            context.dom,
+            BeautifulSoup,
+        ):
+            raise ValueError("Le test 1.1.4 nécessite un DOM.")
+
+        return context.dom

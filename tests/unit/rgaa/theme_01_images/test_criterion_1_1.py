@@ -14,6 +14,9 @@ from accessi_code.rgaa.tests.theme_01_images.criterion_1_1 import (
 from accessi_code.rgaa.tests.theme_01_images.criterion_1_1 import (
     Test113 as RGAA113,
 )
+from accessi_code.rgaa.tests.theme_01_images.criterion_1_1 import (
+    Test114 as RGAA114,
+)
 from accessi_code.service.audit_services import AuditServices
 
 
@@ -507,3 +510,229 @@ def test_113_no_input_image_is_not_applicable(
 
     assert result.status == Status.NOT_APPLICABLE
     assert result.tested_elements == 0
+
+
+# ---------------------------------------------------------------------------
+# 1.1.4
+# ---------------------------------------------------------------------------
+
+
+def test_114_no_server_side_image_map_is_not_applicable(
+    context_factory,
+    run_rgaa,
+):
+    html = """
+    <img src="logo.png" alt="Logo">
+    """
+
+    context = context_factory(html)
+
+    result = run_rgaa(
+        RGAA114(),
+        context,
+    )
+
+    assert result.status == Status.NOT_APPLICABLE
+    assert result.tested_elements == 0
+
+
+def test_114_server_side_image_map_without_alternative_fails(
+    context_factory,
+    run_rgaa,
+):
+    html = """
+    <img
+        src="map.png"
+        alt="Carte"
+        ismap
+    >
+    """
+
+    context = context_factory(html)
+
+    result = run_rgaa(
+        RGAA114(),
+        context,
+    )
+
+    assert result.status == Status.FAIL
+    assert result.tested_elements == 1
+    assert len(result.findings) == 1
+
+
+def test_114_server_side_image_map_with_link_requires_review(
+    context_factory,
+    run_rgaa,
+):
+    html = """
+    <img
+        src="map.png"
+        alt="Carte"
+        ismap
+    >
+
+    <a href="/paris">
+        Paris
+    </a>
+    """
+
+    context = context_factory(html)
+
+    result = run_rgaa(
+        RGAA114(),
+        context,
+    )
+
+    assert result.status == Status.NEEDS_REVIEW
+    assert result.tested_elements == 1
+    assert len(result.findings) == 1
+    assert result.findings[0].evidence["alternative_mechanisms"]
+
+
+def test_114_server_side_image_map_with_select_requires_review(
+    context_factory,
+    run_rgaa,
+):
+    html = """
+    <img
+        src="map.png"
+        alt="Carte"
+        ismap
+    >
+
+    <select>
+        <option value="/paris">Paris</option>
+        <option value="/lille">Lille</option>
+    </select>
+    """
+
+    context = context_factory(html)
+
+    result = run_rgaa(
+        RGAA114(),
+        context,
+    )
+
+    assert result.status == Status.NEEDS_REVIEW
+    assert result.tested_elements == 1
+    assert len(result.findings) == 1
+
+
+def test_114_server_side_image_map_with_button_requires_review(
+    context_factory,
+    run_rgaa,
+):
+    html = """
+    <img
+        src="map.png"
+        alt="Carte"
+        ismap
+    >
+
+    <button type="button">
+        Paris
+    </button>
+    """
+
+    context = context_factory(html)
+
+    result = run_rgaa(
+        RGAA114(),
+        context,
+    )
+
+    assert result.status == Status.NEEDS_REVIEW
+    assert result.tested_elements == 1
+
+
+def test_114_empty_link_href_does_not_count(
+    context_factory,
+    run_rgaa,
+):
+    html = """
+    <img
+        src="map.png"
+        alt="Carte"
+        ismap
+    >
+
+    <a href="">
+        Paris
+    </a>
+    """
+
+    context = context_factory(html)
+
+    result = run_rgaa(
+        RGAA114(),
+        context,
+    )
+
+    assert result.status == Status.FAIL
+
+
+def test_114_multiple_maps_one_without_mechanism_fails(
+    context_factory,
+    run_rgaa,
+):
+    html = """
+    <img
+        src="map1.png"
+        alt="Première carte"
+        ismap
+    >
+
+    <a href="/paris">
+        Paris
+    </a>
+
+    <img
+        src="map2.png"
+        alt="Deuxième carte"
+        ismap
+    >
+    """
+
+    context = context_factory(html)
+
+    result = run_rgaa(
+        RGAA114(),
+        context,
+    )
+
+    assert result.status == Status.FAIL
+    assert result.tested_elements == 2
+    assert len(result.findings) == 2
+
+
+def test_114_failure_has_priority_over_review(
+    context_factory,
+    run_rgaa,
+):
+    html = """
+    <img
+        src="map1.png"
+        alt="Première carte"
+        ismap
+    >
+
+    <a href="/paris">
+        Paris
+    </a>
+
+    <img
+        src="map2.png"
+        alt="Deuxième carte"
+        ismap
+    >
+    """
+
+    context = context_factory(html)
+
+    result = run_rgaa(
+        RGAA114(),
+        context,
+    )
+
+    assert result.status == Status.FAIL
+    assert len(result.findings) == 2

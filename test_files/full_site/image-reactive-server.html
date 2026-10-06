@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Image réactive côté serveur</title>
+</head>
+<body>
+    <main>
+        <h1>Carte interactive</h1>
+
+        <p>
+            Cette page contient une image réactive côté serveur et les liens
+            alternatifs permettant d'accéder aux mêmes destinations.
+        </p>
+
+        <img
+            src="logo.png"
+            alt="Carte interactive de la France"
+            ismap
+        >
+
+        <nav aria-label="Destinations de la carte">
+            <a href="image-reactive-server.html?zone=paris">Paris</a>
+            <a href="image-reactive-server.html?zone=lille">Lille</a>
+        </nav>
+    </main>
+</body>
+</html>
