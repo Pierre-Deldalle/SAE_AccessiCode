@@ -6,6 +6,7 @@ from accessi_code.input.context_builder import AuditContextBuilder
 from accessi_code.models.audit_context import AuditContext
 
 
+
 def build_debug_context(
     site_name: str = "basic_site",
 ) -> AuditContext:

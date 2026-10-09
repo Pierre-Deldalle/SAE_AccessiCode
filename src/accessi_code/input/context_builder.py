@@ -2,8 +2,10 @@
 
 from pathlib import Path
 
+from accessi_code.input.extractors.css import extract_css
 from accessi_code.input.extractors.html import extract_html
 from accessi_code.input.file_classifier import (
+    is_css_file,
     is_html_file,
     is_image_file,
 )
@@ -37,8 +39,9 @@ class AuditContextBuilder:
             input_files: Fichiers source à copier et analyser.
 
         Returns:
-            Le contexte contenant les fichiers copiés, les images détectées
-            et le premier document HTML extrait, le cas échéant.
+            Le contexte contenant les fichiers copiés, les images détectées,
+            les feuilles CSS et le premier document HTML extrait,
+            le cas échéant.
         """
 
         (
@@ -64,13 +67,22 @@ class AuditContextBuilder:
         """
         Extrait les informations utiles de chaque fichier du contexte.
 
-        Les fichiers HTML sont analysés uniquement pour le premier document
-        détecté ; tous les fichiers image sont conservés dans ``image_files``.
+        Le premier document HTML est analysé comme page principale.
+        Tous les fichiers image sont conservés dans ``image_files``.
+        Toutes les feuilles CSS fournies sont lues et conservées.
         """
 
-        html_files = [file for file in context.files if is_html_file(file.path)]
+        html_files = [
+            file for file in context.files if is_html_file(file.path)
+        ]
 
-        image_files = [file for file in context.files if is_image_file(file.path)]
+        image_files = [
+            file for file in context.files if is_image_file(file.path)
+        ]
+
+        css_files = [
+            file for file in context.files if is_css_file(file.path)
+        ]
 
         context.image_files = [file.path for file in image_files]
 
@@ -78,6 +90,12 @@ class AuditContextBuilder:
             self._extract_main_html(
                 context,
                 html_files[0].path,
+            )
+
+        for css_file in css_files:
+            self._extract_css_file(
+                context,
+                css_file.path,
             )
 
     @staticmethod
@@ -102,3 +120,24 @@ class AuditContextBuilder:
         context.html_source = extraction.source
         context.dom = extraction.dom
         context.doctype = extraction.doctype
+
+    @staticmethod
+    def _extract_css_file(
+        context: AuditContext,
+        css_path: Path,
+    ) -> None:
+        """
+        Extrait le contenu d'une feuille CSS.
+
+        Le chemin et le contenu source sont conservés dans
+        l'AuditContext pour les futures analyses RGAA.
+
+        Args:
+            context: Contexte à enrichir en place.
+            css_path: Chemin de la feuille CSS à analyser.
+        """
+
+        extraction = extract_css(css_path)
+
+        context.css_files.append(css_path)
+        context.css_sources[css_path] = extraction.source

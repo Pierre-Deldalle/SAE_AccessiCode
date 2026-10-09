@@ -4,7 +4,7 @@ import argparse
 import asyncio
 from typing import Any
 
-from debug_context import build_debug_context
+from scripts.debug_context import build_debug_context
 
 from accessi_code.config import settings
 from accessi_code.models.result import Finding, TestResult

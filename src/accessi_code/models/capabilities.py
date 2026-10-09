@@ -14,6 +14,7 @@ class Capability(str, Enum):
     SOURCE_FILES = "source_files"
     HTML_SOURCE = "html_source"
     DOM = "dom"
+    CSS_SOURCE = "css_source"
     IMAGES = "images"
     SCREENSHOT = "screenshot"
 

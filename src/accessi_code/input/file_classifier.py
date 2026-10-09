@@ -4,6 +4,8 @@ from pathlib import Path
 
 HTML_EXTENSIONS = {".html", ".htm"}
 
+CSS_EXTENSIONS = {".css"}
+
 IMAGE_EXTENSIONS = {
     ".png",
     ".jpg",
@@ -25,6 +27,12 @@ def is_html_file(path: Path) -> bool:
     """Retourne ``True`` si le chemin possède une extension HTML connue."""
 
     return path.suffix.lower() in HTML_EXTENSIONS
+
+
+def is_css_file(path: Path) -> bool:
+    """Retourne ``True`` si le chemin possède une extension CSS connue."""
+
+    return path.suffix.lower() in CSS_EXTENSIONS
 
 
 def is_image_file(path: Path) -> bool:

@@ -31,6 +31,8 @@ class AuditContext:
         doctype: Déclaration DOCTYPE extraite du document HTML.
         image_files: Chemins des fichiers reconnus comme images.
         screenshots: Chemins des captures disponibles pour l'audit.
+        css_files: Chemins des feuilles CSS disponibles.
+        css_sources: Contenu des feuilles CSS, indexé par chemin.
         text_contrast_samples: Styles calculés des textes à contrôler.
         non_text_contrast_samples: Styles calculés des éléments non textuels.
     """
@@ -55,6 +57,10 @@ class AuditContext:
     image_files: list[Path] = field(default_factory=list)
     screenshots: list[Path] = field(default_factory=list)
 
+    # Feuilles de style CSS sources
+    css_files: list[Path] = field(default_factory=list)
+    css_sources: dict[Path, str] = field(default_factory=dict)
+
     # Styles calculés utilisés pour les contrôles de contraste
     text_contrast_samples: list[TextContrastSample] = field(default_factory=list)
     non_text_contrast_samples: list[NonTextContrastSample] = field(default_factory=list)
@@ -78,6 +84,9 @@ class AuditContext:
 
         if self.dom is not None:
             capabilities.add(Capability.DOM)
+
+        if self.css_sources:
+            capabilities.add(Capability.CSS_SOURCE)
 
         if self.image_files:
             capabilities.add(Capability.IMAGES)
