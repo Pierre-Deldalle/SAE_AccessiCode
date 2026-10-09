@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cas non conformes — couleurs RGAA</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <div class="inner">
+    <h1>Cas non conformes — Couleurs</h1>
+    <nav aria-label="Navigation">
+      <a href="index.html">Accueil</a>
+      <a href="conforme.html">Voir les cas conformes</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="ko" data-rgaa="3.1.1">
+    <span class="test-id">3.1.1</span>
+    <h2>Information transmise uniquement par la couleur</h2>
+    <div class="example status-color-only">
+      <p class="good">Commande #1024</p>
+      <p class="bad">Commande #1025</p>
+      <p>La couleur seule permet ici de distinguer l'état des deux commandes.</p>
+    </div>
+  </section>
+
+  <section class="ko" data-rgaa="3.1.2">
+    <span class="test-id">3.1.2</span>
+    <h2>Champ obligatoire indiqué uniquement en rouge</h2>
+    <div class="example required-bad">
+      <p>Les champs affichés en rouge sont obligatoires.</p>
+      <label class="required" for="name-ko">Nom</label><br>
+      <input id="name-ko" type="text">
+    </div>
+  </section>
+
+  <section class="ko" data-rgaa="3.1.4">
+    <span class="test-id">3.1.4</span>
+    <h2>Information portée uniquement par une propriété CSS de couleur</h2>
+    <div class="example legend-color-only">
+      <span class="success">Dossier A</span>
+      <span class="error">Dossier B</span>
+    </div>
+    <p>Le sens « accepté/refusé » n'est fourni que par les couleurs de fond CSS.</p>
+  </section>
+
+  <section class="ko" data-rgaa="3.2.1">
+    <span class="test-id">3.2.1</span>
+    <h2>Petit texte normal : contraste insuffisant</h2>
+    <p class="example text-small-fail">Ce texte de 16 px est volontairement trop clair sur fond blanc.</p>
+  </section>
+
+  <section class="ko" data-rgaa="3.2.2">
+    <span class="test-id">3.2.2</span>
+    <h2>Petit texte gras : contraste insuffisant</h2>
+    <p class="example text-bold-small-fail">Ce texte gras de 17 px est volontairement trop clair.</p>
+  </section>
+
+  <section class="ko" data-rgaa="3.2.3">
+    <span class="test-id">3.2.3</span>
+    <h2>Grand texte normal : contraste insuffisant</h2>
+    <p class="example text-large-fail">Grand texte normal de 26 px, volontairement trop clair.</p>
+  </section>
+
+  <section class="ko" data-rgaa="3.2.4">
+    <span class="test-id">3.2.4</span>
+    <h2>Grand texte gras : contraste insuffisant</h2>
+    <p class="example text-bold-large-fail">Grand texte gras de 20 px, volontairement trop clair.</p>
+  </section>
+
+  <section class="ko" data-rgaa="3.3.1">
+    <span class="test-id">3.3.1</span>
+    <h2>Composants d'interface trop peu contrastés</h2>
+    <div class="example controls">
+      <button class="button-fail">Valider</button>
+      <label for="email-ko">E-mail</label>
+      <input class="input-fail" id="email-ko" type="email">
+    </div>
+  </section>
+
+  <section class="ko" data-rgaa="3.3.2">
+    <span class="test-id">3.3.2</span>
+    <h2>Élément graphique trop peu contrasté</h2>
+    <div class="example">
+      <div class="chart chart-fail" aria-label="Graphique CSS : catégorie A 55 %, catégorie B 85 %">
+        <div class="bar bar-a"></div>
+        <div class="bar bar-b"></div>
+      </div>
+      <div class="chart-labels"><span>A</span><span>B</span></div>
+    </div>
+  </section>
+</main>
+
+<footer>Cette page doit déclencher les détections de non-conformité prévues par vos tests couleurs.</footer>
+</body>
+</html>
