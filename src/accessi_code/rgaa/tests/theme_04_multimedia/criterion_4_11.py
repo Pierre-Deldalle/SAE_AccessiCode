@@ -74,12 +74,44 @@ class _Criterion411Test(RGAATest):
             findings.append(finding)
 
         status = _aggregate_statuses(statuses)
+        # Determine explicit descriptive message
+        fail_count = sum(1 for s in statuses if s == TestStatus.FAIL)
+        needs_review_count = sum(1 for s in statuses if s == TestStatus.NEEDS_REVIEW)
+
+        if fail_count == 0 and needs_review_count == 0:
+            # All PASS or NOT_APPLICABLE
+            pass_count = sum(1 for s in statuses if s == TestStatus.PASS)
+            not_applicable_count = sum(1 for s in statuses if s == TestStatus.NOT_APPLICABLE)
+            if pass_count > 0:
+                status_message = (
+                    f"Conforme : {pass_count} média(s) temporel(s) "
+                    "avec des contrôles tous accessibles et fonctionnels."
+                )
+            else:
+                status_message = (
+                    f"Non applicable : {len(media_items)} média(s) temporel(s) détecté(s), "
+                    "mais aucun ne nécessite de test de contrôle."
+                )
+        elif needs_review_count > 0:
+            status_message = (
+                f"À vérifier manuellement : {needs_review_count} média(s) temporel(s) "
+                "nécessitent une vérification manuelle de leurs contrôles."
+            )
+            if fail_count > 0:
+                status_message += (
+                    f" De plus, {fail_count} média(s) ont des contrôles définitivement non fonctionnels."
+                )
+        else:  # fail_count > 0 and needs_review_count == 0
+            status_message = (
+                f"Non conforme : {fail_count} média(s) temporel(s) "
+                "avec des contrôles non fonctionnels détectés."
+            )
 
         return TestResult(
             self.test_id,
             self.criterion_id,
             status,
-            f"Analyse terminée pour {len(media_items)} média(s) temporel(s).",
+            status_message,
             findings=findings,
             tested_elements=len(media_items),
             metadata={

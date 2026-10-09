@@ -483,14 +483,44 @@ class Test4121(RGAATest):
                 )
             )
 
+        # Determine explicit descriptive message
+        fail_count = sum(1 for s in statuses if s == TestStatus.FAIL)
+        needs_review_count = sum(1 for s in statuses if s == TestStatus.NEEDS_REVIEW)
+
+        if fail_count == 0 and needs_review_count == 0:
+            # All PASS or NOT_APPLICABLE
+            pass_count = sum(1 for s in statuses if s == TestStatus.PASS)
+            not_applicable_count = sum(1 for s in statuses if s == TestStatus.NOT_APPLICABLE)
+            if pass_count > 0:
+                status_message = (
+                    f"Conforme : {pass_count} média(s) non temporel(s) "
+                    "avec des contrôles tous accessibles au clavier."
+                )
+            else:
+                status_message = (
+                    f"Non applicable : {len(media)} média(s) non temporel(s) détecté(s), "
+                    "mais aucun n'est soumis au test d'accessibilité au clavier."
+                )
+        elif needs_review_count > 0:
+            status_message = (
+                f"À vérifier manuellement : {needs_review_count} média(s) non temporel(s) "
+                "avec des contrôles nécessitant une vérification manuelle de l'accessibilité au clavier."
+            )
+            if fail_count > 0:
+                status_message += (
+                    f" De plus, {fail_count} média(s) ont des contrôles définitivement inaccessibles."
+                )
+        else:  # fail_count > 0 and needs_review_count == 0
+            status_message = (
+                f"Non conforme : {fail_count} média(s) non temporel(s) "
+                "avec des contrôles inaccessibles au clavier détectés."
+            )
+
         return TestResult(
             self.test_id,
             self.criterion_id,
             _aggregate_statuses(statuses),
-            (
-                f"Analyse terminée pour {len(media)} "
-                "média(s) non temporel(s)."
-            ),
+            status_message,
             findings=findings,
             tested_elements=len(media),
             metadata={
@@ -624,14 +654,44 @@ class Test4122(RGAATest):
                 )
             )
 
+        # Determine explicit descriptive message
+        fail_count = sum(1 for s in statuses if s == TestStatus.FAIL)
+        needs_review_count = sum(1 for s in statuses if s == TestStatus.NEEDS_REVIEW)
+
+        if fail_count == 0 and needs_review_count == 0:
+            # All PASS or NOT_APPLICABLE
+            pass_count = sum(1 for s in statuses if s == TestStatus.PASS)
+            not_applicable_count = sum(1 for s in statuses if s == TestStatus.NOT_APPLICABLE)
+            if pass_count > 0:
+                status_message = (
+                    f"Conforme : {pass_count} média(s) non temporel(s) "
+                    "avec des contrôles tous accessibles au clavier."
+                )
+            else:
+                status_message = (
+                    f"Non applicable : {len(media)} média(s) non temporel(s) détecté(s), "
+                    "mais aucun n'est soumis au test d'accessibilité au clavier."
+                )
+        elif needs_review_count > 0:
+            status_message = (
+                f"À vérifier manuellement : {needs_review_count} média(s) non temporel(s) "
+                "avec des contrôles nécessitant une vérification manuelle de l'accessibilité au clavier."
+            )
+            if fail_count > 0:
+                status_message += (
+                    f" De plus, {fail_count} média(s) ont des contrôles définitivement inaccessibles."
+                )
+        else:  # fail_count > 0 and needs_review_count == 0
+            status_message = (
+                f"Non conforme : {fail_count} média(s) non temporel(s) "
+                "avec des contrôles inaccessibles au clavier détectés."
+            )
+
         return TestResult(
             self.test_id,
             self.criterion_id,
             _aggregate_statuses(statuses),
-            (
-                f"Analyse terminée pour {len(media)} "
-                "média(s) non temporel(s)."
-            ),
+            status_message,
             findings=findings,
             tested_elements=len(media),
             metadata={

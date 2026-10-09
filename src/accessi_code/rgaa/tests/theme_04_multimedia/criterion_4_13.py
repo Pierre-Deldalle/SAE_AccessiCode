@@ -141,11 +141,23 @@ class Test4131(RGAATest):
             )
 
         status = TestStatus.PASS if accessible_count == len(media) else TestStatus.FAIL
+        # Determine explicit descriptive message
+        if status == TestStatus.PASS:
+            status_message = (
+                f"Conforme : Tous les {len(media)} média(s) présentent des marqueurs d'accessibilité."
+            )
+        else:  # TestStatus.FAIL
+            inaccessible_count = len(media) - accessible_count
+            status_message = (
+                f"Non conforme : {inaccessible_count} média(s) sur {len(media)} "
+                "n présentent pas de marqueurs d'accessibilité suffisants."
+            )
+
         return TestResult(
             self.test_id,
             self.criterion_id,
             status,
-            f"{accessible_count}/{len(media)} média(s) présentent des marqueurs d'accessibilité.",
+            status_message,
             findings=findings,
             tested_elements=len(media),
             metadata={
@@ -213,14 +225,23 @@ class Test4132(RGAATest):
             )
 
         status = TestStatus.PASS if adjacent_count == len(with_alternatives) else TestStatus.FAIL
+        # Determine explicit status message
+        if status == TestStatus.PASS:
+            status_message = (
+                f"Conforme : {adjacent_count}/{len(with_alternatives)} alternative(s) sont "
+                "adjacentes ou accessibles par un mécanisme détecté."
+            )
+        else:  # TestStatus.FAIL
+            status_message = (
+                f"Non conforme : {len(with_alternatives) - adjacent_count}/{len(with_alternatives)} alternative(s) "
+                "ne sont pas adjacentes ou accessibles par un mécanisme détecté."
+            )
+
         return TestResult(
             self.test_id,
             self.criterion_id,
             status,
-            (
-                f"{adjacent_count}/{len(with_alternatives)} alternative(s) sont "
-                "adjacentes ou accessibles par un mécanisme détecté."
-            ),
+            status_message,
             findings=findings,
             tested_elements=len(with_alternatives),
             metadata={
