@@ -127,3 +127,42 @@ def _is_link_or_button(tag: Tag) -> bool:
     if tag.name == "button" or roles.intersection({"link", "button"}):
         return True
     return tag.name == "input" and str(tag.get("type", "")).lower() in {"button", "image", "reset", "submit"}
+
+
+def is_media_exempt(tag: Tag) -> bool:
+    """
+    Détermine si un média doit être considéré comme exempt/applicable au vu des cas particuliers RGAA.
+
+    Args:
+        tag: La balise HTML du média (audio, video, object)
+
+    Returns:
+        True si le média est exempt (doit être ignored dans le test), False sinon
+    """
+    # Cas décoratif: aria-hidden="true" ou role="presentation"
+    if tag.get("aria-hidden") == "true":
+        return True
+    if tag.get("role") == "presentation":
+        return True
+
+    # Autres cas particuliers qui pourraient être détectés heuristiquement
+    # À enrichir selon les besoins et la faisabilité technique
+
+    return False
+
+
+def media_identifier(tag: Tag, index: int) -> str:
+    """
+    Crée un identificateur unique pour un élément média.
+
+    Args:
+        tag: La balise HTML du média
+        index: L'index du média dans la liste des médias trouvés
+
+    Returns:
+        Une chaîne identifiant le média (ex: "video#my-video" ou "video[index=2]")
+    """
+    media_id = tag.get("id")
+    if isinstance(media_id, str) and media_id.strip():
+        return f"{tag.name}#{media_id}"
+    return f"{tag.name}[index={index}]"

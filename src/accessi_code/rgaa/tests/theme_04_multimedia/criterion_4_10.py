@@ -9,6 +9,7 @@ from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
 from accessi_code.models.result import Finding, TestResult, TestStatus
 from accessi_code.rgaa.base import RGAATest
+from accessi_code.analysis.media import is_media_exempt, media_identifier
 
 
 class Test4101(RGAATest):
@@ -273,7 +274,7 @@ def _find_automatic_sound_candidates(
     for index, tag in enumerate(
         dom.find_all(["audio", "video", "object", "embed", "bgsound"])
     ):
-        if _is_exempt_or_decorative(tag):
+        if is_media_exempt(tag):
             continue
 
         if not _has_automatic_playback(tag):
@@ -289,7 +290,7 @@ def _find_automatic_sound_candidates(
             {
                 "kind": "element",
                 "tag": tag,
-                "element": _media_identifier(tag, index),
+                "element": media_identifier(tag, index),
                 "autoplay": True,
                 "muted": muted,
                 "controls": controls,
@@ -552,28 +553,3 @@ def _contains_automatic_audio_code(script: str) -> bool:
     )
 
 
-def _is_exempt_or_decorative(tag: Tag) -> bool:
-    """
-    Exclut les éléments explicitement décoratifs ou masqués.
-    """
-
-    if tag.get("aria-hidden") == "true":
-        return True
-
-    if tag.get("role") in {"presentation", "none"}:
-        return True
-
-    return False
-
-
-def _media_identifier(tag: Tag, index: int) -> str:
-    """
-    Génère un identifiant stable pour les findings.
-    """
-
-    media_id = tag.get("id")
-
-    if isinstance(media_id, str) and media_id.strip():
-        return f"{tag.name}#{media_id}"
-
-    return f"{tag.name}[index={index}]"

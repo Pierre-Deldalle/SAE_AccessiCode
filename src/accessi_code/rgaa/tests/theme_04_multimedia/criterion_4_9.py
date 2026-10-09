@@ -8,6 +8,7 @@ from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
 from accessi_code.models.result import Finding, TestResult, TestStatus
 from accessi_code.rgaa.base import RGAATest
+from accessi_code.analysis.media import is_media_exempt, media_identifier
 
 
 class Test491(RGAATest):
@@ -38,7 +39,7 @@ class Test491(RGAATest):
         media = [
             tag
             for tag in _find_non_temporal_media(context.dom)
-            if not _is_exempt_or_decorative(tag)
+            if not is_media_exempt(tag)
         ]
 
         if not media:
@@ -53,7 +54,7 @@ class Test491(RGAATest):
         media_with_alternative = 0
 
         for index, tag in enumerate(media):
-            element_id = _media_identifier(tag, index)
+            element_id = media_identifier(tag, index)
 
             controls = _find_adjacent_links_or_buttons(tag)
 
@@ -298,37 +299,3 @@ def _control_identifier(tag: Tag) -> str:
     return tag.name
 
 
-def _is_exempt_or_decorative(tag: Tag) -> bool:
-    """
-    Exclut les médias explicitement décoratifs ou masqués.
-    """
-
-    if tag.get("aria-hidden") == "true":
-        return True
-
-    if tag.get("role") in {"presentation", "none"}:
-        return True
-
-    decorative = tag.get("data-decorative")
-
-    if isinstance(decorative, str):
-        return decorative.strip().lower() in {
-            "true",
-            "1",
-            "yes",
-        }
-
-    return False
-
-
-def _media_identifier(tag: Tag, index: int) -> str:
-    """
-    Génère un identifiant stable pour le finding.
-    """
-
-    media_id = tag.get("id")
-
-    if isinstance(media_id, str) and media_id.strip():
-        return f"{tag.name}#{media_id}"
-
-    return f"{tag.name}[index={index}]"

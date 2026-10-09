@@ -4,7 +4,7 @@ from typing import Any
 
 from bs4 import BeautifulSoup, Tag
 
-from accessi_code.analysis.media import find_adjacent_media_alternatives
+from accessi_code.analysis.media import find_adjacent_media_alternatives, is_media_exempt, media_identifier
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
 from accessi_code.models.result import Finding, TestResult, TestStatus
@@ -14,12 +14,8 @@ _MEDIA_TAGS = frozenset({"audio", "video", "svg", "canvas", "object", "embed"})
 _ACCESSIBLE_MEDIA_ROLES = frozenset({"application", "document", "graphics-document", "group", "img"})
 
 
-def _is_decorative(tag: Tag) -> bool:
-    return str(tag.get("aria-hidden", "")).lower() == "true" or str(tag.get("role", "")).lower() == "presentation"
-
-
 def _find_media(soup: BeautifulSoup) -> list[Tag]:
-    return [tag for tag in soup.find_all(list(_MEDIA_TAGS)) if isinstance(tag, Tag) and not _is_decorative(tag)]
+    return [tag for tag in soup.find_all(list(_MEDIA_TAGS)) if isinstance(tag, Tag) and not is_media_exempt(tag)]
 
 
 def _has_accessible_name(tag: Tag, soup: BeautifulSoup) -> bool:
@@ -52,11 +48,6 @@ def _has_accessible_interface(tag: Tag, soup: BeautifulSoup) -> bool:
     return tag.name in {"canvas", "object", "embed"} and bool(tag.get_text(" ", strip=True))
 
 
-def _media_identifier(tag: Tag, index: int) -> str:
-    element_id = tag.get("id")
-    if isinstance(element_id, str) and element_id.strip():
-        return f"{tag.name}#{element_id}"
-    return f"{tag.name}[index={index}]"
 
 
 def _referenced_alternative(tag: Tag, soup: BeautifulSoup) -> bool:
@@ -125,7 +116,7 @@ class Test4131(RGAATest):
             accessible_count += int(accessible)
             findings.append(
                 Finding(
-                    element=_media_identifier(tag, index),
+                    element=media_identifier(tag, index),
                     message=(
                         "Une interface ou une alternative avec des marqueurs d'accessibilité a été détectée."
                         if accessible
@@ -200,7 +191,7 @@ class Test4132(RGAATest):
             adjacent_count += int(adjacent)
             findings.append(
                 Finding(
-                    element=_media_identifier(tag, index),
+                    element=media_identifier(tag, index),
                     message=(
                         "Une alternative adjacente ou un mécanisme de remplacement a été détecté."
                         if adjacent

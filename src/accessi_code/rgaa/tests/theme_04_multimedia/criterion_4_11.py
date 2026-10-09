@@ -5,7 +5,12 @@ from typing import Any
 
 from bs4 import BeautifulSoup, NavigableString, Tag
 
-from accessi_code.analysis.media import TemporalMedia, find_temporal_media
+from accessi_code.analysis.media import (
+    TemporalMedia,
+    find_temporal_media,
+    is_media_exempt,
+    media_identifier,
+)
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
 from accessi_code.models.result import Finding, TestResult, TestStatus
@@ -47,7 +52,10 @@ class _Criterion411Test(RGAATest):
         if not isinstance(context.dom, BeautifulSoup):
             raise ValueError(f"Le test {self.test_id} nécessite un DOM.")
 
-        media_items = find_temporal_media(context.dom)
+        media_items = [
+            item for item in find_temporal_media(context.dom)
+            if not is_media_exempt(item.tag)
+        ]
 
         if not media_items:
             return TestResult(
@@ -103,7 +111,7 @@ class Test4111(_Criterion411Test):
         media: TemporalMedia,
         dom: BeautifulSoup,
     ) -> tuple[TestStatus, Finding]:
-        element = _media_identifier(media)
+        element = media_identifier(media.tag, media.index)
         controls = _associated_controls(media, dom)
 
         native_controls = (
@@ -210,7 +218,7 @@ class Test4112(_Criterion411Test):
             and media.tag.name in {"audio", "video"}
         )
 
-        element = _media_identifier(media)
+        element = media_identifier(media.tag, media.index)
 
         if native_controls:
             status = TestStatus.PASS
@@ -279,7 +287,7 @@ class Test4113(_Criterion411Test):
             and media.tag.name in {"audio", "video"}
         )
 
-        element = _media_identifier(media)
+        element = media_identifier(media.tag, media.index)
 
         if native_controls:
             status = TestStatus.PASS
@@ -592,15 +600,6 @@ def _is_keyboard_activatable(control: Tag) -> bool:
     }
 
 
-def _media_identifier(media: TemporalMedia) -> str:
-    """Construit un identifiant lisible pour le média."""
-
-    media_id = media.tag.get("id")
-
-    if isinstance(media_id, str) and media_id.strip():
-        return f"{media.tag.name}#{media_id}"
-
-    return f"{media.tag.name}[index={media.index}]"
 
 
 def _aggregate_statuses(

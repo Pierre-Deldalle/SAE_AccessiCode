@@ -4,7 +4,11 @@ from typing import Any
 
 from bs4 import BeautifulSoup, NavigableString, Tag
 
-from accessi_code.analysis.media import find_temporal_media
+from accessi_code.analysis.media import (
+    find_temporal_media,
+    is_media_exempt,
+    media_identifier,
+)
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
 from accessi_code.models.result import Finding, TestResult, TestStatus
@@ -33,7 +37,7 @@ class Test471(RGAATest):
         media = [
             item
             for item in find_temporal_media(context.dom)
-            if not _is_exempt_or_decorative(item.tag)
+            if not is_media_exempt(item.tag)
         ]
 
         # Aucun média temporel :
@@ -51,7 +55,7 @@ class Test471(RGAATest):
 
         for item in media:
             tag = item.tag
-            element_id = _media_identifier(tag, item.index)
+            element_id = media_identifier(tag, item.index)
 
             # Recherche du contenu textuel immédiatement avant
             # ou immédiatement après le média.
@@ -219,25 +223,3 @@ def _extract_identifying_text(tag: Tag) -> str:
     return tag.get_text(" ", strip=True)
 
 
-def _is_exempt_or_decorative(tag: Tag) -> bool:
-    """
-    Détermine si un média est décoratif ou explicitement masqué.
-    """
-
-    return (
-        tag.get("aria-hidden") == "true"
-        or tag.get("role") == "presentation"
-    )
-
-
-def _media_identifier(tag: Tag, index: int) -> str:
-    """
-    Construit un identifiant lisible pour le média testé.
-    """
-
-    media_id = tag.get("id")
-
-    if isinstance(media_id, str) and media_id.strip():
-        return f"{tag.name}#{media_id}"
-
-    return f"{tag.name}[index={index}]"

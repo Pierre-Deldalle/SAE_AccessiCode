@@ -8,6 +8,8 @@ from accessi_code.analysis.media import (
     TemporalMedia,
     find_adjacent_media_alternatives,
     find_temporal_media,
+    is_media_exempt,
+    media_identifier,
 )
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
@@ -31,7 +33,7 @@ class Test441(RGAATest):
         # On recherche tous les médias vidéo non exemptés/décoratifs
         media_items = [
             item for item in find_temporal_media(context.dom)
-            if item.kind == "video" and not _is_exempt_or_decorative(item.tag)
+            if item.kind == "video" and not is_media_exempt(item.tag)
         ]
 
         # On ne retient pour le 4.4.1 que les médias possédant des sous-titres (track ou alternative)
@@ -52,7 +54,7 @@ class Test441(RGAATest):
 
         findings: list[Finding] = []
         for item, tracks in checked_items:
-            element_id = _media_identifier(item.tag, item.index)
+            element_id = media_identifier(item.tag, item.index)
             alternatives = find_adjacent_media_alternatives(item.tag)
             
             findings.append(
@@ -95,12 +97,3 @@ def _caption_tracks(tag: Tag) -> list[Tag]:
     ]
 
 
-def _is_exempt_or_decorative(tag: Tag) -> bool:
-    return tag.get("aria-hidden") == "true" or tag.get("role") == "presentation"
-
-
-def _media_identifier(tag: Tag, index: int) -> str:
-    media_id = tag.get("id")
-    if isinstance(media_id, str) and media_id.strip():
-        return f"{tag.name}#{media_id}"
-    return f"{tag.name}[index={index}]"

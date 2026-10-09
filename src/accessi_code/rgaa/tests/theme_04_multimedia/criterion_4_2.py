@@ -8,6 +8,8 @@ from accessi_code.analysis.media import (
     TemporalMedia,
     find_adjacent_media_alternatives,
     find_temporal_media,
+    is_media_exempt,
+    media_identifier,
 )
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
@@ -31,7 +33,7 @@ class _Criterion42Test(RGAATest):
         media_items = [item for item in find_temporal_media(context.dom) if item.kind == self.media_kind]
         
         # Le périmètre d'applicabilité exclut uniquement les éléments explicitements exemptés/décoratifs
-        applicable_items = [item for item in media_items if not _is_exempt_or_decorative(item.tag)]
+        applicable_items = [item for item in media_items if not is_media_exempt(item.tag)]
 
         if not applicable_items:
             return TestResult(
@@ -46,7 +48,7 @@ class _Criterion42Test(RGAATest):
 
         for item in applicable_items:
             has_alt = _has_alternative_candidate(item)
-            element_id = _media_identifier(item)
+            element_id = media_identifier(item.tag, item.index)
             evidence = _alternative_evidence(item)
 
             if has_alt:
@@ -143,19 +145,6 @@ def _alternative_evidence(item: TemporalMedia) -> dict[str, Any]:
         "has_aria_describedby": bool(item.aria_describedby_text),
         "has_description_track": has_track,
     }
-
-
-def _is_exempt_or_decorative(tag: Tag) -> bool:
-    if tag.get("aria-hidden") == "true":
-        return True
-    return tag.get("role") == "presentation"
-
-
-def _media_identifier(item: TemporalMedia) -> str:
-    media_id = item.tag.get("id")
-    if isinstance(media_id, str) and media_id.strip():
-        return f"{item.tag.name}#{media_id}"
-    return f"{item.tag.name}[index={item.index}]"
 
 
 def _aggregate_statuses(statuses: list[TestStatus]) -> TestStatus:

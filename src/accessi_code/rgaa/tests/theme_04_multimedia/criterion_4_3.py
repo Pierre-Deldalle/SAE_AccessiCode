@@ -8,6 +8,8 @@ from accessi_code.analysis.media import (
     TemporalMedia,
     find_adjacent_media_alternatives,
     find_temporal_media,
+    is_media_exempt,
+    media_identifier,
 )
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
@@ -30,7 +32,7 @@ class Test431(RGAATest):
 
         media_items = [
             item for item in find_temporal_media(context.dom)
-            if item.kind == "video" and not _is_exempt_or_decorative(item.tag)
+            if item.kind == "video" and not is_media_exempt(item.tag)
         ]
 
         if not media_items:
@@ -46,7 +48,7 @@ class Test431(RGAATest):
 
         for item in media_items:
             has_captions = _has_caption_candidate(item)
-            element_id = _media_identifier(item.tag, item.index)
+            element_id = media_identifier(item.tag, item.index)
             evidence = _caption_evidence(item)
 
             if has_captions:
@@ -105,7 +107,7 @@ class Test432(RGAATest):
         # On recherche toutes les balises track de sous-titres dans le DOM
         media_items = [
             item for item in find_temporal_media(context.dom)
-            if item.kind == "video" and not _is_exempt_or_decorative(item.tag)
+            if item.kind == "video" and not is_media_exempt(item.tag)
         ]
 
         track_elements: list[tuple[TemporalMedia, Tag]] = []
@@ -128,7 +130,7 @@ class Test432(RGAATest):
 
         for item, track in track_elements:
             kind_val = str(track.get("kind", "")).strip().lower()
-            element_id = _media_identifier(item.tag, item.index)
+            element_id = media_identifier(item.tag, item.index)
 
             if kind_val == "captions":
                 statuses.append(TestStatus.PASS)
@@ -187,17 +189,6 @@ def _tracks_with_kind(tag: Tag, kind: str) -> list[Tag]:
         track for track in tag.find_all("track", recursive=False)
         if str(track.get("kind", "")).strip().lower() == kind
     ]
-
-
-def _is_exempt_or_decorative(tag: Tag) -> bool:
-    return tag.get("aria-hidden") == "true" or tag.get("role") == "presentation"
-
-
-def _media_identifier(tag: Tag, index: int) -> str:
-    media_id = tag.get("id")
-    if isinstance(media_id, str) and media_id.strip():
-        return f"{tag.name}#{media_id}"
-    return f"{tag.name}[index={index}]"
 
 
 def _aggregate_statuses(statuses: list[TestStatus]) -> TestStatus:

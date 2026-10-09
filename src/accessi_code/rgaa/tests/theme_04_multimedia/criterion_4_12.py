@@ -5,6 +5,7 @@ from typing import Any
 
 from bs4 import BeautifulSoup, Tag
 
+from accessi_code.analysis.media import is_media_exempt, media_identifier
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
 from accessi_code.models.result import Finding, TestResult, TestStatus
@@ -74,21 +75,6 @@ _CONTROL_KEYWORDS = re.compile(
 )
 
 
-def _media_identifier(tag: Tag, index: int) -> str:
-    tag_name = tag.name or "element"
-    element_id = tag.get("id")
-
-    if element_id:
-        return f"{tag_name}#{element_id}"
-
-    return f"{tag_name}[index={index}]"
-
-
-def _is_decorative(tag: Tag) -> bool:
-    return (
-        str(tag.get("aria-hidden", "")).lower() == "true"
-        or str(tag.get("role", "")).lower() == "presentation"
-    )
 
 
 def _find_non_temporal_media(
@@ -100,7 +86,7 @@ def _find_non_temporal_media(
         if not isinstance(tag, Tag):
             continue
 
-        if _is_decorative(tag):
+        if is_media_exempt(tag):
             continue
 
         media.append(tag)
@@ -410,7 +396,7 @@ class Test4121(RGAATest):
 
         for index, element in enumerate(media):
             controls = _associated_controls(element, soup)
-            identifier = _media_identifier(element, index)
+            identifier = media_identifier(element, index)
 
             if not controls:
                 statuses.append(TestStatus.NOT_APPLICABLE)
@@ -553,7 +539,7 @@ class Test4122(RGAATest):
 
         for index, element in enumerate(media):
             controls = _associated_controls(element, soup)
-            identifier = _media_identifier(element, index)
+            identifier = media_identifier(element, index)
 
             if not controls:
                 statuses.append(TestStatus.NOT_APPLICABLE)

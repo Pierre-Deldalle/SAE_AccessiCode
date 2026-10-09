@@ -7,6 +7,8 @@ from bs4 import BeautifulSoup, Tag
 from accessi_code.analysis.media import (
     find_adjacent_media_alternatives,
     find_temporal_media,
+    is_media_exempt,
+    media_identifier,
 )
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
@@ -29,7 +31,7 @@ class _Criterion45Test(RGAATest):
         videos = [
             item
             for item in find_temporal_media(context.dom)
-            if item.kind == "video" and not _is_exempt_or_decorative(item.tag)
+            if item.kind == "video" and not is_media_exempt(item.tag)
         ]
 
         if not videos:
@@ -53,7 +55,7 @@ class _Criterion45Test(RGAATest):
                 if _is_audio_description_alternative(element)
             ]
 
-            element_id = _media_identifier(item.tag, item.index)
+            element_id = media_identifier(item.tag, item.index)
 
             has_candidate = bool(tracks or description_links)
 
@@ -184,25 +186,3 @@ def _is_audio_description_alternative(element: Tag) -> bool:
     )
 
 
-def _is_exempt_or_decorative(tag: Tag) -> bool:
-    """
-    Ignore les vidéos explicitement masquées ou décoratives.
-    """
-
-    return (
-        tag.get("aria-hidden") == "true"
-        or tag.get("role") == "presentation"
-    )
-
-
-def _media_identifier(tag: Tag, index: int) -> str:
-    """
-    Retourne un identifiant stable et lisible pour le média.
-    """
-
-    media_id = tag.get("id")
-
-    if isinstance(media_id, str) and media_id.strip():
-        return f"{tag.name}#{media_id}"
-
-    return f"{tag.name}[index={index}]"
