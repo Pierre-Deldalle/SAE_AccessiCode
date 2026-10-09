@@ -14,6 +14,7 @@ from accessi_code.analysis.images import (
     ImageInfo,
     extract_image_map_areas,
     extract_images,
+    build_image_info_from_tag,
 )
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
@@ -593,6 +594,12 @@ class Test113(RGAATest):
         }
     )
 
+    optional_capabilities = frozenset(
+        {
+            Capability.IMAGES,
+        }
+    )
+
     async def run(
         self,
         context: AuditContext,
@@ -623,10 +630,119 @@ class Test113(RGAATest):
                 "Aucun input[type=image] détecté.",
             )
 
+        analyzer = (
+            getattr(
+                services,
+                "image_analyzer",
+                None,
+            )
+            if services is not None
+            else None
+        )
+
         findings: list[Finding] = []
 
+        informative = 0
+        outside_scope = 0
+        failed = 0
+        needs_review = 0
+        errors = 0
+
         for index, element in enumerate(image_inputs):
-            evidence: list[str] = []
+            # Build ImageInfo from the input element
+            try:
+                # We'll need to get base_dir from context
+                base_dir = context.html_path.parent if context.html_path else None
+                image_info = build_image_info_from_tag(element, index=index, base_dir=base_dir)
+            except Exception as error:
+                errors += 1
+                findings.append(
+                    Finding(
+                        element=f"input[type='image'][index={index}]",
+                        message="Impossible de construire les informations de l'image.",
+                        evidence={
+                            "error": str(error),
+                        },
+                    )
+                )
+                continue
+
+            if analyzer is None:
+                needs_review += 1
+                findings.append(
+                    Finding(
+                        element=f"input[type='image'][index={index}]",
+                        message=("Le rôle informationnel de l'image n'a pas pu être déterminé."),
+                        recommendation=("Exécuter le test avec le service IA ou vérifier manuellement l'image."),
+                    )
+                )
+                continue
+
+            try:
+                analysis = await analyzer.analyze_information_role(image_info)
+
+                if not isinstance(
+                    analysis,
+                    ImageRoleAnalysis,
+                ):
+                    raise TypeError("L'analyseur doit retourner ImageRoleAnalysis.")
+
+            except Exception as error:
+                errors += 1
+                findings.append(
+                    Finding(
+                        element=f"input[type='image'][index={index}]",
+                        message="L'analyse IA de l'image a échoué.",
+                        evidence={
+                            "error": str(error),
+                        },
+                    )
+                )
+
+                continue
+
+            if analysis.confidence == "low":
+                needs_review += 1
+
+                findings.append(
+                    Finding(
+                        element=f"input[type='image'][index={index}]",
+                        message=(analysis.explanation or "Le rôle informationnel de l'image reste incertain."),
+                        recommendation=("Vérifier manuellement le rôle de l'image."),
+                        evidence={
+                            "analysis_confidence": analysis.confidence,
+                            "uncertainties": analysis.uncertainties,
+                        },
+                    )
+                )
+
+                continue
+
+            if analysis.information_bearing is False:
+                outside_scope += 1
+                continue
+
+            if analysis.information_bearing is None:
+                needs_review += 1
+
+                findings.append(
+                    Finding(
+                        element=f"input[type='image'][index={index}]",
+                        message=(analysis.explanation or "Le rôle informationnel de l'image reste incertain."),
+                        recommendation=("Vérifier manuellement le rôle de l'image."),
+                        evidence={
+                            "analysis_confidence": analysis.confidence,
+                            "uncertainties": analysis.uncertainties,
+                        },
+                    )
+                )
+
+                continue
+
+            informative += 1
+
+            # Check for alternatives: aria-labelledby, aria-label, alt, title
+            evidence_list: list[str] = []
 
             valid_labelledby, _ = get_labelledby_text(
                 element,
@@ -634,7 +750,7 @@ class Test113(RGAATest):
             )
 
             if valid_labelledby:
-                evidence.append("aria-labelledby")
+                evidence_list.append("aria-labelledby")
 
             for attribute in (
                 "aria-label",
@@ -648,28 +764,54 @@ class Test113(RGAATest):
                     )
                     is not None
                 ):
-                    evidence.append(attribute)
+                    evidence_list.append(attribute)
 
-            if evidence:
+            if evidence_list:
+                # Has at least one alternative
                 continue
-
-            findings.append(
-                Finding(
-                    element=(f"input[type='image'][index={index}]"),
-                    message=("Aucune alternative textuelle autorisée n'a été détectée."),
-                    recommendation=("Ajouter aria-labelledby, aria-label, alt ou title."),
+            else:
+                # No alternative when informative
+                failed += 1
+                findings.append(
+                    Finding(
+                        element=f"input[type='image'][index={index}]",
+                        message=("L'image utilisée est porteuse d'information mais n'a pas d'alternative textuelle."),
+                        recommendation=("Ajouter aria-labelledby, aria-label, alt ou title."),
+                    )
                 )
-            )
 
-        status = TestStatus.FAIL if findings else TestStatus.PASS
+        if failed:
+            status = TestStatus.FAIL
+        elif errors:
+            status = TestStatus.ERROR
+        elif needs_review:
+            status = TestStatus.NEEDS_REVIEW
+        elif informative == 0:
+            status = TestStatus.NOT_APPLICABLE
+        else:
+            status = TestStatus.PASS
 
         return TestResult(
             self.test_id,
             self.criterion_id,
             status,
-            (f"{len(image_inputs)} bouton(s) image analysé(s), {len(findings)} non conforme(s)."),
+            (
+                f"{len(image_inputs)} bouton(s) image analysé(s) : "
+                f"{informative} porteuse(s) d'information, "
+                f'{len([f for f in findings if "porteuse d\'information" in f.message])} conforme(s), '
+                f"{failed} non conforme(s), "
+                f"{needs_review} à vérifier."
+            ),
             findings=findings,
-            tested_elements=len(image_inputs),
+            tested_elements=informative,
+            metadata={
+                "candidate_inputs": len(image_inputs),
+                "informative_inputs": informative,
+                "non_informative_inputs": outside_scope,
+                "failed_inputs": failed,
+                "needs_review": needs_review,
+                "errors": errors,
+            },
         )
 
     @staticmethod

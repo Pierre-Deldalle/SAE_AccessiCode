@@ -79,6 +79,12 @@ def _uploaded_file_path(file: Any) -> Path:
     """
     Retourne le chemin local d'un fichier fourni par Gradio.
     """
+    if isinstance(
+        file,
+        (str, Path),
+    ):
+        return Path(file)
+
     path = getattr(
         file,
         "name",
@@ -86,6 +92,40 @@ def _uploaded_file_path(file: Any) -> Path:
     )
 
     return Path(str(path))
+
+
+def _expand_uploaded_paths(uploaded_files: list[Any]) -> list[Path]:
+    """
+    Développe les fichiers reçus par Gradio, y compris un dossier importé.
+
+    Le navigateur ne peut pas déduire les ressources voisines d'un fichier
+    HTML envoyé seul. Le mode d'import dossier fournit donc explicitement
+    tous les fichiers à conserver dans le contexte d'audit.
+    """
+    paths: list[Path] = []
+    seen: set[Path] = set()
+
+    for file in uploaded_files:
+        if file is None:
+            continue
+
+        path = _uploaded_file_path(file)
+
+        candidates = path.rglob("*") if path.is_dir() else [path]
+
+        for candidate in candidates:
+            if not candidate.is_file():
+                continue
+
+            resolved = candidate.resolve()
+
+            if resolved in seen:
+                continue
+
+            seen.add(resolved)
+            paths.append(candidate)
+
+    return paths
 
 
 def _json_default(value: Any) -> Any:
@@ -175,7 +215,7 @@ def _build_context_from_uploaded_files(
     """
     Construit un AuditContext à partir des fichiers reçus par Gradio.
     """
-    paths = [_uploaded_file_path(file) for file in uploaded_files if file is not None]
+    paths = _expand_uploaded_paths(uploaded_files)
 
     return context_builder.build(paths)
 
@@ -364,10 +404,12 @@ def build_ui():
                         )
 
                         file_input = gr.File(
-                            label=("Ou chargez un fichier HTML (ex: tests/index.html)"),
-                            file_types=[
-                                ".html",
-                            ],
+                            label=(
+                                "Ou chargez le dossier du site "
+                                "(ex: test_files/perfect_site)"
+                            ),
+                            file_count="directory",
+                            type="filepath",
                         )
 
                         btn_audit = gr.Button(

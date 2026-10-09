@@ -408,8 +408,9 @@ def test_113_input_image_with_allowed_alternative_passes(
     alternative,
 ):
     context = context_factory(f'<input type="image" src="send.png" {alternative}>')
+    services, _ = image_services_for_native(role(True))
 
-    result = run_rgaa(RGAA113(), context)
+    result = run_rgaa(RGAA113(), context, services)
 
     assert result.status == Status.PASS
     assert result.tested_elements == 1
@@ -425,8 +426,9 @@ def test_113_input_image_with_aria_labelledby_passes(
         '<input type="image" src="send.png" aria-labelledby="send-label">'
     )
     context = context_factory(html)
+    services, _ = image_services_for_native(role(True))
 
-    result = run_rgaa(RGAA113(), context)
+    result = run_rgaa(RGAA113(), context, services)
 
     assert result.status == Status.PASS
 
@@ -436,8 +438,9 @@ def test_113_invalid_aria_labelledby_reference_fails(
     run_rgaa,
 ):
     context = context_factory('<input type="image" src="send.png" aria-labelledby="missing">')
+    services, _ = image_services_for_native(role(True))
 
-    result = run_rgaa(RGAA113(), context)
+    result = run_rgaa(RGAA113(), context, services)
 
     assert result.status == Status.FAIL
 
@@ -447,8 +450,9 @@ def test_113_input_image_without_alternative_fails(
     run_rgaa,
 ):
     context = context_factory('<input type="image" src="send.png">')
+    services, _ = image_services_for_native(role(True))
 
-    result = run_rgaa(RGAA113(), context)
+    result = run_rgaa(RGAA113(), context, services)
 
     assert result.status == Status.FAIL
     assert result.tested_elements == 1
@@ -460,8 +464,9 @@ def test_113_empty_alternatives_do_not_count(
     run_rgaa,
 ):
     context = context_factory('<input type="image" src="send.png" alt="" aria-label=" " title="">')
+    services, _ = image_services_for_native(role(True))
 
-    result = run_rgaa(RGAA113(), context)
+    result = run_rgaa(RGAA113(), context, services)
 
     assert result.status == Status.FAIL
 
@@ -476,8 +481,9 @@ def test_113_only_input_image_elements_are_checked(
     <input type="image" src="send.png" alt="Envoyer">
     """
     context = context_factory(html)
+    services, _ = image_services_for_native(role(True))
 
-    result = run_rgaa(RGAA113(), context)
+    result = run_rgaa(RGAA113(), context, services)
 
     assert result.status == Status.PASS
     assert result.tested_elements == 1
@@ -492,8 +498,9 @@ def test_113_multiple_buttons_one_invalid_fails(
     <input type="image" src="second.png">
     """
     context = context_factory(html)
+    services, _ = image_services_for_native(role(True), role(True))
 
-    result = run_rgaa(RGAA113(), context)
+    result = run_rgaa(RGAA113(), context, services)
 
     assert result.status == Status.FAIL
     assert result.tested_elements == 2
@@ -505,8 +512,9 @@ def test_113_no_input_image_is_not_applicable(
     run_rgaa,
 ):
     context = context_factory('<main><input type="submit" value="Envoyer"></main>')
+    services = AuditServices()  # No analyzer needed for this case
 
-    result = run_rgaa(RGAA113(), context)
+    result = run_rgaa(RGAA113(), context, services)
 
     assert result.status == Status.NOT_APPLICABLE
     assert result.tested_elements == 0

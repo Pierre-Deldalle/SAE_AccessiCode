@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AccessiCode - Audit d'accessibilité</title>
+</head>
+<body>
+    <header>
+        <nav aria-label="Navigation principale">
+            <a href="#contenu">Accéder au contenu</a>
+        </nav>
+    </header>
+
+    <main id="contenu">
+        <h1>AccessiCode - Audit d'accessibilité</h1>
+
+        <p>
+            Cette page présente AccessiCode, une application qui aide à vérifier
+            l'accessibilité des sites web selon les critères du RGAA.
+        </p>
+
+        <figure id="illustration" role="figure" aria-label="Illustration d'une page web accessible">
+            <img
+                src="logo.png"
+                alt="Illustration d'une page web accessible"
+                aria-describedby="illustration-description"
+            >
+            <figcaption>Illustration d'une page web accessible</figcaption>
+        </figure>
+        <p id="illustration-description">
+            L'illustration représente une page web structurée avec un titre,
+            un contenu principal et des éléments correctement identifiés.
+        </p>
+
+        <div>
+            <img src="logo.png" alt="" aria-hidden="true">
+        </div>
+
+        <p>
+            <img
+                src="logo.png"
+                alt="Accéder à la présentation visuelle"
+                usemap="#navigation-map"
+            >
+            <map name="navigation-map">
+                <area
+                    shape="rect"
+                    coords="0,0,240,120"
+                    href="#objectif"
+                    alt="Voir l'objectif de la page"
+                >
+            </map>
+        </p>
+
+        <p>
+            <input
+                type="image"
+                src="logo.png"
+                alt="Rechercher dans la page"
+                aria-label="Rechercher dans la page"
+            >
+        </p>
+
+        <figure id="server-image" role="figure" aria-label="Navigation par image">
+            <img
+                src="logo.png"
+                alt="Accéder à la navigation par image"
+                ismap
+            >
+            <figcaption>Navigation par image</figcaption>
+            <a href="#objectif" aria-label="Accéder à l'objectif de la page"></a>
+        </figure>
+
+        <table id="audit-results">
+            <caption>Résumé des résultats de l'audit d'accessibilité</caption>
+            <thead>
+                <tr>
+                    <th scope="col" rowspan="2">Critère</th>
+                    <th scope="col" colspan="2">Résultat</th>
+                </tr>
+                <tr>
+                    <th scope="col">Statut</th>
+                    <th scope="col">Détail</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <th scope="row">Structure</th>
+                    <td>Conforme</td>
+                    <td>Les éléments sont correctement structurés.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <form aria-labelledby="contact-title">
+            <h2 id="contact-title">Demander un audit</h2>
+            <label for="email">Adresse électronique</label>
+            <input id="email" name="email" type="email" autocomplete="email">
+            <button type="submit">Envoyer la demande</button>
+        </form>
+
+        <section aria-labelledby="objectif">
+            <h2 id="objectif">Objectif de la page</h2>
+            <p>
+                L'objectif est de fournir une vérification claire et
+                compréhensible des éléments d'accessibilité analysés.
+            </p>
+        </section>
+    </main>
+
+    <footer>
+        <p>AccessiCode - page de démonstration accessible</p>
+    </footer>
+</body>
+</html>
