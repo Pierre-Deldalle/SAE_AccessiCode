@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test RGAA Critère 7.1.1 - Scripts et technologies d'assistance</title>
+    <style>
+        /* Styles de base pour la démonstration */
+        .button-like {
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-align: center;
+            display: inline-block;
+            margin: 5px;
+        }
+
+        .button-like:hover {
+            background-color: #0056b3;
+        }
+
+        .button-like:active {
+            background-color: #004085;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        h2 {
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+
+        .result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 3px;
+        }
+
+        .pass { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .fail { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Tests pour le critère RGAA 7.1.1</h1>
+        <p>Chaque script qui génère ou contrôle un composant d'interface vérifie-t-il, si nécessaire, une de ces conditions ?</p>
+
+        <div class="section">
+            <h2>1. Éléments scriptés accessibles (devraient PASS)</h2>
+
+            <!-- Bouton natif amélioré par script avec aria-label -->
+            <button id="accessible-button-1" onclick="handleClick1()" aria-label="Fermer la modal">
+                Fermer
+            </button>
+
+            <!-- Input amélioré par script avec label associé -->
+            <label for="accessible-input">Recherche :</label>
+            <input type="text" id="accessible-input" oninput="handleInput()" aria-label="Champ de recherche">
+
+            <!-- Lien amélioré par script avec contenu textuel -->
+            <a href="#" id="accessible-link" onclick="handleLinkClick()" aria-label="Aller à la section suivante">
+                Voir plus
+            </a>
+        </div>
+
+        <div class="section">
+            <h2>2. Composants personnalisés accessibles avec ARIA (devraient PASS)</h2>
+
+            <!-- Bouton personnalisé avec rôle ARIA et états -->
+            <div role="button"
+                 tabindex="0"
+                 id="accessible-custom-button"
+                 aria-pressed="false"
+                 aria-label="Basculer le menu"
+                 onclick="toggleMenu()"
+                 onkeydown="handleKeyDown(event)">
+                Menu
+            </div>
+
+            <!-- Case à cocher personnalisée -->
+            <div role="checkbox"
+                 tabindex="0"
+                 id="accessible-checkbox"
+                 aria-checked="false"
+                 aria-label="Accepter les conditions"
+                 onclick="toggleCheckbox()"
+                 onkeydown="handleCheckboxKey(event)">
+                J'accepte les conditions générales
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>3. Éléments scriptés inaccessibles (devraient FAIL)</h2>
+
+            <!-- Bouton personnalisé sans nom accessible -->
+            <div role="button"
+                 tabindex="0"
+                 id="inaccessible-button-1"
+                 onclick="handleClick2()">
+                <!-- Aucun aria-label, aria-labelledby, ni contenu textuel -->
+            </div>
+
+            <!-- Lien personnalisé sans nom accessible -->
+            <div role="link"
+                 tabindex="0"
+                 id="inaccessible-link"
+                 onclick="navigateToSection()">
+                <!-- Aucun nom accessible -->
+            </div>
+
+            <!-- Bouton natif sans nom accessible mais amélioré par script -->
+            <button id="inaccessible-native-button" onclick="handleClick3()">
+                <!-- Aucun contenu textuel, aria-label, ou autre nom accessible -->
+            </button>
+        </div>
+
+        <div class="section">
+            <h2>4. Éléments avec alternative accessible (devraient PASS via condition 2 ou 3)</h2>
+
+            <!-- Bouton personnalisé qui a un équivalent natif accessible -->
+            <div role="button"
+                 tabindex="0"
+                 id="button-with-native-alternative"
+                 aria-label="Soumettre le formulaire"
+                 onclick="submitFormViaScript()">
+                Envoyer
+            </div>
+
+            <!-- Bouton natif accessible juste à côté (alternative naturelle) -->
+            <button id="native-button-alternative" onclick="submitForm()">
+                Soumettre le formulaire
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>5. Zone de résultats de test</h2>
+            <p>Cette zone sera mise à jour par les tests automatisés :</p>
+            <div id="test-results" class="result info">
+                Attente des résultats des tests...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Fonctions factices pour simuler le comportement scripté
+        function handleClick1() {
+            console.log("Bouton accessible 1 cliqué");
+        }
+
+        function handleInput() {
+            console.log("Input modifié");
+        }
+
+        function handleLinkClick() {
+            console.log("Lien accessible cliqué");
+            return false;
+        }
+
+        function toggleMenu() {
+            const button = document.getElementById('accessible-custom-button');
+            const pressed = button.getAttribute('aria-pressed') === 'true';
+            button.setAttribute('aria-pressed', String(!pressed));
+            console.log("Menu basculé");
+        }
+
+        function handleKeyDown(event) {
+            if (event.key === 'Enter' || event.key === ' ') {
+                toggleMenu();
+                event.preventDefault();
+            }
+        }
+
+        function toggleCheckbox() {
+            const checkbox = document.getElementById('accessible-checkbox');
+            const checked = checkbox.getAttribute('aria-checked') === 'true';
+            checkbox.setAttribute('aria-checked', String(!checked));
+            console.log(`Case à cocher ${checked ? 'décochée' : 'cochée'}`);
+        }
+
+        function handleCheckboxKey(event) {
+            if (event.key === 'Enter' || event.key === ' ') {
+                toggleCheckbox();
+                event.preventDefault();
+            }
+        }
+
+        function handleClick2() {
+            console.log("Bouton inaccessible 1 cliqué");
+        }
+
+        function navigateToSection() {
+            console.log("Navigation vers section");
+            return false;
+        }
+
+        function handleClick3() {
+            console.log("Bouton natif inaccessible cliqué");
+        }
+
+        function submitFormViaScript() {
+            console.log("Formulaire soumis via script");
+            return false;
+        }
+
+        function submitForm() {
+            console.log("Formulaire soumis naturellement");
+            return false;
+        }
+
+        // Fonction pour simuler les résultats de test (pour démonstration)
+        function simulateTestResults() {
+            const resultsDiv = document.getElementById('test-results');
+
+            // Simuler différents résultats selon les éléments présents
+            const testResults = {
+                totalElements: 8,
+                passedElements: 5,
+                failedElements: 3,
+                status: 'FAIL' // Puisque certains échouent
+            };
+
+            resultsDiv.innerHTML = `
+                <h3>Résultats simulés du test 7.1.1 :</h3>
+                <p>Statut : <strong>${testResults.status}</strong></p>
+                <p>Éléments testés : ${testResults.totalElements}</p>
+                <p>Éléments passés : ${testResults.passedElements}</p>
+                <p>Éléments échoués : ${testResults.failedElements}</p>
+                <p>Résumé : ${testResults.failedElements > 0 ?
+                    `${testResults.failedElements}/${testResults.totalElements} composants scriptés ne respectent pas les conditions d'accessibilité` :
+                    `Tous les ${testResults.totalElements} composants scriptés respectent les conditions d'accessibilité`}
+                </p>
+            `;
+
+            if (testResults.status === 'FAIL') {
+                resultsDiv.className = 'result fail';
+            } else if (testResults.status === 'PASS') {
+                resultsDiv.className = 'result pass';
+            } else {
+                resultsDiv.className = 'result info';
+            }
+        }
+
+        // Exécuter la simulation après le chargement de la page
+        window.onload = simulateTestResults;
+    </script>
+</body>
+</html>
