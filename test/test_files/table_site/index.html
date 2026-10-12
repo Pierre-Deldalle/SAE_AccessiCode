@@ -171,6 +171,130 @@
         </tr>
     </table>
 
+    <h2>11. Tableau avec associations d'en-têtes par id (pour critère 5.7.4)</h2>
+    <table>
+        <thead>
+            <tr>
+                <th id="nom">Nom</th>
+                <th id="prenom">Prénom</th>
+                <th id="age">Âge</th>
+                <th id="service">Service</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td headers="nom prenom">Dupont Jean</td>
+                <td headers="age">25</td>
+                <td headers="service">Informatique</td>
+            </tr>
+            <tr>
+                <td headers="nom prenom">Martin Sophie</td>
+                <td headers="age">32</td>
+                <td headers="service">Marketing</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>12. Tableau avec en-têtes ayant role approprié (pour critère 5.7.5)</h2>
+    <table>
+        <thead>
+            <tr>
+                <th role="columnheader">Nom</th>
+                <th role="columnheader">Prénom</th>
+                <th role="columnheader">Âge</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Dupont</td>
+                <td>Jean</td>
+                <td>25</td>
+            </tr>
+            <tr>
+                <td>Martin</td>
+                <td>Sophie</td>
+                <td>32</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>13. Tableau avec en-têtes de ligne ayant role approprié (pour critère 5.7.5)</h2>
+    <table>
+        <tbody>
+            <tr>
+                <th role="rowheader">Nom</th>
+                <td>Dupont</td>
+                <td>Jean</td>
+            </tr>
+            <tr>
+                <th role="rowheader">Profession</th>
+                <td>Ingénieur</td>
+                <td>Développeur</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>14. Tableau avec en-têtes manquants d'identification (pour montrer les échecs de 5.7.1)</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Nom</th>
+                <th>Prénom</th>
+                <th>Âge</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Dupont</td>
+                <td>Jean</td>
+                <td>25</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>15. Tableau avec scope incorrect (pour montrer les échecs de 5.7.2)</h2>
+    <table>
+        <thead>
+            <tr>
+                <th scope="row">Nom</th>
+                <th scope="row">Prénom</th>
+                <th scope="row">Âge</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Dupont</td>
+                <td>Jean</td>
+                <td>25</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>16. Tableau avec en-tête partiel sans id (pour montrer les échecs de 5.7.3)</h2>
+    <table>
+        <thead>
+            <tr>
+                <th id="nom">Nom</th>
+                <th>Prénom</th>
+                <th>Âge</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <th>Service</th>
+                <td>Informatique</td>
+                <td>Marketing</td>
+                <td>Ventes</td>
+            </tr>
+            <tr>
+                <td>Dupont</td>
+                <td>Jean</td>
+                <td>25</td>
+                <td>Informatique</td>
+            </tr>
+        </tbody>
+    </table>
+
     <style>
         .visually-hidden {
             position: absolute !important;

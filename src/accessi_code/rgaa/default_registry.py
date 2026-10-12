@@ -75,6 +75,19 @@ from accessi_code.rgaa.tests.theme_05_tables.criterion_5_4 import (
 from accessi_code.rgaa.tests.theme_05_tables.criterion_5_5 import (
     Test551,
 )
+from accessi_code.rgaa.tests.theme_05_tables.criterion_5_6 import (
+    Test561,
+    Test562,
+    Test563,
+    Test564,
+)
+from accessi_code.rgaa.tests.theme_05_tables.criterion_5_7 import (
+    Test571,
+    Test572,
+    Test573,
+    Test574,
+    Test575,
+)
 from accessi_code.rgaa.tests.theme_08_mandatory.criterion_8_1 import (
     Test811,
     Test812,
@@ -134,6 +147,15 @@ def build_default_registry() -> TestRegistry:
             Test531(),
             Test541(),
             Test551(),
+            Test561(),
+            Test562(),
+            Test563(),
+            Test564(),
+            Test571(),
+            Test572(),
+            Test573(),
+            Test574(),
+            Test575(),
             Test811(),
             Test812(),
             Test813(),
