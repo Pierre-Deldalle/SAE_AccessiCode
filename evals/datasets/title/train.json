@@ -1,0 +1,86 @@
+[
+  {
+    "id": "title_001",
+    "input": {
+      "title": "Réinitialiser mon mot de passe",
+      "heading": "Réinitialiser votre mot de passe",
+      "content": "Choisissez un nouveau mot de passe pour accéder de nouveau à votre compte."
+    },
+    "expected": {
+      "relevant": true
+    },
+    "metadata": {
+      "description": "Titre clairement cohérent avec le contenu."
+    }
+  },
+  {
+    "id": "title_002",
+    "input": {
+      "title": "Recette de crêpes",
+      "heading": "Réinitialiser votre mot de passe",
+      "content": "Choisissez un nouveau mot de passe pour accéder de nouveau à votre compte."
+    },
+    "expected": {
+      "relevant": false
+    },
+    "metadata": {
+      "description": "Titre clairement sans rapport avec le contenu."
+    }
+  },
+  {
+    "id": "title_003",
+    "input": {
+      "title": "Nos formations",
+      "heading": "Découvrez nos formations",
+      "content": "Consultez la liste des formations proposées en informatique, gestion et communication."
+    },
+    "expected": {
+      "relevant": true
+    },
+    "metadata": {
+      "description": "Titre concis mais représentatif du contenu."
+    }
+  },
+  {
+    "id": "title_004",
+    "input": {
+      "title": "Contact",
+      "heading": "Contactez-nous",
+      "content": "Retrouvez notre adresse, notre numéro de téléphone et notre formulaire de contact."
+    },
+    "expected": {
+      "relevant": true
+    },
+    "metadata": {
+      "description": "Titre court mais suffisamment précis dans ce contexte."
+    }
+  },
+  {
+    "id": "title_005",
+    "input": {
+      "title": "Bienvenue",
+      "heading": "Catalogue des ordinateurs portables",
+      "content": "Comparez les différents ordinateurs portables disponibles, leurs caractéristiques et leurs prix."
+    },
+    "expected": {
+      "relevant": false
+    },
+    "metadata": {
+      "description": "Titre trop générique pour identifier le contenu réel de la page."
+    }
+  },
+  {
+    "id": "title_006",
+    "input": {
+      "title": "Informations",
+      "heading": "",
+      "content": ""
+    },
+    "expected": {
+      "relevant": null
+    },
+    "metadata": {
+      "description": "Contenu insuffisant pour conclure de façon fiable."
+    }
+  }
+]
