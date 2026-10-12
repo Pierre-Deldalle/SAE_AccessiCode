@@ -259,5 +259,69 @@
         // Exécuter la simulation après le chargement de la page
         window.onload = simulateTestResults;
     </script>
+
+    <!-- Section ajoutée pour tester le critère RGAA 7.2 -->
+    <div class="section">
+        <h2>6. Tests pour le critère RGAA 7.2 - Alternatives aux scripts</h2>
+        <p>Chaque script qui possède une alternative doit avoir une alternative pertinente lorsqu'il n'est pas disponible ou exécuté :</p>
+
+        <div class="subsection">
+            <h3>6.1. Script avec alternative pertinente (devrait PASS pour 7.2.1)</h3>
+            <!-- Script avec noscript alternatif pertinent -->
+            <script>
+                function updateClock() {
+                    document.getElementById('clock-demo').textContent = new Date().toLocaleTimeString();
+                }
+            </script>
+            <noscript>
+                <div id="clock-demo">12:00:00</div>
+                <p>L'horloge nécessite JavaScript pour fonctionner.</p>
+            </noscript>
+            <p>Lorsque JavaScript est désactivé, l'heure statique et le message explicatif sont affichés.</p>
+        </div>
+
+        <div class="subsection">
+            <h3>6.2. Script avec alternative vide (devrait FAIL pour 7.2.1)</h3>
+            <!-- Script avec noscript alternatif vide -->
+            <script>
+                function importantFunction() {
+                    // Fonctionnalité critique nécessitant JavaScript
+                    showCriticalNotification();
+                }
+            </script>
+            <noscript>
+                <!-- Alternative vide - devrait échouer le test 7.2.1 -->
+            </noscript>
+            <p>Lorsque JavaScript est désactivé, rien n'est affiché, ce qui rend l'alternative non pertinente.</p>
+        </div>
+
+        <div class="subsection">
+            <h3>6.3. Script sans alternative (devrait être IGNORÉ pour 7.2.1)</h3>
+            <!-- Script sans alternative associée -->
+            <script>
+                function analyticsTracking() {
+                    // Code de suivi analytique
+                    trackPageView();
+                }
+            </script>
+            <p>Ce script n'a pas d'élément <noscript> associé, donc il ne sera pas compté dans le test 7.2.1.</p>
+        </div>
+
+        <div class="subsection">
+            <h3>6.4. Script avec alternative non pertinente (devrait FAIL pour 7.2.1)</h3>
+            <!-- Script avec noscript alternatif non pertinent -->
+            <script>
+                function validateForm() {
+                    // Validation de formulaire en temps réel
+                    return checkFormValidity();
+                }
+            </script>
+            <noscript>
+                <p>Veuillez activer JavaScript.</p>
+                <!-- Cette alternative ne fournit pas la même fonctionnalité (validation de formulaire) -->
+            </noscript>
+            <p>Lorsque JavaScript est désactivé, seul un message d'activation est affiché, mais la validation du formulaire n'est pas disponible.</p>
+        </div>
+    </div>
 </body>
 </html>
