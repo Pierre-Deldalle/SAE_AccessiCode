@@ -63,6 +63,12 @@ from accessi_code.rgaa.tests.theme_04_multimedia.criterion_4_13 import (
 from accessi_code.rgaa.tests.theme_05_tables.criterion_5_1 import (
     Test511,
 )
+from accessi_code.rgaa.tests.theme_05_tables.criterion_5_2 import (
+    Test521,
+)
+from accessi_code.rgaa.tests.theme_05_tables.criterion_5_3 import (
+    Test531,
+)
 from accessi_code.rgaa.tests.theme_08_mandatory.criterion_8_1 import (
     Test811,
     Test812,
@@ -118,6 +124,8 @@ def build_default_registry() -> TestRegistry:
             Test4131(),
             Test4132(),
             Test511(),
+            Test521(),
+            Test531(),
             Test811(),
             Test812(),
             Test813(),

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Test du critère RGAA 5.1 - Tables</title>
+    <description>
+        Fichier de test pour le critère RGAA 5.1 :
+        Chaque tableau de données doit posséder un résumé ou une légende.
+    </description>
+</head>
+<body>
+    <h1>Tests pour le critère RGAA 5.1</h1>
+    <p>Chaque tableau de données doit posséder un résumé (attribut summary) ou une légende (élément caption).</p>
+
+    <h2>1. Tableau sans résumé ni légende (DOIT ÉCHOUER)</h2>
+    <table>
+        <tr>
+            <th>Nom</th>
+            <th>Prénom</th>
+        </tr>
+        <tr>
+            <td>Dupont</td>
+            <td>Jean</td>
+        </tr>
+    </table>
+
+    <h2>2. Tableau avec légende vide (DOIT ÉCHOUER)</h2>
+    <table>
+        <caption></caption>
+        <tr>
+            <th>Nom</th>
+            <th>Prénom</th>
+        </tr>
+        <tr>
+            <td>Dupont</td>
+            <td>Jean</td>
+        </tr>
+    </table>
+
+    <h2>3. Tableau avec légende contenant seulement des espaces (DOIT ÉCHOUER)</h2>
+    <table>
+        <caption>   </caption>
+        <tr>
+            <th>Nom</th>
+            <th>Prénom</th>
+        </tr>
+        <tr>
+            <td>Dupont</td>
+            <td>Jean</td>
+        </tr>
+    </table>
+
+    <h2>4. Tableau avec légende valide (DOIT PASSER)</h2>
+    <table>
+        <caption>Liste des employés avec leur nom et prénom</caption>
+        <tr>
+            <th>Nom</th>
+            <th>Prénom</th>
+        </tr>
+        <tr>
+            <td>Dupont</td>
+            <td>Jean</td>
+        </tr>
+    </table>
+
+    <h2>5. Tableau complexe avec légende valide (DOIT PASSER)</h2>
+    <table>
+        <caption>Résultats des projets par catégorie</caption>
+        <thead>
+            <tr>
+                <th rowspan="2" scope="col">Projet</th>
+                <th colspan="2" scope="colgroup">Résultats</th>
+            </tr>
+            <tr>
+                <th scope="col">Succès</th>
+                <th scope="col">Erreurs</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <th scope="row">Projet A</th>
+                <td>20</td>
+                <td>2</td>
+            </tr>
+            <tr>
+                <th scope="row">Projet B</th>
+                <td>15</td>
+                <td>5</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>6. Tableau avec attribut summary (HTML5 - DOIT ÉCHOUER selon RGAA 5.1)</h2>
+    <table summary="Ce tableau présente les résultats des projets">
+        <tr>
+            <th>Projet</th>
+            <th>Succès</th>
+            <th>Erreurs</th>
+        </tr>
+        <tr>
+            <td>Projet A</td>
+            <td>20</td>
+            <td>2</td>
+        </tr>
+    </table>
+
+    <h2>7. Tableau avec attribut summary (doctype HTML 4.01 - DOIT PASSER)</h2>
+    <!-- Le doctype suivant serait nécessaire pour que l'attribut summary soit accepté -->
+    <!-- Mais pour ce fichier de test, nous montrons juste l'attribut -->
+    <table summary="Structure du tableau avec projet en lignes et résultats en colonnes">
+        <tr>
+            <th>Projet</th>
+            <th>Succès</th>
+            <th>Erreurs</th>
+        </tr>
+        <tr>
+            <td>Projet A</td>
+            <td>20</td>
+            <td>2</td>
+        </tr>
+    </table>
+
+    <h2>8. Tableau avec aria-describedby pointing to hidden summary (DOIT PASSER)</h2>
+    <div id="table-summary" class="visually-hidden">
+        Ce tableau présente les résultats des différents projets avec leurs succès et erreurs.
+    </div>
+    <table aria-describedby="table-summary">
+        <tr>
+            <th>Projet</th>
+            <th>Succès</th>
+            <th>Erreurs</th>
+        </tr>
+        <tr>
+            <td>Projet A</td>
+            <td>20</td>
+            <td>2</td>
+        </tr>
+    </table>
+
+    <h2>9. Tableau avec aria-describedby pointing to missing element (DOIT ÉCHOUER)</h2>
+    <table aria-describedby="missing-summary">
+        <tr>
+            <th>Projet</th>
+            <th>Succès</th>
+            <th>Erreurs</th>
+        </tr>
+        <tr>
+            <td>Projet A</td>
+            <td>20</td>
+            <td>2</td>
+        </tr>
+    </table>
+
+    <h2>10. Tableau de présentation (role="presentation" - DOIT ÊTRE NON APPLICABLE)</h2>
+    <table role="presentation">
+        <tr>
+            <td>Cellule 1</td>
+            <td>Cellule 2</td>
+        </tr>
+    </table>
+
+    <style>
+        .visually-hidden {
+            position: absolute !important;
+            height: 1px;
+            width: 1px;
+            overflow: hidden;
+            clip: rect(1px 1px 1px 1px);
+            /* IE6, IE7 */
+            clip: rect(1px, 1px, 1px, 1px);
+        }
+    </style>
+</body>
+</html>
