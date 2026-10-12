@@ -3,7 +3,6 @@ from accessi_code.rgaa.tests.theme_05_tables.criterion_5_8 import (
     Test581 as RGAA581,
 )
 
-# Test HTML samples for criterion 5.8
 SIMPLE_LAYOUT_TABLE_WO_ROLE = """
 <table>
     <tr>
@@ -247,8 +246,6 @@ def test_581_simple_layout_table_without_role_passes(
     context_factory,
     run_rgaa,
 ):
-    # Un tableau de mise en forme sans role="presentation" mais sans éléments de données est considéré comme valide pour 5.8
-    # car 5.8 ne vérifie pas la présence de role="presentation" (c'est le critère 5.3)
     context = context_factory(SIMPLE_LAYOUT_TABLE_WO_ROLE)
     result = run_rgaa(RGAA581(), context)
     assert result.status == Status.PASS

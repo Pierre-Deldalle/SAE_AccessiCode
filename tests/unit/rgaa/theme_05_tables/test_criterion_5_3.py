@@ -3,7 +3,6 @@ from accessi_code.rgaa.tests.theme_05_tables.criterion_5_3 import (
     Test531 as RGAA531,
 )
 
-# Test HTML samples for criterion 5.3
 SIMPLE_LAYOUT_TABLE_WO_ROLE = """
 <table>
     <tr>

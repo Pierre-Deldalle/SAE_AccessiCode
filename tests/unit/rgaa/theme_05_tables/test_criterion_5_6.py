@@ -346,13 +346,7 @@ def test_563_table_with_spanning_header_fails(
 
     result = run_rgaa(RGAA563(), context)
 
-    # The spanning header in thead should be caught as not applying to entire column/row
-    # and should fail because it's not a th element (it is th, so should pass?)
-    # Let me check the logic - spanning headers with colspan>1 or rowspan>1 should be
-    # considered as not applying to entire column/row, and must be th elements
-    # Since they are th elements, they should PASS test 563
 
-    # Actually, let me create a better test case with a non-th spanning element
     html = """
     <table>
         <thead>
@@ -375,8 +369,6 @@ def test_563_table_with_spanning_header_fails(
 
     result = run_rgaa(RGAA563(), context)
 
-    # The td with colspan=2 should be caught as a header that doesn't apply to entire column
-    # and should fail because it's not a th element
     assert result.status == Status.FAIL
     assert len(result.findings) >= 1
     assert result.tested_elements >= 1
@@ -415,8 +407,6 @@ def test_564_table_with_td_or_th_multi_header_cells_passes(
 
     result = run_rgaa(RGAA564(), context)
 
-    # The cell with headers="nom prenom" is associated with multiple headers
-    # and is a td element, so it should PASS
     assert result.status == Status.PASS
     assert result.findings == []
     assert result.tested_elements == 1  # One multi-header cell
@@ -426,7 +416,6 @@ def test_564_table_with_improper_multi_header_cell_fails(
     context_factory,
     run_rgaa,
 ):
-    # Create a table with a cell associated with multiple headers that is neither td nor th
     html = """
     <table>
         <thead>
@@ -448,8 +437,6 @@ def test_564_table_with_improper_multi_header_cell_fails(
 
     result = run_rgaa(RGAA564(), context)
 
-    # The span with headers="nom prenom" is associated with multiple headers
-    # but is neither td nor th, so it should FAIL
     assert result.status == Status.FAIL
     assert len(result.findings) >= 1
     assert result.tested_elements >= 1
@@ -460,8 +447,6 @@ def test_564_table_with_colspan_rowspan_multi_header_cell_passes(
     context_factory,
     run_rgaa,
 ):
-    # A cell with colspan>1 or rowspan>1 is considered associated with multiple headers
-    # and if it's td or th, it should pass
     html = """
     <table>
         <tr>
@@ -478,8 +463,6 @@ def test_564_table_with_colspan_rowspan_multi_header_cell_passes(
 
     result = run_rgaa(RGAA564(), context)
 
-    # The td with colspan=2 is considered associated with multiple headers
-    # and is a td element, so it should PASS
     assert result.status == Status.PASS
     assert result.findings == []
     assert result.tested_elements == 1  # One multi-header cell (the td with colspan=2)
@@ -489,7 +472,6 @@ def test_564_table_with_colspan_rowspan_improper_multi_header_cell_fails(
     context_factory,
     run_rgaa,
     ):
-    # A cell with colspan>1 or rowspan>1 that is neither td nor th should fail
     html = """
     <table>
         <tr>
@@ -506,8 +488,6 @@ def test_564_table_with_colspan_rowspan_improper_multi_header_cell_fails(
 
     result = run_rgaa(RGAA564(), context)
 
-    # The span with colspan=2 is considered associated with multiple headers
-    # but is neither td nor th, so it should FAIL
     assert result.status == Status.FAIL
     assert len(result.findings) >= 1
     assert result.tested_elements >= 1

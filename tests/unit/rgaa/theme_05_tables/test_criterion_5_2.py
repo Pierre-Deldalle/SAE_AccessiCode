@@ -3,9 +3,6 @@ from accessi_code.rgaa.tests.theme_05_tables.criterion_5_2 import (
     Test521 as RGAA521,
 )
 
-# Test HTML samples for criterion 5.2
-# Note: For a table to be considered "complex" for RGAA 5.1/5.2, it needs structural complexity
-# such as rowspan/colspan > 1, scope=rowgroup/colgroup, or headers with multiple references
 
 TABLE_WITH_NON_PERTINENT_SUMMARY = """
 <table>

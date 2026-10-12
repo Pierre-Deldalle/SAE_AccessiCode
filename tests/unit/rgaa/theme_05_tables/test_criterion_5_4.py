@@ -3,7 +3,6 @@ from accessi_code.rgaa.tests.theme_05_tables.criterion_5_4 import (
     Test541 as RGAA541,
 )
 
-# Test HTML samples for criterion 5.4
 SIMPLE_TABLE_NO_TITLE = """
 <table>
     <tr>

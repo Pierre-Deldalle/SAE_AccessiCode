@@ -75,7 +75,6 @@ def test_551_table_with_non_pertinent_caption_fails(
     context_factory,
     run_rgaa,
 ):
-    # Test with generic caption like "Tableau" or "Données"
     html = table_with_caption(caption="<caption>Tableau</caption>")
     context = context_factory(html)
 
@@ -117,7 +116,6 @@ def test_551_multiple_tables_mixed_results(
     context_factory,
     run_rgaa,
 ):
-    # One table with pertinent caption, one with non-pertinent caption
     html = '''
     <table>
         <caption>Liste des produits avec leur prix et catégorie.</caption>
