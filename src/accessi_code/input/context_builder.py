@@ -30,13 +30,18 @@ class AuditContextBuilder:
     def build(
         self,
         input_files: list[Path],
+        site_root: Path | None = None,
     ) -> AuditContext:
         """
-        Construit un contexte complet à partir
-        des fichiers reçus.
+        Construit un contexte d'audit à partir des fichiers reçus.
+
+        Deux modes sont disponibles :
+        - sans site_root : import individuel avec copie à plat ;
+        - avec site_root : conservation de l'arborescence du site.
 
         Args:
             input_files: Fichiers source à copier et analyser.
+            site_root: Répertoire racine du site, facultatif.
 
         Returns:
             Le contexte contenant les fichiers copiés, les images détectées,
@@ -48,7 +53,10 @@ class AuditContextBuilder:
             audit_id,
             workspace_path,
             files,
-        ) = self.collector.collect(input_files)
+        ) = self.collector.collect(
+            input_files,
+            site_root=site_root,
+        )
 
         context = AuditContext(
             audit_id=audit_id,
@@ -67,9 +75,9 @@ class AuditContextBuilder:
         """
         Extrait les informations utiles de chaque fichier du contexte.
 
-        Le premier document HTML est analysé comme page principale.
+        Le premier document HTML est considéré comme la page principale.
         Tous les fichiers image sont conservés dans ``image_files``.
-        Toutes les feuilles CSS fournies sont lues et conservées.
+        Toutes les feuilles CSS fournies sont extraites.
         """
 
         html_files = [
@@ -106,8 +114,8 @@ class AuditContextBuilder:
         """
         Extrait le document HTML principal.
 
-        Pour le prototype, le premier fichier HTML
-        rencontré est considéré comme la page principale.
+        Pour le prototype, le premier fichier HTML rencontré est considéré
+        comme la page principale.
 
         Args:
             context: Contexte à enrichir en place.
@@ -129,8 +137,7 @@ class AuditContextBuilder:
         """
         Extrait le contenu d'une feuille CSS.
 
-        Le chemin et le contenu source sont conservés dans
-        l'AuditContext pour les futures analyses RGAA.
+        Le chemin et le contenu source sont conservés dans l'AuditContext.
 
         Args:
             context: Contexte à enrichir en place.
