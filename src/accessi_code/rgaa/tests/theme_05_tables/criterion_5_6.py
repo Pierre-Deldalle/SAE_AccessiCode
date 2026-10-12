@@ -41,7 +41,6 @@ class Test561(RGAATest):
 
         soup = context.dom
 
-        # Find all tables (including role="table")
         tables = soup.select("table, [role='table']")
 
         if not tables:
@@ -52,7 +51,6 @@ class Test561(RGAATest):
                 "Aucun tableau détecté.",
             )
 
-        # Only consider data tables (those with header cells)
         data_tables = []
         for table in tables:
             if self._has_header_cells(table):
@@ -75,20 +73,15 @@ class Test561(RGAATest):
         for table_index, table in enumerate(data_tables):
             rows = get_table_rows(table)
 
-            # Process each row to find column headers
             for row_index, row in enumerate(rows):
                 cells = get_row_cells(row)
 
                 for col_index, cell in enumerate(cells):
-                    # Check if this is a header cell
                     if is_header_cell(cell):
-                        # Check if this header applies to an entire column
                         if self._applies_to_entire_column(cell, table, row_index, col_index):
                             total_column_headers += 1
 
-                            # Check if it's properly structured (th or role="columnheader")
                             if not self._is_properly_structured_column_header(cell):
-                                # Generate element identifier
                                 table_id = table.get("id")
                                 row_id = row.get("id")
                                 cell_id = cell.get("id")
@@ -158,51 +151,38 @@ class Test561(RGAATest):
         colspan = get_int_attribute(cell, "colspan")
         rowspan = get_int_attribute(cell, "rowspan")
 
-        # Must not span multiple columns
         if colspan > 1:
             return False
 
-        # Additional heuristics to determine if it's a column header:
-        # 1. If it has explicit column header role or scope
         role = cell.get("role")
         scope = cell.get("scope")
 
         if role == "columnheader" or scope == "col":
             return True
 
-        # 2. If it's in thead or first few rows (typical column header location)
-        # Check if ancestor is thead
         parent = cell.parent
         while parent and parent != table:
             if parent.name == "thead":
                 return True
             parent = parent.parent
 
-        # 3. If it's in first row and table has thead/tbody structure, likely column header
         rows = get_table_rows(table)
         if row_index == 0 and len(rows) > 1:
-            # Check if second row exists and has td/th cells (suggests data rows)
             second_row_cells = get_row_cells(rows[1])
             if second_row_cells:
-                # If first row has header-like cells and second row has data-like cells,
-                # first row likely contains column headers
                 first_row_cells = get_row_cells(rows[0])
                 header_count = sum(1 for c in first_row_cells if is_header_cell(c))
                 data_count = sum(1 for c in second_row_cells if c.name == "td" or c.get("role") == "cell")
                 if header_count > 0 and data_count > 0:
                     return True
 
-        # 4. Default: if it's a header cell with colspan=1 and rowspan=1, assume it applies to entire column
-        # This is a simplification - in practice, we'd need more sophisticated table structure analysis
         return rowspan == 1 and colspan == 1
 
     def _is_properly_structured_column_header(self, cell: Tag) -> bool:
         """Check if column header is properly structured (th or role='columnheader')."""
-        # Check if it's a th element
         if cell.name == "th":
             return True
 
-        # Check if it has role="columnheader"
         role = cell.get("role")
         if isinstance(role, str) and role.strip().lower() == "columnheader":
             return True
@@ -233,7 +213,6 @@ class Test562(RGAATest):
 
         soup = context.dom
 
-        # Find all tables (including role="table")
         tables = soup.select("table, [role='table']")
 
         if not tables:
@@ -244,7 +223,6 @@ class Test562(RGAATest):
                 "Aucun tableau détecté.",
             )
 
-        # Only consider data tables (those with header cells)
         data_tables = []
         for table in tables:
             if self._has_header_cells(table):
@@ -267,20 +245,15 @@ class Test562(RGAATest):
         for table_index, table in enumerate(data_tables):
             rows = get_table_rows(table)
 
-            # Process each row to find row headers
             for row_index, row in enumerate(rows):
                 cells = get_row_cells(row)
 
                 for col_index, cell in enumerate(cells):
-                    # Check if this is a header cell
                     if is_header_cell(cell):
-                        # Check if this header applies to an entire row
                         if self._applies_to_entire_row(cell, table, row_index, col_index):
                             total_row_headers += 1
 
-                            # Check if it's properly structured (th or role="rowheader")
                             if not self._is_properly_structured_row_header(cell):
-                                # Generate element identifier
                                 table_id = table.get("id")
                                 row_id = row.get("id")
                                 cell_id = cell.get("id")
@@ -350,24 +323,18 @@ class Test562(RGAATest):
         colspan = get_int_attribute(cell, "colspan")
         rowspan = get_int_attribute(cell, "rowspan")
 
-        # Must not span multiple rows
         if rowspan > 1:
             return False
 
-        # Additional heuristics to determine if it's a row header:
-        # 1. If it has explicit row header role or scope
         role = cell.get("role")
         scope = cell.get("scope")
 
         if role == "rowheader" or scope == "row":
             return True
 
-        # 2. If it's in first column (typical row header location)
-        # Check if it's likely in first column by position and table structure
         rows = get_table_rows(table)
         if rows:
             first_col_is_header_like = True
-            # Check if first column in this row and similar rows tend to be headers
             for r_idx, r in enumerate(rows):
                 r_cells = get_row_cells(r)
                 if len(r_cells) > 0:
@@ -376,21 +343,16 @@ class Test562(RGAATest):
                         first_col_is_header_like = False
                         break
                 else:
-                    # Empty row, skip
                     continue
 
             if first_col_is_header_like and col_index == 0:
                 return True
 
-        # 3. If it's in first column and table structure suggests row headers
         if col_index == 0 and len(get_row_cells(rows[0]) if rows else []) > 0:
-            # Check if first row looks like it contains column headers (not row headers)
             first_row_cells = get_row_cells(rows[0]) if rows else []
             if first_row_cells:
                 header_count_first_row = sum(1 for c in first_row_cells if is_header_cell(c))
-                # If first row has many headers, it's likely column headers, so first column might be row headers
                 if header_count_first_row >= len(first_row_cells) * 0.5:  # Majority are headers
-                    # Check if subsequent rows have header-like first cell
                     row_header_like_count = 0
                     total_data_rows = 0
                     for r_idx in range(1, min(len(rows), 4)):  # Check first few data rows
@@ -403,17 +365,13 @@ class Test562(RGAATest):
                     if total_data_rows > 0 and row_header_like_count >= total_data_rows * 0.5:
                         return True
 
-        # 4. Default: if it's a header cell with rowspan=1 and colspan=1, assume it applies to entire row
-        # This is a simplification - in practice, we'd need more sophisticated table structure analysis
         return rowspan == 1 and colspan == 1
 
     def _is_properly_structured_row_header(self, cell: Tag) -> bool:
         """Check if row header is properly structured (th or role='rowheader')."""
-        # Check if it's a th element
         if cell.name == "th":
             return True
 
-        # Check if it has role="rowheader"
         role = cell.get("role")
         if isinstance(role, str) and role.strip().lower() == "rowheader":
             return True
@@ -444,7 +402,6 @@ class Test563(RGAATest):
 
         soup = context.dom
 
-        # Find all tables (including role="table")
         tables = soup.select("table, [role='table']")
 
         if not tables:
@@ -455,7 +412,6 @@ class Test563(RGAATest):
                 "Aucun tableau détecté.",
             )
 
-        # Only consider data tables (those with header cells)
         data_tables = []
         for table in tables:
             if self._has_header_cells(table):
@@ -478,21 +434,16 @@ class Test563(RGAATest):
         for table_index, table in enumerate(data_tables):
             rows = get_table_rows(table)
 
-            # Process each row to find headers
             for row_index, row in enumerate(rows):
                 cells = get_row_cells(row)
 
                 for col_index, cell in enumerate(cells):
-                    # Check if this is a header cell
                     if is_header_cell(cell):
-                        # Check if this header does NOT apply to entire row or column
                         if not self._applies_to_entire_column(cell, table, row_index, col_index) or \
                            not self._applies_to_entire_row(cell, table, row_index, col_index):
                             total_special_headers += 1
 
-                            # Check if it's properly structured (must be th)
                             if not self._is_th_element(cell):
-                                # Generate element identifier
                                 table_id = table.get("id")
                                 row_id = row.get("id")
                                 cell_id = cell.get("id")
@@ -560,25 +511,21 @@ class Test563(RGAATest):
         colspan = get_int_attribute(cell, "colspan")
         rowspan = get_int_attribute(cell, "rowspan")
 
-        # Must not span multiple columns
         if colspan > 1:
             return False
 
-        # Additional heuristics to determine if it's a column header:
         role = cell.get("role")
         scope = cell.get("scope")
 
         if role == "columnheader" or scope == "col":
             return True
 
-        # Check if ancestor is thead
         parent = cell.parent
         while parent and parent != table:
             if parent.name == "thead":
                 return True
             parent = parent.parent
 
-        # If it's in first row and table has thead/tbody structure, likely column header
         rows = get_table_rows(table)
         if row_index == 0 and len(rows) > 1:
             second_row_cells = get_row_cells(rows[1])
@@ -589,7 +536,6 @@ class Test563(RGAATest):
                 if header_count > 0 and data_count > 0:
                     return True
 
-        # Default: if it's a header cell with colspan=1 and rowspan=1, assume it applies to entire column
         return rowspan == 1 and colspan == 1
 
     def _applies_to_entire_row(self, cell: Tag, table: Tag, row_index: int, col_index: int) -> bool:
@@ -600,22 +546,18 @@ class Test563(RGAATest):
         colspan = get_int_attribute(cell, "colspan")
         rowspan = get_int_attribute(cell, "rowspan")
 
-        # Must not span multiple rows
         if rowspan > 1:
             return False
 
-        # Additional heuristics to determine if it's a row header:
         role = cell.get("role")
         scope = cell.get("scope")
 
         if role == "rowheader" or scope == "row":
             return True
 
-        # Check if it's in first column and table structure suggests row headers
         if col_index == 0:
             rows = get_table_rows(table)
             if rows:
-                # Check if first column tends to contain headers
                 first_col_header_count = 0
                 total_rows_with_cells = 0
                 for r in rows:
@@ -628,7 +570,6 @@ class Test563(RGAATest):
                 if total_rows_with_cells > 0 and first_col_header_count >= total_rows_with_cells * 0.5:
                     return True
 
-        # Default: if it's a header cell with rowspan=1 and colspan=1, assume it applies to entire row
         return rowspan == 1 and colspan == 1
 
     def _is_th_element(self, cell: Tag) -> bool:
@@ -659,7 +600,6 @@ class Test564(RGAATest):
 
         soup = context.dom
 
-        # Find all tables (including role="table")
         tables = soup.select("table, [role='table']")
 
         if not tables:
@@ -670,7 +610,6 @@ class Test564(RGAATest):
                 "Aucun tableau détecté.",
             )
 
-        # Only consider data tables (those with header cells)
         data_tables = []
         for table in tables:
             if self._has_header_cells(table):
@@ -693,20 +632,15 @@ class Test564(RGAATest):
         for table_index, table in enumerate(data_tables):
             rows = get_table_rows(table)
 
-            # Process each row to find cells
             for row_index, row in enumerate(rows):
                 cells = get_row_cells(row)
 
                 for col_index, cell in enumerate(cells):
-                    # Check if this is a data cell (td or role="cell")
                     if self._is_data_cell(cell):
-                        # Check if this cell is associated with multiple headers
                         if self._is_associated_with_multiple_headers(cell, table, soup):
                             total_multi_header_cells += 1
 
-                            # Check if it's properly structured (td or th)
                             if not self._is_td_or_th_element(cell):
-                                # Generate element identifier
                                 table_id = table.get("id")
                                 row_id = row.get("id")
                                 cell_id = cell.get("id")
@@ -783,12 +717,10 @@ class Test564(RGAATest):
         2. It spans multiple columns or rows (colspan > 1 or rowspan > 1), OR
         3. The table has colgroup/rowgroup scopes (indicating potential complex header association)
         """
-        # Check 1: Explicit headers attribute with multiple references
         headers_attr = cell.get("headers")
         if isinstance(headers_attr, str):
             header_ids = headers_attr.split()
             if len(header_ids) > 1:
-                # Verify that at least two of the referenced elements exist and are headers
                 valid_header_count = 0
                 for header_id in header_ids:
                     header_elem = soup.find(id=header_id)
@@ -798,7 +730,6 @@ class Test564(RGAATest):
                     return True
         elif isinstance(headers_attr, list):
             if len(headers_attr) > 1:
-                # Verify that at least two of the referenced elements exist and are headers
                 valid_header_count = 0
                 for header_elem in headers_attr:
                     if isinstance(header_elem, Tag) and is_header_cell(header_elem):
@@ -806,16 +737,12 @@ class Test564(RGAATest):
                 if valid_header_count >= 2:
                     return True
 
-        # Check 2: Cell spans multiple columns or rows (indicates complex association with multiple headers)
         colspan = get_int_attribute(cell, "colspan")
         rowspan = get_int_attribute(cell, "rowspan")
         if colspan > 1 or rowspan > 1:
             return True
 
-        # Check 3: Table has colgroup/rowgroup scopes (may indicate complex header association)
         if self._table_has_colrowgroup_scopes(table):
-            # In tables with colgroup/rowgroup scopes, data cells may be associated with multiple headers
-            # Check if table is sufficiently complex to warrant this assumption
             rows = get_table_rows(table)
             if len(rows) > 1:
                 first_row_cells = get_row_cells(rows[0])
@@ -830,7 +757,6 @@ class Test564(RGAATest):
         for row in rows:
             cells = get_row_cells(row)
             for cell in cells:
-                # Check if this is a header cell
                 if is_header_cell(cell):
                     scope = cell.get("scope")
                     if isinstance(scope, str) and scope.strip().lower() in ["colgroup", "rowgroup"]:

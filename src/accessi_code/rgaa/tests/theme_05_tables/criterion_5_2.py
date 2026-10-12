@@ -64,7 +64,6 @@ class Test521(RGAATest):
             if not has_complex_header_structure(table):
                 continue
 
-            # Check if this complex table has a summary (as per criterion 5.1)
             evidence = get_table_summary_evidence(
                 table,
                 soup,
@@ -72,15 +71,12 @@ class Test521(RGAATest):
             )
 
             if not evidence:
-                # This table doesn't have a summary, so it's not in scope for criterion 5.2
                 continue
 
             complex_tables_with_summary.append(table)
 
-            # Extract the actual summary text to check its pertinence
             summary_text = self._extract_summary_text(table, soup)
 
-            # Check if the summary is pertinent/relevant to the table content
             if not self._is_summary_pertinent(summary_text, table, soup):
                 table_id = table.get("id")
                 element = (
@@ -124,17 +120,14 @@ class Test521(RGAATest):
 
     def _extract_summary_text(self, table: Tag, soup: BeautifulSoup) -> str:
         """Extract the actual summary text from a table using the same mechanisms as criterion 5.1."""
-        # Try caption first
         caption = table.find("caption", recursive=False)
         if isinstance(caption, Tag) and caption.get_text(" ", strip=True):
             return caption.get_text(" ", strip=True)
 
-        # Try aria-describedby
         is_valid, referenced_text = get_referenced_text(table, soup, "aria-describedby")
         if is_valid:
             return referenced_text
 
-        # Try summary attribute (only for legacy doctype)
         summary = table.get("summary")
         if isinstance(summary, str) and summary.strip():
             return summary.strip()
@@ -153,10 +146,8 @@ class Test521(RGAATest):
         if not summary_text or not summary_text.strip():
             return False
 
-        # Normalize the summary text for comparison
         summary_normalized = re.sub(r'\s+', ' ', summary_text.strip().lower())
 
-        # Check for obviously non-pertinent summary text
         non_pertinent_patterns = [
             r'^\s*tableau\s*$',
             r'^\s*données\s*$',
@@ -171,16 +162,12 @@ class Test521(RGAATest):
             if re.match(pattern, summary_normalized):
                 return False
 
-        # Extract table headers to check if summary relates to them
         header_texts = self._get_table_header_texts(table)
 
-        # If we have header text, check if summary contains at least some relevant terms
         if header_texts:
-            # Extract words from summary and headers
             summary_words = set(re.findall(r'\b\w+\b', summary_normalized))
             header_words = set(re.findall(r'\b\w+\b', ' '.join(header_texts).lower()))
 
-            # Remove common French stop words that aren't meaningful for relevance checking
             stop_words = {
                 'le', 'la', 'les', 'un', 'une', 'des', 'du', 'de', 'et', 'ou', 'avec',
                 'sur', 'dans', 'par', 'pour', 'vers', 'aux', 'aux', 'ce', 'cet', 'cette',
@@ -191,21 +178,13 @@ class Test521(RGAATest):
             meaningful_summary_words = summary_words - stop_words
             meaningful_header_words = header_words - stop_words
 
-            # If there are meaningful words in both, check for overlap
             if meaningful_summary_words and meaningful_header_words:
-                # At least one meaningful word should overlap
                 if meaningful_summary_words & meaningful_header_words:
                     return True
 
-            # If no overlap but summary has meaningful content, it might still be pertinent
-            # (e.g., it describes the purpose rather than just repeating headers)
             if meaningful_summary_words:
-                # Allow summaries that are descriptive even if they don't repeat header words exactly
-                # This is a basic check - in practice, we might want more sophisticated NLP
                 return len(summary_normalized) > 10  # Reasonable length threshold
 
-        # If we can't determine relevance from headers, check if summary is descriptively meaningful
-        # This is a fallback - a good summary should be reasonably descriptive
         if len(summary_normalized) >= 15 and len(summary_normalized.split()) >= 3:
             return True
 
@@ -215,9 +194,7 @@ class Test521(RGAATest):
         """Extract all header text from a table."""
         header_texts = []
 
-        # Look for header cells in the table
         for element in table.find_all(['th', 'td']):
-            # Check if it's a header cell
             if (element.name == 'th' or
                 element.get('role') in ['columnheader', 'rowheader'] or
                 element.get('scope') in ['col', 'row', 'colgroup', 'rowgroup']):

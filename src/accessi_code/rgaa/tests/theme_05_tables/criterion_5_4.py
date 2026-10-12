@@ -58,13 +58,11 @@ class Test541(RGAATest):
         findings: list[Finding] = []
 
         for index, table in enumerate(tables):
-            # Skip layout tables (those without header cells)
             if not self._is_data_table(table):
                 continue
 
             data_tables.append(table)
 
-            # Check if table has a title mechanism
             title_mechanisms = self._get_title_evidence(table, soup)
 
             if not title_mechanisms:
@@ -112,11 +110,9 @@ class Test541(RGAATest):
         Détermine si un tableau est un tableau de données (au sens large).
         Un tableau de données contient au moins une cellule d'en-tête.
         """
-        # Vérifier si le tableau contient des cellules d'en-tête
         for element in table.find_all(recursive=False):
             if isinstance(element, Tag) and self._is_header_cell(element):
                 return True
-            # Récursivement vérifier les enfants
             if self._contains_header_cell(element):
                 return True
         return False
@@ -144,20 +140,16 @@ class Test541(RGAATest):
         """
         evidence: list[str] = []
 
-        # Vérifier la présence d'un élément caption
         caption = table.find("caption", recursive=False)
         if isinstance(caption, Tag) and caption.get_text(" ", strip=True):
             evidence.append("caption")
 
-        # Vérifier la présence d'un attribut title
         if has_title(table):
             evidence.append("title")
 
-        # Vérifier la présence d'un attribut aria-label
         if has_aria_label(table):
             evidence.append("aria-label")
 
-        # Vérifier la présence d'un attribut aria-labelledby valide
         labelledby_valid, _ = get_labelledby_text(table, soup)
         if labelledby_valid:
             evidence.append("aria-labelledby")
