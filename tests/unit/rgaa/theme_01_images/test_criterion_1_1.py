@@ -3,6 +3,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from bs4 import BeautifulSoup
+
 from accessi_code.ai.schemas import ImageRoleAnalysis
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_01_images.criterion_1_1 import (
@@ -16,6 +18,9 @@ from accessi_code.rgaa.tests.theme_01_images.criterion_1_1 import (
 )
 from accessi_code.rgaa.tests.theme_01_images.criterion_1_1 import (
     Test114 as RGAA114,
+)
+from accessi_code.rgaa.tests.theme_01_images.criterion_1_1 import (
+    Test115 as RGAA115,
 )
 from accessi_code.service.audit_services import AuditServices
 
@@ -744,3 +749,179 @@ def test_114_failure_has_priority_over_review(
 
     assert result.status == Status.FAIL
     assert len(result.findings) == 2
+
+
+def make_context(html: str) -> SimpleNamespace:
+    return SimpleNamespace(dom=BeautifulSoup(html, "html.parser"), html_path=None)
+
+
+def make_analysis(
+    information_bearing: bool | None = True,
+    confidence: str = "high",
+) -> ImageRoleAnalysis:
+    return ImageRoleAnalysis(
+        information_bearing=information_bearing,
+        explanation="Analyse de test",
+        confidence=confidence,
+        uncertainties=[],
+    )
+
+
+def make_services(analysis: ImageRoleAnalysis | None = None) -> SimpleNamespace:
+    return SimpleNamespace(
+        image_analyzer=SimpleNamespace(
+            analyze_element_information_role=AsyncMock(
+                return_value=analysis or make_analysis()
+            )
+        )
+    )
+
+
+@pytest.mark.asyncio
+async def test_1_1_5_without_svg_is_not_applicable() -> None:
+    result = await RGAA115().run(make_context("<p>Pas de SVG</p>"))
+    assert result.status == Status.NOT_APPLICABLE
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "svg_markup",
+    [
+        '<svg role="img"><title>Graphique des ventes</title></svg>',
+        '<svg role="img" aria-label="Graphique des ventes"></svg>',
+        '<span id="svg-label">Graphique des ventes</span>'
+        '<svg role="img" aria-labelledby="svg-label"></svg>',
+    ],
+)
+async def test_1_1_5_informative_svg_with_role_and_alternative_passes(
+    svg_markup: str,
+) -> None:
+    services = make_services(make_analysis(information_bearing=True))
+    result = await RGAA115().run(make_context(svg_markup), services)
+
+    assert result.status == Status.PASS
+    assert result.metadata["compliant_svgs"] == 1
+    services.image_analyzer.analyze_element_information_role.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_1_1_5_informative_svg_without_role_img_fails() -> None:
+    services = make_services(make_analysis(information_bearing=True))
+    result = await RGAA115().run(
+        make_context("<svg><title>Graphique des ventes</title></svg>"), services
+    )
+
+    assert result.status == Status.FAIL
+    assert result.metadata["failed_svgs"] == 1
+    assert 'role="img"' in result.findings[0].message
+
+
+@pytest.mark.asyncio
+async def test_1_1_5_svg_with_role_but_without_alternative_fails() -> None:
+    services = make_services(make_analysis(information_bearing=True))
+    result = await RGAA115().run(make_context('<svg role="img"><path d="M0 0" /></svg>'), services)
+
+    assert result.status == Status.FAIL
+    assert result.metadata["failed_svgs"] == 1
+    assert "alternative textuelle" in result.findings[0].message
+
+
+@pytest.mark.asyncio
+async def test_1_1_5_non_informative_svg_is_not_applicable() -> None:
+    services = make_services(make_analysis(information_bearing=False))
+    result = await RGAA115().run(make_context("<svg><path d='M0 0'/></svg>"), services)
+
+    assert result.status == Status.NOT_APPLICABLE
+    assert result.metadata["non_informative_svgs"] == 1
+
+
+@pytest.mark.asyncio
+async def test_1_1_5_low_confidence_requires_manual_review() -> None:
+    services = make_services(
+        make_analysis(information_bearing=True, confidence="low")
+    )
+    result = await RGAA115().run(make_context('<svg role="img"><title>Carte</title></svg>'), services)
+
+    assert result.status == Status.NEEDS_REVIEW
+    assert result.metadata["needs_review"] == 1
+
+
+@pytest.mark.asyncio
+async def test_1_1_5_without_ai_service_requires_manual_review() -> None:
+    result = await RGAA115().run(make_context('<svg role="img"><title>Carte</title></svg>'))
+
+    assert result.status == Status.NEEDS_REVIEW
+    assert result.metadata["needs_review"] == 1
+
+
+@pytest.mark.asyncio
+async def test_1_1_5_ai_exception_is_reported_as_error() -> None:
+    analyzer = SimpleNamespace(
+        analyze_element_information_role=AsyncMock(side_effect=RuntimeError("IA indisponible"))
+    )
+    services = SimpleNamespace(image_analyzer=analyzer)
+    result = await RGAA115().run(make_context("<svg role='img'><title>Carte</title></svg>"), services)
+
+    assert result.status == Status.ERROR
+    assert result.metadata["errors"] == 1
+    assert result.findings[0].evidence["error"] == "IA indisponible"
+
+
+@pytest.mark.asyncio
+async def test_1_1_5_visible_svg_text_is_pass_without_ai() -> None:
+    html = """
+    <div aria-label="Indicateur de conformité de l'audit">
+      <svg role="img" aria-labelledby="audit-status-title">
+        <title id="audit-status-title">Audit conforme</title>
+        <circle cx="42" cy="40" r="18" />
+        <text x="75" y="47">Conforme</text>
+      </svg>
+    </div>
+    """
+    result = await RGAA115().run(make_context(html))
+    assert result.status == Status.PASS
+    assert result.metadata["informative_svgs"] == 1
+    assert result.metadata["compliant_svgs"] == 1
+    assert result.metadata["needs_review"] == 0
+
+
+@pytest.mark.asyncio
+async def test_1_1_5_visible_text_without_role_fails_without_ai() -> None:
+    result = await RGAA115().run(
+        make_context('<svg><title>Audit conforme</title><text>Conforme</text></svg>')
+    )
+    assert result.status == Status.FAIL
+    assert result.metadata["failed_svgs"] == 1
+
+
+@pytest.mark.asyncio
+async def test_1_1_5_visible_text_without_alternative_fails_without_ai() -> None:
+    result = await RGAA115().run(
+        make_context('<svg role="img"><text>Conforme</text></svg>')
+    )
+    assert result.status == Status.FAIL
+    assert result.metadata["failed_svgs"] == 1
+
+
+@pytest.mark.asyncio
+async def test_1_1_5_hidden_svg_text_does_not_bypass_ai() -> None:
+    result = await RGAA115().run(
+        make_context('<svg role="img"><text style="display:none">Secret</text></svg>')
+    )
+    assert result.status == Status.NEEDS_REVIEW
+
+
+@pytest.mark.asyncio
+async def test_1_1_5_garbled_low_confidence_message_is_not_exposed() -> None:
+    analysis = ImageRoleAnalysis(
+        information_bearing=True,
+        explanation="de-la-de-la-de-la-de-la",
+        confidence="low",
+        uncertainties=[],
+    )
+    result = await RGAA115().run(
+        make_context('<svg role="img"><title>Graphique</title><path d="M0 0"/></svg>'),
+        make_services(analysis),
+    )
+    assert result.status == Status.NEEDS_REVIEW
+    assert "de-la-de-la" not in result.findings[0].message

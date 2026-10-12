@@ -33,6 +33,25 @@
             un contenu principal et des éléments correctement identifiés.
         </p>
 
+        <div aria-label="Indicateur de conformité de l'audit">
+            <svg
+                role="img"
+                aria-labelledby="audit-status-title"
+                width="240"
+                height="80"
+                viewBox="0 0 240 80"
+                xmlns="http://www.w3.org/2000/svg"
+            >
+                <title id="audit-status-title">Audit conforme</title>
+                <rect width="240" height="80" rx="12" fill="#e8f1ff"></rect>
+                <circle cx="42" cy="40" r="18" fill="#2f855a"></circle>
+                <path d="M32 40l7 7 13-16" fill="none" stroke="white" stroke-width="5"></path>
+                <text x="75" y="47" font-family="sans-serif" font-size="18" fill="#173b6c">
+                    Conforme
+                </text>
+            </svg>
+        </div>
+
         <div>
             <img src="logo.png" alt="" aria-hidden="true">
         </div>
@@ -106,6 +125,56 @@
                 L'objectif est de fournir une vérification claire et
                 compréhensible des éléments d'accessibilité analysés.
             </p>
+        </section>
+
+        <section aria-labelledby="iframes-test">
+            <h2 id="iframes-test">Exemple de cadres iframes et frame conformes</h2>
+            <p>
+                Cette section présente des iframes et des frame avec des attributs title pertinents,
+                conformes aux critères RGAA 2.1.1 et 2.2.1.
+            </p>
+
+            <div>
+                <h3>Iframe avec titre pertinent</h3>
+                <iframe src="https://www.example.com" title="Vidéo de démonstration d'une fonctionnalité" width="300" height="200">
+                    Votre navigateur ne supporte pas les iframes.
+                </iframe>
+            </div>
+
+            <div>
+                <h3>Iframe avec titre descriptif</h3>
+                <iframe src="https://www.example.com" title="Menu de navigation latéral" width="300" height="200">
+                    Votre navigateur ne supporte pas les iframes.
+                </iframe>
+            </div>
+
+            <div>
+                <h3>Iframe avec titre explicatif</h3>
+                <iframe src="https://www.example.com" title="Publicité partenaire - Offre spéciale" width="300" height="200">
+                    Votre navigateur ne supporte pas les iframes.
+                </iframe>
+            </div>
+
+            <div>
+                <h3>Iframe avec titre détaillé</h3>
+                <iframe src="https://www.example.com" title="Tableau de bord des statistiques d'utilisation" width="300" height="200">
+                    Votre navigateur ne supporte pas les iframes.
+                </iframe>
+            </div>
+
+            <div>
+                <h3>Frame avec titre pertinent (élément obsolète)</h3>
+                <frame src="https://www.example.com" title="Navigation principale du site">
+                    Votre navigateur ne supporte pas les frames.
+                </frame>
+            </div>
+
+            <div>
+                <h3>Frame avec titre secondaire</h3>
+                <frame src="https://www.example.com" title="Zone de contenu secondaire">
+                    Votre navigateur ne supporte pas les frames.
+                </frame>
+            </div>
         </section>
     </main>
 

@@ -104,61 +104,43 @@ class Test111(RGAATest):
                 native_index += 1
 
             if analyzer is None:
-                needs_review += 1
-
+                errors += 1
                 findings.append(
                     Finding(
                         element=self._identifier(
                             element,
                             index,
                         ),
-                        message=("Le rôle informationnel de l'image n'a pas pu être déterminé."),
-                        recommendation=("Exécuter le test avec le service IA ou vérifier manuellement l'image."),
+                        message=("L'analyseur d'images n'est pas configuré."),
+                        recommendation=("Configurer le service d'analyse d'images dans les services."),
                     )
                 )
-
                 continue
 
             try:
                 if native:
                     if image_info is None:
                         raise ValueError("ImageInfo introuvable.")
-
                     analysis = await analyzer.analyze_information_role(image_info)
-
                 else:
                     parent = (
                         element.parent
-                        if isinstance(
-                            element.parent,
-                            Tag,
-                        )
+                        if isinstance(element.parent, Tag)
                         else None
                     )
-
                     surrounding = (
-                        parent.get_text(
-                            " ",
-                            strip=True,
-                        )
+                        parent.get_text(" ", strip=True)
                         if parent is not None
                         else ""
                     )
-
                     analysis = await analyzer.analyze_element_information_role(
                         str(element),
                         surrounding,
                     )
-
-                if not isinstance(
-                    analysis,
-                    ImageRoleAnalysis,
-                ):
+                if not isinstance(analysis, ImageRoleAnalysis):
                     raise TypeError("L'analyseur doit retourner ImageRoleAnalysis.")
-
             except Exception as error:
                 errors += 1
-
                 findings.append(
                     Finding(
                         element=self._identifier(
@@ -172,12 +154,10 @@ class Test111(RGAATest):
                         },
                     )
                 )
-
                 continue
 
             if analysis.confidence == "low":
                 needs_review += 1
-
                 findings.append(
                     Finding(
                         element=self._identifier(
@@ -192,17 +172,14 @@ class Test111(RGAATest):
                         },
                     )
                 )
-
                 continue
 
             if analysis.information_bearing is False:
                 non_informative += 1
-
                 continue
 
             if analysis.information_bearing is None:
                 needs_review += 1
-
                 findings.append(
                     Finding(
                         element=self._identifier(
@@ -217,7 +194,6 @@ class Test111(RGAATest):
                         },
                     )
                 )
-
                 continue
 
             informative += 1
@@ -244,7 +220,6 @@ class Test111(RGAATest):
 
             if evidence:
                 compliant += 1
-
                 continue
 
             failed += 1
@@ -444,8 +419,14 @@ class Test112(RGAATest):
 
         for area in areas:
             if analyzer is None:
-                review += 1
-
+                errors += 1
+                findings.append(
+                    Finding(
+                        element=f"area[index={area.index}]",
+                        message=("L'analyseur d'images n'est pas configuré."),
+                        recommendation=("Configurer le service d'analyse d'images dans les services."),
+                    )
+                )
                 continue
 
             try:
@@ -456,10 +437,8 @@ class Test112(RGAATest):
                     ImageRoleAnalysis,
                 ):
                     raise TypeError("L'analyseur doit retourner ImageRoleAnalysis.")
-
             except Exception as error:
                 errors += 1
-
                 findings.append(
                     Finding(
                         element=f"area[index={area.index}]",
@@ -469,12 +448,10 @@ class Test112(RGAATest):
                         },
                     )
                 )
-
                 continue
 
             if analysis.confidence == "low":
                 review += 1
-
                 findings.append(
                     Finding(
                         element=f"area[index={area.index}]",
@@ -486,17 +463,14 @@ class Test112(RGAATest):
                         },
                     )
                 )
-
                 continue
 
             if analysis.information_bearing is False:
                 outside_scope += 1
-
                 continue
 
             if analysis.information_bearing is None:
                 review += 1
-
                 continue
 
             informative += 1
@@ -518,7 +492,6 @@ class Test112(RGAATest):
 
             if alternatives:
                 valid += 1
-
                 continue
 
             failed += 1
@@ -668,12 +641,12 @@ class Test113(RGAATest):
                 continue
 
             if analyzer is None:
-                needs_review += 1
+                errors += 1
                 findings.append(
                     Finding(
                         element=f"input[type='image'][index={index}]",
-                        message=("Le rôle informationnel de l'image n'a pas pu être déterminé."),
-                        recommendation=("Exécuter le test avec le service IA ou vérifier manuellement l'image."),
+                        message=("L'analyseur d'images n'est pas configuré."),
+                        recommendation=("Configurer le service d'analyse d'images dans les services."),
                     )
                 )
                 continue
@@ -686,7 +659,6 @@ class Test113(RGAATest):
                     ImageRoleAnalysis,
                 ):
                     raise TypeError("L'analyseur doit retourner ImageRoleAnalysis.")
-
             except Exception as error:
                 errors += 1
                 findings.append(
@@ -698,12 +670,10 @@ class Test113(RGAATest):
                         },
                     )
                 )
-
                 continue
 
             if analysis.confidence == "low":
                 needs_review += 1
-
                 findings.append(
                     Finding(
                         element=f"input[type='image'][index={index}]",
@@ -715,7 +685,6 @@ class Test113(RGAATest):
                         },
                     )
                 )
-
                 continue
 
             if analysis.information_bearing is False:
@@ -724,7 +693,6 @@ class Test113(RGAATest):
 
             if analysis.information_bearing is None:
                 needs_review += 1
-
                 findings.append(
                     Finding(
                         element=f"input[type='image'][index={index}]",
@@ -736,7 +704,6 @@ class Test113(RGAATest):
                         },
                     )
                 )
-
                 continue
 
             informative += 1
@@ -1026,3 +993,236 @@ class Test114(RGAATest):
             raise ValueError("Le test 1.1.4 nécessite un DOM.")
 
         return context.dom
+
+
+class Test115(RGAATest):
+    """Vérifie le rôle et l'alternative textuelle des SVG informatifs (RGAA 1.1.5)."""
+
+    test_id = "1.1.5"
+    criterion_id = "1.1"
+    required_capabilities = frozenset({Capability.DOM})
+
+    @staticmethod
+    def _get_dom(context: AuditContext) -> BeautifulSoup:
+        if not isinstance(context.dom, BeautifulSoup):
+            raise ValueError("Le test 1.1.5 nécessite un DOM.")
+        return context.dom
+
+    @staticmethod
+    def _identifier(svg: Tag, index: int) -> str:
+        element_id = svg.get("id")
+
+        if isinstance(element_id, str) and element_id.strip():
+            return f"svg#{element_id}"
+
+        return f"svg[index={index}]"
+
+    @staticmethod
+    def _has_visible_text(svg: Tag) -> bool:
+        for text in svg.find_all("text"):
+            if text.get("aria-hidden") == "true":
+                continue
+
+            style = str(text.get("style", "")).replace(" ", "").lower()
+            if "display:none" in style or "visibility:hidden" in style:
+                continue
+
+            if text.get_text(" ", strip=True):
+                return True
+
+        return False
+
+    async def run(
+        self,
+        context: AuditContext,
+        services: Any | None = None,
+    ) -> TestResult:
+        soup = self._get_dom(context)
+        svgs = soup.find_all("svg")
+
+        if not svgs:
+            return TestResult(
+                test_id=self.test_id,
+                criterion_id=self.criterion_id,
+                status=TestStatus.NOT_APPLICABLE,
+                summary="Aucune image vectorielle <svg> détectée.",
+            )
+
+        analyzer = (
+            getattr(services, "image_analyzer", None)
+            if services is not None
+            else None
+        )
+
+        findings: list[Finding] = []
+        informative = 0
+        non_informative = 0
+        compliant = 0
+        failed = 0
+        needs_review = 0
+        errors = 0
+
+        for index, svg in enumerate(svgs):
+            identifier = self._identifier(svg, index)
+
+            has_visible_text = self._has_visible_text(svg)
+
+            if analyzer is None:
+                errors += 1
+                findings.append(
+                    Finding(
+                        element=identifier,
+                        message=("L'analyseur d'images n'est pas configuré."),
+                        recommendation=("Configurer le service d'analyse d'images dans les services."),
+                    )
+                )
+                continue
+
+            parent = svg.parent if isinstance(svg.parent, Tag) else None
+            surrounding = (
+                parent.get_text(" ", strip=True) if parent is not None else ""
+            )
+
+            try:
+                if has_visible_text and analyzer is None:
+                    analysis = ImageRoleAnalysis(
+                        information_bearing=True,
+                        explanation="Le SVG contient du texte visible.",
+                        confidence="high",
+                        uncertainties=[],
+                    )
+                else:
+                    analysis = await analyzer.analyze_element_information_role(
+                        str(svg), surrounding
+                    )
+                if not isinstance(analysis, ImageRoleAnalysis):
+                    raise TypeError("L'analyseur doit retourner ImageRoleAnalysis.")
+            except Exception as error:
+                errors += 1
+                findings.append(
+                    Finding(
+                        element=identifier,
+                        message="L'analyse du rôle informationnel du SVG a échoué.",
+                        recommendation="Relancer l'analyse ou vérifier manuellement le SVG.",
+                        evidence={"error": str(error)},
+                    )
+                )
+                continue
+
+            if (
+                analysis.confidence == "low"
+                or analysis.information_bearing is None
+            ):
+                needs_review += 1
+                findings.append(
+                    Finding(
+                        element=identifier,
+                        message=(
+                            "Le rôle informationnel du SVG reste incertain."
+                        ),
+                        recommendation="Vérifier manuellement si le SVG porte une information.",
+                        evidence={
+                            "analysis_confidence": analysis.confidence,
+                            "uncertainties": analysis.uncertainties,
+                        },
+                    )
+                )
+                continue
+
+            if analysis.information_bearing is False:
+                non_informative += 1
+                continue
+
+            informative += 1
+
+            role = str(svg.get("role", "")).strip().lower()
+            if role != "img":
+                failed += 1
+                findings.append(
+                    Finding(
+                        element=identifier,
+                        message=(
+                            'Le SVG porteur d’information ne possède pas '
+                            'l’attribut WAI-ARIA role="img".'
+                        ),
+                        recommendation='Ajouter role="img" à la balise <svg>.',
+                        evidence={
+                            "role": svg.get("role"),
+                            "information_role": {
+                                "explanation": analysis.explanation,
+                                "confidence": analysis.confidence,
+                                "uncertainties": analysis.uncertainties,
+                            },
+                        },
+                    )
+                )
+                # Le test est invalidé à l'étape du rôle : on ne vérifie pas
+                # l'alternative textuelle pour cet élément.
+                continue
+
+            alternatives: list[str] = []
+
+            title = svg.find("title", recursive=False)
+            if isinstance(title, Tag) and title.get_text(" ", strip=True):
+                alternatives.append("title")
+
+            labelledby_valid, _ = get_labelledby_text(svg, soup)
+            if labelledby_valid:
+                alternatives.append("aria-labelledby")
+
+            if get_non_empty_attribute(svg, "aria-label") is not None:
+                alternatives.append("aria-label")
+
+            if not alternatives:
+                failed += 1
+                findings.append(
+                    Finding(
+                        element=identifier,
+                        message=(
+                            'Le SVG possède role="img" mais aucune alternative '
+                            "textuelle autorisée n'a été détectée."
+                        ),
+                        recommendation=(
+                            "Ajouter un <title> non vide, aria-labelledby valide "
+                            "ou un aria-label non vide."
+                        ),
+                        evidence={"role": role, "alternatives": alternatives},
+                    )
+                )
+                continue
+
+            compliant += 1
+
+        if failed:
+            status = TestStatus.FAIL
+        elif errors:
+            status = TestStatus.ERROR
+        elif needs_review:
+            status = TestStatus.NEEDS_REVIEW
+        elif informative == 0:
+            status = TestStatus.NOT_APPLICABLE
+        else:
+            status = TestStatus.PASS
+
+        return TestResult(
+            test_id=self.test_id,
+            criterion_id=self.criterion_id,
+            status=status,
+            summary=(
+                f"{len(svgs)} SVG détecté(s) : {informative} porteur(s) "
+                f"d'information, {compliant} conforme(s), {failed} non conforme(s), "
+                f"{non_informative} hors périmètre, {needs_review} à vérifier, "
+                f"{errors} erreur(s)."
+            ),
+            findings=findings,
+            tested_elements=informative,
+            metadata={
+                "candidate_svgs": len(svgs),
+                "informative_svgs": informative,
+                "non_informative_svgs": non_informative,
+                "compliant_svgs": compliant,
+                "failed_svgs": failed,
+                "needs_review": needs_review,
+                "errors": errors,
+            },
+        )
