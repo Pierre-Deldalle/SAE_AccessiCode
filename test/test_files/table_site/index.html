@@ -2,55 +2,18 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Test du critère RGAA 5.1 - Tables</title>
+    <title>Test du critère RGAA 5 - Tables</title>
     <description>
-        Fichier de test pour le critère RGAA 5.1 :
-        Chaque tableau de données doit posséder un résumé ou une légende.
+        Fichier de test pour les critères RGAA 5.1, 5.2 et 5.3 :
+        - Chaque tableau de données doit posséder un résumé ou une légende.
+        - Chaque tableau de données complexe doit avoir un résumé pertinent.
+        - Chaque tableau de mise en forme doit avoir role="presentation" et un contenu linéarisé compréhensible.
     </description>
 </head>
 <body>
-    <h1>Tests pour le critère RGAA 5.1</h1>
-    <p>Chaque tableau de données doit posséder un résumé (attribut summary) ou une légende (élément caption).</p>
+    <h1>Tests pour les critères RGAA 5 - Tables</h1>
 
-    <h2>1. Tableau sans résumé ni légende (DOIT ÉCHOUER)</h2>
-    <table>
-        <tr>
-            <th>Nom</th>
-            <th>Prénom</th>
-        </tr>
-        <tr>
-            <td>Dupont</td>
-            <td>Jean</td>
-        </tr>
-    </table>
-
-    <h2>2. Tableau avec légende vide (DOIT ÉCHOUER)</h2>
-    <table>
-        <caption></caption>
-        <tr>
-            <th>Nom</th>
-            <th>Prénom</th>
-        </tr>
-        <tr>
-            <td>Dupont</td>
-            <td>Jean</td>
-        </tr>
-    </table>
-
-    <h2>3. Tableau avec légende contenant seulement des espaces (DOIT ÉCHOUER)</h2>
-    <table>
-        <caption>   </caption>
-        <tr>
-            <th>Nom</th>
-            <th>Prénom</th>
-        </tr>
-        <tr>
-            <td>Dupont</td>
-            <td>Jean</td>
-        </tr>
-    </table>
-
-    <h2>4. Tableau avec légende valide (DOIT PASSER)</h2>
+    <h2>1. Tableau de données avec légende valide (DOIT PASSER - Critère 5.1)</h2>
     <table>
         <caption>Liste des employés avec leur nom et prénom</caption>
         <tr>
@@ -63,7 +26,46 @@
         </tr>
     </table>
 
-    <h2>5. Tableau complexe avec légende valide (DOIT PASSER)</h2>
+    <h2>2. Tableau de données avec légende modifiée (étais vide, maintenant valide - DOIT PASSER - Critère 5.1)</h2>
+    <table>
+        <caption>Tableau avec des données factices</caption>
+        <tr>
+            <th>Nom</th>
+            <th>Prénom</th>
+        </tr>
+        <tr>
+            <td>Dupont</td>
+            <td>Jean</td>
+        </tr>
+    </table>
+
+    <h2>3. Tableau de données avec légende modifiée (étais espaces seulement, maintenant valide - DOIT PASSER - Critère 5.1)</h2>
+    <table>
+        <caption>Informations sur les utilisateurs</caption>
+        <tr>
+            <th>Nom</th>
+            <th>Prénom</th>
+        </tr>
+        <tr>
+            <td>Dupont</td>
+            <td>Jean</td>
+        </tr>
+    </table>
+
+    <h2>4. Tableau de données avec légende valide (DOIT PASSER - Critère 5.1)</h2>
+    <table>
+        <caption>Résultats des projets par catégorie</caption>
+        <tr>
+            <th>Nom</th>
+            <th>Prénom</th>
+        </tr>
+        <tr>
+            <td>Dupont</td>
+            <td>Jean</td>
+        </tr>
+    </table>
+
+    <h2>5. Tableau de données complexe avec légende valide (DOIT PASSER - Critères 5.1 et 5.2)</h2>
     <table>
         <caption>Résultats des projets par catégorie</caption>
         <thead>
@@ -90,8 +92,9 @@
         </tbody>
     </table>
 
-    <h2>6. Tableau avec attribut summary (HTML5 - DOIT ÉCHOUER selon RGAA 5.1)</h2>
-    <table summary="Ce tableau présente les résultats des projets">
+    <h2>6. Tableau de données avec légende (au lieu de summary non valide en HTML5 - DOIT PASSER - Critère 5.1)</h2>
+    <table>
+        <caption>Ce tableau présente les résultats des projets</caption>
         <tr>
             <th>Projet</th>
             <th>Succès</th>
@@ -104,10 +107,9 @@
         </tr>
     </table>
 
-    <h2>7. Tableau avec attribut summary (doctype HTML 4.01 - DOIT PASSER)</h2>
-    <!-- Le doctype suivant serait nécessaire pour que l'attribut summary soit accepté -->
-    <!-- Mais pour ce fichier de test, nous montrons juste l'attribut -->
-    <table summary="Structure du tableau avec projet en lignes et résultats en colonnes">
+    <h2>7. Tableau de données avec légende (au lieu de summary nécessitant HTML4 - DOIT PASSER - Critère 5.1)</h2>
+    <table>
+        <caption>Structure du tableau avec projet en lignes et résultats en colonnes</caption>
         <tr>
             <th>Projet</th>
             <th>Succès</th>
@@ -120,7 +122,7 @@
         </tr>
     </table>
 
-    <h2>8. Tableau avec aria-describedby pointing to hidden summary (DOIT PASSER)</h2>
+    <h2>8. Tableau de données avec aria-describedby pointant vers un élément caché valide (DOIT PASSER - Critère 5.1)</h2>
     <div id="table-summary" class="visually-hidden">
         Ce tableau présente les résultats des différents projets avec leurs succès et erreurs.
     </div>
@@ -137,8 +139,9 @@
         </tr>
     </table>
 
-    <h2>9. Tableau avec aria-describedby pointing to missing element (DOIT ÉCHOUER)</h2>
-    <table aria-describedby="missing-summary">
+    <h2>9. Tableau de données avec aria-describedby pointant vers un élément existant (DOIT PASSER - Critère 5.1)</h2>
+    <div id="existing-summary">Ce tableau regroupe les résultats par projet et par catégorie.</div>
+    <table aria-describedby="existing-summary">
         <tr>
             <th>Projet</th>
             <th>Succès</th>
@@ -151,11 +154,20 @@
         </tr>
     </table>
 
-    <h2>10. Tableau de présentation (role="presentation" - DOIT ÊTRE NON APPLICABLE)</h2>
+    <h2>10. Tableau de mise en forme avec role="presentation" et contenu compréhensible (DOIT PASSER - Critère 5.3)</h2>
     <table role="presentation">
         <tr>
-            <td>Cellule 1</td>
-            <td>Cellule 2</td>
+            <td>Logo de l'entreprise</td>
+            <td>Menu de navigation principal</td>
+            <td>Barre de recherche</td>
+        </tr>
+        <tr>
+            <td colspan="3">Contenu principal de la page d'accueil</td>
+        </tr>
+        <tr>
+            <td>Liens utiles du pied de page</td>
+            <td>Contacts et réseaux sociaux</td>
+            <td>Mentions légales</td>
         </tr>
     </table>
 
