@@ -43,15 +43,9 @@ class EvalRunner:
             )
 
             if not 0.0 <= score <= 1.0:
-                raise ValueError(
-                    f"La tâche {task.name!r} a retourné un score invalide : {score}."
-                )
+                raise ValueError(f"La tâche {task.name!r} a retourné un score invalide : {score}.")
 
-            status = (
-                EvalStatus.CORRECT
-                if score == 1.0
-                else EvalStatus.INCORRECT
-            )
+            status = EvalStatus.CORRECT if score == 1.0 else EvalStatus.INCORRECT
 
             return EvalResult(
                 task_name=task.name,

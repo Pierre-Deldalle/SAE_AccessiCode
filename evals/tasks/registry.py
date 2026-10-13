@@ -46,8 +46,7 @@ class EvalTaskRegistry:
             available = ", ".join(self.names())
 
             raise KeyError(
-                f"Tâche d'évaluation inconnue : {name!r}. "
-                f"Tâches disponibles : {available or 'aucune'}."
+                f"Tâche d'évaluation inconnue : {name!r}. Tâches disponibles : {available or 'aucune'}."
             ) from error
 
     def names(self) -> list[str]:

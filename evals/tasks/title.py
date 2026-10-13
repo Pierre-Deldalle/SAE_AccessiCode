@@ -4,7 +4,6 @@ from dataclasses import asdict
 from typing import Any
 
 from accessi_code.ai.analyzers.page_analyzer import OllamaPageAnalyzer
-
 from evals.models.case import EvalCase
 from evals.tasks.base import EvalTask
 
@@ -59,9 +58,7 @@ class TitleEvalTask(EvalTask):
         au verdict humain attendu.
         """
         if "relevant" not in case.expected:
-            raise ValueError(
-                f"Le cas {case.id!r} ne possède pas de valeur attendue pour 'relevant'."
-            )
+            raise ValueError(f"Le cas {case.id!r} ne possède pas de valeur attendue pour 'relevant'.")
 
         expected_relevant = case.expected["relevant"]
 
@@ -70,10 +67,7 @@ class TitleEvalTask(EvalTask):
             False,
             None,
         }:
-            raise ValueError(
-                f"La valeur expected.relevant du cas {case.id!r} "
-                "doit être true, false ou null."
-            )
+            raise ValueError(f"La valeur expected.relevant du cas {case.id!r} doit être true, false ou null.")
 
         actual_relevant = actual.get("relevant")
 
@@ -88,15 +82,11 @@ class TitleEvalTask(EvalTask):
         key: str,
     ) -> str:
         if key not in case.input_data:
-            raise ValueError(
-                f"Le cas {case.id!r} ne possède pas le champ d'entrée {key!r}."
-            )
+            raise ValueError(f"Le cas {case.id!r} ne possède pas le champ d'entrée {key!r}.")
 
         value = case.input_data[key]
 
         if not isinstance(value, str):
-            raise ValueError(
-                f"Le champ {key!r} du cas {case.id!r} doit être une chaîne."
-            )
+            raise ValueError(f"Le champ {key!r} du cas {case.id!r} doit être une chaîne.")
 
         return value
