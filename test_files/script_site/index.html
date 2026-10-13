@@ -323,5 +323,85 @@
             <p>Lorsque JavaScript est désactivé, seul un message d'activation est affiché, mais la validation du formulaire n'est pas disponible.</p>
         </div>
     </div>
+        <!-- Section ajoutée pour tester le critère RGAA 7.5 -->
+        <div class="section">
+            <h2>7. Tests pour le critère RGAA 7.5 - Messages de statut</h2>
+            <p>Les messages de statut doivent utiliser les rôles WAI-ARIA appropriés ou les attributs aria-live/aria-atomic selon leur type :</p>
+
+            <div class="subsection">
+                <h3>7.1. Messages d'état/succès (Critère 7.5.1)</h3>
+                <p>Devraient utiliser role="status" OU aria-live="polite" + aria-atomic="true"</p>
+
+                <!-- Conforme : role="status" -->
+                <div role="status" aria-live="polite">
+                    Sauvegarde réussie
+                </div>
+
+                <!-- Conforme : aria-live="polite" + aria-atomic="true" -->
+                <div aria-live="polite" aria-atomic="true">
+                    Chargement terminé
+                </div>
+
+                <!-- Non conforme : message d'état sans attributs ARIA appropriés -->
+                <div>
+                    Profil mis à jour
+                </div>
+            </div>
+
+            <div class="subsection">
+                <h3>7.2. Messages d'erreur/suggestion (Critère 7.5.2)</h3>
+                <p>Devraient utiliser role="alert" OU aria-live="assertive" + aria-atomic="true"</p>
+
+                <!-- Conforme : role="alert" -->
+                <div role="alert" aria-live="assertive">
+                    Erreur de validation du formulaire
+                </div>
+
+                <!-- Conforme : aria-live="assertive" + aria-atomic="true" -->
+                <div aria-live="assertive" aria-atomic="true">
+                    Attention : votre session va expirer dans 2 minutes
+                </div>
+
+                <!-- Non conforme : message d'erreur sans attributs ARIA appropriés -->
+                <div>
+                    Champ requis manquant
+                </div>
+            </div>
+
+            <div class="subsection">
+                <h3>7.3. Messages de progression (Critère 7.5.3)</h3>
+                <p>Devraient utiliser role="log", role="progressbar", ou role="status" OU aria-live="polite" OU (aria-live="polite" + aria-atomic="true")</p>
+
+                <!-- Conforme : role="log" -->
+                <div role="log" aria-live="polite">
+                    Étape 3 sur 5 terminée
+                </div>
+
+                <!-- Conforme : role="progressbar" -->
+                <div role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="60">
+                    60%
+                </div>
+
+                <!-- Conforme : role="status" -->
+                <div role="status" aria-live="polite">
+                    Traitement en cours
+                </div>
+
+                <!-- Conforme : aria-live="polite" (équivalent log) -->
+                <div aria-live="polite">
+                    Téléchargement des données
+                </div>
+
+                <!-- Conforme : aria-live="polite" + aria-atomic="true" (équivalent status) -->
+                <div aria-live="polite" aria-atomic="true">
+                    Sauvegarde en cours
+                </div>
+
+                <!-- Non conforme : message de progression sans attributs ARIA appropriés -->
+                <div>
+                    Étape 2 terminée, passage à l'étape 3
+                </div>
+            </div>
+        </div>
 </body>
 </html>
