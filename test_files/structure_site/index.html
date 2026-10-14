@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page de test pour le critère 9.1</title>
+</head>
+<body>
+    <h1>Titre principal de la page</h1>
+    <p>Introduction générale à la page.</p>
+
+    <h2>Première section importante</h2>
+    <p>Contenu de la première section.</p>
+
+    <h3>Sous-section de la première section</h3>
+    <p>Details de la sous-section.</p>
+
+    <h2>Deuxième section importante</h2>
+    <p>Contenu de la deuxième section.</p>
+
+    <h3>Première sous-section de la deuxième section</h3>
+    <p>Details de la première sous-section.</p>
+
+    <h4>Sous-sous-section</h4>
+    <p>Information plus spécifique.</p>
+
+    <h3>Deuxième sous-section de la deuxième section</h3>
+    <p>Autres détails.</p>
+
+    <h1>Another main title (this should fail hierarchy test)</h1>
+    <h3>This heading skips h2 (should fail)</h3>
+
+    <!-- Example of WAI-ARIA heading -->
+    <div role="heading" aria-level="2">Titre avec WAI-ARIA</div>
+    <p>Contenu associé au titre WAI-ARIA.</p>
+
+    <div role="heading" aria-level="4">Titre WAI-ARIA de niveau 4</div>
+    <p>Contenu du titre WAI-ARIA niveau 4.</p>
+
+    <!-- Example of incorrect WAI-ARIA heading -->
+    <div role="heading" aria-level="5">Titre WAI-ARIA sautant des niveaux (après h1)</div>
+</body>
+</html>
