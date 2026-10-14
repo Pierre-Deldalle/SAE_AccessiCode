@@ -1,3 +1,5 @@
+"""Interface Gradio et application de bureau AccessiCode."""
+
 from __future__ import annotations
 
 import html
@@ -15,6 +17,8 @@ import webview
 
 from accessi_code.config import settings
 from accessi_code.input.context_builder import AuditContextBuilder
+from accessi_code.input.context_enricher import ContextEnricher
+from accessi_code.input.file_classifier import is_html_file
 from accessi_code.rgaa.default_registry import build_default_registry
 from accessi_code.rgaa.registry import TestRegistry
 from accessi_code.rgaa.tests.theme_01_images.criterion_1_1 import Test111
@@ -22,17 +26,11 @@ from accessi_code.service.audit_service import AuditService
 from accessi_code.service.default_services import build_default_audit_services
 
 # ---------------------------------------------------------------------------
-# Configuration générale
+# Configuration
 # ---------------------------------------------------------------------------
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
-
 WORKSPACE_DIR = ROOT_DIR / "workspace"
-
-
-# ---------------------------------------------------------------------------
-# Construction du nouveau pipeline AccessiCode
-# ---------------------------------------------------------------------------
 
 context_builder = AuditContextBuilder(
     workspace_root=WORKSPACE_DIR,
@@ -46,23 +44,15 @@ audit_services = build_default_audit_services(
 
 audit_registry = build_default_registry()
 
+# L'enrichisseur Playwright est activé pour les audits HTML/CSS.
 audit_service = AuditService(
     registry=audit_registry,
     services=audit_services,
+    context_enricher=ContextEnricher(),
 )
 
-
-# Le deuxième onglet de l'interface permet toujours de tester directement
-# une image isolée.
-#
-# On utilise le même moteur que pour l'audit HTML, mais avec un registre
-# limité au test RGAA 1.1.1, qui est le contrôle actuellement pertinent
-# pour une image HTML isolée.
-image_registry = TestRegistry(
-    [
-        Test111(),
-    ]
-)
+# L'audit VLM reste indépendant de l'enrichissement Playwright.
+image_registry = TestRegistry([Test111()])
 
 image_audit_service = AuditService(
     registry=image_registry,
@@ -76,32 +66,19 @@ image_audit_service = AuditService(
 
 
 def _uploaded_file_path(file: Any) -> Path:
-    """
-    Retourne le chemin local d'un fichier fourni par Gradio.
-    """
-    path = getattr(
-        file,
-        "name",
-        file,
-    )
+    """Retourne le chemin local d'un fichier reçu par Gradio."""
 
+    path = getattr(file, "name", file)
     return Path(str(path))
 
 
 def _json_default(value: Any) -> Any:
-    """
-    Conversion des objets AccessiCode en valeurs sérialisables en JSON.
-    """
-    if isinstance(
-        value,
-        Enum,
-    ):
+    """Convertit les objets AccessiCode en valeurs JSON."""
+
+    if isinstance(value, Enum):
         return value.value
 
-    if isinstance(
-        value,
-        Path,
-    ):
+    if isinstance(value, Path):
         return str(value)
 
     if is_dataclass(value):
@@ -111,9 +88,8 @@ def _json_default(value: Any) -> Any:
 
 
 def _format_json(value: Any) -> str:
-    """
-    Produit le rapport JSON lisible affiché dans l'interface.
-    """
+    """Produit une représentation JSON lisible."""
+
     return json.dumps(
         value,
         indent=2,
@@ -123,9 +99,8 @@ def _format_json(value: Any) -> str:
 
 
 def _result_table(audit_result: Any) -> list[list[Any]]:
-    """
-    Transforme un AuditResult en lignes compatibles avec le tableau Gradio.
-    """
+    """Transforme les résultats RGAA en lignes Gradio."""
+
     rows: list[list[Any]] = []
 
     for criterion in audit_result.criteria:
@@ -143,85 +118,134 @@ def _result_table(audit_result: Any) -> list[list[Any]]:
     return rows
 
 
-def _build_context_from_html_text(
-    html_text: str,
-):
-    """
-    Construit un AuditContext lorsqu'un utilisateur colle directement
-    du HTML dans la zone de texte.
-    """
+# ---------------------------------------------------------------------------
+# Construction des contextes
+# ---------------------------------------------------------------------------
+
+
+def _build_context_from_html_text(html_text: str):
+    """Construit un contexte depuis du HTML collé."""
+
     with TemporaryDirectory(
         prefix="accessicode_ui_",
     ) as temporary_directory:
-        temporary_path = Path(temporary_directory)
-
-        html_path = temporary_path / "index.html"
+        html_path = Path(temporary_directory) / "index.html"
 
         html_path.write_text(
             html_text,
             encoding="utf-8",
         )
 
-        return context_builder.build(
-            [
-                html_path,
-            ]
-        )
+        return context_builder.build([html_path])
 
 
 def _build_context_from_uploaded_files(
     uploaded_files: list[Any],
 ):
-    """
-    Construit un AuditContext à partir des fichiers reçus par Gradio.
-    """
+    """Construit un contexte depuis des fichiers individuels."""
+
     paths = [_uploaded_file_path(file) for file in uploaded_files if file is not None]
 
     return context_builder.build(paths)
 
 
+def _build_context_from_site_directory(
+    directory_path: str,
+):
+    """
+    Construit un contexte depuis un dossier local.
+
+    L'arborescence est conservée grâce au paramètre site_root.
+    Ce mode est destiné à l'application exécutée localement.
+    """
+
+    site_root = Path(directory_path.strip().strip('"')).expanduser().resolve()
+
+    if not site_root.is_dir():
+        raise NotADirectoryError(f"Le dossier du site est introuvable : {site_root}")
+
+    # Ne pas importer les dossiers de développement ni les liens symboliques.
+    excluded_directories = {
+        ".git",
+        ".venv",
+        "venv",
+        "__pycache__",
+        "node_modules",
+    }
+
+    input_files = sorted(
+        (
+            path
+            for path in site_root.rglob("*")
+            if path.is_file()
+            and not path.is_symlink()
+            and not any(part in excluded_directories for part in path.relative_to(site_root).parts)
+        ),
+        key=lambda path: str(path),
+    )
+
+    if not input_files:
+        raise ValueError("Le dossier sélectionné ne contient aucun fichier.")
+
+    html_files = [path for path in input_files if is_html_file(path)]
+
+    if not html_files:
+        raise ValueError("Le dossier ne contient aucun fichier HTML.")
+
+    # Choisir index.html à la racine s'il existe.
+    # Sinon, prendre le premier HTML trouvé.
+    main_html = next(
+        (path for path in html_files if path.parent == site_root and path.name.lower() in {"index.html", "index.htm"}),
+        html_files[0],
+    )
+
+    ordered_files = [
+        main_html,
+        *(path for path in input_files if path != main_html),
+    ]
+
+    return context_builder.build(
+        ordered_files,
+        site_root=site_root,
+    )
+
+
 # ---------------------------------------------------------------------------
-# Audit HTML
+# Audit HTML / CSS
 # ---------------------------------------------------------------------------
 
 
 async def run_audit(
     html_text: str,
-    file_obj,
+    file_obj: Any,
+    site_directory: str,
 ):
     """
-    Fonction d'audit déclenchée par l'onglet HTML.
+    Lance un audit RGAA.
 
-    Le pipeline utilisé est désormais exactement le même que celui validé
-    dans debug_rgaa.py :
+    Priorité des entrées :
+    1. dossier local ;
+    2. fichiers importés ;
+    3. HTML collé.
 
-        fichiers
-        -> AuditContext
-        -> TestRegistry
-        -> AuditService
-        -> TestRunner
-        -> AuditResult
+    Si ContextEnricher est configuré, AuditService exécute
+    Playwright avant les tests RGAA.
     """
-    uploaded_files = (
-        file_obj
-        if isinstance(
-            file_obj,
-            list,
-        )
-        else [
-            file_obj,
-        ]
-    )
+
+    uploaded_files = file_obj if isinstance(file_obj, list) else [file_obj]
 
     uploaded_files = [file for file in uploaded_files if file is not None]
 
-    html_file = next(
-        (file for file in uploaded_files if str(_uploaded_file_path(file)).lower().endswith(".html")),
-        None,
-    )
-
     try:
-        if html_file is not None:
+        if site_directory and site_directory.strip():
+            context = _build_context_from_site_directory(site_directory)
+
+        elif uploaded_files:
+            paths = [_uploaded_file_path(file) for file in uploaded_files]
+
+            if not any(is_html_file(path) for path in paths):
+                raise ValueError("Veuillez importer au moins un fichier HTML.")
+
             context = _build_context_from_uploaded_files(uploaded_files)
 
         elif html_text and html_text.strip():
@@ -229,25 +253,40 @@ async def run_audit(
 
         else:
             return (
-                "Veuillez coller du HTML ou charger un fichier .html.",
+                "Veuillez fournir du HTML, des fichiers ou un dossier.",
                 [],
             )
 
+        # L'enrichissement Playwright est appelé avant les tests RGAA.
         audit_result = await audit_service.audit(context)
+
+        # Diagnostic temporaire de l'extraction Playwright.
+        report = audit_service.last_enrichment_report
+
+        if report is None:
+            print("[Playwright] Aucun rapport d'enrichissement.", flush=True)
+
+        elif report.error is not None:
+            print(f"[Playwright] ERREUR : {report.error}", flush=True)
+
+        else:
+            print(
+                "[Playwright] Extraction réussie : "
+                f"{report.total} fragments observés, "
+                f"{report.usable_count} candidats, "
+                f"{report.review_count} à vérifier.",
+                flush=True,
+            )
 
     except Exception as error:
         return (
-            (f"Erreur lors de l'exécution de l'audit : {error}"),
+            f"Erreur lors de l'exécution de l'audit : {error}",
             [],
         )
 
-    table_data = _result_table(audit_result)
-
-    json_formatted = _format_json(audit_result)
-
     return (
-        json_formatted,
-        table_data,
+        _format_json(audit_result),
+        _result_table(audit_result),
     )
 
 
@@ -256,16 +295,9 @@ async def run_audit(
 # ---------------------------------------------------------------------------
 
 
-async def test_vlm(
-    image_file,
-):
-    """
-    Lance le test RGAA 1.1.1 sur une image isolée en utilisant le moteur
-    AccessiCode actuel et les mêmes services IA que l'audit HTML.
+async def test_vlm(image_file: Any):
+    """Lance le test RGAA 1.1.1 sur une image isolée."""
 
-    Une petite page HTML temporaire est créée afin que l'image puisse entrer
-    dans le pipeline normal AuditContext -> RGAATest.
-    """
     if image_file is None:
         return (
             "Veuillez charger une image.",
@@ -277,7 +309,7 @@ async def test_vlm(
 
         if not image_path.is_file():
             return (
-                (f"Le fichier image fourni est introuvable : {image_path}"),
+                f"Le fichier image est introuvable : {image_path}",
                 [],
             )
 
@@ -285,7 +317,6 @@ async def test_vlm(
             prefix="accessicode_vlm_",
         ) as temporary_directory:
             temporary_path = Path(temporary_directory)
-
             html_path = temporary_path / "index.html"
 
             image_name = html.escape(
@@ -310,25 +341,18 @@ async def test_vlm(
                 encoding="utf-8",
             )
 
-            context = context_builder.build(
-                [
-                    html_path,
-                    image_path,
-                ]
-            )
+            context = context_builder.build([html_path, image_path])
 
         audit_result = await image_audit_service.audit(context)
 
-        table_data = _result_table(audit_result)
-
         return (
             _format_json(audit_result),
-            table_data,
+            _result_table(audit_result),
         )
 
     except Exception as error:
         return (
-            (f"Erreur lors de l'exécution du test VLM : {error}"),
+            f"Erreur lors de l'exécution du test VLM : {error}",
             [],
         )
 
@@ -339,73 +363,101 @@ async def test_vlm(
 
 
 def build_ui():
-    """
-    Construction de l'interface Gradio Blocks.
-    """
-    with gr.Blocks(
-        title="AccessiCode - Audit Accessibilité A11y",
-    ) as demo:
-        gr.Markdown("# ♿ AccessiCode - Audit d'accessibilité Web")
+    """Construit l'interface AccessiCode."""
 
-        gr.Markdown("Application de bureau pour l'audit d'accessibilité des images HTML.")
+    with gr.Blocks(
+        title="AccessiCode - Audit d'accessibilité Web",
+    ) as demo:
+        gr.Markdown("# ♿ AccessiCode — Audit d'accessibilité Web")
+
+        gr.Markdown("Analyse de pages HTML et de leurs ressources, selon les contrôles RGAA implémentés.")
 
         with gr.Tabs():
-            with gr.Tab(
-                "LLM - Audit HTML",
-            ):
+            # -----------------------------------------------------------
+            # Audit d'un site HTML / CSS
+            # -----------------------------------------------------------
+
+            with gr.Tab("Audit HTML / CSS"):
                 with gr.Row():
-                    with gr.Column(
-                        scale=1,
-                    ):
+                    with gr.Column(scale=1):
+                        gr.Markdown("### Source à analyser")
+
                         html_input = gr.Textbox(
-                            lines=12,
-                            placeholder=("Collez votre code HTML ici..."),
-                            label="Code HTML à analyser",
+                            lines=9,
+                            placeholder="Collez votre HTML ici...",
+                            label="Code HTML",
                         )
 
                         file_input = gr.File(
-                            label=("Ou chargez un fichier HTML (ex: tests/index.html)"),
+                            label=("Ou importer des fichiers HTML, CSS et images"),
+                            file_count="multiple",
                             file_types=[
                                 ".html",
+                                ".htm",
+                                ".css",
+                                ".png",
+                                ".jpg",
+                                ".jpeg",
+                                ".webp",
+                                ".gif",
+                                ".svg",
                             ],
+                            type="filepath",
+                        )
+
+                        gr.Markdown("### Importer un site complet")
+
+                        site_directory = gr.Textbox(
+                            label="Chemin local du dossier du site",
+                            placeholder=(
+                                r"C:\Users\etudiant\Documents"
+                                r"\SAE\SAE_AccessiCode\test_files\color_site"
+                            ),
+                            info=(
+                                "Mode application de bureau : "
+                                "le dossier doit exister sur "
+                                "l'ordinateur exécutant AccessiCode."
+                            ),
+                        )
+
+                        gr.Markdown(
+                            "Si plusieurs sources sont renseignées, "
+                            "le dossier local est prioritaire, puis "
+                            "les fichiers importés, puis le HTML collé."
                         )
 
                         btn_audit = gr.Button(
-                            "🔍 Lancer l'audit LLM",
+                            "🔍 Lancer l'audit RGAA",
                             variant="primary",
                         )
 
-                    with gr.Column(
-                        scale=1,
-                    ):
+                    with gr.Column(scale=1):
                         dataframe_output = gr.Dataframe(
                             headers=[
-                                "Critère",
+                                "Test RGAA",
                                 "Statut",
                                 "Éléments testés",
                                 "Résumé",
                                 "Anomalies",
                             ],
-                            label="Résultats des critères DOM",
+                            label="Résultats des contrôles",
                         )
 
                         json_output = gr.Code(
                             language="json",
-                            label=("Rapport JSON Détaillé (DOM + LLM)"),
+                            label="Rapport JSON détaillé",
                         )
 
-            with gr.Tab(
-                "VLM - Audit d'image",
-            ):
+            # -----------------------------------------------------------
+            # Audit d'une image isolée
+            # -----------------------------------------------------------
+
+            with gr.Tab("VLM - Audit d'image"):
                 with gr.Row():
-                    with gr.Column(
-                        scale=1,
-                    ):
+                    with gr.Column(scale=1):
                         vlm_image_input = gr.File(
                             label="Image à analyser",
-                            file_types=[
-                                "image",
-                            ],
+                            file_types=["image"],
                             type="filepath",
                         )
 
@@ -414,12 +466,10 @@ def build_ui():
                             variant="primary",
                         )
 
-                    with gr.Column(
-                        scale=1,
-                    ):
+                    with gr.Column(scale=1):
                         vlm_dataframe_output = gr.Dataframe(
                             headers=[
-                                "Critère",
+                                "Test RGAA",
                                 "Statut",
                                 "Éléments testés",
                                 "Résumé",
@@ -429,7 +479,7 @@ def build_ui():
                         )
 
                         vlm_output = gr.Textbox(
-                            label="Réponse du VLM",
+                            label="Rapport VLM",
                             lines=12,
                         )
 
@@ -438,6 +488,7 @@ def build_ui():
             inputs=[
                 html_input,
                 file_input,
+                site_directory,
             ],
             outputs=[
                 json_output,
@@ -447,9 +498,7 @@ def build_ui():
 
         btn_vlm.click(
             fn=test_vlm,
-            inputs=[
-                vlm_image_input,
-            ],
+            inputs=[vlm_image_input],
             outputs=[
                 vlm_output,
                 vlm_dataframe_output,
@@ -460,15 +509,13 @@ def build_ui():
 
 
 # ---------------------------------------------------------------------------
-# Application bureau
+# Application de bureau
 # ---------------------------------------------------------------------------
 
 
 def launch_desktop():
-    """
-    Lancement du serveur Gradio en arrière-plan puis ouverture de la
-    fenêtre native pywebview.
-    """
+    """Démarre Gradio et ouvre la fenêtre native pywebview."""
+
     demo = build_ui()
 
     thread = threading.Thread(
@@ -482,7 +529,6 @@ def launch_desktop():
     )
 
     thread.start()
-
     time.sleep(1.2)
 
     webview.create_window(
