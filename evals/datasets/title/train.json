@@ -2,75 +2,607 @@
   {
     "id": "title_001",
     "input": {
-      "title": "Réinitialiser mon mot de passe",
-      "heading": "Réinitialiser votre mot de passe",
-      "content": "Choisissez un nouveau mot de passe pour accéder de nouveau à votre compte."
+      "title": "Contact",
+      "heading": "Contact",
+      "content": "Retrouvez notre adresse, notre numéro de téléphone, notre adresse e-mail et le formulaire permettant de nous contacter."
     },
     "expected": {
       "relevant": true
     },
     "metadata": {
-      "description": "Titre clairement cohérent avec le contenu."
+      "category": "relevant_exact",
+      "description": "Le titre correspond exactement au sujet principal de la page."
     }
   },
   {
     "id": "title_002",
     "input": {
-      "title": "Recette de crêpes",
-      "heading": "Réinitialiser votre mot de passe",
-      "content": "Choisissez un nouveau mot de passe pour accéder de nouveau à votre compte."
+      "title": "Réinitialiser votre mot de passe",
+      "heading": "Mot de passe oublié ?",
+      "content": "Saisissez votre adresse e-mail afin de recevoir un lien permettant de choisir un nouveau mot de passe."
     },
     "expected": {
-      "relevant": false
+      "relevant": true
     },
     "metadata": {
-      "description": "Titre clairement sans rapport avec le contenu."
+      "category": "relevant_rephrased",
+      "description": "Le titre et le titre principal utilisent des formulations différentes mais décrivent clairement la même action."
     }
   },
   {
     "id": "title_003",
     "input": {
-      "title": "Nos formations",
-      "heading": "Découvrez nos formations",
-      "content": "Consultez la liste des formations proposées en informatique, gestion et communication."
+      "title": "Contact - AccessiCode",
+      "heading": "Nous contacter",
+      "content": "Vous pouvez contacter l'équipe AccessiCode par téléphone, e-mail ou grâce au formulaire présent sur cette page."
     },
     "expected": {
       "relevant": true
     },
     "metadata": {
-      "description": "Titre concis mais représentatif du contenu."
+      "category": "relevant_site_suffix",
+      "description": "Le titre identifie la page et ajoute le nom du site."
     }
   },
   {
     "id": "title_004",
     "input": {
-      "title": "Contact",
-      "heading": "Contactez-nous",
-      "content": "Retrouvez notre adresse, notre numéro de téléphone et notre formulaire de contact."
+      "title": "AccessiCode - Audit d'accessibilité web",
+      "heading": "Analysez l'accessibilité de votre site",
+      "content": "AccessiCode permet d'analyser des pages web afin d'aider à identifier les problèmes d'accessibilité selon le RGAA."
     },
     "expected": {
       "relevant": true
     },
     "metadata": {
-      "description": "Titre court mais suffisamment précis dans ce contexte."
+      "category": "relevant_homepage",
+      "description": "Titre d'accueil combinant le nom du service et son objectif principal."
     }
   },
   {
     "id": "title_005",
     "input": {
-      "title": "Bienvenue",
-      "heading": "Catalogue des ordinateurs portables",
-      "content": "Comparez les différents ordinateurs portables disponibles, leurs caractéristiques et leurs prix."
+      "title": "MSI Cyborg 14 A13VF - Fiche produit",
+      "heading": "MSI Cyborg 14 A13VF",
+      "content": "Découvrez les caractéristiques, le prix, la disponibilité et les informations techniques de l'ordinateur portable MSI Cyborg 14 A13VF."
+    },
+    "expected": {
+      "relevant": true
+    },
+    "metadata": {
+      "category": "relevant_product",
+      "description": "Titre précis d'une fiche produit."
+    }
+  },
+  {
+    "id": "title_006",
+    "input": {
+      "title": "Comment améliorer l'accessibilité d'un formulaire ? - Blog AccessiCode",
+      "heading": "Comment améliorer l'accessibilité d'un formulaire ?",
+      "content": "Cet article présente différentes bonnes pratiques concernant les étiquettes, les messages d'erreur et la saisie dans les formulaires."
+    },
+    "expected": {
+      "relevant": true
+    },
+    "metadata": {
+      "category": "relevant_article",
+      "description": "Le titre reprend précisément le sujet de l'article."
+    }
+  },
+  {
+    "id": "title_007",
+    "input": {
+      "title": "Résultats pour « accessibilité »",
+      "heading": "Résultats de recherche",
+      "content": "23 résultats correspondent à votre recherche « accessibilité ». Consultez les articles, guides et ressources disponibles."
+    },
+    "expected": {
+      "relevant": true
+    },
+    "metadata": {
+      "category": "relevant_search",
+      "description": "Le titre précise qu'il s'agit de résultats de recherche et indique la requête."
+    }
+  },
+  {
+    "id": "title_008",
+    "input": {
+      "title": "Ordinateurs portables",
+      "heading": "Ordinateurs portables",
+      "content": "Parcourez notre sélection d'ordinateurs portables pour le travail, les études et les jeux vidéo."
+    },
+    "expected": {
+      "relevant": true
+    },
+    "metadata": {
+      "category": "relevant_category",
+      "description": "Titre de page catégorie suffisamment descriptif."
+    }
+  },
+  {
+    "id": "title_009",
+    "input": {
+      "title": "Connexion - Espace étudiant",
+      "heading": "Connectez-vous à votre espace étudiant",
+      "content": "Entrez votre identifiant et votre mot de passe pour accéder à vos cours, notes et documents."
+    },
+    "expected": {
+      "relevant": true
+    },
+    "metadata": {
+      "category": "relevant_authentication",
+      "description": "Le titre identifie clairement la page de connexion et l'espace concerné."
+    }
+  },
+  {
+    "id": "title_010",
+    "input": {
+      "title": "Paiement - Boutique AccessiCode",
+      "heading": "Finaliser votre paiement",
+      "content": "Vérifiez votre commande puis renseignez vos informations de paiement afin de terminer votre achat."
+    },
+    "expected": {
+      "relevant": true
+    },
+    "metadata": {
+      "category": "relevant_checkout",
+      "description": "Titre identifiant une étape précise d'un processus d'achat."
+    }
+  },
+  {
+    "id": "title_011",
+    "input": {
+      "title": "Page introuvable - AccessiCode",
+      "heading": "Erreur 404",
+      "content": "La page demandée n'existe pas ou a été déplacée. Vous pouvez retourner à l'accueil."
+    },
+    "expected": {
+      "relevant": true
+    },
+    "metadata": {
+      "category": "relevant_error_page",
+      "description": "Le titre indique correctement que la page demandée est introuvable."
+    }
+  },
+  {
+    "id": "title_012",
+    "input": {
+      "title": "Votre réservation est confirmée",
+      "heading": "Réservation confirmée",
+      "content": "Votre rendez-vous du 15 octobre à 14 h a bien été enregistré. Un e-mail de confirmation vous a été envoyé."
+    },
+    "expected": {
+      "relevant": true
+    },
+    "metadata": {
+      "category": "relevant_confirmation",
+      "description": "Le titre décrit correctement une page de confirmation."
+    }
+  },
+  {
+    "id": "title_013",
+    "input": {
+      "title": "Politique de confidentialité - AccessiCode",
+      "heading": "Politique de confidentialité",
+      "content": "Cette page explique quelles données personnelles sont collectées, pourquoi elles le sont et comment exercer vos droits."
+    },
+    "expected": {
+      "relevant": true
+    },
+    "metadata": {
+      "category": "relevant_legal",
+      "description": "Titre explicite d'une page légale."
+    }
+  },
+  {
+    "id": "title_014",
+    "input": {
+      "title": "Questions fréquentes",
+      "heading": "Questions fréquentes",
+      "content": "Retrouvez les réponses aux questions les plus courantes concernant votre compte, les paiements et l'utilisation du service."
+    },
+    "expected": {
+      "relevant": true
+    },
+    "metadata": {
+      "category": "relevant_faq",
+      "description": "Titre standard mais suffisamment explicite pour une FAQ."
+    }
+  },
+  {
+    "id": "title_015",
+    "input": {
+      "title": "Tableau de bord - Espace étudiant",
+      "heading": "Bonjour Bastien",
+      "content": "Consultez vos prochains cours, vos dernières notes, vos absences et vos documents récents."
+    },
+    "expected": {
+      "relevant": true
+    },
+    "metadata": {
+      "category": "relevant_dashboard",
+      "description": "Le H1 est personnalisé mais le title identifie mieux la nature fonctionnelle de la page."
+    }
+  },
+  {
+    "id": "title_016",
+    "input": {
+      "title": "Nuit de l'Info 2026 - 3 décembre 2026",
+      "heading": "Nuit de l'Info 2026",
+      "content": "Découvrez le programme, les horaires, les équipes participantes et les informations pratiques pour l'édition 2026."
+    },
+    "expected": {
+      "relevant": true
+    },
+    "metadata": {
+      "category": "relevant_event",
+      "description": "Titre suffisamment précis d'une page consacrée à un événement."
+    }
+  },
+  {
+    "id": "title_017",
+    "input": {
+      "title": "Développeur web junior - Lille",
+      "heading": "Développeur web junior",
+      "content": "Nous recrutons un développeur web junior à Lille. Retrouvez les missions, compétences recherchées et modalités de candidature."
+    },
+    "expected": {
+      "relevant": true
+    },
+    "metadata": {
+      "category": "relevant_job_offer",
+      "description": "Titre d'offre d'emploi enrichi d'une localisation pertinente."
+    }
+  },
+  {
+    "id": "title_018",
+    "input": {
+      "title": "Actualités - Page 2",
+      "heading": "Actualités",
+      "content": "Consultez les articles précédents. Vous êtes actuellement sur la deuxième page de la liste des actualités."
+    },
+    "expected": {
+      "relevant": true
+    },
+    "metadata": {
+      "category": "relevant_pagination",
+      "description": "Le numéro de page permet de distinguer cette page des autres pages de résultats."
+    }
+  },
+  {
+    "id": "title_019",
+    "input": {
+      "title": "Chaussures de running homme - Taille 42",
+      "heading": "Chaussures de running pour homme",
+      "content": "24 modèles correspondent aux filtres sélectionnés. Filtre actif : taille 42."
+    },
+    "expected": {
+      "relevant": true
+    },
+    "metadata": {
+      "category": "relevant_filtered_results",
+      "description": "Le titre inclut un filtre important permettant d'identifier précisément la liste affichée."
+    }
+  },
+  {
+    "id": "title_020",
+    "input": {
+      "title": "Suivi de la commande n°54821",
+      "heading": "Suivi de votre commande",
+      "content": "La commande n°54821 a été expédiée. Consultez ici son transporteur, son statut et sa date de livraison estimée."
+    },
+    "expected": {
+      "relevant": true
+    },
+    "metadata": {
+      "category": "relevant_specific_resource",
+      "description": "Le titre permet de distinguer cette commande des autres commandes de l'utilisateur."
+    }
+  },
+
+  {
+    "id": "title_021",
+    "input": {
+      "title": "Recette de crêpes",
+      "heading": "Réinitialiser votre mot de passe",
+      "content": "Saisissez votre adresse e-mail pour recevoir un lien permettant de définir un nouveau mot de passe."
     },
     "expected": {
       "relevant": false
     },
     "metadata": {
-      "description": "Titre trop générique pour identifier le contenu réel de la page."
+      "category": "irrelevant_unrelated",
+      "description": "Le titre est entièrement sans rapport avec la page."
     }
   },
   {
-    "id": "title_006",
+    "id": "title_022",
+    "input": {
+      "title": "Bienvenue",
+      "heading": "Catalogue des ordinateurs portables",
+      "content": "Comparez les modèles disponibles, leurs caractéristiques techniques et leurs prix."
+    },
+    "expected": {
+      "relevant": false
+    },
+    "metadata": {
+      "category": "irrelevant_generic",
+      "description": "Le titre est trop générique pour permettre d'identifier cette page précise."
+    }
+  },
+  {
+    "id": "title_023",
+    "input": {
+      "title": "Page",
+      "heading": "Politique de confidentialité",
+      "content": "Consultez les informations concernant la collecte et le traitement de vos données personnelles."
+    },
+    "expected": {
+      "relevant": false
+    },
+    "metadata": {
+      "category": "irrelevant_generic",
+      "description": "Le mot Page ne donne aucune information permettant d'identifier le contenu."
+    }
+  },
+  {
+    "id": "title_024",
+    "input": {
+      "title": "AccessiCode",
+      "heading": "Modifier votre mot de passe",
+      "content": "Choisissez un nouveau mot de passe pour votre compte AccessiCode."
+    },
+    "expected": {
+      "relevant": false
+    },
+    "metadata": {
+      "category": "irrelevant_site_name_only",
+      "description": "Le nom du site seul ne permet pas d'identifier une page interne spécifique."
+    }
+  },
+  {
+    "id": "title_025",
+    "input": {
+      "title": "iPhone 17 Pro - Fiche produit",
+      "heading": "Samsung Galaxy S26",
+      "content": "Découvrez les caractéristiques et le prix du Samsung Galaxy S26."
+    },
+    "expected": {
+      "relevant": false
+    },
+    "metadata": {
+      "category": "irrelevant_wrong_resource",
+      "description": "La structure du titre est correcte mais elle désigne le mauvais produit."
+    }
+  },
+  {
+    "id": "title_026",
+    "input": {
+      "title": "Votre panier",
+      "heading": "Paiement",
+      "content": "Votre commande a été vérifiée. Saisissez maintenant vos informations bancaires afin de procéder au paiement."
+    },
+    "expected": {
+      "relevant": false
+    },
+    "metadata": {
+      "category": "irrelevant_stale_title",
+      "description": "Le titre correspond à une étape précédente du parcours."
+    }
+  },
+  {
+    "id": "title_027",
+    "input": {
+      "title": "Connexion",
+      "heading": "Créer un nouveau mot de passe",
+      "content": "Après avoir demandé une réinitialisation, choisissez et confirmez votre nouveau mot de passe."
+    },
+    "expected": {
+      "relevant": false
+    },
+    "metadata": {
+      "category": "irrelevant_wrong_action",
+      "description": "Connexion et réinitialisation de mot de passe sont deux actions différentes."
+    }
+  },
+  {
+    "id": "title_028",
+    "input": {
+      "title": "Météo à Paris",
+      "heading": "Météo à Lille",
+      "content": "Prévisions météo de Lille pour aujourd'hui et les cinq prochains jours."
+    },
+    "expected": {
+      "relevant": false
+    },
+    "metadata": {
+      "category": "irrelevant_wrong_location",
+      "description": "Le sujet général est correct mais la localisation essentielle est fausse."
+    }
+  },
+  {
+    "id": "title_029",
+    "input": {
+      "title": "Résultats pour « Java »",
+      "heading": "Résultats de recherche",
+      "content": "18 résultats trouvés pour votre recherche « Python »."
+    },
+    "expected": {
+      "relevant": false
+    },
+    "metadata": {
+      "category": "irrelevant_wrong_search",
+      "description": "Le titre décrit bien une recherche mais indique une requête différente de celle affichée."
+    }
+  },
+  {
+    "id": "title_030",
+    "input": {
+      "title": "Actualités - Page 3",
+      "heading": "Actualités",
+      "content": "Vous consultez la deuxième page de la liste des actualités."
+    },
+    "expected": {
+      "relevant": false
+    },
+    "metadata": {
+      "category": "irrelevant_wrong_pagination",
+      "description": "Le titre contient un numéro de page incorrect."
+    }
+  },
+  {
+    "id": "title_031",
+    "input": {
+      "title": "Modifier mon adresse e-mail",
+      "heading": "Modifier votre numéro de téléphone",
+      "content": "Saisissez votre nouveau numéro de téléphone afin de mettre à jour vos coordonnées."
+    },
+    "expected": {
+      "relevant": false
+    },
+    "metadata": {
+      "category": "irrelevant_same_section",
+      "description": "Le titre appartient à la bonne section du compte mais désigne un autre réglage."
+    }
+  },
+  {
+    "id": "title_032",
+    "input": {
+      "title": "Untitled Document",
+      "heading": "Demande de bourse étudiante",
+      "content": "Remplissez ce formulaire afin de déposer votre demande de bourse pour l'année universitaire."
+    },
+    "expected": {
+      "relevant": false
+    },
+    "metadata": {
+      "category": "irrelevant_default_title",
+      "description": "Titre technique par défaut ne décrivant pas la page."
+    }
+  },
+  {
+    "id": "title_033",
+    "input": {
+      "title": "Services",
+      "heading": "Demander une aide au logement",
+      "content": "Cette page permet aux étudiants de déposer une demande d'aide au logement et de transmettre les justificatifs nécessaires."
+    },
+    "expected": {
+      "relevant": false
+    },
+    "metadata": {
+      "category": "irrelevant_too_broad",
+      "description": "Le titre décrit éventuellement une rubrique générale mais pas la fonction précise de la page."
+    }
+  },
+  {
+    "id": "title_034",
+    "input": {
+      "title": "Informations",
+      "heading": "Horaires des trains Calais - Lille",
+      "content": "Consultez les prochains départs entre Calais et Lille ainsi que les horaires prévus aujourd'hui."
+    },
+    "expected": {
+      "relevant": false
+    },
+    "metadata": {
+      "category": "irrelevant_too_broad",
+      "description": "Informations est insuffisamment descriptif pour retrouver cette page parmi d'autres."
+    }
+  },
+  {
+    "id": "title_035",
+    "input": {
+      "title": "Programme 2025",
+      "heading": "Programme 2026",
+      "content": "Découvrez le programme complet de l'événement organisé en 2026."
+    },
+    "expected": {
+      "relevant": false
+    },
+    "metadata": {
+      "category": "irrelevant_wrong_version",
+      "description": "Une information distinctive essentielle, l'année, est incorrecte."
+    }
+  },
+  {
+    "id": "title_036",
+    "input": {
+      "title": "Paiement réussi",
+      "heading": "Échec du paiement",
+      "content": "Votre paiement a été refusé. Aucun montant n'a été débité. Vous pouvez réessayer avec un autre moyen de paiement."
+    },
+    "expected": {
+      "relevant": false
+    },
+    "metadata": {
+      "category": "irrelevant_contradiction",
+      "description": "Le titre affirme exactement l'inverse du résultat présenté."
+    }
+  },
+  {
+    "id": "title_037",
+    "input": {
+      "title": "Votre panier est vide",
+      "heading": "Votre panier",
+      "content": "Votre panier contient trois articles pour un montant total de 84,97 euros."
+    },
+    "expected": {
+      "relevant": false
+    },
+    "metadata": {
+      "category": "irrelevant_contradiction",
+      "description": "Le titre donne une information fausse sur l'état actuel de la page."
+    }
+  },
+  {
+    "id": "title_038",
+    "input": {
+      "title": "Accueil",
+      "heading": "Modifier votre adresse de livraison",
+      "content": "Mettez à jour l'adresse qui sera utilisée pour la livraison de vos prochaines commandes."
+    },
+    "expected": {
+      "relevant": false
+    },
+    "metadata": {
+      "category": "irrelevant_home_title_internal_page",
+      "description": "Un titre d'accueil est utilisé par erreur sur une page interne précise."
+    }
+  },
+  {
+    "id": "title_039",
+    "input": {
+      "title": "Le numérique pour tous",
+      "heading": "Supprimer mon compte",
+      "content": "Cette page explique les conséquences de la suppression du compte et permet de confirmer définitivement la suppression."
+    },
+    "expected": {
+      "relevant": false
+    },
+    "metadata": {
+      "category": "irrelevant_slogan",
+      "description": "Un slogan de marque ne permet pas d'identifier la fonction spécifique de la page."
+    }
+  },
+  {
+    "id": "title_040",
+    "input": {
+      "title": "Facture n°2026-0041",
+      "heading": "Facture n°2026-0042",
+      "content": "Facture n°2026-0042 du 4 octobre 2026. Montant total : 129,90 euros."
+    },
+    "expected": {
+      "relevant": false
+    },
+    "metadata": {
+      "category": "irrelevant_wrong_identifier",
+      "description": "Le type de document est correct mais l'identifiant unique correspond à un autre document."
+    }
+  },
+
+  {
+    "id": "title_041",
     "input": {
       "title": "Informations",
       "heading": "",
@@ -80,7 +612,143 @@
       "relevant": null
     },
     "metadata": {
-      "description": "Contenu insuffisant pour conclure de façon fiable."
+      "category": "undetermined_empty_context",
+      "description": "Le titre paraît générique mais aucune information sur la page n'est disponible pour déterminer ce qu'elle devrait identifier."
+    }
+  },
+  {
+    "id": "title_042",
+    "input": {
+      "title": "Mon dossier",
+      "heading": "",
+      "content": ""
+    },
+    "expected": {
+      "relevant": null
+    },
+    "metadata": {
+      "category": "undetermined_title_only",
+      "description": "Seul le titre est disponible ; impossible de le comparer à la nature réelle de la page."
+    }
+  },
+  {
+    "id": "title_043",
+    "input": {
+      "title": "Résultats",
+      "heading": "Résultats",
+      "content": ""
+    },
+    "expected": {
+      "relevant": null
+    },
+    "metadata": {
+      "category": "undetermined_missing_content",
+      "description": "Le title et le heading concordent mais leur sujet n'est pas connu faute de contenu."
+    }
+  },
+  {
+    "id": "title_044",
+    "input": {
+      "title": "Tableau de bord",
+      "heading": "",
+      "content": "Chargement..."
+    },
+    "expected": {
+      "relevant": null
+    },
+    "metadata": {
+      "category": "undetermined_loading_state",
+      "description": "Le contenu réel de l'application n'a pas encore été chargé."
+    }
+  },
+  {
+    "id": "title_045",
+    "input": {
+      "title": "Votre demande",
+      "heading": "",
+      "content": "Accueil | Mon compte | Aide | Contact | Accepter les cookies | Mentions légales"
+    },
+    "expected": {
+      "relevant": null
+    },
+    "metadata": {
+      "category": "undetermined_boilerplate_only",
+      "description": "Le contenu fourni ne contient que des éléments communs de navigation et ne permet pas d'identifier la page."
+    }
+  },
+  {
+    "id": "title_046",
+    "input": {
+      "title": "Dossier étudiant",
+      "heading": "Dossier étudiant",
+      "content": "Nom :"
+    },
+    "expected": {
+      "relevant": null
+    },
+    "metadata": {
+      "category": "undetermined_truncated_content",
+      "description": "L'extraction du contenu est manifestement trop incomplète pour confirmer la nature de la page."
+    }
+  },
+  {
+    "id": "title_047",
+    "input": {
+      "title": "Rapport annuel",
+      "heading": "",
+      "content": "### %% 12 ?? navigation_widget footer_item 2741 ###"
+    },
+    "expected": {
+      "relevant": null
+    },
+    "metadata": {
+      "category": "undetermined_corrupted_content",
+      "description": "Le contenu transmis à l'analyseur est corrompu et ne permet pas de vérifier la pertinence du titre."
+    }
+  },
+  {
+    "id": "title_048",
+    "input": {
+      "title": "Account",
+      "heading": "",
+      "content": "Compte. Account. Profil. Profile."
+    },
+    "expected": {
+      "relevant": null
+    },
+    "metadata": {
+      "category": "undetermined_ambiguous_short_multilingual",
+      "description": "Le contenu très court et bilingue ne permet pas d'identifier précisément la fonction de la page."
+    }
+  },
+  {
+    "id": "title_049",
+    "input": {
+      "title": "API",
+      "heading": "API",
+      "content": "API."
+    },
+    "expected": {
+      "relevant": null
+    },
+    "metadata": {
+      "category": "undetermined_acronym",
+      "description": "Le contexte est trop pauvre pour savoir ce que le sigle désigne et si le titre permet réellement d'identifier la page."
+    }
+  },
+  {
+    "id": "title_050",
+    "input": {
+      "title": "Mon espace",
+      "heading": "",
+      "content": "Veuillez patienter pendant le chargement de votre espace."
+    },
+    "expected": {
+      "relevant": null
+    },
+    "metadata": {
+      "category": "undetermined_spa_shell",
+      "description": "Seule la coquille d'une application dynamique est disponible ; le contenu principal n'est pas encore connu."
     }
   }
 ]

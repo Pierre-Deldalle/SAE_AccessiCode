@@ -1,0 +1,379 @@
+[
+  {
+    "id": "title_test_001",
+    "input": {
+      "title": "Modifier l'adresse de livraison - Commande n°7841",
+      "heading": "Adresse de livraison",
+      "content": "Modifiez l'adresse qui sera utilisée pour la livraison de votre commande n°7841 avant son expédition."
+    },
+    "expected": {
+      "relevant": true
+    },
+    "metadata": {
+      "category": "relevant_specific_action",
+      "description": "Le titre associe correctement l'action et l'identifiant de la commande concernée."
+    }
+  },
+  {
+    "id": "title_test_002",
+    "input": {
+      "title": "Images et accessibilité - Guide RGAA",
+      "heading": "Rendre les images accessibles",
+      "content": "Ce guide explique comment gérer les alternatives textuelles, les images décoratives et les images porteuses d'information."
+    },
+    "expected": {
+      "relevant": true
+    },
+    "metadata": {
+      "category": "relevant_article",
+      "description": "Le titre reformule correctement le sujet principal du guide."
+    }
+  },
+  {
+    "id": "title_test_003",
+    "input": {
+      "title": "Résultats pour « stage développeur » - Page 2",
+      "heading": "Résultats de recherche",
+      "content": "Vous consultez la deuxième page des résultats correspondant à la recherche « stage développeur »."
+    },
+    "expected": {
+      "relevant": true
+    },
+    "metadata": {
+      "category": "relevant_search_pagination",
+      "description": "Le titre contient correctement la requête et le numéro de page."
+    }
+  },
+  {
+    "id": "title_test_004",
+    "input": {
+      "title": "Erreur serveur - 500",
+      "heading": "Une erreur est survenue",
+      "content": "Le serveur n'a pas pu traiter votre demande en raison d'une erreur interne. Vous pouvez réessayer ultérieurement."
+    },
+    "expected": {
+      "relevant": true
+    },
+    "metadata": {
+      "category": "relevant_error_page",
+      "description": "Le titre identifie correctement une erreur interne du serveur."
+    }
+  },
+  {
+    "id": "title_test_005",
+    "input": {
+      "title": "Facture d'octobre 2026 - Abonnement Premium",
+      "heading": "Facture d'octobre 2026",
+      "content": "Cette facture correspond à votre abonnement Premium pour le mois d'octobre 2026."
+    },
+    "expected": {
+      "relevant": true
+    },
+    "metadata": {
+      "category": "relevant_document",
+      "description": "Le titre contient les éléments permettant d'identifier précisément le document."
+    }
+  },
+  {
+    "id": "title_test_006",
+    "input": {
+      "title": "Activer la double authentification - Sécurité du compte",
+      "heading": "Double authentification",
+      "content": "Renforcez la sécurité de votre compte en activant une seconde étape de vérification lors de la connexion."
+    },
+    "expected": {
+      "relevant": true
+    },
+    "metadata": {
+      "category": "relevant_settings_action",
+      "description": "Le titre décrit précisément le réglage de sécurité proposé."
+    }
+  },
+  {
+    "id": "title_test_007",
+    "input": {
+      "title": "Mes absences - Semestre 5",
+      "heading": "Absences du semestre 5",
+      "content": "Consultez les absences enregistrées pendant le cinquième semestre ainsi que leur éventuelle justification."
+    },
+    "expected": {
+      "relevant": true
+    },
+    "metadata": {
+      "category": "relevant_period",
+      "description": "La période indiquée dans le titre correspond au contenu affiché."
+    }
+  },
+  {
+    "id": "title_test_008",
+    "input": {
+      "title": "Inscription confirmée - Formation Python",
+      "heading": "Votre inscription est confirmée",
+      "content": "Votre inscription à la formation Python du 18 novembre est enregistrée. Vous recevrez prochainement les informations pratiques."
+    },
+    "expected": {
+      "relevant": true
+    },
+    "metadata": {
+      "category": "relevant_confirmation",
+      "description": "Le titre décrit correctement l'état et l'objet de l'inscription."
+    }
+  },
+  {
+    "id": "title_test_009",
+    "input": {
+      "title": "Conditions générales de vente",
+      "heading": "Conditions générales de vente",
+      "content": "Les présentes conditions définissent les modalités de commande, de paiement, de livraison et de rétractation applicables aux achats."
+    },
+    "expected": {
+      "relevant": true
+    },
+    "metadata": {
+      "category": "relevant_legal",
+      "description": "Le titre juridique correspond précisément au document présenté."
+    }
+  },
+  {
+    "id": "title_test_010",
+    "input": {
+      "title": "AccessiCode - Tableau de bord du projet",
+      "heading": "Tableau de bord AccessiCode",
+      "content": "Consultez l'avancement des audits, les derniers résultats et les statistiques du projet AccessiCode."
+    },
+    "expected": {
+      "relevant": true
+    },
+    "metadata": {
+      "category": "relevant_dashboard",
+      "description": "Le titre permet d'identifier à la fois l'application et la fonction de la page."
+    }
+  },
+
+  {
+    "id": "title_test_011",
+    "input": {
+      "title": "Télécharger mes factures",
+      "heading": "Modifier mon moyen de paiement",
+      "content": "Ajoutez une nouvelle carte bancaire ou sélectionnez le moyen de paiement qui sera utilisé pour vos prochains prélèvements."
+    },
+    "expected": {
+      "relevant": false
+    },
+    "metadata": {
+      "category": "irrelevant_same_account_area",
+      "description": "Les deux pages concernent la facturation mais réalisent des actions différentes."
+    }
+  },
+  {
+    "id": "title_test_012",
+    "input": {
+      "title": "Profil de Pierre Martin",
+      "heading": "Marie Martin",
+      "content": "Consultez le profil public, les publications et les coordonnées professionnelles de Marie Martin."
+    },
+    "expected": {
+      "relevant": false
+    },
+    "metadata": {
+      "category": "irrelevant_wrong_resource",
+      "description": "Le type de page est correct mais la personne identifiée est différente."
+    }
+  },
+  {
+    "id": "title_test_013",
+    "input": {
+      "title": "Guide Java pour débutants",
+      "heading": "Apprendre Python",
+      "content": "Ce cours présente les variables, conditions, boucles et fonctions du langage Python."
+    },
+    "expected": {
+      "relevant": false
+    },
+    "metadata": {
+      "category": "irrelevant_related_topic",
+      "description": "Les deux contenus concernent la programmation mais utilisent des langages différents."
+    }
+  },
+  {
+    "id": "title_test_014",
+    "input": {
+      "title": "Rendez-vous du 22 octobre à 14 h",
+      "heading": "Votre rendez-vous du 22 octobre",
+      "content": "Votre rendez-vous est prévu le 22 octobre à 16 h. Vous pouvez le déplacer ou l'annuler depuis cette page."
+    },
+    "expected": {
+      "relevant": false
+    },
+    "metadata": {
+      "category": "irrelevant_wrong_time",
+      "description": "Le jour est correct mais l'heure distinctive affichée dans le titre est fausse."
+    }
+  },
+  {
+    "id": "title_test_015",
+    "input": {
+      "title": "Résultats 2025",
+      "heading": "Résultats 2026",
+      "content": "Les résultats définitifs de l'édition 2026 sont maintenant disponibles."
+    },
+    "expected": {
+      "relevant": false
+    },
+    "metadata": {
+      "category": "irrelevant_wrong_version",
+      "description": "L'année incorrecte désigne une autre édition."
+    }
+  },
+  {
+    "id": "title_test_016",
+    "input": {
+      "title": "Votre réservation est annulée",
+      "heading": "Réservation confirmée",
+      "content": "Votre réservation est bien enregistrée et reste prévue pour le vendredi 23 octobre."
+    },
+    "expected": {
+      "relevant": false
+    },
+    "metadata": {
+      "category": "irrelevant_opposite_status",
+      "description": "Le titre annonce l'état opposé à celui affiché sur la page."
+    }
+  },
+  {
+    "id": "title_test_017",
+    "input": {
+      "title": "AccessiCode",
+      "heading": "Exporter le rapport d'audit",
+      "content": "Sélectionnez le format souhaité puis téléchargez le rapport complet de votre dernier audit d'accessibilité."
+    },
+    "expected": {
+      "relevant": false
+    },
+    "metadata": {
+      "category": "irrelevant_site_name_only",
+      "description": "Le seul nom de l'application n'identifie pas suffisamment cette fonction interne précise."
+    }
+  },
+  {
+    "id": "title_test_018",
+    "input": {
+      "title": "Confirmation de commande",
+      "heading": "Votre panier",
+      "content": "Deux articles sont encore présents dans votre panier. Vous pouvez modifier les quantités avant de poursuivre la commande."
+    },
+    "expected": {
+      "relevant": false
+    },
+    "metadata": {
+      "category": "irrelevant_wrong_process_step",
+      "description": "Le titre correspond à une étape ultérieure qui n'a pas encore été atteinte."
+    }
+  },
+  {
+    "id": "title_test_019",
+    "input": {
+      "title": "FAQ",
+      "heading": "Nous contacter",
+      "content": "Utilisez ce formulaire pour envoyer un message à notre équipe ou retrouvez notre adresse e-mail et notre numéro de téléphone."
+    },
+    "expected": {
+      "relevant": false
+    },
+    "metadata": {
+      "category": "irrelevant_wrong_page",
+      "description": "Une FAQ et une page de contact sont deux ressources différentes malgré leur rôle d'assistance."
+    }
+  },
+  {
+    "id": "title_test_020",
+    "input": {
+      "title": "Résultats pour « cybersécurité »",
+      "heading": "Résultats de recherche",
+      "content": "12 résultats correspondent à la recherche « intelligence artificielle »."
+    },
+    "expected": {
+      "relevant": false
+    },
+    "metadata": {
+      "category": "irrelevant_wrong_search",
+      "description": "La page est bien une recherche mais la requête du titre est différente de celle réellement affichée."
+    }
+  },
+
+  {
+    "id": "title_test_021",
+    "input": {
+      "title": "Documents",
+      "heading": "",
+      "content": ""
+    },
+    "expected": {
+      "relevant": null
+    },
+    "metadata": {
+      "category": "undetermined_title_only",
+      "description": "Aucune information autre que le titre ne permet d'identifier la nature réelle des documents concernés."
+    }
+  },
+  {
+    "id": "title_test_022",
+    "input": {
+      "title": "Mon espace personnel",
+      "heading": "",
+      "content": "Nous utilisons des cookies. Accepter | Refuser | Paramétrer mes choix."
+    },
+    "expected": {
+      "relevant": null
+    },
+    "metadata": {
+      "category": "undetermined_overlay_only",
+      "description": "Seul le contenu d'une bannière de consentement est disponible, pas le contenu principal de la page."
+    }
+  },
+  {
+    "id": "title_test_023",
+    "input": {
+      "title": "Dossier de candidature",
+      "heading": "Candidature",
+      "content": "Nom :"
+    },
+    "expected": {
+      "relevant": null
+    },
+    "metadata": {
+      "category": "undetermined_truncated_content",
+      "description": "L'extraction s'arrête immédiatement après le début du formulaire et ne permet pas de connaître son objet exact."
+    }
+  },
+  {
+    "id": "title_test_024",
+    "input": {
+      "title": "Statistiques",
+      "heading": "",
+      "content": "[[CHART_COMPONENT]] undefined.value {{ dataset.label }} footer_nav_01"
+    },
+    "expected": {
+      "relevant": null
+    },
+    "metadata": {
+      "category": "undetermined_corrupted_content",
+      "description": "Le contenu exploitable est absent et remplacé par des fragments techniques."
+    }
+  },
+  {
+    "id": "title_test_025",
+    "input": {
+      "title": "Compte",
+      "heading": "Compte",
+      "content": "Compte."
+    },
+    "expected": {
+      "relevant": null
+    },
+    "metadata": {
+      "category": "undetermined_insufficient_context",
+      "description": "La répétition du même mot ne fournit pas suffisamment de contexte pour déterminer la fonction réelle de la page."
+    }
+  }
+]
