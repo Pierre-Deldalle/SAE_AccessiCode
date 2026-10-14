@@ -85,18 +85,22 @@ class AuditService:
                     )
                 else:
                     logger.info(
-                        "Styles calculés : %s observations, %s candidates, %s à vérifier.",
+                        "Styles calculés : %s observations, "
+                        "%s candidates, %s à vérifier.",
                         report.total,
                         report.usable_count,
                         report.review_count,
                     )
 
             except Exception:
-                logger.exception("Erreur inattendue pendant l'enrichissement du contexte.")
+                logger.exception(
+                    "Erreur inattendue pendant "
+                    "l'enrichissement du contexte."
+                )
 
         test_results = await self.runner.run_all(context)
 
         return self.aggregator.aggregate(
             context,
             test_results,
-        )
+        )   
