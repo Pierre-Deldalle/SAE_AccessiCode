@@ -3,41 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Page de test pour le critère 9.1</title>
+    <title>Page de test pour le critère 9.2</title>
 </head>
 <body>
-    <h1>Titre principal de la page</h1>
-    <p>Introduction générale à la page.</p>
+    <!-- En-tête de la page -->
+    <header>
+        <h1>Mon Site Web</h1>
+        <nav aria-label="Primaire">
+            <ul>
+                <li><a href="/">Accueil</a></li>
+                <li><a href="/produits">Produits</a></li>
+                <li><a href="/services">Services</a></li>
+                <li><a href="/contact">Contact</a></li>
+            </ul>
+        </nav>
+    </header>
 
-    <h2>Première section importante</h2>
-    <p>Contenu de la première section.</p>
+    <!-- Navigation secondaire -->
+    <nav aria-label="Secondaire">
+        <ul>
+            <li><a href="/aide">Aide</a></li>
+            <li><a href="/faq">FAQ</a></li>
+            <li><a href="/plan-du-site">Plan du site</a></li>
+        </ul>
+    </nav>
 
-    <h3>Sous-section de la première section</h3>
-    <p>Details de la sous-section.</p>
+    <!-- Contenu principal -->
+    <main>
+        <h2>Bienvenue sur notre site</h2>
+        <p>Ceci est le contenu principal de la page web.</p>
+        <section>
+            <h3>À propos de nous</h3>
+            <p>Nous sommes une entreprise dédiée à l'excellence.</p>
+        </section>
+        <section>
+            <h3>Nos services</h3>
+            <p>Nous offrons une variété de services de qualité.</p>
+        </section>
+    </main>
 
-    <h2>Deuxième section importante</h2>
-    <p>Contenu de la deuxième section.</p>
-
-    <h3>Première sous-section de la deuxième section</h3>
-    <p>Details de la première sous-section.</p>
-
-    <h4>Sous-sous-section</h4>
-    <p>Information plus spécifique.</p>
-
-    <h3>Deuxième sous-section de la deuxième section</h3>
-    <p>Autres détails.</p>
-
-    <h1>Another main title (this should fail hierarchy test)</h1>
-    <h3>This heading skips h2 (should fail)</h3>
-
-    <!-- Example of WAI-ARIA heading -->
-    <div role="heading" aria-level="2">Titre avec WAI-ARIA</div>
-    <p>Contenu associé au titre WAI-ARIA.</p>
-
-    <div role="heading" aria-level="4">Titre WAI-ARIA de niveau 4</div>
-    <p>Contenu du titre WAI-ARIA niveau 4.</p>
-
-    <!-- Example of incorrect WAI-ARIA heading -->
-    <div role="heading" aria-level="5">Titre WAI-ARIA sautant des niveaux (après h1)</div>
+    <!-- Pied de page -->
+    <footer>
+        <p>&copy; 2023 Mon Site Web. Tous droits réservés.</p>
+        <nav aria-label="Pied de page">
+            <ul>
+                <li><a href="/mentions-legales">Mentions légales</a></li>
+                <li><a href="/politique-confidentialite">Politique de confidentialité</a></li>
+            </ul>
+        </nav>
+    </footer>
 </body>
 </html>

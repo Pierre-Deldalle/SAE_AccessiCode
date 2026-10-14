@@ -131,6 +131,9 @@ from accessi_code.rgaa.tests.theme_09_structuration_information.criterion_9_1 im
     Test912,
     Test913,
 )
+from accessi_code.rgaa.tests.theme_09_structuration_information.criterion_9_2 import (
+    Test921,
+)
 from accessi_code.rgaa.tests.theme_11_forms.criterion_11_1 import (
     Test1111,
 )
@@ -206,6 +209,7 @@ def build_default_registry() -> TestRegistry:
             Test911(),
             Test912(),
             Test913(),
+            Test921(),
             Test1111(),
         ]
     )
