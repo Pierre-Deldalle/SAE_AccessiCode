@@ -53,9 +53,7 @@ class FileCollector:
             root = Path(site_root).resolve(strict=True)
 
             if not root.is_dir():
-                raise NotADirectoryError(
-                    f"La racine du site n'est pas un dossier : {root}"
-                )
+                raise NotADirectoryError(f"La racine du site n'est pas un dossier : {root}")
 
         # Valider les fichiers avant de créer le workspace.
         inputs: list[tuple[Path, Path | None]] = []
@@ -65,9 +63,7 @@ class FileCollector:
             input_path = Path(input_path)
 
             if not input_path.is_file():
-                raise FileNotFoundError(
-                    f"Le fichier n'existe pas : {input_path}"
-                )
+                raise FileNotFoundError(f"Le fichier n'existe pas : {input_path}")
 
             resolved_path = input_path.resolve(strict=True)
             relative_path = None
@@ -76,16 +72,10 @@ class FileCollector:
                 try:
                     relative_path = resolved_path.relative_to(root)
                 except ValueError as error:
-                    raise ValueError(
-                        f"Le fichier est extérieur à la racine du site : "
-                        f"{input_path}"
-                    ) from error
+                    raise ValueError(f"Le fichier est extérieur à la racine du site : {input_path}") from error
 
                 if relative_path in relative_paths:
-                    raise ValueError(
-                        f"Fichier présent plusieurs fois dans l'import : "
-                        f"{relative_path}"
-                    )
+                    raise ValueError(f"Fichier présent plusieurs fois dans l'import : {relative_path}")
 
                 relative_paths.add(relative_path)
 
@@ -120,9 +110,7 @@ class FileCollector:
                 )
 
                 if destination.exists():
-                    raise FileExistsError(
-                        f"Destination déjà existante : {destination}"
-                    )
+                    raise FileExistsError(f"Destination déjà existante : {destination}")
 
             shutil.copy2(
                 input_path,
@@ -167,9 +155,7 @@ class FileCollector:
         index = 1
 
         while True:
-            candidate = directory / (
-                f"{original.stem}_{index}{original.suffix}"
-            )
+            candidate = directory / (f"{original.stem}_{index}{original.suffix}")
 
             if not candidate.exists():
                 return candidate

@@ -80,17 +80,11 @@ class AuditContextBuilder:
         Toutes les feuilles CSS fournies sont extraites.
         """
 
-        html_files = [
-            file for file in context.files if is_html_file(file.path)
-        ]
+        html_files = [file for file in context.files if is_html_file(file.path)]
 
-        image_files = [
-            file for file in context.files if is_image_file(file.path)
-        ]
+        image_files = [file for file in context.files if is_image_file(file.path)]
 
-        css_files = [
-            file for file in context.files if is_css_file(file.path)
-        ]
+        css_files = [file for file in context.files if is_css_file(file.path)]
 
         context.image_files = [file.path for file in image_files]
 

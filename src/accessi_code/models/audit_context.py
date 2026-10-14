@@ -1,6 +1,7 @@
 """Contexte de travail partagé par les étapes d'un audit."""
 
 from dataclasses import dataclass, field
+from math import isfinite
 from pathlib import Path
 from typing import Any
 
@@ -13,65 +14,163 @@ from accessi_code.models.color_style import (
 
 
 @dataclass
+class UnresolvedTextContrast:
+    """
+    Fragment textuel dont le contraste nécessite une vérification.
+
+    Une observation non résolue ne constitue pas
+    un défaut RGAA confirmé.
+    """
+
+    element: str
+    text: str
+    reason: str
+
+    font_size_px: float | None = None
+    font_weight: int | None = None
+
+    @property
+    def has_valid_typography(self) -> bool:
+        """Indique si la taille et la graisse sont exploitables."""
+
+        if self.font_size_px is None:
+            return False
+
+        if self.font_weight is None:
+            return False
+
+        if not isfinite(self.font_size_px):
+            return False
+
+        if self.font_size_px <= 0:
+            return False
+
+        if not isinstance(self.font_weight, int):
+            return False
+
+        if isinstance(self.font_weight, bool):
+            return False
+
+        if not 1 <= self.font_weight <= 1000:
+            return False
+
+        return True
+
+
+@dataclass
+class UnresolvedNonTextContrast:
+    """
+    Observation non textuelle nécessitant une vérification humaine.
+
+    Les couleurs sont des valeurs CSS candidates.
+    Leur comparaison ne suffit pas à établir un verdict RGAA 3.3.
+
+    element:
+        Sélecteur ou description de l'élément.
+
+    kind:
+        Catégorie : component, graphic ou mechanism.
+
+    comparison:
+        Type de comparaison : background ou adjacent.
+
+    foreground_color:
+        Couleur candidate de la bordure ou du graphique.
+
+    background_color:
+        Couleur candidate de la surface de référence.
+
+    state:
+        État observé : default, focus, hover, etc.
+
+    reason:
+        Motif de l'incertitude nécessitant un contrôle humain.
+    """
+
+    element: str
+    kind: str
+    comparison: str
+    foreground_color: str | None
+    background_color: str | None
+    state: str | None
+    reason: str
+
+
+@dataclass
 class AuditContext:
     """
-    Regroupe les fichiers et les ressources extraites pour un audit.
+    Regroupe les fichiers et ressources extraites pour un audit.
 
-    Le contexte est construit avant l'exécution des tests RGAA. Les champs
-    optionnels sont remplis progressivement par les extracteurs ; les
-    capacités retournées par :meth:`get_capabilities` reflètent cet état.
+    Les observations non résolues servent à signaler les contrôles
+    nécessitant une intervention humaine.
 
-    Attributes:
-        audit_id: Identifiant unique de l'audit.
-        workspace_path: Répertoire de travail contenant les copies importées.
-        files: Fichiers importés et leurs métadonnées.
-        html_path: Chemin du premier document HTML détecté, s'il existe.
-        html_source: Contenu source du document HTML principal.
-        dom: Arbre DOM BeautifulSoup du document HTML principal.
-        doctype: Déclaration DOCTYPE extraite du document HTML.
-        image_files: Chemins des fichiers reconnus comme images.
-        screenshots: Chemins des captures disponibles pour l'audit.
-        css_files: Chemins des feuilles CSS disponibles.
-        css_sources: Contenu des feuilles CSS, indexé par chemin.
-        text_contrast_samples: Styles calculés des textes à contrôler.
-        non_text_contrast_samples: Styles calculés des éléments non textuels.
+    Leur présence ne démontre ni conformité ni non-conformité.
     """
 
     audit_id: str
     workspace_path: Path
 
-    # Fichiers fournis pour l'audit
+    # Fichiers fournis pour l'audit.
     files: list[AuditFile] = field(default_factory=list)
 
-    # Document HTML principal
+    # Document HTML principal.
     html_path: Path | None = None
     html_source: str | None = None
 
-    # DOM parsé
+    # DOM parsé.
     dom: Any | None = None
 
-    # Informations extraites du document
+    # Informations extraites du document.
     doctype: str | None = None
 
-    # Ressources visuelles disponibles
+    # Ressources visuelles disponibles.
     image_files: list[Path] = field(default_factory=list)
     screenshots: list[Path] = field(default_factory=list)
 
-    # Feuilles de style CSS sources
+    # Feuilles de style CSS sources.
     css_files: list[Path] = field(default_factory=list)
     css_sources: dict[Path, str] = field(default_factory=dict)
 
-    # Styles calculés utilisés pour les contrôles de contraste
+    # Échantillons de contraste.
     text_contrast_samples: list[TextContrastSample] = field(default_factory=list)
     non_text_contrast_samples: list[NonTextContrastSample] = field(default_factory=list)
 
+    # Couverture des contrastes textuels.
+    text_contrast_extraction_attempted: bool = False
+    text_contrast_coverage_complete: bool = False
+    text_contrast_unresolved_count: int = 0
+
+    # Fragments textuels dont le contraste reste indéterminé.
+    unresolved_text_contrasts: list[UnresolvedTextContrast] = field(default_factory=list)
+
+    # Observations non textuelles à vérifier humainement.
+    unresolved_non_text_contrasts: list[UnresolvedNonTextContrast] = field(default_factory=list)
+
+    @property
+    def text_contrast_is_partial(self) -> bool:
+        """
+        Une extraction automatique a été tentée,
+        sans preuve de couverture exhaustive.
+        """
+        return self.text_contrast_extraction_attempted and not self.text_contrast_coverage_complete
+
     def get_capabilities(self) -> set[Capability]:
         """
-        Calcule les capacités disponibles dans l'état courant.
+        Calcule les capacités techniques disponibles.
 
-        Returns:
-            Un ensemble de capacités. Une liste vide ne donne aucune capacité,
-            tandis que les champs HTML et DOM sont évalués indépendamment.
+        TEXT_CONTRAST :
+            Échantillons textuels exploitables ou observations
+            textuelles non résolues disponibles.
+
+        NON_TEXT_CONTRAST :
+            Échantillons non textuels exploitables disponibles.
+            Les seules observations incertaines ne suffisent pas
+            encore à activer cette capacité.
+
+        COMPUTED_STYLES :
+            Au moins une catégorie d'échantillons est disponible.
+
+        Aucune capacité ne garantit une couverture exhaustive.
         """
 
         capabilities: set[Capability] = set()
@@ -94,39 +193,24 @@ class AuditContext:
         if self.screenshots:
             capabilities.add(Capability.SCREENSHOT)
 
+        if self.text_contrast_samples or self.unresolved_text_contrasts:
+            capabilities.add(Capability.TEXT_CONTRAST)
+
+        if self.non_text_contrast_samples or self.unresolved_non_text_contrasts:
+            capabilities.add(Capability.NON_TEXT_CONTRAST)
+
         if self.text_contrast_samples or self.non_text_contrast_samples:
             capabilities.add(Capability.COMPUTED_STYLES)
 
         return capabilities
 
     def has_capability(self, capability: Capability) -> bool:
-        """
-        Vérifie la présence d'une capacité particulière.
-
-        Args:
-            capability: Capacité à rechercher.
-
-        Returns:
-            ``True`` si la capacité est disponible, sinon ``False``.
-        """
-
+        """Vérifie si une capacité est disponible."""
         return capability in self.get_capabilities()
 
     def has_capabilities(
         self,
         capabilities: set[Capability],
     ) -> bool:
-        """
-        Vérifie que toutes les capacités demandées sont disponibles.
-
-        Args:
-            capabilities: Ensemble des capacités requises.
-
-        Returns:
-            ``True`` si l'ensemble demandé est inclus dans les capacités
-            courantes. Un ensemble vide est donc toujours satisfait.
-        """
-
-        available = self.get_capabilities()
-
-        return capabilities.issubset(available)
+        """Vérifie la présence de toutes les capacités demandées."""
+        return capabilities.issubset(self.get_capabilities())
