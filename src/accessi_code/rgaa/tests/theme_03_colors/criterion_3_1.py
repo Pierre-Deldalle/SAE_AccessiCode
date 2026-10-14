@@ -14,7 +14,6 @@ from accessi_code.models.result import (
 )
 from accessi_code.rgaa.base import RGAATest
 
-
 # ---------------------------------------------------------------------------
 # Constantes et fonctions communes
 # ---------------------------------------------------------------------------
