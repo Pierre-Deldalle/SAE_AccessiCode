@@ -12,10 +12,6 @@ from accessi_code.rgaa.tests.theme_07_scripts.criterion_7_1 import (
 from accessi_code.service.audit_services import AuditServices
 
 
-# ---------------------------------------------------------------------------
-# 7.1.1
-# ---------------------------------------------------------------------------
-
 
 def test_711_button_with_accessible_name_passes(context_factory, run_rgaa):
     """Test that a button with aria-label passes 7.1.1."""
@@ -112,10 +108,6 @@ def test_711_no_script_elements_is_not_applicable(context_factory, run_rgaa):
     assert result.findings == []
 
 
-# ---------------------------------------------------------------------------
-# 7.1.2
-# ---------------------------------------------------------------------------
-
 
 def test_712_button_with_accessible_name_passes(context_factory, run_rgaa):
     """Test that a button with accessible name passes 7.1.2."""
@@ -157,10 +149,6 @@ def test_712_no_script_elements_is_not_applicable(context_factory, run_rgaa):
     assert result.tested_elements == 0
     assert result.findings == []
 
-
-# ---------------------------------------------------------------------------
-# 7.1.3
-# ---------------------------------------------------------------------------
 
 
 def test_713_button_with_matching_name_and_role_passes(context_factory, run_rgaa):
@@ -235,16 +223,11 @@ def test_713_no_script_elements_is_not_applicable(context_factory, run_rgaa):
     assert result.findings == []
 
 
-# ---------------------------------------------------------------------------
-# Edge cases and error handling
-# ---------------------------------------------------------------------------
-
 
 def test_711_missing_dom_raises_error(context_factory):
     """Test that missing DOM raises ValueError."""
     import asyncio
     context = context_factory("<html><body></body></html>")
-    # Make context.dom None to simulate missing DOM
     context.dom = None
 
     with pytest.raises(ValueError, match="Le test 7.1.1 nécessite un DOM"):

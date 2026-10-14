@@ -28,27 +28,18 @@ class Test751(RGAATest):
     ) -> TestResult:
         soup = self._get_dom(context)
 
-        # Find all elements that could contain status messages
-        # We check all elements with visible text content
         status_candidates = []
 
-        # Look for all elements that contain text (not just whitespace)
         all_elements = soup.find_all(True)
         for element in all_elements:
-            # Skip script and style elements
             if element.name in ['script', 'style']:
                 continue
 
-            # Get text content and check if it's meaningful
             text = element.get_text(strip=True)
             if text and len(text) > 0:
-                # Check if this element contains a status message
-                # based on keywords that indicate status/state information
                 if self._is_status_message_state(text):
                     status_candidates.append(element)
 
-        # Also check elements with explicit ARIA status roles/live regions
-        # as they are definitely status-related
         elements_with_role = soup.find_all(attrs={"role": True})
         for element in elements_with_role:
             role = element.get("role")
@@ -56,14 +47,11 @@ class Test751(RGAATest):
                 if element not in status_candidates:
                     status_candidates.append(element)
 
-        # Also look for elements with aria-live attributes
         elements_with_aria_live = soup.find_all(attrs={"aria-live": True})
         for element in elements_with_aria_live:
             if element not in status_candidates:
                 status_candidates.append(element)
 
-        # Filter out container elements that are just wrappers for other status candidates
-        # This prevents double-counting when a parent element contains only status message children
         status_candidates = self._filter_container_elements(status_candidates, soup)
 
         if not status_candidates:
@@ -78,27 +66,20 @@ class Test751(RGAATest):
         compliant_count = 0
 
         for element in status_candidates:
-            # Check if the element complies with RGAA 7.5.1
-            # Message informing of success, action result, or application state
-            # Should use role="status" OR aria-live="polite" + aria-atomic="true"
-
             role = element.get("role")
             aria_live = element.get("aria-live")
             aria_atomic = element.get("aria-atomic")
 
             is_compliant = False
 
-            # Check for role="status"
             if role == "status":
                 is_compliant = True
-            # Check for aria-live="polite" + aria-atomic="true"
             elif aria_live == "polite" and aria_atomic == "true":
                 is_compliant = True
 
             if is_compliant:
                 compliant_count += 1
             else:
-                # Create a finding for non-compliant status message
                 element_id = self._get_element_id(element)
                 findings.append(
                     Finding(
@@ -108,7 +89,6 @@ class Test751(RGAATest):
                     )
                 )
 
-        # Determine overall status
         if findings:
             status = TestStatus.FAIL
         else:
@@ -127,15 +107,8 @@ class Test751(RGAATest):
         )
 
     def _is_status_message_state(self, text: str) -> bool:
-        """
-        Simple heuristic to detect if text content indicates a status message
-        informing of state/status (including success, action result, application state).
-        This is a simplified approach for unit testing purposes.
-        """
-        # Convert to lowercase for matching
         text_lower = text.lower().strip()
 
-        # Common French phrases indicating status/state information
         state_indicators = [
             r'\bterminé\b',
             r'\bcompleted\b',
@@ -163,7 +136,6 @@ class Test751(RGAATest):
             r'\bcondition\b',
         ]
 
-        # Check if any state indicator pattern matches
         for pattern in state_indicators:
             if re.search(pattern, text_lower):
                 return True
@@ -171,12 +143,10 @@ class Test751(RGAATest):
         return False
 
     def _get_element_id(self, element: Tag) -> str:
-        """Generate a unique identifier for an element."""
         element_id = element.get("id")
         if isinstance(element_id, str) and element_id.strip():
             return f"{element.name}#{element_id}"
 
-        # Fallback to index-based identifier
         return f"{element.name}[index={len(element.find_previous_siblings())}]"
 
     @staticmethod
@@ -192,52 +162,33 @@ class Test751(RGAATest):
         return context.dom
 
     def _filter_container_elements(self, candidates: list[Tag], soup: BeautifulSoup) -> list[Tag]:
-        """
-        Filter out container elements that are just wrappers for other status message candidates.
-
-        This prevents double-counting when a parent element's text content is just the
-        combination of its children's text content and all meaningful children are already
-        status message candidates.
-        """
         if len(candidates) <= 1:
             return candidates
 
-        # Create a set for faster lookup
         candidate_set = set(candidates)
         filtered_candidates = []
 
         for element in candidates:
-            # Get the element's direct text content (not including children's text)
             direct_text = self._get_direct_text_content(element)
 
-            # If the element has no direct text content of its own,
-            # and all of its text-containing children are status candidates,
-            # then this is likely just a container wrapper
             if not direct_text.strip():
-                # Check if all text-containing children are already status candidates
                 text_children = [
                     child for child in element.children
                     if isinstance(child, Tag) and child.get_text(strip=True)
                 ]
 
                 if text_children and all(child in candidate_set for child in text_children):
-                    # This element is just a container - skip it
                     continue
 
-            # Otherwise, keep this element
             filtered_candidates.append(element)
 
         return filtered_candidates
 
     def _get_direct_text_content(self, element: Tag) -> str:
-        """
-        Get the direct text content of an element (not including text from descendants).
-        """
         direct_text_parts = []
         for content in element.contents:
             if isinstance(content, str):
                 direct_text_parts.append(content)
-            # Skip Tag objects - we only want direct text
         return ''.join(direct_text_parts)
 
 
@@ -258,26 +209,18 @@ class Test752(RGAATest):
     ) -> TestResult:
         soup = self._get_dom(context)
 
-        # Find all elements that could contain status messages
-        # We check all elements with visible text content
         status_candidates = []
 
-        # Look for all elements that contain text (not just whitespace)
         all_elements = soup.find_all(True)
         for element in all_elements:
-            # Skip script and style elements
             if element.name in ['script', 'style']:
                 continue
 
-            # Get text content and check if it's meaningful
             text = element.get_text(strip=True)
             if text and len(text) > 0:
-                # Check if this element contains a status message
-                # based on keywords that indicate suggestion or error
                 if self._is_status_message_suggestion_error(text):
                     status_candidates.append(element)
 
-        # Also check elements with explicit ARIA status roles/live regions
         elements_with_role = soup.find_all(attrs={"role": True})
         for element in elements_with_role:
             role = element.get("role")
@@ -285,13 +228,11 @@ class Test752(RGAATest):
                 if element not in status_candidates:
                     status_candidates.append(element)
 
-        # Also look for elements with aria-live attributes
         elements_with_aria_live = soup.find_all(attrs={"aria-live": True})
         for element in elements_with_aria_live:
             if element not in status_candidates:
                 status_candidates.append(element)
 
-        # Filter out container elements that are just wrappers for other status candidates
         status_candidates = self._filter_container_elements(status_candidates, soup)
 
         if not status_candidates:
@@ -306,27 +247,20 @@ class Test752(RGAATest):
         compliant_count = 0
 
         for element in status_candidates:
-            # Check if the element complies with RGAA 7.5.2
-            # Message presenting a suggestion or warning of an error
-            # Should use role="alert" OR aria-live="assertive" + aria-atomic="true"
-
             role = element.get("role")
             aria_live = element.get("aria-live")
             aria_atomic = element.get("aria-atomic")
 
             is_compliant = False
 
-            # Check for role="alert"
             if role == "alert":
                 is_compliant = True
-            # Check for aria-live="assertive" + aria-atomic="true"
             elif aria_live == "assertive" and aria_atomic == "true":
                 is_compliant = True
 
             if is_compliant:
                 compliant_count += 1
             else:
-                # Create a finding for non-compliant suggestion/error message
                 element_id = self._get_element_id(element)
                 findings.append(
                     Finding(
@@ -336,7 +270,6 @@ class Test752(RGAATest):
                     )
                 )
 
-        # Determine overall status
         if findings:
             status = TestStatus.FAIL
         else:
@@ -355,16 +288,8 @@ class Test752(RGAATest):
         )
 
     def _is_status_message_suggestion_error(self, text: str) -> bool:
-        """
-        Simple heuristic to detect if text content indicates a status message
-        presenting a suggestion or warning of an error.
-        This is a simplified approach for unit testing purposes.
-        """
-        # Convert to lowercase for matching
         text_lower = text.lower().strip()
 
-        # Common French phrases indicating suggestion or error
-        # Exclude phrases that indicate absence of errors
         error_indicators = [
             r'\berreur\b',
             r'\berror\b',
@@ -390,7 +315,6 @@ class Test752(RGAATest):
             r'\b recommend\b',
         ]
 
-        # Phrases that indicate ABSENCE of errors (should not be detected as error messages)
         absence_indicators = [
             r'\baucu?n?\s+message\s+d\'?erreur\b',
             r'\bno\s+error\s+message\b',
@@ -399,12 +323,10 @@ class Test752(RGAATest):
             r'\bwithout\s+error\b',
         ]
 
-        # First check if it's an absence indicator
         for pattern in absence_indicators:
             if re.search(pattern, text_lower):
                 return False
 
-        # Then check if it's an error indicator
         for pattern in error_indicators:
             if re.search(pattern, text_lower):
                 return True
@@ -433,13 +355,6 @@ class Test752(RGAATest):
         return context.dom
 
     def _filter_container_elements(self, candidates: list[Tag], soup: BeautifulSoup) -> list[Tag]:
-        """
-        Filter out container elements that are just wrappers for other status message candidates.
-
-        This prevents double-counting when a parent element's text content is just the
-        combination of its children's text content and all meaningful children are already
-        status message candidates.
-        """
         if len(candidates) <= 1:
             return candidates
 
@@ -471,9 +386,6 @@ class Test752(RGAATest):
         return filtered_candidates
 
     def _get_direct_text_content(self, element: Tag) -> str:
-        """
-        Get the direct text content of an element (not including text from descendants).
-        """
         direct_text_parts = []
         for content in element.contents:
             if isinstance(content, str):
@@ -499,26 +411,18 @@ class Test753(RGAATest):
     ) -> TestResult:
         soup = self._get_dom(context)
 
-        # Find all elements that could contain status messages
-        # We check all elements with visible text content
         status_candidates = []
 
-        # Look for all elements that contain text (not just whitespace)
         all_elements = soup.find_all(True)
         for element in all_elements:
-            # Skip script and style elements
             if element.name in ['script', 'style']:
                 continue
 
-            # Get text content and check if it's meaningful
             text = element.get_text(strip=True)
             if text and len(text) > 0:
-                # Check if this element contains a status message
-                # based on keywords that indicate process progression
                 if self._is_status_message_process_progression(text):
                     status_candidates.append(element)
 
-        # Also check elements with explicit ARIA status roles/live regions
         elements_with_role = soup.find_all(attrs={"role": True})
         for element in elements_with_role:
             role = element.get("role")
@@ -526,13 +430,11 @@ class Test753(RGAATest):
                 if element not in status_candidates:
                     status_candidates.append(element)
 
-        # Also look for elements with aria-live attributes
         elements_with_aria_live = soup.find_all(attrs={"aria-live": True})
         for element in elements_with_aria_live:
             if element not in status_candidates:
                 status_candidates.append(element)
 
-        # Filter out container elements that are just wrappers for other status candidates
         status_candidates = self._filter_container_elements(status_candidates, soup)
 
         if not status_candidates:
@@ -547,32 +449,22 @@ class Test753(RGAATest):
         compliant_count = 0
 
         for element in status_candidates:
-            # Check if the element complies with RGAA 7.5.3
-            # Message indicating the progression of a process
-            # Should use role="log", role="progressbar", or role="status"
-            # OR aria-live="polite" (for log equivalent)
-            # OR aria-live="polite" + aria-atomic="true" (for status equivalent)
-
             role = element.get("role")
             aria_live = element.get("aria-live")
             aria_atomic = element.get("aria-atomic")
 
             is_compliant = False
 
-            # Check for role="log", role="progressbar", or role="status"
             if role in ["log", "progressbar", "status"]:
                 is_compliant = True
-            # Check for aria-live="polite" (for log equivalent)
             elif aria_live == "polite":
                 is_compliant = True
-            # Check for aria-live="polite" + aria-atomic="true" (for status equivalent)
             elif aria_live == "polite" and aria_atomic == "true":
                 is_compliant = True
 
             if is_compliant:
                 compliant_count += 1
             else:
-                # Create a finding for non-compliant process progression message
                 element_id = self._get_element_id(element)
                 findings.append(
                     Finding(
@@ -582,7 +474,6 @@ class Test753(RGAATest):
                     )
                 )
 
-        # Determine overall status
         if findings:
             status = TestStatus.FAIL
         else:
@@ -601,15 +492,8 @@ class Test753(RGAATest):
         )
 
     def _is_status_message_process_progression(self, text: str) -> bool:
-        """
-        Simple heuristic to detect if text content indicates a status message
-        indicating the progression of a process.
-        This is a simplified approach for unit testing purposes.
-        """
-        # Convert to lowercase for matching
         text_lower = text.lower().strip()
 
-        # Common French phrases indicating process progression
         progression_indicators = [
             r'\b(en\s+cours?|in\s+progress)\b',
             r'\bchargement\b',
@@ -640,7 +524,6 @@ class Test753(RGAATest):
             r'\bfinished\b',
         ]
 
-        # Check if any progression indicator pattern matches
         for pattern in progression_indicators:
             if re.search(pattern, text_lower):
                 return True
@@ -648,12 +531,10 @@ class Test753(RGAATest):
         return False
 
     def _get_element_id(self, element: Tag) -> str:
-        """Generate a unique identifier for an element."""
         element_id = element.get("id")
         if isinstance(element_id, str) and element_id.strip():
             return f"{element.name}#{element_id}"
 
-        # Fallback to index-based identifier
         return f"{element.name}[index={len(element.find_previous_siblings())}]"
 
     @staticmethod
@@ -669,50 +550,31 @@ class Test753(RGAATest):
         return context.dom
 
     def _filter_container_elements(self, candidates: list[Tag], soup: BeautifulSoup) -> list[Tag]:
-        """
-        Filter out container elements that are just wrappers for other status message candidates.
-
-        This prevents double-counting when a parent element's text content is just the
-        combination of its children's text content and all meaningful children are already
-        status message candidates.
-        """
         if len(candidates) <= 1:
             return candidates
 
-        # Create a set for faster lookup
         candidate_set = set(candidates)
         filtered_candidates = []
 
         for element in candidates:
-            # Get the element's direct text content (not including children's text)
             direct_text = self._get_direct_text_content(element)
 
-            # If the element has no direct text content of its own,
-            # and all of its text-containing children are status candidates,
-            # then this is likely just a container wrapper
             if not direct_text.strip():
-                # Check if all text-containing children are already status candidates
                 text_children = [
                     child for child in element.children
                     if isinstance(child, Tag) and child.get_text(strip=True)
                 ]
 
                 if text_children and all(child in candidate_set for child in text_children):
-                    # This element is just a container - skip it
                     continue
 
-            # Otherwise, keep this element
             filtered_candidates.append(element)
 
         return filtered_candidates
 
     def _get_direct_text_content(self, element: Tag) -> str:
-        """
-        Get the direct text content of an element (not including text from descendants).
-        """
         direct_text_parts = []
         for content in element.contents:
             if isinstance(content, str):
                 direct_text_parts.append(content)
-            # Skip Tag objects - we only want direct text
         return ''.join(direct_text_parts)

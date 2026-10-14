@@ -63,9 +63,9 @@ def test_751_mixed_compliant_and_non_compliant_messages(
     '''
     result = run_rgaa(Test751(), context_factory(html))
 
-    assert result.status == Status.FAIL  # FAIL because there's at least one non-compliant
+    assert result.status == Status.FAIL
     assert result.tested_elements == 2
-    assert len(result.findings) == 1  # One non-compliant message
+    assert len(result.findings) == 1
 
 
 def test_752_alert_message_with_role_alert_passes(context_factory, run_rgaa):
@@ -115,9 +115,9 @@ def test_752_mixed_compliant_and_non_compliant_messages(
     '''
     result = run_rgaa(Test752(), context_factory(html))
 
-    assert result.status == Status.FAIL  # FAIL because there's at least one non-compliant
+    assert result.status == Status.FAIL
     assert result.tested_elements == 2
-    assert len(result.findings) == 1  # One non-compliant message
+    assert len(result.findings) == 1
 
 
 def test_753_process_message_with_role_log_passes(context_factory, run_rgaa):
@@ -204,6 +204,6 @@ def test_753_mixed_compliant_and_non_compliant_messages(
     '''
     result = run_rgaa(Test753(), context_factory(html))
 
-    assert result.status == Status.FAIL  # FAIL because there's at least one non-compliant
+    assert result.status == Status.FAIL
     assert result.tested_elements == 2
-    assert len(result.findings) == 1  # One non-compliant message
+    assert len(result.findings) == 1

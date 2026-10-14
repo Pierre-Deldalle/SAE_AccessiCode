@@ -6,9 +6,6 @@ from accessi_code.rgaa.tests.theme_07_scripts.criterion_7_4 import (
 )
 from accessi_code.service.audit_services import AuditServices
 
-# ---------------------------------------------------------------------------
-# 7.4.1
-# ---------------------------------------------------------------------------
 
 
 def test_741_explicit_button_passes(context_factory, run_rgaa):
@@ -187,7 +184,6 @@ def test_741_missing_dom_raises_error(context_factory):
     """Test that missing DOM raises ValueError."""
     import asyncio
     context = context_factory("<html><body></body></html>")
-    # Make context.dom None to simulate missing DOM
     context.dom = None
 
     with pytest.raises(ValueError, match="Le test 7.4.1 nécessite un DOM"):
