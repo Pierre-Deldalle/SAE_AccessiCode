@@ -4,8 +4,6 @@ import argparse
 import asyncio
 from typing import Any
 
-from scripts.debug_context import build_debug_context
-
 from accessi_code.config import settings
 from accessi_code.models.result import Finding, TestResult
 from accessi_code.rgaa.default_registry import build_default_registry
@@ -14,6 +12,7 @@ from accessi_code.service.audit_services import AuditServices
 from accessi_code.service.default_services import (
     build_default_audit_services,
 )
+from scripts.debug_context import build_debug_context
 
 
 def print_separator(
