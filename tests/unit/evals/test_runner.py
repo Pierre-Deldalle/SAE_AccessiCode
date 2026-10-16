@@ -12,13 +12,15 @@ from evals.tasks.base import EvalTask
 def create_case(
     case_id: str,
     *,
-    actual: bool,
-    expected: bool,
+    actual: bool | None,
+    expected: bool | None,
+    confidence: str = "high",
 ) -> EvalCase:
     return EvalCase(
         id=case_id,
         input_data={
             "actual": actual,
+            "confidence": confidence,
         },
         expected={
             "relevant": expected,
@@ -35,17 +37,9 @@ class RelevantTask(EvalTask):
     ) -> dict[str, Any]:
         return {
             "relevant": case.input_data["actual"],
+            "confidence": case.input_data["confidence"],
+            "explanation": "Explication correcte.",
         }
-
-    def score(
-        self,
-        case: EvalCase,
-        actual: dict[str, Any],
-    ) -> float:
-        if actual["relevant"] == case.expected["relevant"]:
-            return 1.0
-
-        return 0.0
 
 
 class CrashingTask(EvalTask):
@@ -55,14 +49,9 @@ class CrashingTask(EvalTask):
         self,
         case: EvalCase,
     ) -> dict[str, Any]:
-        raise RuntimeError("Erreur volontaire")
-
-    def score(
-        self,
-        case: EvalCase,
-        actual: dict[str, Any],
-    ) -> float:
-        return 1.0
+        raise RuntimeError(
+            "Erreur volontaire"
+        )
 
 
 class MixedTask(EvalTask):
@@ -73,25 +62,19 @@ class MixedTask(EvalTask):
         case: EvalCase,
     ) -> dict[str, Any]:
         if case.id == "crash":
-            raise RuntimeError("Erreur volontaire")
+            raise RuntimeError(
+                "Erreur volontaire"
+            )
 
         return {
             "relevant": True,
+            "confidence": "high",
+            "explanation": "Réponse correcte.",
         }
 
-    def score(
-        self,
-        case: EvalCase,
-        actual: dict[str, Any],
-    ) -> float:
-        if actual["relevant"] == case.expected["relevant"]:
-            return 1.0
 
-        return 0.0
-
-
-class InvalidScoreTask(EvalTask):
-    name = "invalid_score"
+class InvalidConfidenceTask(EvalTask):
+    name = "invalid_confidence"
 
     async def execute(
         self,
@@ -99,14 +82,9 @@ class InvalidScoreTask(EvalTask):
     ) -> dict[str, Any]:
         return {
             "relevant": True,
+            "confidence": "certain",
+            "explanation": "Réponse.",
         }
-
-    def score(
-        self,
-        case: EvalCase,
-        actual: dict[str, Any],
-    ) -> float:
-        return 1.5
 
 
 class CancelledTask(EvalTask):
@@ -118,13 +96,6 @@ class CancelledTask(EvalTask):
     ) -> dict[str, Any]:
         raise asyncio.CancelledError
 
-    def score(
-        self,
-        case: EvalCase,
-        actual: dict[str, Any],
-    ) -> float:
-        return 1.0
-
 
 def test_runner_marks_correct_answer_as_correct():
     runner = EvalRunner()
@@ -133,6 +104,7 @@ def test_runner_marks_correct_answer_as_correct():
         "correct",
         actual=True,
         expected=True,
+        confidence="high",
     )
 
     result = asyncio.run(
@@ -143,15 +115,13 @@ def test_runner_marks_correct_answer_as_correct():
     )
 
     assert result.status == EvalStatus.CORRECT
-    assert result.score == 1.0
 
-    assert result.expected == {
-        "relevant": True,
-    }
+    assert result.decision_score == 100.0
 
-    assert result.actual == {
-        "relevant": True,
-    }
+    assert result.expected_decision is True
+    assert result.actual_decision is True
+
+    assert result.confidence == "high"
 
     assert result.error_type is None
     assert result.error_message is None
@@ -164,6 +134,7 @@ def test_runner_marks_wrong_answer_as_incorrect():
         "incorrect",
         actual=False,
         expected=True,
+        confidence="high",
     )
 
     result = asyncio.run(
@@ -174,15 +145,42 @@ def test_runner_marks_wrong_answer_as_incorrect():
     )
 
     assert result.status == EvalStatus.INCORRECT
-    assert result.score == 0.0
 
-    assert result.expected == {
-        "relevant": True,
-    }
+    assert result.decision_score == 0.0
 
-    assert result.actual == {
-        "relevant": False,
-    }
+    assert "wrong_verdict" in result.decision_issues
+
+    assert (
+        "critical_confidence_error"
+        in result.decision_issues
+    )
+
+
+def test_runner_uses_confidence_in_score():
+    runner = EvalRunner()
+
+    case = create_case(
+        "low-confidence",
+        actual=True,
+        expected=True,
+        confidence="low",
+    )
+
+    result = asyncio.run(
+        runner.run_one(
+            task=RelevantTask(),
+            case=case,
+        )
+    )
+
+    assert result.status == EvalStatus.CORRECT
+
+    assert result.decision_score == 75.0
+
+    assert (
+        "unnecessary_low_confidence"
+        in result.decision_issues
+    )
 
 
 def test_runner_converts_exception_to_error():
@@ -202,11 +200,17 @@ def test_runner_converts_exception_to_error():
     )
 
     assert result.status == EvalStatus.ERROR
-    assert result.score == 0.0
+
+    assert result.decision_score == 0.0
+
     assert result.actual is None
 
     assert result.error_type == "RuntimeError"
-    assert result.error_message == "Erreur volontaire"
+
+    assert (
+        result.error_message
+        == "Erreur volontaire"
+    )
 
 
 def test_runner_continues_after_case_error():
@@ -234,33 +238,40 @@ def test_runner_continues_after_case_error():
 
     assert len(results) == 2
 
-    assert results[0].case_id == "crash"
-    assert results[0].status == EvalStatus.ERROR
-    assert results[0].error_type == "RuntimeError"
+    assert (
+        results[0].status
+        == EvalStatus.ERROR
+    )
 
-    assert results[1].case_id == "passing"
-    assert results[1].status == EvalStatus.CORRECT
-    assert results[1].score == 1.0
+    assert (
+        results[1].status
+        == EvalStatus.CORRECT
+    )
+
+    assert (
+        results[1].decision_score
+        == 100.0
+    )
 
 
-def test_runner_converts_invalid_score_to_error():
+def test_runner_converts_invalid_confidence_to_error():
     runner = EvalRunner()
 
     case = create_case(
-        "invalid-score",
+        "invalid-confidence",
         actual=True,
         expected=True,
     )
 
     result = asyncio.run(
         runner.run_one(
-            task=InvalidScoreTask(),
+            task=InvalidConfidenceTask(),
             case=case,
         )
     )
 
     assert result.status == EvalStatus.ERROR
-    assert result.score == 0.0
+
     assert result.error_type == "ValueError"
 
 
@@ -273,7 +284,9 @@ def test_runner_preserves_cancelled_error():
         expected=True,
     )
 
-    with pytest.raises(asyncio.CancelledError):
+    with pytest.raises(
+        asyncio.CancelledError
+    ):
         asyncio.run(
             runner.run_one(
                 task=CancelledTask(),

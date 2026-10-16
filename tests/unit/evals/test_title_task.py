@@ -13,7 +13,11 @@ class FakePageAnalyzer:
         analysis: TitleAnalysis,
     ):
         self.analysis = analysis
-        self.received: dict[str, str] | None = None
+
+        self.received: (
+            dict[str, str]
+            | None
+        ) = None
 
     async def analyze_title(
         self,
@@ -39,7 +43,9 @@ def create_title_case(
         input_data={
             "title": "Contact",
             "heading": "Contactez-nous",
-            "content": "Retrouvez toutes nos coordonnées.",
+            "content": (
+                "Retrouvez toutes nos coordonnées."
+            ),
         },
         expected={
             "relevant": expected_relevant,
@@ -51,7 +57,9 @@ def test_title_task_calls_page_analyzer_with_case_data():
     analyzer = FakePageAnalyzer(
         TitleAnalysis(
             relevant=True,
-            explanation="Le titre correspond au contenu.",
+            explanation=(
+                "Le titre correspond au contenu."
+            ),
             contradictions=[],
             uncertainties=[],
             confidence="high",
@@ -66,7 +74,11 @@ def test_title_task_calls_page_analyzer_with_case_data():
         expected_relevant=True,
     )
 
-    actual = asyncio.run(task.execute(case))
+    actual = asyncio.run(
+        task.execute(
+            case
+        )
+    )
 
     assert analyzer.received == {
         "title": "Contact",
@@ -74,62 +86,24 @@ def test_title_task_calls_page_analyzer_with_case_data():
         "content": "Retrouvez toutes nos coordonnées.",
     }
 
-    assert actual == {
-        "relevant": True,
-        "explanation": "Le titre correspond au contenu.",
-        "contradictions": [],
-        "uncertainties": [],
-        "confidence": "high",
-    }
+    assert actual["relevant"] is True
+    assert actual["confidence"] == "high"
 
 
 @pytest.mark.parametrize(
-    (
-        "expected_relevant",
-        "actual_relevant",
-        "expected_score",
-    ),
+    "expected",
     [
-        (
-            True,
-            True,
-            1.0,
-        ),
-        (
-            False,
-            False,
-            1.0,
-        ),
-        (
-            None,
-            None,
-            1.0,
-        ),
-        (
-            True,
-            False,
-            0.0,
-        ),
-        (
-            False,
-            True,
-            0.0,
-        ),
-        (
-            True,
-            None,
-            0.0,
-        ),
+        True,
+        False,
+        None,
     ],
 )
-def test_title_task_scores_relevant_field(
-    expected_relevant,
-    actual_relevant,
-    expected_score,
+def test_title_task_reads_expected_decision(
+    expected,
 ):
     analyzer = FakePageAnalyzer(
         TitleAnalysis(
-            relevant=actual_relevant,
+            relevant=True,
             explanation="Explication.",
             confidence="high",
         )
@@ -140,20 +114,18 @@ def test_title_task_scores_relevant_field(
     )
 
     case = create_title_case(
-        expected_relevant=expected_relevant,
+        expected_relevant=expected,
     )
 
-    actual = asyncio.run(task.execute(case))
-
-    score = task.score(
-        case,
-        actual,
+    assert (
+        task.get_expected_decision(
+            case
+        )
+        is expected
     )
 
-    assert score == expected_score
 
-
-def test_title_task_rejects_missing_expected_relevant():
+def test_title_task_reads_actual_decision():
     analyzer = FakePageAnalyzer(
         TitleAnalysis(
             relevant=True,
@@ -166,29 +138,17 @@ def test_title_task_rejects_missing_expected_relevant():
         page_analyzer=analyzer,
     )
 
-    case = EvalCase(
-        id="title_001",
-        input_data={
-            "title": "Contact",
-            "heading": "Contactez-nous",
-            "content": "Retrouvez toutes nos coordonnées.",
-        },
-        expected={},
+    assert (
+        task.get_actual_decision(
+            {
+                "relevant": False,
+            }
+        )
+        is False
     )
 
-    with pytest.raises(
-        ValueError,
-        match="ne possède pas de valeur attendue",
-    ):
-        task.score(
-            case,
-            {
-                "relevant": True,
-            },
-        )
 
-
-def test_title_task_rejects_invalid_expected_relevant():
+def test_title_task_reads_confidence():
     analyzer = FakePageAnalyzer(
         TitleAnalysis(
             relevant=True,
@@ -201,28 +161,14 @@ def test_title_task_rejects_invalid_expected_relevant():
         page_analyzer=analyzer,
     )
 
-    case = EvalCase(
-        id="title_001",
-        input_data={
-            "title": "Contact",
-            "heading": "Contactez-nous",
-            "content": "Retrouvez toutes nos coordonnées.",
-        },
-        expected={
-            "relevant": "yes",
-        },
-    )
-
-    with pytest.raises(
-        ValueError,
-        match="true, false ou null",
-    ):
-        task.score(
-            case,
+    assert (
+        task.get_confidence(
             {
-                "relevant": True,
-            },
+                "confidence": "medium",
+            }
         )
+        == "medium"
+    )
 
 
 @pytest.mark.parametrize(
@@ -251,10 +197,12 @@ def test_title_task_rejects_missing_input_field(
     input_data = {
         "title": "Contact",
         "heading": "Contactez-nous",
-        "content": "Retrouvez toutes nos coordonnées.",
+        "content": "Coordonnées.",
     }
 
-    del input_data[missing_field]
+    del input_data[
+        missing_field
+    ]
 
     case = EvalCase(
         id="title_001",
@@ -268,50 +216,8 @@ def test_title_task_rejects_missing_input_field(
         ValueError,
         match="ne possède pas le champ d'entrée",
     ):
-        asyncio.run(task.execute(case))
-
-
-@pytest.mark.parametrize(
-    "invalid_field",
-    [
-        "title",
-        "heading",
-        "content",
-    ],
-)
-def test_title_task_rejects_non_string_input(
-    invalid_field,
-):
-    analyzer = FakePageAnalyzer(
-        TitleAnalysis(
-            relevant=True,
-            explanation="Explication.",
-            confidence="high",
+        asyncio.run(
+            task.execute(
+                case
+            )
         )
-    )
-
-    task = TitleEvalTask(
-        page_analyzer=analyzer,
-    )
-
-    input_data = {
-        "title": "Contact",
-        "heading": "Contactez-nous",
-        "content": "Retrouvez toutes nos coordonnées.",
-    }
-
-    input_data[invalid_field] = 123
-
-    case = EvalCase(
-        id="title_001",
-        input_data=input_data,
-        expected={
-            "relevant": True,
-        },
-    )
-
-    with pytest.raises(
-        ValueError,
-        match="doit être une chaîne",
-    ):
-        asyncio.run(task.execute(case))

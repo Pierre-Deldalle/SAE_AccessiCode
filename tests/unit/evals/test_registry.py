@@ -15,15 +15,9 @@ class FakeEvalTask(EvalTask):
         case: EvalCase,
     ) -> dict[str, Any]:
         return {
-            "value": True,
+            "relevant": True,
+            "confidence": "high",
         }
-
-    def score(
-        self,
-        case: EvalCase,
-        actual: dict[str, Any],
-    ) -> float:
-        return 1.0
 
 
 def test_registry_can_register_and_get_task():
