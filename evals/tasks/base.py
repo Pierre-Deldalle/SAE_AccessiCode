@@ -4,7 +4,6 @@ from abc import ABC, abstractmethod
 from typing import Any, ClassVar
 
 from accessi_code.ai.schemas import AIConfidence
-
 from evals.models.case import EvalCase
 
 
@@ -18,7 +17,7 @@ class EvalTask(ABC):
     """
 
     name: ClassVar[str]
-    
+
     # La majorité de nos analyses utilisent "relevant".
     # Une tâche peut surcharger cette valeur.
     decision_key: ClassVar[str] = "relevant"

@@ -6,7 +6,6 @@ from typing import Any
 from accessi_code.ai.analyzers.page_analyzer import (
     OllamaPageAnalyzer,
 )
-
 from evals.models.case import EvalCase
 from evals.tasks.base import EvalTask
 

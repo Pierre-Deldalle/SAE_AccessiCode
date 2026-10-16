@@ -4,7 +4,6 @@ from dataclasses import dataclass
 
 from accessi_code.ai.schemas import AIConfidence
 
-
 DecisionValue = bool | None
 
 

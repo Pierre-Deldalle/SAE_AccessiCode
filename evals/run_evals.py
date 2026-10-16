@@ -9,7 +9,6 @@ from accessi_code.config import settings
 from accessi_code.service.default_services import (
     build_default_audit_services,
 )
-
 from evals.datasets.loader import load_eval_cases
 from evals.models.report import EvalReport
 from evals.models.result import EvalResult
@@ -17,7 +16,6 @@ from evals.runners.runner import EvalRunner
 from evals.tasks.default_registry import (
     build_default_eval_registry,
 )
-
 
 EVALS_ROOT = Path(__file__).resolve().parent
 
