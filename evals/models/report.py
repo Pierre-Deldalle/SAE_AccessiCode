@@ -45,9 +45,7 @@ class EvalReport:
     average_integrity_score: float
     integrity_problems: int
 
-    integrity_issue_counts: dict[str, int] = field(
-        default_factory=dict
-    )
+    integrity_issue_counts: dict[str, int] = field(default_factory=dict)
 
     @classmethod
     def from_results(
@@ -59,67 +57,29 @@ class EvalReport:
     ) -> EvalReport:
         total = len(results)
 
-        correct = sum(
-            result.status == EvalStatus.CORRECT
-            for result in results
-        )
+        correct = sum(result.status == EvalStatus.CORRECT for result in results)
 
-        incorrect = sum(
-            result.status == EvalStatus.INCORRECT
-            for result in results
-        )
+        incorrect = sum(result.status == EvalStatus.INCORRECT for result in results)
 
-        errors = sum(
-            result.status == EvalStatus.ERROR
-            for result in results
-        )
+        errors = sum(result.status == EvalStatus.ERROR for result in results)
 
-        accuracy = (
-            correct / total
-            if total
-            else 0.0
-        )
+        accuracy = correct / total if total else 0.0
 
-        average_decision_score = (
-            sum(
-                result.decision_score
-                for result in results
-            )
-            / total
-            if total
-            else 0.0
-        )
+        average_decision_score = sum(result.decision_score for result in results) / total if total else 0.0
 
-        true_results = [
-            result
-            for result in results
-            if result.expected_decision is True
-        ]
+        true_results = [result for result in results if result.expected_decision is True]
 
-        false_results = [
-            result
-            for result in results
-            if result.expected_decision is False
-        ]
+        false_results = [result for result in results if result.expected_decision is False]
 
         null_results = [
-            result
-            for result in results
-            if result.expected_decision is None
-            and result.status != EvalStatus.ERROR
+            result for result in results if result.expected_decision is None and result.status != EvalStatus.ERROR
         ]
 
-        true_correct = cls._count_correct(
-            true_results
-        )
+        true_correct = cls._count_correct(true_results)
 
-        false_correct = cls._count_correct(
-            false_results
-        )
+        false_correct = cls._count_correct(false_results)
 
-        null_correct = cls._count_correct(
-            null_results
-        )
+        null_correct = cls._count_correct(null_results)
 
         critical_errors = cls._count_issue(
             results,
@@ -141,38 +101,23 @@ class EvalReport:
             "unnecessary_low_confidence",
         )
 
-        integrity_results = [
-            result
-            for result in results
-            if result.integrity_score is not None
-        ]
+        integrity_results = [result for result in results if result.integrity_score is not None]
 
-        integrity_evaluated = len(
-            integrity_results
-        )
+        integrity_evaluated = len(integrity_results)
 
         average_integrity_score = (
-            sum(
-                result.integrity_score
-                for result in integrity_results
-                if result.integrity_score is not None
-            )
+            sum(result.integrity_score for result in integrity_results if result.integrity_score is not None)
             / integrity_evaluated
             if integrity_evaluated
             else 0.0
         )
 
-        integrity_problems = sum(
-            bool(result.integrity_issues)
-            for result in integrity_results
-        )
+        integrity_problems = sum(bool(result.integrity_issues) for result in integrity_results)
 
         integrity_issue_counts: Counter[str] = Counter()
 
         for result in integrity_results:
-            integrity_issue_counts.update(
-                result.integrity_issues
-            )
+            integrity_issue_counts.update(result.integrity_issues)
 
         return cls(
             task_name=task_name,
@@ -196,29 +141,21 @@ class EvalReport:
             integrity_evaluated=integrity_evaluated,
             average_integrity_score=average_integrity_score,
             integrity_problems=integrity_problems,
-            integrity_issue_counts=dict(
-                integrity_issue_counts
-            ),
+            integrity_issue_counts=dict(integrity_issue_counts),
         )
 
     @staticmethod
     def _count_correct(
         results: list[EvalResult],
     ) -> int:
-        return sum(
-            result.status == EvalStatus.CORRECT
-            for result in results
-        )
+        return sum(result.status == EvalStatus.CORRECT for result in results)
 
     @staticmethod
     def _count_issue(
         results: list[EvalResult],
         issue: str,
     ) -> int:
-        return sum(
-            issue in result.decision_issues
-            for result in results
-        )
+        return sum(issue in result.decision_issues for result in results)
 
     @staticmethod
     def percentage(
@@ -228,8 +165,4 @@ class EvalReport:
         if total == 0:
             return 0.0
 
-        return (
-            correct
-            / total
-            * 100.0
-        )
+        return correct / total * 100.0

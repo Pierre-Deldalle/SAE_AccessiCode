@@ -39,20 +39,13 @@ class EvalTask(ABC):
         case: EvalCase,
     ) -> bool | None:
         if self.decision_key not in case.expected:
-            raise ValueError(
-                f"Le cas {case.id!r} ne possède pas "
-                f"de valeur attendue pour {self.decision_key!r}."
-            )
+            raise ValueError(f"Le cas {case.id!r} ne possède pas de valeur attendue pour {self.decision_key!r}.")
 
-        value = case.expected[
-            self.decision_key
-        ]
+        value = case.expected[self.decision_key]
 
         self._validate_decision(
             value,
-            field_name=(
-                f"expected.{self.decision_key}"
-            ),
+            field_name=(f"expected.{self.decision_key}"),
         )
 
         return value
@@ -62,14 +55,9 @@ class EvalTask(ABC):
         actual: dict[str, Any],
     ) -> bool | None:
         if self.decision_key not in actual:
-            raise ValueError(
-                f"La réponse IA ne possède pas "
-                f"le champ {self.decision_key!r}."
-            )
+            raise ValueError(f"La réponse IA ne possède pas le champ {self.decision_key!r}.")
 
-        value = actual[
-            self.decision_key
-        ]
+        value = actual[self.decision_key]
 
         self._validate_decision(
             value,
@@ -82,19 +70,14 @@ class EvalTask(ABC):
         self,
         actual: dict[str, Any],
     ) -> AIConfidence:
-        value = actual.get(
-            self.confidence_key
-        )
+        value = actual.get(self.confidence_key)
 
         if value not in {
             "low",
             "medium",
             "high",
         }:
-            raise ValueError(
-                "La réponse IA doit contenir une "
-                "confidence 'low', 'medium' ou 'high'."
-            )
+            raise ValueError("La réponse IA doit contenir une confidence 'low', 'medium' ou 'high'.")
 
         return value
 
@@ -104,12 +87,5 @@ class EvalTask(ABC):
         *,
         field_name: str,
     ) -> None:
-        if (
-            value is not True
-            and value is not False
-            and value is not None
-        ):
-            raise ValueError(
-                f"{field_name} doit être "
-                "true, false ou null."
-            )
+        if value is not True and value is not False and value is not None:
+            raise ValueError(f"{field_name} doit être true, false ou null.")

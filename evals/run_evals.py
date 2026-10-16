@@ -43,12 +43,7 @@ def get_dataset_path(
     task_name: str,
     dataset_name: str,
 ) -> Path:
-    return (
-        EVALS_ROOT
-        / "datasets"
-        / task_name
-        / f"{dataset_name}.json"
-    )
+    return EVALS_ROOT / "datasets" / task_name / f"{dataset_name}.json"
 
 
 def print_result(
@@ -56,17 +51,11 @@ def print_result(
 ) -> None:
     print("-" * 60)
 
-    print(
-        f"Case             : {result.case_id}"
-    )
+    print(f"Case             : {result.case_id}")
 
-    print(
-        f"Status           : {result.status.value.upper()}"
-    )
+    print(f"Status           : {result.status.value.upper()}")
 
-    print(
-        f"Decision score   : {result.decision_score:.2f} / 100"
-    )
+    print(f"Decision score   : {result.decision_score:.2f} / 100")
 
     print(
         "Expected         :",
@@ -86,40 +75,28 @@ def print_result(
         )
 
     if result.confidence is not None:
-        print(
-            f"Confidence       : {result.confidence}"
-        )
+        print(f"Confidence       : {result.confidence}")
 
     if result.decision_issues:
         print(
             "Decision issues  :",
-            ", ".join(
-                result.decision_issues
-            ),
+            ", ".join(result.decision_issues),
         )
 
     if result.integrity_score is not None:
-        print(
-            f"Integrity score  : {result.integrity_score:.2f} / 100"
-        )
+        print(f"Integrity score  : {result.integrity_score:.2f} / 100")
 
     if result.integrity_issues:
         print(
             "Integrity issues :",
-            ", ".join(
-                result.integrity_issues
-            ),
+            ", ".join(result.integrity_issues),
         )
 
     if result.error_type is not None:
-        print(
-            f"Error type       : {result.error_type}"
-        )
+        print(f"Error type       : {result.error_type}")
 
     if result.error_message is not None:
-        print(
-            f"Error            : {result.error_message}"
-        )
+        print(f"Error            : {result.error_message}")
 
 
 def print_summary(
@@ -130,40 +107,23 @@ def print_summary(
     print("ACCESSICODE AI EVALUATION")
     print("=" * 60)
 
-    print(
-        f"Task                    : {report.task_name}"
-    )
+    print(f"Task                    : {report.task_name}")
 
-    print(
-        f"Dataset                 : {report.dataset_name}"
-    )
+    print(f"Dataset                 : {report.dataset_name}")
 
-    print(
-        f"Cases                   : {report.total_cases}"
-    )
+    print(f"Cases                   : {report.total_cases}")
 
     print()
 
-    print(
-        f"Correct                 : {report.correct}"
-    )
+    print(f"Correct                 : {report.correct}")
 
-    print(
-        f"Incorrect               : {report.incorrect}"
-    )
+    print(f"Incorrect               : {report.incorrect}")
 
-    print(
-        f"Errors                  : {report.errors}"
-    )
+    print(f"Errors                  : {report.errors}")
 
-    print(
-        f"Accuracy                : {report.accuracy * 100:.2f} %"
-    )
+    print(f"Accuracy                : {report.accuracy * 100:.2f} %")
 
-    print(
-        "Average decision score  : "
-        f"{report.average_decision_score:.2f} / 100"
-    )
+    print(f"Average decision score  : {report.average_decision_score:.2f} / 100")
 
     print()
 
@@ -187,49 +147,27 @@ def print_summary(
 
     print()
 
-    print(
-        f"Critical errors         : {report.critical_errors}"
-    )
+    print(f"Critical errors         : {report.critical_errors}")
 
-    print(
-        f"Forced verdicts         : {report.forced_verdicts}"
-    )
+    print(f"Forced verdicts         : {report.forced_verdicts}")
 
-    print(
-        "Unnecessary abstentions : "
-        f"{report.unnecessary_abstentions}"
-    )
+    print(f"Unnecessary abstentions : {report.unnecessary_abstentions}")
 
-    print(
-        "Correct but low conf.   : "
-        f"{report.unnecessary_low_confidence}"
-    )
+    print(f"Correct but low conf.   : {report.unnecessary_low_confidence}")
 
     print()
 
-    print(
-        "Avg response integrity  : "
-        f"{report.average_integrity_score:.2f} / 100"
-    )
+    print(f"Avg response integrity  : {report.average_integrity_score:.2f} / 100")
 
-    print(
-        "Integrity problems      : "
-        f"{report.integrity_problems}"
-    )
+    print(f"Integrity problems      : {report.integrity_problems}")
 
     if report.integrity_issue_counts:
         print()
 
-        print(
-            "Integrity issue details :"
-        )
+        print("Integrity issue details :")
 
-        for issue, count in sorted(
-            report.integrity_issue_counts.items()
-        ):
-            print(
-                f"  - {issue}: {count}"
-            )
+        for issue, count in sorted(report.integrity_issue_counts.items()):
+            print(f"  - {issue}: {count}")
 
     print("=" * 60)
 
@@ -248,14 +186,10 @@ async def main() -> None:
     )
 
     try:
-        task = registry.get(
-            args.task
-        )
+        task = registry.get(args.task)
 
     except KeyError as error:
-        raise SystemExit(
-            str(error)
-        ) from error
+        raise SystemExit(str(error)) from error
 
     dataset_path = get_dataset_path(
         task_name=task.name,
@@ -271,30 +205,20 @@ async def main() -> None:
         FileNotFoundError,
         ValueError,
     ) as error:
-        raise SystemExit(
-            str(error)
-        ) from error
+        raise SystemExit(str(error)) from error
 
     print()
     print("=" * 60)
     print("ACCESSICODE AI EVALUATION")
     print("=" * 60)
 
-    print(
-        f"Task       : {task.name}"
-    )
+    print(f"Task       : {task.name}")
 
-    print(
-        f"Dataset    : {args.dataset}"
-    )
+    print(f"Dataset    : {args.dataset}")
 
-    print(
-        f"File       : {dataset_path}"
-    )
+    print(f"File       : {dataset_path}")
 
-    print(
-        f"Cases      : {len(cases)}"
-    )
+    print(f"Cases      : {len(cases)}")
 
     print("=" * 60)
     print()
@@ -307,9 +231,7 @@ async def main() -> None:
     )
 
     for result in results:
-        print_result(
-            result
-        )
+        print_result(result)
 
     report = EvalReport.from_results(
         task_name=task.name,
@@ -317,12 +239,8 @@ async def main() -> None:
         results=results,
     )
 
-    print_summary(
-        report
-    )
+    print_summary(report)
 
 
 if __name__ == "__main__":
-    asyncio.run(
-        main()
-    )
+    asyncio.run(main())

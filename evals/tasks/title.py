@@ -58,10 +58,7 @@ class TitleEvalTask(EvalTask):
         key: str,
     ) -> str:
         if key not in case.input_data:
-            raise ValueError(
-                f"Le cas {case.id!r} ne possède pas "
-                f"le champ d'entrée {key!r}."
-            )
+            raise ValueError(f"Le cas {case.id!r} ne possède pas le champ d'entrée {key!r}.")
 
         value = case.input_data[key]
 
@@ -69,9 +66,6 @@ class TitleEvalTask(EvalTask):
             value,
             str,
         ):
-            raise ValueError(
-                f"Le champ {key!r} du cas "
-                f"{case.id!r} doit être une chaîne."
-            )
+            raise ValueError(f"Le champ {key!r} du cas {case.id!r} doit être une chaîne.")
 
         return value

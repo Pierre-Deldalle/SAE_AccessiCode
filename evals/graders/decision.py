@@ -158,14 +158,8 @@ class DecisionGrader:
         *,
         field_name: str,
     ) -> None:
-        if (
-            value is not True
-            and value is not False
-            and value is not None
-        ):
-            raise ValueError(
-                f"{field_name} doit être true, false ou null."
-            )
+        if value is not True and value is not False and value is not None:
+            raise ValueError(f"{field_name} doit être true, false ou null.")
 
     @staticmethod
     def _validate_confidence(
@@ -176,6 +170,4 @@ class DecisionGrader:
             "medium",
             "high",
         }:
-            raise ValueError(
-                "confidence doit être 'low', 'medium' ou 'high'."
-            )
+            raise ValueError("confidence doit être 'low', 'medium' ou 'high'.")

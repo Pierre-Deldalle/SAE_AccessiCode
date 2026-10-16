@@ -87,10 +87,7 @@ class ResponseIntegrityGrader:
                 "meta_generation_marker",
             )
 
-        if any(
-            self._has_excessive_repetition(text)
-            for text in texts
-        ):
+        if any(self._has_excessive_repetition(text) for text in texts):
             issues.append(
                 "excessive_repetition",
             )
@@ -101,14 +98,9 @@ class ResponseIntegrityGrader:
             )
 
         # Évite de compter deux fois le même problème.
-        unique_issues = tuple(
-            dict.fromkeys(issues)
-        )
+        unique_issues = tuple(dict.fromkeys(issues))
 
-        penalty = sum(
-            self.PENALTIES[issue]
-            for issue in unique_issues
-        )
+        penalty = sum(self.PENALTIES[issue] for issue in unique_issues)
 
         return IntegrityGrade(
             score=max(
@@ -135,11 +127,7 @@ class ResponseIntegrityGrader:
                 texts.append(value)
 
             elif isinstance(value, list):
-                texts.extend(
-                    str(item)
-                    for item in value
-                    if item is not None
-                )
+                texts.extend(str(item) for item in value if item is not None)
 
         return texts
 
@@ -149,10 +137,7 @@ class ResponseIntegrityGrader:
     ) -> bool:
         lowered = explanation.casefold()
 
-        return (
-            "n'a pas pu être détermin"
-            in lowered
-        )
+        return "n'a pas pu être détermin" in lowered
 
     def _contains_meta_marker(
         self,
@@ -160,10 +145,7 @@ class ResponseIntegrityGrader:
     ) -> bool:
         lowered = text.casefold()
 
-        return any(
-            marker.casefold() in lowered
-            for marker in self.META_MARKERS
-        )
+        return any(marker.casefold() in lowered for marker in self.META_MARKERS)
 
     @staticmethod
     def _looks_truncated(
@@ -202,16 +184,10 @@ class ResponseIntegrityGrader:
     def _is_overlong(
         texts: list[str],
     ) -> bool:
-        if any(
-            len(text) > 1000
-            for text in texts
-        ):
+        if any(len(text) > 1000 for text in texts):
             return True
 
-        total_length = sum(
-            len(text)
-            for text in texts
-        )
+        total_length = sum(len(text) for text in texts)
 
         return total_length > 2500
 
@@ -247,12 +223,8 @@ class ResponseIntegrityGrader:
             if len(tokens) < required_length:
                 continue
 
-            for start in range(
-                len(tokens) - required_length + 1
-            ):
-                group = tokens[
-                    start : start + group_size
-                ]
+            for start in range(len(tokens) - required_length + 1):
+                group = tokens[start : start + group_size]
 
                 repeated = True
 
@@ -260,15 +232,9 @@ class ResponseIntegrityGrader:
                     1,
                     4,
                 ):
-                    other_start = (
-                        start
-                        + repetition * group_size
-                    )
+                    other_start = start + repetition * group_size
 
-                    other_group = tokens[
-                        other_start
-                        : other_start + group_size
-                    ]
+                    other_group = tokens[other_start : other_start + group_size]
 
                     if other_group != group:
                         repeated = False

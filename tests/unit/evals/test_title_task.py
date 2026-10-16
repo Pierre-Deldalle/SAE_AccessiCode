@@ -14,10 +14,7 @@ class FakePageAnalyzer:
     ):
         self.analysis = analysis
 
-        self.received: (
-            dict[str, str]
-            | None
-        ) = None
+        self.received: dict[str, str] | None = None
 
     async def analyze_title(
         self,
@@ -43,9 +40,7 @@ def create_title_case(
         input_data={
             "title": "Contact",
             "heading": "Contactez-nous",
-            "content": (
-                "Retrouvez toutes nos coordonnées."
-            ),
+            "content": ("Retrouvez toutes nos coordonnées."),
         },
         expected={
             "relevant": expected_relevant,
@@ -57,9 +52,7 @@ def test_title_task_calls_page_analyzer_with_case_data():
     analyzer = FakePageAnalyzer(
         TitleAnalysis(
             relevant=True,
-            explanation=(
-                "Le titre correspond au contenu."
-            ),
+            explanation=("Le titre correspond au contenu."),
             contradictions=[],
             uncertainties=[],
             confidence="high",
@@ -74,11 +67,7 @@ def test_title_task_calls_page_analyzer_with_case_data():
         expected_relevant=True,
     )
 
-    actual = asyncio.run(
-        task.execute(
-            case
-        )
-    )
+    actual = asyncio.run(task.execute(case))
 
     assert analyzer.received == {
         "title": "Contact",
@@ -117,12 +106,7 @@ def test_title_task_reads_expected_decision(
         expected_relevant=expected,
     )
 
-    assert (
-        task.get_expected_decision(
-            case
-        )
-        is expected
-    )
+    assert task.get_expected_decision(case) is expected
 
 
 def test_title_task_reads_actual_decision():
@@ -200,9 +184,7 @@ def test_title_task_rejects_missing_input_field(
         "content": "Coordonnées.",
     }
 
-    del input_data[
-        missing_field
-    ]
+    del input_data[missing_field]
 
     case = EvalCase(
         id="title_001",
@@ -216,8 +198,4 @@ def test_title_task_rejects_missing_input_field(
         ValueError,
         match="ne possède pas le champ d'entrée",
     ):
-        asyncio.run(
-            task.execute(
-                case
-            )
-        )
+        asyncio.run(task.execute(case))

@@ -49,9 +49,7 @@ class CrashingTask(EvalTask):
         self,
         case: EvalCase,
     ) -> dict[str, Any]:
-        raise RuntimeError(
-            "Erreur volontaire"
-        )
+        raise RuntimeError("Erreur volontaire")
 
 
 class MixedTask(EvalTask):
@@ -62,9 +60,7 @@ class MixedTask(EvalTask):
         case: EvalCase,
     ) -> dict[str, Any]:
         if case.id == "crash":
-            raise RuntimeError(
-                "Erreur volontaire"
-            )
+            raise RuntimeError("Erreur volontaire")
 
         return {
             "relevant": True,
@@ -150,10 +146,7 @@ def test_runner_marks_wrong_answer_as_incorrect():
 
     assert "wrong_verdict" in result.decision_issues
 
-    assert (
-        "critical_confidence_error"
-        in result.decision_issues
-    )
+    assert "critical_confidence_error" in result.decision_issues
 
 
 def test_runner_uses_confidence_in_score():
@@ -177,10 +170,7 @@ def test_runner_uses_confidence_in_score():
 
     assert result.decision_score == 75.0
 
-    assert (
-        "unnecessary_low_confidence"
-        in result.decision_issues
-    )
+    assert "unnecessary_low_confidence" in result.decision_issues
 
 
 def test_runner_converts_exception_to_error():
@@ -207,10 +197,7 @@ def test_runner_converts_exception_to_error():
 
     assert result.error_type == "RuntimeError"
 
-    assert (
-        result.error_message
-        == "Erreur volontaire"
-    )
+    assert result.error_message == "Erreur volontaire"
 
 
 def test_runner_continues_after_case_error():
@@ -238,20 +225,11 @@ def test_runner_continues_after_case_error():
 
     assert len(results) == 2
 
-    assert (
-        results[0].status
-        == EvalStatus.ERROR
-    )
+    assert results[0].status == EvalStatus.ERROR
 
-    assert (
-        results[1].status
-        == EvalStatus.CORRECT
-    )
+    assert results[1].status == EvalStatus.CORRECT
 
-    assert (
-        results[1].decision_score
-        == 100.0
-    )
+    assert results[1].decision_score == 100.0
 
 
 def test_runner_converts_invalid_confidence_to_error():
@@ -284,9 +262,7 @@ def test_runner_preserves_cancelled_error():
         expected=True,
     )
 
-    with pytest.raises(
-        asyncio.CancelledError
-    ):
+    with pytest.raises(asyncio.CancelledError):
         asyncio.run(
             runner.run_one(
                 task=CancelledTask(),

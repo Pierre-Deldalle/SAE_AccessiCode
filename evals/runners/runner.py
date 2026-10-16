@@ -27,15 +27,9 @@ class EvalRunner:
         decision_grader: DecisionGrader | None = None,
         integrity_grader: ResponseIntegrityGrader | None = None,
     ):
-        self.decision_grader = (
-            decision_grader
-            or DecisionGrader()
-        )
+        self.decision_grader = decision_grader or DecisionGrader()
 
-        self.integrity_grader = (
-            integrity_grader
-            or ResponseIntegrityGrader()
-        )
+        self.integrity_grader = integrity_grader or ResponseIntegrityGrader()
 
     async def run(
         self,
@@ -62,45 +56,33 @@ class EvalRunner:
         expected_decision: bool | None = None
 
         try:
-            expected_decision = (
-                task.get_expected_decision(
-                    case,
-                )
+            expected_decision = task.get_expected_decision(
+                case,
             )
 
             actual = await task.execute(
                 case,
             )
 
-            actual_decision = (
-                task.get_actual_decision(
-                    actual,
-                )
+            actual_decision = task.get_actual_decision(
+                actual,
             )
 
             confidence = task.get_confidence(
                 actual,
             )
 
-            decision_grade = (
-                self.decision_grader.grade(
-                    expected=expected_decision,
-                    actual=actual_decision,
-                    confidence=confidence,
-                )
+            decision_grade = self.decision_grader.grade(
+                expected=expected_decision,
+                actual=actual_decision,
+                confidence=confidence,
             )
 
-            integrity_grade = (
-                self.integrity_grader.grade(
-                    actual,
-                )
+            integrity_grade = self.integrity_grader.grade(
+                actual,
             )
 
-            status = (
-                EvalStatus.CORRECT
-                if decision_grade.correct
-                else EvalStatus.INCORRECT
-            )
+            status = EvalStatus.CORRECT if decision_grade.correct else EvalStatus.INCORRECT
 
             return EvalResult(
                 task_name=task.name,
@@ -131,9 +113,7 @@ class EvalRunner:
                 actual_decision=None,
                 confidence=None,
                 decision_score=0.0,
-                decision_issues=(
-                    "evaluation_error",
-                ),
+                decision_issues=("evaluation_error",),
                 integrity_score=None,
                 integrity_issues=(),
                 error_type=type(error).__name__,
