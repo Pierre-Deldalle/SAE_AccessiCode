@@ -61,7 +61,7 @@ def create_report(
         dataset_name="train",
         results=results,
     )
-    
+
 
 def test_comparator_detects_incorrect_to_correct_improvement():
     baseline_results = [

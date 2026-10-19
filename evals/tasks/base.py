@@ -95,7 +95,7 @@ class EvalTask(ABC):
     ) -> None:
         if value is not True and value is not False and value is not None:
             raise ValueError(f"{field_name} doit être true, false ou null.")
-    
+
     def validate_prompt_template(
         self,
         prompt_template: str,

@@ -334,7 +334,7 @@ def test_runner_forwards_prompt_template_to_task():
         result.status
         == EvalStatus.CORRECT
     )
-    
+
 
 def test_runner_uses_no_alternative_prompt_by_default():
     runner = EvalRunner()

@@ -72,7 +72,7 @@ class TitleEvalTask(EvalTask):
             raise ValueError(f"Le champ {key!r} du cas {case.id!r} doit être une chaîne.")
 
         return value
-    
+
     def validate_prompt_template(
         self,
         prompt_template: str,
