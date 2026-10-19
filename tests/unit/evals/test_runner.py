@@ -34,6 +34,8 @@ class RelevantTask(EvalTask):
     async def execute(
         self,
         case: EvalCase,
+        *,
+        prompt_template: str | None = None,
     ) -> dict[str, Any]:
         return {
             "relevant": case.input_data["actual"],
@@ -48,6 +50,8 @@ class CrashingTask(EvalTask):
     async def execute(
         self,
         case: EvalCase,
+        *,
+        prompt_template: str | None = None,
     ) -> dict[str, Any]:
         raise RuntimeError("Erreur volontaire")
 
@@ -58,6 +62,8 @@ class MixedTask(EvalTask):
     async def execute(
         self,
         case: EvalCase,
+        *,
+        prompt_template: str | None = None,
     ) -> dict[str, Any]:
         if case.id == "crash":
             raise RuntimeError("Erreur volontaire")
@@ -75,6 +81,8 @@ class InvalidConfidenceTask(EvalTask):
     async def execute(
         self,
         case: EvalCase,
+        *,
+        prompt_template: str | None = None,
     ) -> dict[str, Any]:
         return {
             "relevant": True,
@@ -89,8 +97,31 @@ class CancelledTask(EvalTask):
     async def execute(
         self,
         case: EvalCase,
+        *,
+        prompt_template: str | None = None,
     ) -> dict[str, Any]:
         raise asyncio.CancelledError
+
+
+class PromptAwareTask(EvalTask):
+    name = "prompt_aware"
+
+    def __init__(self):
+        self.received_prompt: str | None = None
+
+    async def execute(
+        self,
+        case: EvalCase,
+        *,
+        prompt_template: str | None = None,
+    ) -> dict[str, Any]:
+        self.received_prompt = prompt_template
+
+        return {
+            "relevant": True,
+            "confidence": "high",
+            "explanation": "Réponse correcte.",
+        }
 
 
 def test_runner_marks_correct_answer_as_correct():
@@ -269,3 +300,58 @@ def test_runner_preserves_cancelled_error():
                 case=case,
             )
         )
+
+
+def test_runner_forwards_prompt_template_to_task():
+    runner = EvalRunner()
+
+    task = PromptAwareTask()
+
+    case = create_case(
+        "prompt-case",
+        actual=True,
+        expected=True,
+    )
+
+    candidate_prompt = (
+        "Ceci est un prompt candidat."
+    )
+
+    result = asyncio.run(
+        runner.run_one(
+            task=task,
+            case=case,
+            prompt_template=candidate_prompt,
+        )
+    )
+
+    assert (
+        task.received_prompt
+        == candidate_prompt
+    )
+
+    assert (
+        result.status
+        == EvalStatus.CORRECT
+    )
+    
+
+def test_runner_uses_no_alternative_prompt_by_default():
+    runner = EvalRunner()
+
+    task = PromptAwareTask()
+
+    case = create_case(
+        "default-prompt",
+        actual=True,
+        expected=True,
+    )
+
+    asyncio.run(
+        runner.run_one(
+            task=task,
+            case=case,
+        )
+    )
+
+    assert task.received_prompt is None

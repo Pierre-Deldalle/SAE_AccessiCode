@@ -21,11 +21,14 @@ class FakePageAnalyzer:
         title: str,
         heading: str,
         content: str,
+        *,
+        prompt_template: str | None = None,
     ) -> TitleAnalysis:
         self.received = {
             "title": title,
             "heading": heading,
             "content": content,
+            "prompt_template": prompt_template,
         }
 
         return self.analysis
@@ -73,6 +76,7 @@ def test_title_task_calls_page_analyzer_with_case_data():
         "title": "Contact",
         "heading": "Contactez-nous",
         "content": "Retrouvez toutes nos coordonnées.",
+        "prompt_template": None,
     }
 
     assert actual["relevant"] is True
@@ -199,3 +203,165 @@ def test_title_task_rejects_missing_input_field(
         match="ne possède pas le champ d'entrée",
     ):
         asyncio.run(task.execute(case))
+
+
+def test_title_task_forwards_prompt_template():
+    analyzer = FakePageAnalyzer(
+        TitleAnalysis(
+            relevant=True,
+            explanation="Explication.",
+            confidence="high",
+        )
+    )
+
+    task = TitleEvalTask(
+        page_analyzer=analyzer,
+    )
+
+    case = create_title_case(
+        expected_relevant=True,
+    )
+
+    prompt = """
+Titre :
+{title}
+
+Titre principal :
+{heading}
+
+Contenu :
+{content}
+""".strip()
+
+    asyncio.run(
+        task.execute(
+            case,
+            prompt_template=prompt,
+        )
+    )
+
+    assert analyzer.received is not None
+
+    assert (
+        analyzer.received["prompt_template"]
+        == prompt
+    )
+
+
+def test_title_task_rejects_empty_prompt_template():
+    analyzer = FakePageAnalyzer(
+        TitleAnalysis(
+            relevant=True,
+            explanation="Explication.",
+            confidence="high",
+        )
+    )
+
+    task = TitleEvalTask(
+        page_analyzer=analyzer,
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="ne peut pas être vide",
+    ):
+        task.validate_prompt_template(
+            "   "
+        )
+
+
+def test_title_task_accepts_valid_prompt_template():
+    analyzer = FakePageAnalyzer(
+        TitleAnalysis(
+            relevant=True,
+            explanation="Explication.",
+            confidence="high",
+        )
+    )
+
+    task = TitleEvalTask(
+        page_analyzer=analyzer,
+    )
+
+    prompt = """
+Analyse :
+
+Titre :
+{title}
+
+Heading :
+{heading}
+
+Contenu :
+{content}
+
+Retourne :
+
+{{
+  "relevant": true
+}}
+""".strip()
+
+    task.validate_prompt_template(
+        prompt
+    )
+
+
+def test_title_task_rejects_invalid_json_braces_in_prompt():
+    analyzer = FakePageAnalyzer(
+        TitleAnalysis(
+            relevant=True,
+            explanation="Explication.",
+            confidence="high",
+        )
+    )
+
+    task = TitleEvalTask(
+        page_analyzer=analyzer,
+    )
+
+    prompt = """
+Titre :
+{title}
+
+{
+  "relevant": true
+}
+""".strip()
+
+    with pytest.raises(
+        ValueError,
+        match="prompt title est invalide",
+    ):
+        task.validate_prompt_template(
+            prompt
+        )
+
+
+def test_title_task_rejects_unknown_prompt_variable():
+    analyzer = FakePageAnalyzer(
+        TitleAnalysis(
+            relevant=True,
+            explanation="Explication.",
+            confidence="high",
+        )
+    )
+
+    task = TitleEvalTask(
+        page_analyzer=analyzer,
+    )
+
+    prompt = """
+Titre : {title}
+Heading : {heading}
+Contenu : {content}
+Utilisateur : {username}
+""".strip()
+
+    with pytest.raises(
+        ValueError,
+        match="prompt title est invalide",
+    ):
+        task.validate_prompt_template(
+            prompt
+        )
