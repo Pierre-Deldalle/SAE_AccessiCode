@@ -1,138 +1,389 @@
-/* =========================
-   PAGE EXPLICATIONS
-   ========================= */
+
+/*
+ * AccessiCode — Page d'explications
+ *
+ * Présentation de l'application et guide d'utilisation.
+ *
+ * Charte graphique :
+ * - Bleu principal : #0153C6
+ * - Cyan : #0CA0B0
+ * - Fond : #F5F5F5
+ * - Titres : Sora
+ * - Texte : Inter
+ */
+
+/* =========================================
+   PAGE PRINCIPALE
+   ========================================= */
 
 #explications-page {
+    box-sizing: border-box;
+
     position: relative !important;
 
     width: 100% !important;
     min-height: 100vh !important;
 
-    padding: 35px 55px 50px 55px !important;
+    margin: 0 !important;
+    padding: 42px 60px 70px !important;
 
     background-color: #ffffff !important;
 }
 
 
-/* =========================
-   TITRE
-   ========================= */
+/* =========================================
+   BOUTON RETOUR
+   ========================================= */
+
+#back-button {
+    box-sizing: border-box;
+
+    position: absolute !important;
+
+    top: 30px !important;
+    left: 35px !important;
+
+    width: 115px !important;
+    min-width: 115px !important;
+
+    height: 44px !important;
+    min-height: 44px !important;
+
+    margin: 0 !important;
+    padding: 8px 14px !important;
+
+    border: 1px solid #0153c6 !important;
+    border-radius: 5px !important;
+
+    background-color: #0153c6 !important;
+    color: #ffffff !important;
+
+    font-family: var(--font-body) !important;
+    font-size: 15px !important;
+    font-weight: 600 !important;
+
+    cursor: pointer !important;
+    z-index: 10;
+
+    transition:
+        background-color 150ms ease,
+        border-color 150ms ease;
+}
+
+#back-button:hover {
+    background-color: #0045a6 !important;
+    border-color: #0045a6 !important;
+    color: #ffffff !important;
+}
+
+#back-button:active {
+    background-color: #003b8f !important;
+    border-color: #003b8f !important;
+}
+
+#back-button:focus-visible {
+    outline: 3px solid #0ca0b0 !important;
+    outline-offset: 4px !important;
+}
+
+
+/* =========================================
+   TITRE PRINCIPAL
+   ========================================= */
 
 #explications-title {
-    text-align: center !important;
+    width: 100% !important;
 
-    margin-bottom: 55px !important;
+    margin: 0 0 48px !important;
+    padding: 0 125px !important;
+
+    text-align: center !important;
 }
 
 #explications-title h1 {
     margin: 0 !important;
 
     font-family: var(--font-title) !important;
+    font-size: clamp(26px, 2.5vw, 36px) !important;
+    font-weight: 600 !important;
+    line-height: 1.3 !important;
 
-    font-size: 32px !important;
-    font-weight: 500 !important;
-
-    color: #151515 !important;
+    color: #17212b !important;
 }
 
 
-/* =========================
-   BOUTON RETOUR
-   ========================= */
-
-#back-button {
-    position: absolute !important;
-
-    top: 20px !important;
-    left: 20px !important;
-
-    width: 55px !important;
-    min-width: 55px !important;
-
-    height: 42px !important;
-    min-height: 42px !important;
-
-    padding: 0 !important;
-
-    border: none !important;
-    border-radius: 4px !important;
-
-    background-color: #60bbc6 !important;
-
-    color: white !important;
-
-    font-size: 27px !important;
-
-    cursor: pointer !important;
-
-    z-index: 100 !important;
-
-    transition:
-        background-color 0.2s ease,
-        transform 0.2s ease !important;
-}
-
-#back-button:hover {
-    background-color: #0ca0b0 !important;
-
-    transform: translateX(-2px) !important;
-}
-
-
-/* =========================
-   PARTIE HAUTE
-   ========================= */
+/* =========================================
+   PARTIE SUPÉRIEURE
+   TEXTE À GAUCHE / LOGO À DROITE
+   ========================================= */
 
 #explications-top {
+    box-sizing: border-box;
+
     display: flex !important;
+    flex-direction: row !important;
     align-items: center !important;
     justify-content: space-between !important;
 
-    gap: 60px !important;
-    margin-bottom: 45px !important;
+    width: min(100%, 1080px) !important;
+
+    gap: 48px !important;
+
+    margin: 0 auto 38px !important;
+    padding: 0 !important;
 }
 
-#explications-logo {
-    width: 220px !important;
-    max-width: 220px !important;
-    flex-shrink: 0 !important;
-}
 
-/* =========================
-   TEXTE HAUT
-   ========================= */
+/* =========================================
+   TEXTE DE PRÉSENTATION
+   ========================================= */
 
 #explications-text-top {
-    flex: 1 !important;
+    flex: 1 1 0 !important;
+
+    min-width: 0 !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
-#explications-text-top p,
-#explications-text-top span,
-#explications-text-top div {
-    margin: 0 !important;
+#explications-text-top p {
+    margin: 0 0 16px !important;
 
     font-family: var(--font-body) !important;
     font-size: 16px !important;
-    line-height: 1.4 !important;
+    font-weight: 400 !important;
+    line-height: 1.75 !important;
 
     color: #202020 !important;
 }
 
+#explications-text-top p:last-child {
+    margin-bottom: 0 !important;
+}
 
-/* =========================
-   TEXTE BAS
-   ========================= */
+#explications-text-top strong {
+    font-weight: 600 !important;
+    color: #17212b !important;
+}
+
+
+/* =========================================
+   LOGO ACCESSICODE
+   ========================================= */
+
+#explications-logo {
+    box-sizing: border-box;
+
+    flex: 0 0 200px !important;
+
+    width: 200px !important;
+    max-width: 200px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+#explications-logo img {
+    display: block !important;
+
+    width: 100% !important;
+    height: auto !important;
+
+    object-fit: contain !important;
+}
+
+
+/* =========================================
+   PARTIE INFÉRIEURE
+   GUIDE D'UTILISATION
+   ========================================= */
 
 #explications-text-bottom {
-    width: 100% !important;
+    box-sizing: border-box;
+
+    width: min(100%, 1080px) !important;
+
+    margin: 0 auto !important;
+    padding: 28px 0 0 !important;
+
+    border-top: 1px solid #e1e5e9 !important;
 }
 
-#explications-text-bottom p,
-#explications-text-bottom span,
-#explications-text-bottom div {
-    font-family: var(--font-body) !important;
-    font-size: 16px !important;
+#explications-text-bottom h2 {
+    margin: 30px 0 18px !important;
+
+    font-family: var(--font-title) !important;
+    font-size: 22px !important;
+    font-weight: 600 !important;
     line-height: 1.4 !important;
 
+    color: #17212b !important;
+}
+
+#explications-text-bottom h2:first-child {
+    margin-top: 0 !important;
+}
+
+#explications-text-bottom p {
+    margin: 0 0 18px !important;
+
+    font-family: var(--font-body) !important;
+    font-size: 16px !important;
+    font-weight: 400 !important;
+    line-height: 1.75 !important;
+
     color: #202020 !important;
+}
+
+#explications-text-bottom strong {
+    font-weight: 600 !important;
+    color: #17212b !important;
+}
+
+
+/* =========================================
+   LISTE DES STATUTS RGAA
+   ========================================= */
+
+#explications-text-bottom ul {
+    margin: 6px 0 24px !important;
+    padding-left: 28px !important;
+
+    list-style-type: disc !important;
+}
+
+#explications-text-bottom li {
+    margin-bottom: 10px !important;
+    padding-left: 4px !important;
+
+    font-family: var(--font-body) !important;
+    font-size: 15px !important;
+    line-height: 1.65 !important;
+
+    color: #202020 !important;
+}
+
+#explications-text-bottom li::marker {
+    color: #0153c6 !important;
+}
+
+
+/* =========================================
+   SÉPARATION DES SECTIONS
+   ========================================= */
+
+#explications-text-bottom h2:not(:first-child) {
+    margin-top: 38px !important;
+    padding-top: 24px !important;
+
+    border-top: 1px solid #e1e5e9 !important;
+}
+
+
+/* =========================================
+   RESPONSIVE — FENÊTRES INTERMÉDIAIRES
+   ========================================= */
+
+@media (max-width: 900px) {
+    #explications-page {
+        padding: 36px 35px 60px !important;
+    }
+
+    #explications-title {
+        margin-bottom: 38px !important;
+        padding: 0 110px !important;
+    }
+
+    #explications-top {
+        gap: 30px !important;
+    }
+
+    #explications-logo {
+        flex-basis: 160px !important;
+        width: 160px !important;
+        max-width: 160px !important;
+    }
+}
+
+
+/* =========================================
+   RESPONSIVE — PETITES FENÊTRES
+   ========================================= */
+
+@media (max-width: 650px) {
+    #explications-page {
+        min-height: 100dvh !important;
+        padding: 95px 22px 45px !important;
+    }
+
+    #back-button {
+        top: 20px !important;
+        left: 22px !important;
+
+        width: 108px !important;
+        min-width: 108px !important;
+
+        height: 42px !important;
+        min-height: 42px !important;
+
+        font-size: 14px !important;
+    }
+
+    #explications-title {
+        margin-bottom: 30px !important;
+        padding: 0 !important;
+    }
+
+    #explications-title h1 {
+        font-size: 27px !important;
+    }
+
+    #explications-top {
+        flex-direction: column !important;
+        align-items: stretch !important;
+
+        gap: 26px !important;
+        margin-bottom: 30px !important;
+    }
+
+    #explications-logo {
+        align-self: center !important;
+
+        flex: 0 0 auto !important;
+
+        width: 160px !important;
+        max-width: 160px !important;
+
+        margin: 0 auto !important;
+    }
+
+    #explications-text-bottom {
+        padding-top: 24px !important;
+    }
+
+    #explications-text-bottom h2 {
+        font-size: 20px !important;
+    }
+
+    #explications-text-top p,
+    #explications-text-bottom p {
+        font-size: 15px !important;
+        line-height: 1.7 !important;
+    }
+
+    #explications-text-bottom li {
+        font-size: 15px !important;
+    }
+}
+
+
+/* =========================================
+   ACCESSIBILITÉ — MOUVEMENTS RÉDUITS
+   ========================================= */
+
+@media (prefers-reduced-motion: reduce) {
+    #back-button {
+        transition: none !important;
+    }
 }
