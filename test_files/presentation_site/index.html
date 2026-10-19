@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Page de test pour le critère 10.1</title>
+    <style>
+        /* Styles CSS appropriés - ces éléments ne doivent pas déclencher d'échec */
+        .correcte-mise-en-forme {
+            color: #0066cc;
+            font-weight: bold;
+            text-align: center;
+        }
+        .tableau-donnees {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .tableau-donnees th,
+        .tableau-donnees td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .tableau-donnees th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <!-- En-tête principal -->
+    <h1 class="correcte-mise-en-forme">Titre principal de la page</h1>
+
+    <!-- Contenu principal avec mise en forme CSS appropriée -->
+    <section>
+        <h2>Section d'introduction</h2>
+        <p class="correcte-mise-en-forme">
+            Ceci est un paragraphe avec une mise en forme CSS appropriée.
+            Aucune balise ou attribut de présentation ne devrait être présent ici.
+        </p>
+    </section>
+
+    <!-- Tableau de données avec CSS approprié (pas d'attributs de présentation) -->
+    <section>
+        <h2>Tableau de données</h2>
+        <table class="tableau-donnees">
+            <thead>
+                <tr>
+                    <th>Nom</th>
+                    <th>Âge</th>
+                    <th>Ville</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Jean Dupont</td>
+                    <td>28</td>
+                    <td>Paris</td>
+                </tr>
+                <tr>
+                    <td>Marie Martin</td>
+                    <td>32</td>
+                    <td>Lyon</td>
+                </tr>
+                <tr>
+                    <td>Pierre Durand</td>
+                    <td>25</td>
+                    <td>Marseille</td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <!--
+    ===== EXEMPLES D'ÉCHECS POUR LE TEST 10.1.1 (balises de présentation) =====
+    Ces éléments seraient détectés comme échouant le test 10.1.1 s'ils n'étaient pas commentés :
+
+    <basefont face="Arial" size="3">
+    <big>Texte en grand</big>
+    <blink>Texte clignotant</blink>
+    <center>Texte centré</center>
+    <font color="red">Texte rouge</font>
+    <marquee>Texte défilant</marquee>
+    Texte barré.
+
+    <strike>Autre texte barré</strike>
+    <tt>Texte à chasse fixe</tt>
+    <u>Texte souligné</u> <!-- Échoue seulement si pas HTML5 -->
+    -->
+
+    <!--
+    ===== EXEMPLES D'ÉCHECS POUR LE TEST 10.1.2 (attributs de présentation) =====
+    Ces attributs seraient détectés comme échouant le test 10.1.2 s'ils n'étaient pas commentés :
+
+    <p align="center">Paragraphe centré avec attribut align</p>
+    <table bgcolor="#ffffcc">
+        <tr><td>Cellule avec fond coloré</td></tr>
+    </table>
+    <td width="100">Cellule avec largeur fixe</td>
+    <td height="50">Cellule avec hauteur fixe</td>
+    <hr size="2">
+    <div bgcolor="#cccccc">Div avec fond coloré</div>
+    <img src="image.jpg" width="100" height="100">
+    <object data="video.mp4" width="400" height="300">
+    <embed src="audio.mp3" width="200" height="50">
+    <canvas width="200" height="200"></canvas>
+    <svg width="100" height="100"></svg>
+    -->
+
+    <!--
+    ===== EXEMPLES D'ÉCHECS POUR LE TEST 10.1.3 (espaces détournés) =====
+    Ces usages d'espaces seraient détectés comme échouant le test 10.1.3 s'ils n'étaient pas commentés :
+
+    Espaces entre les lettres d'un mot :
+    <p>H E L L O   W O R L D</p>
+
+    Espaces pour simuler un tableau :
+    <p>Nom           Âge       Ville
+Jean          25        Paris
+Marie         30        Lyon
+Pierre        25        Marseille</p>
+    -->
+</body>
+</html>
