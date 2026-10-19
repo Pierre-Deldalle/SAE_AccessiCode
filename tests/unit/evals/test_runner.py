@@ -313,9 +313,7 @@ def test_runner_forwards_prompt_template_to_task():
         expected=True,
     )
 
-    candidate_prompt = (
-        "Ceci est un prompt candidat."
-    )
+    candidate_prompt = "Ceci est un prompt candidat."
 
     result = asyncio.run(
         runner.run_one(
@@ -325,15 +323,9 @@ def test_runner_forwards_prompt_template_to_task():
         )
     )
 
-    assert (
-        task.received_prompt
-        == candidate_prompt
-    )
+    assert task.received_prompt == candidate_prompt
 
-    assert (
-        result.status
-        == EvalStatus.CORRECT
-    )
+    assert result.status == EvalStatus.CORRECT
 
 
 def test_runner_uses_no_alternative_prompt_by_default():

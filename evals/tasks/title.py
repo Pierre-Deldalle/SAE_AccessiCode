@@ -77,9 +77,7 @@ class TitleEvalTask(EvalTask):
         self,
         prompt_template: str,
     ) -> None:
-        super().validate_prompt_template(
-            prompt_template
-        )
+        super().validate_prompt_template(prompt_template)
 
         try:
             prompt_template.format(

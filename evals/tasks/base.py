@@ -107,6 +107,4 @@ class EvalTask(ABC):
         des contraintes particulières.
         """
         if not prompt_template.strip():
-            raise ValueError(
-                "Un prompt candidat ne peut pas être vide."
-            )
+            raise ValueError("Un prompt candidat ne peut pas être vide.")

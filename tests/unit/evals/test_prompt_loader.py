@@ -14,9 +14,7 @@ def test_load_prompt_variant(tmp_path):
         encoding="utf-8",
     )
 
-    variant = load_prompt_variant(
-        prompt_path
-    )
+    variant = load_prompt_variant(prompt_path)
 
     assert variant.name == "candidate_001"
     assert variant.template == "Voici un prompt avec {title}."
@@ -31,9 +29,7 @@ def test_load_prompt_variant_strips_whitespace(tmp_path):
         encoding="utf-8",
     )
 
-    variant = load_prompt_variant(
-        prompt_path
-    )
+    variant = load_prompt_variant(prompt_path)
 
     assert variant.template == "Prompt candidat."
 
@@ -45,9 +41,7 @@ def test_load_prompt_variant_rejects_missing_file(tmp_path):
         FileNotFoundError,
         match="introuvable",
     ):
-        load_prompt_variant(
-            prompt_path
-        )
+        load_prompt_variant(prompt_path)
 
 
 def test_load_prompt_variant_rejects_directory(tmp_path):
@@ -59,9 +53,7 @@ def test_load_prompt_variant_rejects_directory(tmp_path):
         ValueError,
         match="n'est pas un fichier",
     ):
-        load_prompt_variant(
-            directory
-        )
+        load_prompt_variant(directory)
 
 
 def test_load_prompt_variant_rejects_empty_prompt(tmp_path):
@@ -76,9 +68,7 @@ def test_load_prompt_variant_rejects_empty_prompt(tmp_path):
         ValueError,
         match="est vide",
     ):
-        load_prompt_variant(
-            prompt_path
-        )
+        load_prompt_variant(prompt_path)
 
 
 def test_load_prompt_variants_loads_txt_files_in_sorted_order(
@@ -100,14 +90,9 @@ def test_load_prompt_variants_loads_txt_files_in_sorted_order(
         encoding="utf-8",
     )
 
-    variants = load_prompt_variants(
-        tmp_path
-    )
+    variants = load_prompt_variants(tmp_path)
 
-    assert [
-        variant.name
-        for variant in variants
-    ] == [
+    assert [variant.name for variant in variants] == [
         "candidate_001",
         "candidate_002",
     ]
@@ -122,9 +107,7 @@ def test_load_prompt_variants_rejects_missing_directory(
         FileNotFoundError,
         match="Dossier de prompts introuvable",
     ):
-        load_prompt_variants(
-            directory
-        )
+        load_prompt_variants(directory)
 
 
 def test_load_prompt_variants_rejects_directory_without_txt(
@@ -139,6 +122,4 @@ def test_load_prompt_variants_rejects_directory_without_txt(
         ValueError,
         match="Aucun prompt candidat",
     ):
-        load_prompt_variants(
-            tmp_path
-        )
+        load_prompt_variants(tmp_path)

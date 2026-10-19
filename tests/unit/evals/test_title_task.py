@@ -242,10 +242,7 @@ Contenu :
 
     assert analyzer.received is not None
 
-    assert (
-        analyzer.received["prompt_template"]
-        == prompt
-    )
+    assert analyzer.received["prompt_template"] == prompt
 
 
 def test_title_task_rejects_empty_prompt_template():
@@ -265,9 +262,7 @@ def test_title_task_rejects_empty_prompt_template():
         ValueError,
         match="ne peut pas être vide",
     ):
-        task.validate_prompt_template(
-            "   "
-        )
+        task.validate_prompt_template("   ")
 
 
 def test_title_task_accepts_valid_prompt_template():
@@ -302,9 +297,7 @@ Retourne :
 }}
 """.strip()
 
-    task.validate_prompt_template(
-        prompt
-    )
+    task.validate_prompt_template(prompt)
 
 
 def test_title_task_rejects_invalid_json_braces_in_prompt():
@@ -333,9 +326,7 @@ Titre :
         ValueError,
         match="prompt title est invalide",
     ):
-        task.validate_prompt_template(
-            prompt
-        )
+        task.validate_prompt_template(prompt)
 
 
 def test_title_task_rejects_unknown_prompt_variable():
@@ -362,6 +353,4 @@ Utilisateur : {username}
         ValueError,
         match="prompt title est invalide",
     ):
-        task.validate_prompt_template(
-            prompt
-        )
+        task.validate_prompt_template(prompt)

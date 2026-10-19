@@ -36,16 +36,8 @@ def create_result(
             else None
         ),
         expected_decision=expected,
-        actual_decision=(
-            actual
-            if status != EvalStatus.ERROR
-            else None
-        ),
-        confidence=(
-            confidence
-            if status != EvalStatus.ERROR
-            else None
-        ),
+        actual_decision=(actual if status != EvalStatus.ERROR else None),
+        confidence=(confidence if status != EvalStatus.ERROR else None),
         decision_score=score,
         decision_issues=issues,
         integrity_score=100.0,
@@ -90,31 +82,19 @@ def test_comparator_detects_incorrect_to_correct_improvement():
     comparison = PromptComparator().compare(
         baseline_name="production",
         baseline_results=baseline_results,
-        baseline_report=create_report(
-            baseline_results
-        ),
+        baseline_report=create_report(baseline_results),
         candidate_name="candidate_001",
         candidate_results=candidate_results,
-        candidate_report=create_report(
-            candidate_results
-        ),
+        candidate_report=create_report(candidate_results),
     )
 
-    assert len(
-        comparison.improvements
-    ) == 1
+    assert len(comparison.improvements) == 1
 
-    assert (
-        comparison.improvements[0].case_id
-        == "title_001"
-    )
+    assert comparison.improvements[0].case_id == "title_001"
 
     assert comparison.regressions == []
 
-    assert (
-        comparison.improvements[0].score_delta
-        == 80.0
-    )
+    assert comparison.improvements[0].score_delta == 80.0
 
 
 def test_comparator_detects_correct_to_incorrect_regression():
@@ -141,35 +121,21 @@ def test_comparator_detects_correct_to_incorrect_regression():
     comparison = PromptComparator().compare(
         baseline_name="production",
         baseline_results=baseline_results,
-        baseline_report=create_report(
-            baseline_results
-        ),
+        baseline_report=create_report(baseline_results),
         candidate_name="candidate_001",
         candidate_results=candidate_results,
-        candidate_report=create_report(
-            candidate_results
-        ),
+        candidate_report=create_report(candidate_results),
     )
 
-    assert len(
-        comparison.regressions
-    ) == 1
+    assert len(comparison.regressions) == 1
 
-    regression = comparison.regressions[
-        0
-    ]
+    regression = comparison.regressions[0]
 
     assert regression.case_id == "title_001"
 
-    assert (
-        regression.baseline_status
-        == "correct"
-    )
+    assert regression.baseline_status == "correct"
 
-    assert (
-        regression.candidate_status
-        == "incorrect"
-    )
+    assert regression.candidate_status == "incorrect"
 
     assert regression.score_delta == -80.0
 
@@ -181,9 +147,7 @@ def test_comparator_detects_score_improvement_without_status_change():
             status=EvalStatus.CORRECT,
             score=75.0,
             confidence="low",
-            issues=(
-                "unnecessary_low_confidence",
-            ),
+            issues=("unnecessary_low_confidence",),
         ),
     ]
 
@@ -199,26 +163,18 @@ def test_comparator_detects_score_improvement_without_status_change():
     comparison = PromptComparator().compare(
         baseline_name="production",
         baseline_results=baseline_results,
-        baseline_report=create_report(
-            baseline_results
-        ),
+        baseline_report=create_report(baseline_results),
         candidate_name="candidate_001",
         candidate_results=candidate_results,
-        candidate_report=create_report(
-            candidate_results
-        ),
+        candidate_report=create_report(candidate_results),
     )
 
     assert comparison.improvements == []
     assert comparison.regressions == []
 
-    assert len(
-        comparison.score_improvements
-    ) == 1
+    assert len(comparison.score_improvements) == 1
 
-    improvement = (
-        comparison.score_improvements[0]
-    )
+    improvement = comparison.score_improvements[0]
 
     assert improvement.case_id == "title_001"
     assert improvement.baseline_score == 75.0
@@ -242,35 +198,25 @@ def test_comparator_detects_score_regression_without_status_change():
             status=EvalStatus.CORRECT,
             score=75.0,
             confidence="low",
-            issues=(
-                "unnecessary_low_confidence",
-            ),
+            issues=("unnecessary_low_confidence",),
         ),
     ]
 
     comparison = PromptComparator().compare(
         baseline_name="production",
         baseline_results=baseline_results,
-        baseline_report=create_report(
-            baseline_results
-        ),
+        baseline_report=create_report(baseline_results),
         candidate_name="candidate_001",
         candidate_results=candidate_results,
-        candidate_report=create_report(
-            candidate_results
-        ),
+        candidate_report=create_report(candidate_results),
     )
 
     assert comparison.improvements == []
     assert comparison.regressions == []
 
-    assert len(
-        comparison.score_regressions
-    ) == 1
+    assert len(comparison.score_regressions) == 1
 
-    regression = (
-        comparison.score_regressions[0]
-    )
+    regression = comparison.score_regressions[0]
 
     assert regression.score_delta == -25.0
 
@@ -310,13 +256,9 @@ def test_comparator_calculates_global_deltas():
         ),
     ]
 
-    baseline_report = create_report(
-        baseline_results
-    )
+    baseline_report = create_report(baseline_results)
 
-    candidate_report = create_report(
-        candidate_results
-    )
+    candidate_report = create_report(candidate_results)
 
     comparison = PromptComparator().compare(
         baseline_name="production",
@@ -368,25 +310,15 @@ def test_comparator_compares_critical_errors():
     comparison = PromptComparator().compare(
         baseline_name="production",
         baseline_results=baseline_results,
-        baseline_report=create_report(
-            baseline_results
-        ),
+        baseline_report=create_report(baseline_results),
         candidate_name="candidate_001",
         candidate_results=candidate_results,
-        candidate_report=create_report(
-            candidate_results
-        ),
+        candidate_report=create_report(candidate_results),
     )
 
-    assert (
-        comparison.baseline_critical_errors
-        == 1
-    )
+    assert comparison.baseline_critical_errors == 1
 
-    assert (
-        comparison.candidate_critical_errors
-        == 0
-    )
+    assert comparison.candidate_critical_errors == 0
 
 
 def test_comparator_rejects_different_case_sets():
@@ -413,14 +345,10 @@ def test_comparator_rejects_different_case_sets():
         PromptComparator().compare(
             baseline_name="production",
             baseline_results=baseline_results,
-            baseline_report=create_report(
-                baseline_results
-            ),
+            baseline_report=create_report(baseline_results),
             candidate_name="candidate_001",
             candidate_results=candidate_results,
-            candidate_report=create_report(
-                candidate_results
-            ),
+            candidate_report=create_report(candidate_results),
         )
 
 
@@ -475,33 +403,20 @@ def test_comparator_can_report_improvements_and_regressions_together():
     comparison = PromptComparator().compare(
         baseline_name="production",
         baseline_results=baseline_results,
-        baseline_report=create_report(
-            baseline_results
-        ),
+        baseline_report=create_report(baseline_results),
         candidate_name="candidate_001",
         candidate_results=candidate_results,
-        candidate_report=create_report(
-            candidate_results
-        ),
+        candidate_report=create_report(candidate_results),
     )
 
-    assert [
-        item.case_id
-        for item in comparison.improvements
-    ] == [
+    assert [item.case_id for item in comparison.improvements] == [
         "fixed_case",
     ]
 
-    assert [
-        item.case_id
-        for item in comparison.regressions
-    ] == [
+    assert [item.case_id for item in comparison.regressions] == [
         "broken_case",
     ]
 
-    assert [
-        item.case_id
-        for item in comparison.score_improvements
-    ] == [
+    assert [item.case_id for item in comparison.score_improvements] == [
         "better_confidence",
     ]

@@ -42,18 +42,10 @@ class PromptComparison:
     baseline_critical_errors: int
     candidate_critical_errors: int
 
-    improvements: list[CaseChange] = field(
-        default_factory=list
-    )
+    improvements: list[CaseChange] = field(default_factory=list)
 
-    regressions: list[CaseChange] = field(
-        default_factory=list
-    )
+    regressions: list[CaseChange] = field(default_factory=list)
 
-    score_improvements: list[CaseChange] = field(
-        default_factory=list
-    )
+    score_improvements: list[CaseChange] = field(default_factory=list)
 
-    score_regressions: list[CaseChange] = field(
-        default_factory=list
-    )
+    score_regressions: list[CaseChange] = field(default_factory=list)
