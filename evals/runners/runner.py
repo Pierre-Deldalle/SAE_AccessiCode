@@ -35,6 +35,8 @@ class EvalRunner:
         self,
         task: EvalTask,
         cases: list[EvalCase],
+        *,
+        prompt_template: str | None = None,
     ) -> list[EvalResult]:
         results: list[EvalResult] = []
 
@@ -42,6 +44,7 @@ class EvalRunner:
             result = await self.run_one(
                 task=task,
                 case=case,
+                prompt_template=prompt_template,
             )
 
             results.append(result)
@@ -52,6 +55,8 @@ class EvalRunner:
         self,
         task: EvalTask,
         case: EvalCase,
+        *,
+        prompt_template: str | None = None,
     ) -> EvalResult:
         expected_decision: bool | None = None
 
@@ -62,6 +67,7 @@ class EvalRunner:
 
             actual = await task.execute(
                 case,
+                prompt_template=prompt_template,
             )
 
             actual_decision = task.get_actual_decision(

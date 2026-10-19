@@ -28,9 +28,15 @@ class EvalTask(ABC):
     async def execute(
         self,
         case: EvalCase,
+        *,
+        prompt_template: str | None = None,
     ) -> dict[str, Any]:
         """
         Exécute l'analyse IA correspondant au cas.
+
+        prompt_template permet aux évaluations de tester
+        un prompt alternatif sans modifier le prompt
+        utilisé normalement par l'application.
         """
         raise NotImplementedError
 
@@ -89,3 +95,18 @@ class EvalTask(ABC):
     ) -> None:
         if value is not True and value is not False and value is not None:
             raise ValueError(f"{field_name} doit être true, false ou null.")
+    
+    def validate_prompt_template(
+        self,
+        prompt_template: str,
+    ) -> None:
+        """
+        Vérifie qu'un prompt candidat peut être utilisé par cette tâche.
+
+        Les tâches peuvent surcharger cette méthode si elles ont
+        des contraintes particulières.
+        """
+        if not prompt_template.strip():
+            raise ValueError(
+                "Un prompt candidat ne peut pas être vide."
+            )

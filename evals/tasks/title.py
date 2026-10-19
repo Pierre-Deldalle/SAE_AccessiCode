@@ -28,6 +28,8 @@ class TitleEvalTask(EvalTask):
     async def execute(
         self,
         case: EvalCase,
+        *,
+        prompt_template: str | None = None,
     ) -> dict[str, Any]:
         title = self._get_string(
             case,
@@ -48,6 +50,7 @@ class TitleEvalTask(EvalTask):
             title=title,
             heading=heading,
             content=content,
+            prompt_template=prompt_template,
         )
 
         return asdict(analysis)
@@ -69,3 +72,31 @@ class TitleEvalTask(EvalTask):
             raise ValueError(f"Le champ {key!r} du cas {case.id!r} doit être une chaîne.")
 
         return value
+    
+    def validate_prompt_template(
+        self,
+        prompt_template: str,
+    ) -> None:
+        super().validate_prompt_template(
+            prompt_template
+        )
+
+        try:
+            prompt_template.format(
+                title="TITLE",
+                heading="HEADING",
+                content="CONTENT",
+            )
+
+        except (
+            KeyError,
+            IndexError,
+            ValueError,
+        ) as error:
+            raise ValueError(
+                "Le prompt title est invalide. "
+                "Il doit notamment supporter les variables "
+                "{title}, {heading} et {content}, "
+                "et les accolades JSON doivent être échappées "
+                "avec {{ et }}."
+            ) from error
