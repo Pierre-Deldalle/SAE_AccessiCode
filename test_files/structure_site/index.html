@@ -32,19 +32,59 @@
     <main>
         <h2>Bienvenue sur notre site</h2>
         <p>Ceci est le contenu principal de la page web.</p>
+
+        <!-- Section pour tester le critère 9.3 : Structuration des listes -->
         <section>
-            <h3>À propos de nous</h3>
-            <p>Nous sommes une entreprise dédiée à l'excellence.</p>
-        </section>
-        <section>
-            <h3>Nos services</h3>
-            <p>Nous offrons une variété de services de qualité.</p>
+            <h2>Tests de structuration des listes (Critère 9.3)</h2>
+
+            <!-- Liste non ordonnée avec balises HTML -->
+            <h3>Liste non ordonnée avec <code>&lt;ul&gt;</code> et <code>&lt;li&gt;</code></h3>
+            <ul>
+                <li>Premier élément de liste</li>
+                <li>Deuxième élément de liste</li>
+                <li>Troisième élément de liste</li>
+            </ul>
+
+            <!-- Liste ordonnée avec balises HTML -->
+            <h3>Liste ordonnée avec <code>&lt;ol&gt;</code> et <code>&lt;li&gt;</code></h3>
+            <ol>
+                <li>Première étape</li>
+                <li>Deuxième étape</li>
+                <li>Troisième étape</li>
+            </ol>
+
+            <!-- Liste de description -->
+            <h3>Liste de description avec <code>&lt;dl&gt;</code>, <code>&lt;dt&gt;</code> et <code>&lt;dd&gt;</code></h3>
+            <dl>
+                <dt>HTML</dt>
+                <dd>Langage de balisage pour créer des pages web</dd>
+                <dt>CSS</dt>
+                <dd>Feuilles de style pour mettre en forme les pages web</dd>
+                <dt>JavaScript</dt>
+                <dd>Langage de programmation pour ajouter de l'interactivité</dd>
+            </dl>
+
+            <!-- Liste non ordonnée avec attributs WAI-ARIA -->
+            <h3>Liste non ordonnée avec attributs WAI-ARIA</h3>
+            <div role="list">
+                <div role="listitem">Élément 1</div>
+                <div role="listitem">Élément 2</div>
+                <div role="listitem">Élément 3</div>
+            </div>
+
+            <!-- Liste ordonnée avec attributs WAI-ARIA -->
+            <h3>Liste ordonnée avec attributs WAI-ARIA</h3>
+            <div role="list">
+                <div role="listitem">Premier élément</div>
+                <div role="listitem">Deuxième élément</div>
+                <div role="listitem">Troisième élément</div>
+            </div>
         </section>
     </main>
 
     <!-- Pied de page -->
     <footer>
-        <p>&copy; 2023 Mon Site Web. Tous droits réservés.</p>
+        <p>&copy; 2026 Mon Site Web. Tous droits réservés.</p>
         <nav aria-label="Pied de page">
             <ul>
                 <li><a href="/mentions-legales">Mentions légales</a></li>
