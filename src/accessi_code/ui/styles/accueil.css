@@ -1,89 +1,197 @@
-/*
-Styles spécifiques à la page d'accueil :
-mise en page, titre, logo et bouton principal.
-*/
 
-/* Conteneur principal de la page d'accueil. */
+/*
+ * AccessiCode — Page d'accueil
+ *
+ * Mise en page volontairement sobre :
+ * titre, logo et bouton d'accès.
+ *
+ * Les couleurs respectent la charte graphique.
+ */
+
 #accueil-page {
-    position: relative;
+    box-sizing: border-box;
 
     width: 100% !important;
-    height: 100vh !important;
+    min-height: 100vh !important;
+    height: auto !important;
 
     display: flex !important;
     flex-direction: column;
     align-items: center;
     justify-content: center;
 
-    gap: 30px;
+    gap: 28px !important;
 
     margin: 0 !important;
-    padding: 40px !important;
+    padding: 48px 24px !important;
 
-    background: #ffffff !important;
+    background-color: #ffffff !important;
 }
 
-/* Titre de bienvenue. */
+/* Titre d'accueil */
+
 #welcome-title {
-    text-align: center !important;
+    width: 100%;
+
     margin: 0 !important;
     padding: 0 !important;
+
+    text-align: center !important;
 }
 
 #welcome-title h2 {
-    font-family: var(--font-title) !important;
-
     margin: 0 !important;
-    font-size: clamp(28px, 2.5vw, 42px) !important;
-    font-weight: 600 !important;
 
-    color: #10243a !important;
+    font-family: var(--font-title) !important;
+    font-size: clamp(28px, 2.6vw, 38px) !important;
+    font-weight: 600 !important;
+    line-height: 1.25 !important;
+
+    letter-spacing: -0.025em;
+
+    color: #17212b !important;
 }
 
-/* Logo principal. */
+/* Logo AccessiCode */
+
 #accueil-logo {
-    width: clamp(300px, 25vw, 430px) !important;
-    max-width: 430px !important;
+    width: min(350px, 80vw) !important;
+    max-width: 350px !important;
 
     margin: 0 auto !important;
+    padding: 0 !important;
 }
 
 #accueil-logo img {
+    display: block;
+
     width: 100% !important;
     height: auto !important;
 
     object-fit: contain !important;
 }
 
-/* Bouton principal d'accès à l'application. */
+/* Bouton principal */
+
 #accueil-button {
-    width: clamp(220px, 18vw, 280px) !important;
+    box-sizing: border-box;
 
-    min-height: 62px !important;
+    width: min(290px, 100%) !important;
+    min-height: 54px !important;
 
-    margin: 0 auto !important;
+    margin: 4px auto 0 !important;
+    padding: 12px 20px !important;
 
-    background: #1aa3b8 !important;
+    border: 1px solid #0153c6 !important;
+    border-radius: 5px !important;
 
-    border: 1px solid #777777 !important;
-    border-radius: 3px !important;
-
-    color: #000000 !important;
+    background-color: #0153c6 !important;
+    color: #ffffff !important;
 
     font-family: var(--font-body) !important;
-    font-size: 19px !important;
-    font-weight: 400 !important;
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    line-height: 1.4 !important;
+
+    text-align: center !important;
 
     cursor: pointer;
+
+    transition:
+        background-color 150ms ease,
+        border-color 150ms ease,
+        box-shadow 150ms ease;
 }
 
-/* Retour visuel au survol. */
+/* Survol : variation sobre du bleu principal */
+
 #accueil-button:hover {
-    background: #158fa1 !important;
+    background-color: #0045a6 !important;
+    border-color: #0045a6 !important;
+    color: #ffffff !important;
 }
 
-/* Indicateur visible pour la navigation clavier. */
+/* Retour visuel au clic */
+
+#accueil-button:active {
+    background-color: #003b8f !important;
+    border-color: #003b8f !important;
+    box-shadow: inset 0 2px 4px rgb(0 0 0 / 12%);
+}
+
+/* Navigation au clavier */
+
 #accueil-button:focus-visible {
-    outline: 3px solid #005fcc !important;
-    outline-offset: 3px !important;
+    outline: 3px solid #0ca0b0 !important;
+    outline-offset: 4px !important;
+}
+
+/* Désactivation du mouvement si demandée */
+
+@media (prefers-reduced-motion: reduce) {
+    #accueil-button {
+        transition: none !important;
+    }
+}
+
+/* Petits écrans */
+
+@media (max-width: 600px) {
+    #accueil-page {
+        min-height: 100dvh !important;
+
+        gap: 24px !important;
+        padding: 40px 20px !important;
+    }
+
+    #welcome-title h2 {
+        font-size: 28px !important;
+    }
+
+    #accueil-logo {
+        width: min(300px, 85vw) !important;
+    }
+
+    #accueil-button {
+        width: min(290px, 100%) !important;
+        min-height: 52px !important;
+
+        font-size: 16px !important;
+    }
+}
+
+/* Fenêtres peu hautes */
+
+@media (max-height: 650px) and (min-width: 601px) {
+    #accueil-page {
+        min-height: 100vh !important;
+        gap: 18px !important;
+        padding-top: 24px !important;
+        padding-bottom: 24px !important;
+    }
+
+    #accueil-logo {
+        width: min(270px, 70vw) !important;
+    }
+}
+
+
+/* =========================================
+   TRANSITION DE SORTIE DE L'ACCUEIL
+   ========================================= */
+
+#accueil-page {
+    opacity: 1;
+    transition: opacity 350ms ease-in-out;
+}
+
+#accueil-page.accueil-fade-out {
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #accueil-page {
+        transition: none !important;
+    }
 }
