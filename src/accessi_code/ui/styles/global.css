@@ -1,50 +1,172 @@
-/*
-Styles globaux de l'interface AccessiCode :
-polices, dimensions générales, fond et comportement de la page.
-*/
 
-/* Polices utilisées par la charte graphique. */
+/*
+ * AccessiCode — Styles globaux
+ *
+ * Polices, couleurs et comportement général.
+ * Le défilement vertical reste disponible
+ * lorsque le contenu dépasse la fenêtre.
+ */
+
+/* =========================================
+   POLICES
+   ========================================= */
+
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@400;500;600;700&display=swap");
 
-* {
+
+/* =========================================
+   BASE GLOBALE
+   ========================================= */
+
+*,
+*::before,
+*::after {
     box-sizing: border-box;
 }
 
-/* Variables globales pour réutiliser facilement les polices. */
 :root {
     --font-title: "Sora", sans-serif;
     --font-body: "Inter", sans-serif;
+
+    --color-primary: #0153c6;
+    --color-secondary: #0ca0b0;
+
+    --color-success: #01cb26;
+    --color-warning: #ffcc00;
+    --color-error: #ff0000;
+
+    --color-background: #ffffff;
+    --color-background-muted: #f5f5f5;
+    --color-text: #17212b;
 }
 
-html,
+
+/* =========================================
+   DOCUMENT HTML
+   ========================================= */
+
+html {
+    width: 100%;
+    min-height: 100%;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+
+    background-color: #ffffff !important;
+}
+
 body {
     width: 100%;
-    height: 100%;
+    min-height: 100%;
 
     margin: 0 !important;
     padding: 0 !important;
 
-    /* Évite l'apparition d'une barre de défilement globale inutile. */
-    overflow: hidden !important;
+    /*
+     * Un seul conteneur principal gère
+     * le défilement du document.
+     */
+    overflow: visible !important;
 
+    background-color: #ffffff !important;
     font-family: var(--font-body) !important;
 }
+
+
+/* =========================================
+   CONTENEUR GRADIO
+   ========================================= */
 
 .gradio-container {
+    box-sizing: border-box;
+
     width: 100% !important;
-    height: 100vh !important;
     max-width: none !important;
+
+    /*
+     * Permet à l'interface de grandir
+     * uniquement lorsque nécessaire.
+     */
+    min-height: 100vh !important;
+    height: auto !important;
 
     margin: 0 !important;
     padding: 0 !important;
 
-    overflow: hidden !important;
-
-    background: #ffffff !important;
+    background-color: #ffffff !important;
     font-family: var(--font-body) !important;
 }
 
-/* Cache le footer ajouté automatiquement par Gradio. */
+
+/* =========================================
+   PAGES DE L'APPLICATION
+   ========================================= */
+
+.page-container {
+    box-sizing: border-box;
+
+    width: 100% !important;
+    min-height: 100vh;
+    height: auto !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    /*
+     * On laisse la page grandir selon
+     * son contenu sans créer de zone
+     * de défilement supplémentaire.
+     */
+    overflow: visible !important;
+}
+
+
+/* =========================================
+   ACCESSIBILITÉ
+   ========================================= */
+
+:focus-visible {
+    outline: 3px solid var(--color-primary);
+    outline-offset: 3px;
+}
+
+
+/* =========================================
+   FOOTER GRADIO
+   ========================================= */
+
 footer {
     display: none !important;
+}
+
+
+
+/* =========================================
+   MASQUAGE VISUEL DES BARRES DE DÉFILEMENT
+   ========================================= */
+
+/*
+ * Cache la barre de défilement sans empêcher
+ * le défilement du contenu.
+ *
+ * Compatible notamment avec le moteur Chromium
+ * utilisé par WebView2 sur Windows.
+ */
+
+html,
+body,
+.gradio-container {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+.gradio-container::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
 }

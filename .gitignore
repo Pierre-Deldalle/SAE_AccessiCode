@@ -24,3 +24,6 @@ htmlcov/
 # Système
 .DS_Store
 Thumbs.db
+
+/workspace/
+/accessi_code.egg-info/
