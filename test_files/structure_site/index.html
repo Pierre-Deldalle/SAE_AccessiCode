@@ -82,6 +82,33 @@
         </section>
     </main>
 
+    <!-- Section pour tester le critère 9.4 : Citations -->
+    <section>
+        <h2>Tests de citations (Critère 9.4)</h2>
+
+        <!-- Citations courtes avec balise <q> -->
+        <h3>Citations courtes avec balise <code>&lt;q&gt;</code></h3>
+        <p>Comme le disait <q>Albert Einstein</q>, "l'imagination est plus importante que le savoir".</p>
+        <p>Voici une <q></q> citation vide qui devrait échouer au test 9.4.1.</p>
+
+        <!-- Citations longues avec balise <blockquote> -->
+        <h3>Citations longues avec balise <code>&lt;blockquote&gt;</code></h3>
+        <blockquote>
+            <p>Ceci est une longue citation qui devrait utiliser la balise blockquote.</p>
+            <p>Elle peut contenir plusieurs paragraphes et éléments de mise en forme.</p>
+        </blockquote>
+        <blockquote></blockquote>
+        <blockquote>   </blockquote>
+        <blockquote>
+            <p>Cette citation contient du contenu et devrait passer le test.</p>
+        </blockquote>
+
+        <!-- Exemple de mauvaise utilisation (à éviter en pratique) -->
+        <h3>Exemple d'utilisation incorrecte (à titre informatif)</h3>
+        <p>Ce paragraphe montre ce qu'il ne faut pas faire :</p>
+        <p>"Ceci est une citation qui devrait utiliser les guillemets français mais n'utilise pas de balise sémantique"</p>
+    </section>
+
     <!-- Pied de page -->
     <footer>
         <p>&copy; 2026 Mon Site Web. Tous droits réservés.</p>
