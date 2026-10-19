@@ -1,0 +1,500 @@
+
+/*
+ * AccessiCode — Résultats d'audit
+ * Maquette interactive avec scores de démonstration.
+ */
+
+#resultats-page {
+    box-sizing: border-box;
+    width: 100% !important;
+    min-height: 100vh !important;
+
+    margin: 0 !important;
+    padding: 38px 42px 70px !important;
+
+    background-color: #ffffff !important;
+}
+
+#resultats-title {
+    margin: 0 0 12px !important;
+    text-align: center !important;
+}
+
+#resultats-title h1 {
+    margin: 0 !important;
+
+    font-family: var(--font-title) !important;
+    font-size: clamp(28px, 3vw, 40px) !important;
+    font-weight: 600 !important;
+
+    color: #17212b !important;
+}
+
+#resultats-demo-notice {
+    margin: 0 auto 26px !important;
+    text-align: center !important;
+}
+
+#resultats-demo-notice p {
+    margin: 0 !important;
+
+    font-family: var(--font-body) !important;
+    font-size: 13px !important;
+    color: #475569 !important;
+}
+
+#resultats-themes {
+    width: min(100%, 1100px) !important;
+    margin: 0 auto !important;
+    gap: 12px !important;
+}
+
+.resultats-theme-row {
+    display: flex !important;
+    justify-content: center !important;
+    gap: 12px !important;
+}
+
+.resultats-theme-column {
+    min-width: 0 !important;
+    max-width: 200px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/*
+ * Chaque carte est un vrai bouton Gradio.
+ * Le cercle est un repère visuel, pas un résultat RGAA officiel.
+ */
+
+.resultats-theme-card {
+    --score-color: #0153c6;
+
+    position: relative !important;
+    box-sizing: border-box;
+
+    width: 100% !important;
+    min-height: 142px !important;
+
+    margin: 0 !important;
+    padding: 16px 12px 76px !important;
+
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+
+    border: 1px solid #d5dadd !important;
+    border-radius: 6px !important;
+
+    background: #ffffff !important;
+    color: #17212b !important;
+
+    font-family: var(--font-body) !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    line-height: 1.35 !important;
+
+    white-space: pre-line !important;
+    text-align: center !important;
+
+    box-shadow: none !important;
+    cursor: pointer !important;
+
+    transition:
+        border-color 150ms ease,
+        background-color 150ms ease;
+}
+
+/*
+ * Cercle derrière le score.
+ * Les chiffres sont contenus dans le libellé du bouton.
+ */
+
+.resultats-theme-card::after {
+    content: "";
+    position: absolute;
+
+    left: 50%;
+    bottom: 12px;
+
+    width: 59px;
+    height: 59px;
+
+    transform: translateX(-50%);
+
+    border: 5px solid var(--score-color);
+    border-radius: 50%;
+
+    pointer-events: none;
+}
+
+.theme-status-danger {
+    --score-color: #ff0000;
+}
+
+.theme-status-warning {
+    --score-color: #ffcc00;
+}
+
+.theme-status-success {
+    --score-color: #01cb26;
+}
+
+.resultats-theme-card:hover {
+    background-color: #f5f5f5 !important;
+    border-color: #0153c6 !important;
+}
+
+.resultats-theme-card:focus-visible {
+    outline: 3px solid #0153c6 !important;
+    outline-offset: 3px !important;
+}
+
+.resultats-theme-card:active {
+    background-color: #edf4fc !important;
+}
+
+/* =========================================
+   DÉTAIL DU THÈME SÉLECTIONNÉ
+   ========================================= */
+
+#resultats-detail-section {
+    box-sizing: border-box;
+
+    width: min(100%, 1100px) !important;
+
+    margin: 32px auto 0 !important;
+    padding: 26px 28px !important;
+
+    border: 1px solid #d5dadd !important;
+    border-radius: 6px !important;
+
+    background: #f5f5f5 !important;
+    gap: 12px !important;
+}
+
+#resultats-detail-title h2 {
+    margin: 0 !important;
+
+    font-family: var(--font-title) !important;
+    font-size: 21px !important;
+    font-weight: 600 !important;
+
+    color: #17212b !important;
+}
+
+#resultats-detail-content h2,
+#resultats-detail-content h3 {
+    font-family: var(--font-title) !important;
+    color: #17212b !important;
+}
+
+#resultats-detail-content h2 {
+    font-size: 19px !important;
+}
+
+#resultats-detail-content h3 {
+    margin-top: 18px !important;
+    font-size: 16px !important;
+}
+
+#resultats-detail-content p {
+    font-family: var(--font-body) !important;
+    font-size: 15px !important;
+    line-height: 1.7 !important;
+    color: #202020 !important;
+}
+
+#resultats-legend {
+    width: min(100%, 1100px) !important;
+    margin: 20px auto 0 !important;
+}
+
+#resultats-legend p {
+    margin: 0 !important;
+
+    font-family: var(--font-body) !important;
+    font-size: 12px !important;
+    line-height: 1.6 !important;
+    color: #475569 !important;
+}
+
+/* =========================================
+   ADAPTATION AUX PETITES FENÊTRES
+   ========================================= */
+
+@media (max-width: 900px) {
+    #resultats-page {
+        padding: 32px 24px 60px !important;
+    }
+
+    .resultats-theme-row {
+        flex-wrap: wrap !important;
+    }
+
+    .resultats-theme-column {
+        min-width: 155px !important;
+        max-width: 190px !important;
+    }
+}
+
+@media (max-width: 600px) {
+    #resultats-page {
+        min-height: 100dvh !important;
+        padding: 28px 16px 48px !important;
+    }
+
+    .resultats-theme-row {
+        gap: 10px !important;
+    }
+
+    .resultats-theme-column {
+        min-width: 135px !important;
+        max-width: 175px !important;
+    }
+
+    .resultats-theme-card {
+        min-height: 135px !important;
+        font-size: 12px !important;
+    }
+
+    #resultats-detail-section {
+        padding: 20px 16px !important;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .resultats-theme-card {
+        transition: none !important;
+    }
+}
+
+
+
+/* =========================================
+   BOUTON NOUVEL AUDIT
+   ========================================= */
+
+#resultats-header {
+    width: min(100%, 1100px) !important;
+    margin: 0 auto 14px !important;
+    justify-content: flex-start !important;
+}
+
+#resultats-home-button {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: 150px !important;
+
+    padding: 10px 16px !important;
+
+    background: #ffffff !important;
+    color: #0153c6 !important;
+
+    border: 1px solid #0153c6 !important;
+    border-radius: 6px !important;
+
+    font-family: var(--font-body) !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+
+    box-shadow: none !important;
+    cursor: pointer !important;
+}
+
+#resultats-home-button:hover {
+    background: #edf4fc !important;
+}
+
+
+/* =========================================
+   FENÊTRE DE CONFIRMATION
+   ========================================= */
+
+#resultats-confirmation-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 9999 !important;
+
+    width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
+    padding: 24px !important;
+
+    display: flex;
+    align-items: center !important;
+    justify-content: center !important;
+
+    background: rgba(23, 33, 43, 0.52) !important;
+}
+
+#resultats-confirmation-dialog {
+    width: min(100%, 480px) !important;
+    margin: auto !important;
+    padding: 30px !important;
+    gap: 16px !important;
+
+    background: #ffffff !important;
+    border: 1px solid #e1e5e9 !important;
+    border-radius: 8px !important;
+
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.14) !important;
+}
+
+#resultats-confirmation-title h2 {
+    margin: 0 !important;
+
+    font-family: var(--font-title) !important;
+    font-size: 21px !important;
+    font-weight: 600 !important;
+
+    color: #17212b !important;
+}
+
+#resultats-confirmation-message p {
+    margin: 0 !important;
+
+    font-family: var(--font-body) !important;
+    font-size: 15px !important;
+    line-height: 1.7 !important;
+
+    color: #475569 !important;
+}
+
+#resultats-confirmation-message strong {
+    color: #17212b !important;
+}
+
+#resultats-confirmation-actions {
+    display: flex !important;
+    justify-content: flex-end !important;
+    gap: 10px !important;
+
+    margin-top: 12px !important;
+}
+
+#resultats-cancel-button,
+#resultats-confirm-button {
+    flex: 0 1 auto !important;
+    width: auto !important;
+    min-width: 125px !important;
+
+    padding: 10px 16px !important;
+
+    border-radius: 6px !important;
+    font-family: var(--font-body) !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+
+    box-shadow: none !important;
+}
+
+#resultats-cancel-button {
+    color: #17212b !important;
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+}
+
+#resultats-confirm-button {
+    color: #ffffff !important;
+    background: #0153c6 !important;
+    border: 1px solid #0153c6 !important;
+}
+
+#resultats-confirm-button:hover {
+    background: #003f99 !important;
+}
+
+@media (max-width: 600px) {
+    #resultats-confirmation-dialog {
+        padding: 22px 18px !important;
+    }
+
+    #resultats-confirmation-actions {
+        flex-wrap: wrap !important;
+    }
+
+    #resultats-cancel-button,
+    #resultats-confirm-button {
+        flex: 1 1 140px !important;
+    }
+}
+
+
+
+/* =========================================
+   CORRECTION DE LA FENÊTRE DE CONFIRMATION
+   ========================================= */
+
+/* Fond sombre couvrant toute la fenêtre. */
+#resultats-confirmation-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 9999 !important;
+
+    width: 100vw !important;
+    height: 100dvh !important;
+    min-height: 0 !important;
+
+    margin: 0 !important;
+    padding: 20px !important;
+
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    background-color: rgb(23 33 43 / 52%) !important;
+
+    overflow-y: auto !important;
+}
+
+/* Boîte blanche ajustée à son contenu. */
+#resultats-confirmation-dialog {
+    box-sizing: border-box !important;
+
+    flex: 0 0 auto !important;
+    align-self: center !important;
+
+    width: min(100%, 480px) !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: calc(100dvh - 40px) !important;
+
+    margin: auto !important;
+    padding: 28px 30px !important;
+
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    gap: 18px !important;
+
+    overflow-y: auto !important;
+
+    background: #ffffff !important;
+    border: 1px solid #e1e5e9 !important;
+    border-radius: 8px !important;
+
+    box-shadow: 0 12px 40px rgb(0 0 0 / 14%) !important;
+}
+
+/* Empêche les éléments internes de s'étirer. */
+#resultats-confirmation-dialog > * {
+    flex-grow: 0 !important;
+    flex-shrink: 0 !important;
+}
+
+/* Aligne les deux boutons à droite. */
+#resultats-confirmation-actions {
+    justify-content: flex-end !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+
+    margin: 4px 0 0 !important;
+}
+
+@media (max-width: 600px) {
+    #resultats-confirmation-dialog {
+        padding: 22px 20px !important;
+    }
+}
