@@ -26,4 +26,9 @@ htmlcov/
 Thumbs.db
 
 /workspace/
-/accessi_code.egg-info/
+*.egg-info/
+
+# Variables d'environnement et secrets
+.env
+.env.*
+!.env.example
