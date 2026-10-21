@@ -210,13 +210,24 @@
     margin: 20px auto 0 !important;
 }
 
+/* Légende des scores RGAA */
+
+#resultats-legend,
+#resultats-legend p,
+#resultats-legend strong {
+    color: #17212b !important;
+    opacity: 1 !important;
+}
+
 #resultats-legend p {
     margin: 0 !important;
-
     font-family: var(--font-body) !important;
-    font-size: 12px !important;
+    font-size: 13px !important;
     line-height: 1.6 !important;
-    color: #475569 !important;
+}
+
+#resultats-legend strong {
+    font-weight: 600 !important;
 }
 
 /* =========================================
