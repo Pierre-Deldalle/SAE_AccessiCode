@@ -2,9 +2,9 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Page de test pour le critère 10.1</title>
+    <title>Page de test pour les criteres 10.1 a 10.5</title>
     <style>
-        /* Styles CSS appropriés - ces éléments ne doivent pas déclencher d'échec */
+        /* Styles CSS appropries - ces elements ne doivent pas declencher d'echec */
         .correcte-mise-en-forme {
             color: #0066cc;
             font-weight: bold;
@@ -23,29 +23,140 @@
         .tableau-donnees th {
             background-color: #f2f2f2;
         }
+
+        /* ===== CAS DE TEST CRITERE 10.2 ===== */
+        /* Test 10.2.1 : CSS ne doit pas generer de contenu informatif */
+        .pseudo-info::before {
+            content: "Important: ";
+            color: red;
+            font-weight: bold;
+        }
+        .pseudo-info::after {
+            content: " (fin)";
+        }
+        .bg-informatif {
+            background-image: url('graphique-ventes.png');
+            /* Image de fond potentiellement informative sans fallback de couleur */
+        }
+
+        /* Test 10.2.2 : Structure preservee sans CSS */
+        /* Les titres, listes, tableaux sont correctement structures en HTML */
+
+        /* Test 10.2.3 : CSS ne doit pas masquer du contenu informatif */
+        .masque-contenu {
+            display: none;
+        }
+        .masque-visuel {
+            position: absolute;
+            left: -9999px;
+        }
+        .texte-cache {
+            text-indent: -9999px;
+        }
+        .font-zero {
+            font-size: 0;
+        }
+        .couleur-transparente {
+            color: transparent;
+        }
+
+        /* ===== CAS DE TEST CRITERE 10.3 ===== */
+        /* Test 10.3.1 : Ordre de lecture compréhensible sans CSS */
+        /* Labels de formulaire non associes */
+        /* Tableaux sans en-tetes th */
+        /* Listes vides utilisees pour l'espacement */
+
+        /* ===== CAS DE TEST CRITERE 10.4 ===== */
+        /* Test 10.4.1 : Perte d'information a 200% */
+        .largeur-fixe-px {
+            width: 200px;
+            overflow: hidden;
+        }
+        .hauteur-fixe-px {
+            height: 50px;
+            overflow: hidden;
+        }
+        .nowrap-texte {
+            white-space: nowrap;
+            width: 150px;
+            overflow: hidden;
+        }
+        .position-absolue-fixe {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            width: 100px;
+            height: 50px;
+        }
+
+        /* Test 10.4.2 : Taille de police fixe empechant l'agrandissement */
+        .font-size-px {
+            font-size: 14px;
+        }
+        .font-size-pt {
+            font-size: 12pt;
+        }
+
+        /* ===== CAS DE TEST CRITERE 10.5 ===== */
+        /* Test 10.5.1 : color sans background-color */
+        .color-sans-bg {
+            color: #333333;
+            /* Pas de background-color defini */
+        }
+        .color-avec-bg-ok {
+            color: #333333;
+            background-color: #ffffff;
+        }
+
+        /* Test 10.5.2 : background-color sans color */
+        .bg-sans-color {
+            background-color: #ffffff;
+            /* Pas de color defini */
+        }
+        .bg-avec-color-ok {
+            background-color: #ffffff;
+            color: #333333;
+        }
+
+        /* Test 10.5.3 : background-image sans background-color fallback */
+        .bg-image-sans-fallback {
+            background-image: url('texture.png');
+            color: #333333;
+            /* Pas de background-color de secours */
+        }
+        .bg-image-avec-fallback {
+            background-image: url('texture.png');
+            background-color: #f0f0f0;
+            color: #333333;
+        }
+        .bg-shorthand-sans-fallback {
+            background: url('pattern.jpg') no-repeat center;
+            color: #333333;
+            /* Pas de background-color dans le shorthand */
+        }
     </style>
 </head>
 <body>
-    <!-- En-tête principal -->
+    <!-- En-tete principal -->
     <h1 class="correcte-mise-en-forme">Titre principal de la page</h1>
 
-    <!-- Contenu principal avec mise en forme CSS appropriée -->
+    <!-- Contenu principal avec mise en forme CSS appropriee -->
     <section>
         <h2>Section d'introduction</h2>
         <p class="correcte-mise-en-forme">
-            Ceci est un paragraphe avec une mise en forme CSS appropriée.
-            Aucune balise ou attribut de présentation ne devrait être présent ici.
+            Ceci est un paragraphe avec une mise en forme CSS appropriee.
+            Aucune balise ou attribut de presentation ne devrait etre present ici.
         </p>
     </section>
 
-    <!-- Tableau de données avec CSS approprié (pas d'attributs de présentation) -->
+    <!-- Tableau de donnees avec CSS approprie (pas d'attributs de presentation) -->
     <section>
-        <h2>Tableau de données</h2>
+        <h2>Tableau de donnees</h2>
         <table class="tableau-donnees">
             <thead>
                 <tr>
                     <th>Nom</th>
-                    <th>Âge</th>
+                    <th>Age</th>
                     <th>Ville</th>
                 </tr>
             </thead>
@@ -69,35 +180,36 @@
         </table>
     </section>
 
+    <!-- ===== CAS DE TEST CRITERE 10.1 (decommenter pour tester) ===== -->
     <!--
-    ===== EXEMPLES D'ÉCHECS POUR LE TEST 10.1.1 (balises de présentation) =====
-    Ces éléments seraient détectés comme échouant le test 10.1.1 s'ils n'étaient pas commentés :
+    ===== EXEMPLES D'ECHECS POUR LE TEST 10.1.1 (balises de presentation) =====
+    Ces elements seraient detectes comme echouant le test 10.1.1 s'ils n'etaient pas commentes :
 
     <basefont face="Arial" size="3">
     <big>Texte en grand</big>
     <blink>Texte clignotant</blink>
-    <center>Texte centré</center>
+    <center>Texte centre</center>
     <font color="red">Texte rouge</font>
-    <marquee>Texte défilant</marquee>
-    Texte barré.
+    <marquee>Texte defilant</marquee>
+    Texte barre.
 
-    <strike>Autre texte barré</strike>
-    <tt>Texte à chasse fixe</tt>
-    <u>Texte souligné</u> <!-- Échoue seulement si pas HTML5 -->
+    <strike>Autre texte barre</strike>
+    <tt>Texte a chasse fixe</tt>
+    <u>Texte souliglne</u> (Echoue seulement si pas HTML5)
     -->
 
     <!--
-    ===== EXEMPLES D'ÉCHECS POUR LE TEST 10.1.2 (attributs de présentation) =====
-    Ces attributs seraient détectés comme échouant le test 10.1.2 s'ils n'étaient pas commentés :
+    ===== EXEMPLES D'ECHECS POUR LE TEST 10.1.2 (attributs de presentation) =====
+    Ces attributs seraient detectes comme echouant le test 10.1.2 s'ils n'etaient pas commentes :
 
-    <p align="center">Paragraphe centré avec attribut align</p>
+    <p align="center">Paragraphe centre avec attribut align</p>
     <table bgcolor="#ffffcc">
-        <tr><td>Cellule avec fond coloré</td></tr>
+        <tr><td>Cellule avec fond colore</td></tr>
     </table>
     <td width="100">Cellule avec largeur fixe</td>
     <td height="50">Cellule avec hauteur fixe</td>
     <hr size="2">
-    <div bgcolor="#cccccc">Div avec fond coloré</div>
+    <div bgcolor="#cccccc">Div avec fond colore</div>
     <img src="image.jpg" width="100" height="100">
     <object data="video.mp4" width="400" height="300">
     <embed src="audio.mp3" width="200" height="50">
@@ -106,17 +218,200 @@
     -->
 
     <!--
-    ===== EXEMPLES D'ÉCHECS POUR LE TEST 10.1.3 (espaces détournés) =====
-    Ces usages d'espaces seraient détectés comme échouant le test 10.1.3 s'ils n'étaient pas commentés :
+    ===== EXEMPLES D'ECHECS POUR LE TEST 10.1.3 (espaces detournes) =====
+    Ces usages d'espaces seraient detectes comme echouant le test 10.1.3 s'ils n'etaient pas commentes :
 
     Espaces entre les lettres d'un mot :
     <p>H E L L O   W O R L D</p>
 
     Espaces pour simuler un tableau :
-    <p>Nom           Âge       Ville
-Jean          25        Paris
-Marie         30        Lyon
-Pierre        25        Marseille</p>
+    <p>Nom           Age       Ville
+    Jean          25        Paris
+    Marie         30        Lyon
+    Pierre        25        Marseille</p>
     -->
+
+    <!-- ===== CAS DE TEST CRITERE 10.2 ===== -->
+    <section id="test-10-2">
+        <h2>Tests Criter 10.2 - Presentation et structure sans CSS</h2>
+
+        <!-- Test 10.2.1 : CSS generant du contenu informatif (pseudo-elements) -->
+        <h3>Test 10.2.1 : Contenu informatif via pseudo-elements CSS</h3>
+        <p class="pseudo-info">Ce message a du contenu ajoute par CSS (::before et ::after).</p>
+        <div class="bg-informatif" style="height: 100px; border: 1px dashed #ccc;">
+            <p>Cette div a une image de fond potentiellement informative (graphique) sans fallback de couleur.</p>
+        </div>
+
+        <!-- Test 10.2.2 : Structure HTML correcte -->
+        <h3>Test 10.2.2 : Structure HTML preservee</h3>
+        <h4>Sous-titre niveau 4 (correct apres h3)</h4>
+        <p>Paragraphes et structure semantique corrects.</p>
+        <ul>
+            <li>Element de liste 1</li>
+            <li>Element de liste 2</li>
+        </ul>
+
+        <!-- Test 10.2.3 : CSS masquant du contenu -->
+        <h3>Test 10.2.3 : Contenu masque par CSS</h3>
+        <p class="masque-contenu">Ce texte est masque par display: none.</p>
+        <p class="masque-visuel">Ce texte est positionne hors ecran (left: -9999px).</p>
+        <p class="texte-cache">Ce texte est masque par text-indent negatif.</p>
+        <p class="font-zero">Ce texte a font-size: 0.</p>
+        <p class="couleur-transparente">Ce texte a color: transparent.</p>
+    </section>
+
+    <!-- ===== CAS DE TEST CRITERE 10.3 ===== -->
+    <section id="test-10-3">
+        <h2>Tests Criter 10.3 - Ordre de lecture sans CSS</h2>
+
+        <!-- Test 10.3.1 : Labels de formulaire non associes -->
+        <h3>Test 10.3.1 : Labels de formulaire</h3>
+        <form>
+            <p>
+                <!-- Label non associe explicitement (pas de for/id, pas d'imbrication) -->
+                <label>Prenom :</label>
+                <input type="text" name="prenom">
+            </p>
+            <p>
+                <!-- Label correctement associe via for/id -->
+                <label for="nom">Nom :</label>
+                <input type="text" id="nom" name="nom">
+            </p>
+            <p>
+                <!-- Label correctement imbrique -->
+                <label>
+                    Email :
+                    <input type="email" name="email">
+                </label>
+            </p>
+        </form>
+
+        <!-- Tableaux sans en-tetes th -->
+        <h3>Tableau sans en-tetes th</h3>
+        <table class="tableau-sans-th">
+            <tr>
+                <td>Donnee 1</td>
+                <td>Donnee 2</td>
+            </tr>
+            <tr>
+                <td>Donnee 3</td>
+                <td>Donnee 4</td>
+            </tr>
+        </table>
+
+        <!-- Liste vide pour espacement visuel -->
+        <h3>Liste potentiellement utilisee pour l'espacement</h3>
+        <ul class="liste-vide">
+            <li></li>
+            <li>   </li>
+            <li></li>
+        </ul>
+
+        <!-- Sauts de niveaux de titre -->
+        <h3>Niveau 3</h3>
+        <h5>Niveau 5 (saut du niveau 4)</h5>
+    </section>
+
+    <!-- ===== CAS DE TEST CRITERE 10.4 ===== -->
+    <section id="test-10-4">
+        <h2>Tests Criter 10.4 - Redimensionnement du texte</h2>
+
+        <!-- Test 10.4.1 : Perte d'information a 200% -->
+        <h3>Test 10.4.1 : Risques de perte d'information</h3>
+        <div class="largeur-fixe-px" style="border: 1px solid red; padding: 5px;">
+            <p>Ce texte est dans un conteneur a largeur fixe (200px) avec overflow:hidden - risque de coupure a 200%.</p>
+        </div>
+
+        <div class="hauteur-fixe-px" style="border: 1px solid blue; padding: 5px;">
+            <p>Ce conteneur a une hauteur fixe (50px) avec overflow:hidden - le texte peut etre coupe.</p>
+            <p>Deuxieme paragraphe qui ne rentrera probablement pas dans 50px.</p>
+        </div>
+
+        <p class="nowrap-texte" style="border: 1px solid green; padding: 5px;">
+            Ce texte a white-space:nowrap et largeur limitee - ne revient pas a la ligne.
+        </p>
+
+        <div class="position-absolue-fixe" style="border: 1px solid orange; padding: 5px;">
+            <p>Position absolute + dimensions fixes = risque de chevauchement a 200%.</p>
+        </div>
+
+        <!-- Test 10.4.2 : Taille de police fixe -->
+        <h3>Test 10.4.2 : Tailles de police fixes</h3>
+        <p class="font-size-px" style="border: 1px solid purple; padding: 5px;">
+            Cette taille de police est fixee en px (14px) - n'agrandira pas avec le zoom texte.
+        </p>
+        <p class="font-size-pt" style="border: 1px solid brown; padding: 5px;">
+            Cette taille de police est fixee en pt (12pt) - n'agrandira pas avec le zoom texte.
+        </p>
+        <p style="font-size: 1.2em; border: 1px solid teal; padding: 5px;">
+            Cette taille en em (1.2em) - s'agrandira correctement avec le zoom texte.
+        </p>
+    </section>
+
+    <!-- ===== CAS DE TEST CRITERE 10.5 ===== -->
+    <section id="test-10-5">
+        <h2>Tests Criter 10.5 - Couleurs de fond et de police</h2>
+
+        <!-- Test 10.5.1 : color sans background-color -->
+        <h3>Test 10.5.1 : color sans background-color</h3>
+        <p class="color-sans-bg" style="padding: 10px; border: 1px dashed #ccc;">
+            Ce paragraphe a une couleur de police (color: #333) mais PAS de background-color.
+            <strong>Devrait echouer au test 10.5.1</strong>
+        </p>
+
+        <p class="color-avec-bg-ok" style="padding: 10px; border: 1px dashed #ccc;">
+            Ce paragraphe a color: #333 ET background-color: #fff.
+            <strong>Devrait passer le test 10.5.1</strong>
+        </p>
+
+        <!-- Test 10.5.2 : background-color sans color -->
+        <h3>Test 10.5.2 : background-color sans color</h3>
+        <p class="bg-sans-color" style="padding: 10px; border: 1px dashed #ccc;">
+            Ce paragraphe a un background-color: #fff mais PAS de color explicite.
+            <strong>Devrait echouer au test 10.5.2</strong>
+        </p>
+
+        <p class="bg-avec-color-ok" style="padding: 10px; border: 1px dashed #ccc;">
+            Ce paragraphe a background-color: #fff ET color: #333.
+            <strong>Devrait passer le test 10.5.2</strong>
+        </p>
+
+        <!-- Test 10.5.3 : background-image sans background-color fallback -->
+        <h3>Test 10.5.3 : background-image sans background-color de secours</h3>
+        <p class="bg-image-sans-fallback" style="padding: 10px; border: 1px dashed #ccc; min-height: 50px;">
+            Ce paragraphe a background-image MAIS PAS de background-color fallback.
+            Si l'image ne charge pas, le texte peut devenir illisible.
+            <strong>Devrait echouer au test 10.5.3</strong>
+        </p>
+
+        <p class="bg-image-avec-fallback" style="padding: 10px; border: 1px dashed #ccc; min-height: 50px;">
+            Ce paragraphe a background-image ET background-color: #f0f0f0 en fallback.
+            <strong>Devrait passer le test 10.5.3</strong>
+        </p>
+
+        <p class="bg-shorthand-sans-fallback" style="padding: 10px; border: 1px dashed #ccc; min-height: 50px;">
+            Ce paragraphe utilise background shorthand avec image MAIS PAS de background-color.
+            <strong>Devrait echouer au test 10.5.3</strong>
+        </p>
+
+        <!-- Test d'heritage (parent a background-color) -->
+        <h3>Test d'heritage : parent avec background-color</h3>
+        <div style="background-color: #ffffcc; padding: 15px; border: 1px solid #ccc;">
+            <p class="color-sans-bg" style="padding: 5px;">
+                Ce paragraphe a color sans background-color MAIS herite du background-color du parent (#ffffcc).
+                <strong>Devrait passer le test 10.5.1 grace a l'heritage</strong>
+            </p>
+
+            <p class="bg-sans-color" style="padding: 5px;">
+                Ce paragraphe a background-color sans color MAIS herite du color du body (par defaut).
+                <strong>Note: color par defaut du navigateur peut ne pas compter comme "explicite"</strong>
+            </p>
+
+            <p class="bg-image-sans-fallback" style="padding: 5px; min-height: 50px;">
+                Ce paragraphe a background-image sans background-color MAIS herite du background-color du parent.
+                <strong>Devrait passer le test 10.5.3 grace a l'heritage</strong>
+            </p>
+        </div>
+    </section>
 </body>
 </html>

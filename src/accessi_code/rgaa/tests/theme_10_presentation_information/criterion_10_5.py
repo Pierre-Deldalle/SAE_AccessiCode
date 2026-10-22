@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-from collections import Counter
 from typing import Any
 
 from bs4 import BeautifulSoup, Tag
@@ -11,44 +10,62 @@ from accessi_code.models.capabilities import Capability
 from accessi_code.models.result import Finding, TestResult, TestStatus
 from accessi_code.rgaa.base import RGAATest
 
-
-# RGAA 10.5 porte sur la présence de couleurs de texte et de fond compatibles.
-# Une analyse du seul HTML ne dispose pas toujours du CSS calculé du navigateur :
-# les feuilles externes, variables CSS, sélecteurs complexes et styles dynamiques
-# peuvent échapper à cette analyse. Les résultats ci-dessous sont donc des contrôles
-# statiques documentés, et non une mesure du contraste (qui relève notamment du 3.2).
-_TEXT_CAPABLE_TAGS = {
-    "a", "abbr", "address", "article", "aside", "b", "bdi", "bdo", "blockquote",
-    "button", "caption", "cite", "code", "dd", "del", "details", "dfn", "dt",
-    "em", "figcaption", "footer", "h1", "h2", "h3", "h4", "h5", "h6", "header",
-    "i", "ins", "kbd", "label", "legend", "li", "main", "mark", "nav", "p",
-    "pre", "q", "s", "samp", "section", "small", "span", "strong", "sub", "summary",
-    "sup", "td", "th", "time", "title", "u", "var",
+# Tags susceptibles de contenir du texte à lire
+_TEXT_TAGS = {
+    "a",
+    "abbr",
+    "b",
+    "blockquote",
+    "button",
+    "caption",
+    "dd",
+    "dt",
+    "em",
+    "figcaption",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "i",
+    "label",
+    "legend",
+    "li",
+    "p",
+    "small",
+    "span",
+    "strong",
+    "summary",
+    "td",
+    "th",
+    "textarea",
 }
-_NON_CONTENT_TAGS = {"script", "style", "noscript", "template", "head", "meta", "link"}
-_DEFAULT_COLOR_TAGS = {"a"}
-_COLOR_RE = re.compile(r"(?:^|;)\s*color\s*:\s*([^;]+)", re.I)
-_BACKGROUND_COLOR_RE = re.compile(
-    r"(?:^|;)\s*background-color\s*:\s*([^;]+)", re.I
-)
-_BACKGROUND_RE = re.compile(r"(?:^|;)\s*background\s*:\s*([^;]+)", re.I)
-_BACKGROUND_IMAGE_RE = re.compile(
-    r"(?:^|;)\s*background-image\s*:\s*([^;]+)", re.I
-)
-_DECLARATION_RE = re.compile(r"(?P<property>[a-z-]+)\s*:\s*(?P<value>[^;]+)", re.I)
-_URL_RE = re.compile(r"url\s*\(", re.I)
-_VAR_RE = re.compile(r"var\s*\(", re.I)
-_IMPORTANT_RE = re.compile(r"\s*!important\s*$", re.I)
+
+# Conteneurs génériques qui peuvent contenir du texte et avoir des styles risqués
+_CONTAINER_TAGS = {"div", "section", "article", "aside", "main", "header", "footer", "nav"}
+
+# Conteneurs exempts du critère (texte non redimensionnable par nature)
+_EXEMPT_CONTAINERS = {"canvas"}
+
+# Expressions régulières pour détecter les propriétés CSS
+_COLOR_RE = re.compile(r"(?:^|;)\s*color\s*:\s*([^;]+)", re.IGNORECASE)
+_BG_COLOR_RE = re.compile(r"(?:^|;)\s*background-color\s*:\s*([^;]+)", re.IGNORECASE)
+_BG_IMAGE_RE = re.compile(r"(?:^|;)\s*background-image\s*:\s*([^;]+)", re.IGNORECASE)
+_BG_SHORTHAND_RE = re.compile(r"(?:^|;)\s*background\s*:\s*([^;]+)", re.IGNORECASE)
+_TRANSPARENT_RE = re.compile(r"^\s*(transparent|rgba\(\s*0\s*,\s*0\s*,\s*0\s*,\s*0\s*\))\s*$", re.IGNORECASE)
+_INHERIT_RE = re.compile(r"^\s*(inherit|initial|unset|revert)\s*$", re.IGNORECASE)
+_CURRENT_COLOR_RE = re.compile(r"^\s*currentColor\s*$", re.IGNORECASE)
 
 
 def _selector_for(soup: BeautifulSoup, element: Tag) -> str:
-    """Retourne un sélecteur simple utile dans un rapport d'audit."""
+    """Construit un sélecteur lisible et relativement stable pour un élément."""
     element_id = element.get("id")
     if isinstance(element_id, str) and element_id:
         return f"#{element_id}"
     classes = element.get("class", [])
     if isinstance(classes, list) and classes:
-        return f"{element.name}.{'.'.join(str(item) for item in classes[:2])}"
+        return f"{element.name}.{'.'.join(str(c) for c in classes[:2])}"
     same_tag = soup.find_all(element.name)
     if len(same_tag) > 1:
         try:
@@ -58,116 +75,28 @@ def _selector_for(soup: BeautifulSoup, element: Tag) -> str:
     return element.name or "élément inconnu"
 
 
-def _has_text(element: Tag) -> bool:
-    """Vérifie la présence de texte utile dans l'élément, hors balises techniques."""
-    if element.name in _NON_CONTENT_TAGS:
+def _is_exempt(element: Tag) -> bool:
+    """Ignore le texte dans des conteneurs exempts (ex: canvas)."""
+    return element.name in _EXEMPT_CONTAINERS or element.find_parent(list(_EXEMPT_CONTAINERS)) is not None
+
+
+def _has_rendered_text(element: Tag) -> bool:
+    """Vérifie la présence de texte utile dans l'élément."""
+    if element.name in {"script", "style", "noscript", "template"} or _is_exempt(element):
         return False
-    if element.name in {"input", "img", "svg", "canvas", "video", "audio", "iframe"}:
-        # Les éléments remplacés peuvent porter une image ou une valeur, mais leur
-        # contenu textuel n'est pas directement vérifiable comme un texte HTML normal.
-        return False
-    if element.name == "input":
-        return False
-    return bool(element.get_text(" ", strip=True))
+    text = element.get_text(" ", strip=True)
+    return bool(text)
 
 
-def _declarations(style: str) -> dict[str, list[str]]:
-    """Lit les déclarations CSS d'un bloc, sans prétendre parser toute la grammaire CSS."""
-    found: dict[str, list[str]] = {}
-    for match in _DECLARATION_RE.finditer(style or ""):
-        prop = match.group("property").strip().lower()
-        value = match.group("value").strip()
-        if prop and value:
-            found.setdefault(prop, []).append(value)
-    return found
+def _inline_style(element: Tag) -> str:
+    value = element.get("style", "")
+    return value if isinstance(value, str) else ""
 
 
-def _style_of(element: Tag) -> str:
-    style = element.get("style", "")
-    return style if isinstance(style, str) else ""
-
-
-def _is_default_or_unset(value: str) -> bool:
-    """Valeurs qui ne définissent pas une couleur explicite exploitable."""
-    normalized = value.strip().lower()
-    return normalized in {
-        "", "inherit", "initial", "unset", "revert", "revert-layer", "currentcolor",
-        "transparent",
-    } or bool(_VAR_RE.search(normalized))
-
-
-def _has_explicit_color(style: str) -> bool:
-    for value in _COLOR_RE.findall(style or ""):
-        if not _is_default_or_unset(value):
-            return True
-    return False
-
-
-def _background_color_value(style: str) -> str | None:
-    """Renvoie une couleur de fond explicite issue de background-color ou background."""
-    for value in _BACKGROUND_COLOR_RE.findall(style or ""):
-        if not _is_default_or_unset(value):
-            return value.strip()
-    for value in _BACKGROUND_RE.findall(style or ""):
-        # Un raccourci background peut ne définir qu'une image ou une position.
-        if _is_default_or_unset(value):
-            continue
-        if _URL_RE.search(value):
-            # Un raccourci avec image ne garantit pas qu'une couleur de secours soit définie.
-            tokens = re.split(r"\s+", value.strip())
-            color_candidates = [
-                token for token in tokens
-                if token.lower() not in {
-                    "none", "repeat", "repeat-x", "repeat-y", "no-repeat", "fixed",
-                    "scroll", "local", "left", "right", "top", "bottom", "center",
-                    "cover", "contain", "auto", "padding-box", "border-box",
-                    "content-box", "inherit", "initial", "unset",
-                }
-                and not token.startswith(("url(", "linear-gradient(", "radial-gradient(",
-                                          "conic-gradient(", "var("))
-                and not token.endswith(("%", "px", "rem", "em", "vh", "vw"))
-            ]
-            if color_candidates:
-                return color_candidates[-1]
-            continue
-        # Couleurs CSS usuelles : noms, hexadécimal, rgb/hsl, etc.
-        if re.search(
-            r"(#[0-9a-f]{3,8}\b|rgba?\s*\(|hsla?\s*\(|\boklch\s*\(|"
-            r"\boklab\s*\(|\b[a-z]{3,20}\b)",
-            value,
-            re.I,
-        ):
-            # Évite de traiter des mots de position comme une couleur.
-            words = value.lower().split()
-            non_color_keywords = {
-                "none", "repeat", "repeat-x", "repeat-y", "no-repeat", "fixed",
-                "scroll", "local", "left", "right", "top", "bottom", "center",
-                "cover", "contain", "auto", "padding-box", "border-box", "content-box",
-            }
-            candidates = [word for word in words if word not in non_color_keywords]
-            if candidates:
-                return candidates[-1]
-    return None
-
-
-def _has_background_image(style: str) -> bool:
-    values = _BACKGROUND_IMAGE_RE.findall(style or "")
-    if any(_URL_RE.search(value) for value in values):
-        return True
-    for value in _BACKGROUND_RE.findall(style or ""):
-        if _URL_RE.search(value):
-            return True
-    return False
-
-
-def _extract_stylesheets(html_source: str) -> list[tuple[str, str]]:
-    """Extrait les règles des balises <style>; les fichiers CSS externes ne sont pas chargés."""
+def _extract_stylesheet_rules(html_source: str) -> list[tuple[str, str]]:
+    """Extrait les règles CSS simples des blocs <style>."""
     rules: list[tuple[str, str]] = []
-    for block_index, block in enumerate(
-        re.findall(r"<style\b[^>]*>(.*?)</style\s*>", html_source, re.I | re.S), 1
-    ):
-        # Cette extraction couvre les règles classiques « sélecteur { déclarations } ».
-        # Elle ne résout pas les règles imbriquées @media/@supports ni la cascade complète.
+    for block_index, block in enumerate(re.findall(r"<style\b[^>]*>(.*?)</style\s*>", html_source, re.I | re.S), 1):
         for selector, declarations in re.findall(r"([^{}]+)\{([^{}]*)\}", block):
             selector = selector.strip()
             declarations = declarations.strip()
@@ -176,107 +105,454 @@ def _extract_stylesheets(html_source: str) -> list[tuple[str, str]]:
     return rules
 
 
-def _matching_rule_styles(element: Tag, rules: list[tuple[str, str]]) -> list[tuple[str, str]]:
-    matches: list[tuple[str, str]] = []
-    for selector, declarations in rules:
-        # Les sélecteurs CSS avancés peuvent ne pas être pris en charge par SoupSieve.
-        try:
-            if element.select_one(selector) is not None and element in element.select(selector):
-                matches.append((selector, declarations))
-        except Exception:
-            # Une règle non interprétable est signalée dans les métadonnées globales.
+def _has_color_declaration(style: str) -> tuple[bool, str | None]:
+    """Vérifie si une déclaration color est présente et retourne sa valeur."""
+    match = _COLOR_RE.search(style)
+    if match:
+        value = match.group(1).strip()
+        return True, value
+    return False, None
+
+
+def _has_bg_color_declaration(style: str) -> tuple[bool, str | None]:
+    """Vérifie si une déclaration background-color est présente et retourne sa valeur."""
+    # Vérifier background-color explicite
+    match = _BG_COLOR_RE.search(style)
+    if match:
+        value = match.group(1).strip()
+        return True, value
+    # Vérifier dans la propriété raccourcie background
+    match = _BG_SHORTHAND_RE.search(style)
+    if match:
+        value = match.group(1).strip()
+        # Chercher une couleur dans le background shorthand
+        # Format: background: color image repeat position / size
+        # On cherche une valeur de couleur (pas d'url, pas de mots-clés de position)
+        if _COLOR_RE.search(value) or _BG_COLOR_RE.search(value):
+            return True, value
+    return False, None
+
+
+def _has_bg_image_declaration(style: str) -> tuple[bool, str | None]:
+    """Vérifie si une déclaration background-image est présente et retourne sa valeur."""
+    # Vérifier background-image explicite
+    match = _BG_IMAGE_RE.search(style)
+    if match:
+        value = match.group(1).strip()
+        if value and value != "none":
+            return True, value
+    # Vérifier dans la propriété raccourcie background
+    match = _BG_SHORTHAND_RE.search(style)
+    if match:
+        value = match.group(1).strip()
+        if "url(" in value:
+            return True, value
+    return False, None
+
+
+def _is_explicit_color(value: str) -> bool:
+    """Vérifie si une valeur de couleur est explicite (pas transparent, inherit, etc.)."""
+    if not value:
+        return False
+    if _TRANSPARENT_RE.match(value):
+        return False
+    if _INHERIT_RE.match(value):
+        return False
+    if _CURRENT_COLOR_RE.match(value):
+        return False
+    return True
+
+
+def _is_explicit_bg_color(value: str) -> bool:
+    """Vérifie si une valeur de background-color est explicite."""
+    if not value:
+        return False
+    if _TRANSPARENT_RE.match(value):
+        return False
+    if _INHERIT_RE.match(value):
+        return False
+    return True
+
+
+def _get_elements_to_check(soup: BeautifulSoup, tag_set: set[str]) -> list[Tag]:
+    """
+    Retourne les éléments à vérifier : éléments textuels + leurs conteneurs
+    avec styles en ligne qui pourraient affecter le texte.
+    """
+    elements_to_check: list[Tag] = []
+    seen_ids: set[int] = set()
+
+    # 1. Ajouter tous les éléments textuels
+    for element in soup.find_all(list(tag_set)):
+        if _has_rendered_text(element):
+            elem_id = id(element)
+            if elem_id not in seen_ids:
+                elements_to_check.append(element)
+                seen_ids.add(elem_id)
+
+    # 2. Ajouter les conteneurs ancêtres qui ont des styles en ligne
+    for element in elements_to_check[:]:  # Copie pour itérer sur l'original
+        for ancestor in element.parents:
+            if not isinstance(ancestor, Tag):
+                continue
+            if ancestor.name in _CONTAINER_TAGS and _inline_style(ancestor):
+                anc_id = id(ancestor)
+                if anc_id not in seen_ids:
+                    elements_to_check.append(ancestor)
+                    seen_ids.add(anc_id)
+
+    return elements_to_check
+
+
+def _check_parent_for_bg_color(soup: BeautifulSoup, element: Tag) -> tuple[bool, str | None]:
+    """Vérifie si un parent a une background-color explicite."""
+    for ancestor in element.parents:
+        if not isinstance(ancestor, Tag):
             continue
-    return matches
+        style = _inline_style(ancestor)
+        if style:
+            has_bg, value = _has_bg_color_declaration(style)
+            if has_bg and _is_explicit_bg_color(value):
+                return True, value
+    return False, None
 
 
-def _element_styles(
+def _check_parent_for_color(soup: BeautifulSoup, element: Tag) -> tuple[bool, str | None]:
+    """Vérifie si un parent a une color explicite."""
+    for ancestor in element.parents:
+        if not isinstance(ancestor, Tag):
+            continue
+        style = _inline_style(ancestor)
+        if style:
+            has_color, value = _has_color_declaration(style)
+            if has_color and _is_explicit_color(value):
+                return True, value
+    return False, None
+
+
+def _analyze_element_for_1051(
     soup: BeautifulSoup,
     element: Tag,
-    rules: list[tuple[str, str]],
-) -> list[tuple[str, str, str]]:
-    """Rassemble styles inline et règles internes qui semblent viser l'élément."""
-    styles: list[tuple[str, str, str]] = []
-    inline = _style_of(element)
-    if inline:
-        styles.append(("style inline", inline, "inline"))
+    test_id: str,
+) -> list[Finding]:
+    """Analyse un élément pour le test 10.5.1 : color sans background-color."""
+    style = _inline_style(element)
+    if not style:
+        return []
+
+    if _is_exempt(element):
+        return []
+
+    selector = _selector_for(soup, element)
+    findings: list[Finding] = []
+
+    # Vérifier si l'élément a une déclaration color explicite
+    has_color, color_value = _has_color_declaration(style)
+    if not has_color or not _is_explicit_color(color_value):
+        return []
+
+    # Vérifier si l'élément a une background-color explicite
+    has_bg_color, bg_value = _has_bg_color_declaration(style)
+    if has_bg_color and _is_explicit_bg_color(bg_value):
+        return []  # OK : color + background-color sur le même élément
+
+    # Vérifier les parents pour background-color hérité
+    parent_has_bg, parent_bg_value = _check_parent_for_bg_color(soup, element)
+    if parent_has_bg:
+        return []  # OK : background-color hérité d'un parent
+
+    # Échec : color sans background-color
+    findings.append(
+        Finding(
+            element=selector,
+            message=(
+                f"L'élément a une couleur de police explicite (color: {color_value}) "
+                "mais aucune couleur de fond (background-color) n'est définie "
+                "sur l'élément ni héritée d'un parent."
+            ),
+            recommendation=(
+                "Ajouter une déclaration background-color sur cet élément "
+                "ou sur un parent, ou utiliser une valeur de couleur par défaut "
+                "qui garantit le contraste."
+            ),
+            evidence={
+                "property": "color",
+                "color_value": color_value,
+                "inline_style": style[:300],
+                "test_id": test_id,
+                "risk_type": "color_without_background",
+            },
+        )
+    )
+
+    return findings
+
+
+def _analyze_stylesheet_for_1051(
+    html_source: str,
+    test_id: str,
+) -> list[Finding]:
+    """Analyse les règles CSS des feuilles de style internes pour le test 10.5.1."""
+    rules = _extract_stylesheet_rules(html_source)
+    findings: list[Finding] = []
+
     for selector, declarations in rules:
-        try:
-            if element in soup.select(selector):
-                styles.append((selector, declarations, "stylesheet"))
-        except Exception:
+        # Vérifier si la règle a color sans background-color
+        has_color, color_value = _has_color_declaration(declarations)
+        if not has_color or not _is_explicit_color(color_value):
             continue
-    return styles
+
+        has_bg_color, bg_value = _has_bg_color_declaration(declarations)
+        if has_bg_color and _is_explicit_bg_color(bg_value):
+            continue  # OK
+
+        # Pour les feuilles de style, on ne peut pas vérifier l'héritage facilement
+        # On signale en NEEDS_REVIEW
+        findings.append(
+            Finding(
+                element=selector[:160],
+                message=(
+                    f"Règle CSS avec color ({color_value}) sans background-color explicite. "
+                    "Vérifier si une couleur de fond est héritée d'un parent dans le rendu final."
+                ),
+                recommendation=(
+                    "Vérifier dans le navigateur si cet élément a un fond coloré "
+                    "lorsqu'il est rendu, ou ajouter background-color explicitement."
+                ),
+                evidence={
+                    "selector": selector[:160],
+                    "declarations": declarations[:300],
+                    "source_type": "stylesheet",
+                    "risk_type": "stylesheet_color_without_background",
+                    "test_id": test_id,
+                    "color_value": color_value,
+                },
+            )
+        )
+
+    return findings
 
 
-def _own_color_declarations(styles: list[tuple[str, str, str]]) -> list[tuple[str, str, str]]:
-    result: list[tuple[str, str, str]] = []
-    for source, style, origin in styles:
-        for value in _COLOR_RE.findall(style):
-            if not _is_default_or_unset(value):
-                result.append((source, value.strip(), origin))
-    return result
+def _analyze_element_for_1052(
+    soup: BeautifulSoup,
+    element: Tag,
+    test_id: str,
+) -> list[Finding]:
+    """Analyse un élément pour le test 10.5.2 : background-color sans color."""
+    style = _inline_style(element)
+    if not style:
+        return []
+
+    if _is_exempt(element):
+        return []
+
+    selector = _selector_for(soup, element)
+    findings: list[Finding] = []
+
+    # Vérifier si l'élément a une déclaration background-color explicite
+    has_bg_color, bg_value = _has_bg_color_declaration(style)
+    if not has_bg_color or not _is_explicit_bg_color(bg_value):
+        return []
+
+    # Vérifier si l'élément a une color explicite
+    has_color, color_value = _has_color_declaration(style)
+    if has_color and _is_explicit_color(color_value):
+        return []  # OK : background-color + color sur le même élément
+
+    # Vérifier les parents pour color hérité
+    parent_has_color, parent_color_value = _check_parent_for_color(soup, element)
+    if parent_has_color:
+        return []  # OK : color hérité d'un parent
+
+    # Échec : background-color sans color
+    findings.append(
+        Finding(
+            element=selector,
+            message=(
+                f"L'élément a une couleur de fond explicite (background-color: {bg_value}) "
+                "mais aucune couleur de police (color) n'est définie "
+                "sur l'élément ni héritée d'un parent."
+            ),
+            recommendation=(
+                "Ajouter une déclaration color sur cet élément "
+                "ou sur un parent, ou utiliser une valeur de couleur par défaut "
+                "qui garantit le contraste."
+            ),
+            evidence={
+                "property": "background-color",
+                "bg_color_value": bg_value,
+                "inline_style": style[:300],
+                "test_id": test_id,
+                "risk_type": "background_without_color",
+            },
+        )
+    )
+
+    return findings
 
 
-def _own_background_declarations(
-    styles: list[tuple[str, str, str]],
-) -> list[tuple[str, str, str]]:
-    result: list[tuple[str, str, str]] = []
-    for source, style, origin in styles:
-        value = _background_color_value(style)
-        if value:
-            result.append((source, value, origin))
-    return result
+def _analyze_stylesheet_for_1052(
+    html_source: str,
+    test_id: str,
+) -> list[Finding]:
+    """Analyse les règles CSS des feuilles de style internes pour le test 10.5.2."""
+    rules = _extract_stylesheet_rules(html_source)
+    findings: list[Finding] = []
+
+    for selector, declarations in rules:
+        # Vérifier si la règle a background-color sans color
+        has_bg_color, bg_value = _has_bg_color_declaration(declarations)
+        if not has_bg_color or not _is_explicit_bg_color(bg_value):
+            continue
+
+        has_color, color_value = _has_color_declaration(declarations)
+        if has_color and _is_explicit_color(color_value):
+            continue  # OK
+
+        # Pour les feuilles de style, on ne peut pas vérifier l'héritage facilement
+        findings.append(
+            Finding(
+                element=selector[:160],
+                message=(
+                    f"Règle CSS avec background-color ({bg_value}) sans color explicite. "
+                    "Vérifier si une couleur de police est héritée d'un parent dans le rendu final."
+                ),
+                recommendation=(
+                    "Vérifier dans le navigateur si cet élément a une couleur de texte définie "
+                    "lorsqu'il est rendu, ou ajouter color explicitement."
+                ),
+                evidence={
+                    "selector": selector[:160],
+                    "declarations": declarations[:300],
+                    "source_type": "stylesheet",
+                    "risk_type": "stylesheet_background_without_color",
+                    "test_id": test_id,
+                    "bg_color_value": bg_value,
+                },
+            )
+        )
+
+    return findings
 
 
-def _own_background_images(
-    styles: list[tuple[str, str, str]],
-) -> list[tuple[str, str, str]]:
-    result: list[tuple[str, str, str]] = []
-    for source, style, origin in styles:
-        for value in _BACKGROUND_IMAGE_RE.findall(style):
-            if _URL_RE.search(value):
-                result.append((source, value.strip(), origin))
-        for value in _BACKGROUND_RE.findall(style):
-            if _URL_RE.search(value):
-                result.append((source, value.strip(), origin))
-    # Évite les doublons lorsque background et background-image décrivent la même image.
-    unique: dict[tuple[str, str], tuple[str, str, str]] = {}
-    for item in result:
-        unique[(item[0], item[1])] = item
-    return list(unique.values())
+def _analyze_element_for_1053(
+    soup: BeautifulSoup,
+    element: Tag,
+    test_id: str,
+) -> list[Finding]:
+    """Analyse un élément pour le test 10.5.3 : background-image sans background-color fallback."""
+    style = _inline_style(element)
+    if not style:
+        return []
+
+    if _is_exempt(element):
+        return []
+
+    selector = _selector_for(soup, element)
+    findings: list[Finding] = []
+
+    # Vérifier si l'élément a une déclaration background-image
+    has_bg_image, bg_image_value = _has_bg_image_declaration(style)
+    if not has_bg_image:
+        return []
+
+    # Vérifier si l'élément a une background-color explicite (fallback)
+    has_bg_color, bg_value = _has_bg_color_declaration(style)
+    if has_bg_color and _is_explicit_bg_color(bg_value):
+        return []  # OK : background-image + background-color fallback sur le même élément
+
+    # Vérifier les parents pour background-color hérité
+    parent_has_bg, parent_bg_value = _check_parent_for_bg_color(soup, element)
+    if parent_has_bg:
+        return []  # OK : background-color hérité d'un parent
+
+    # Échec : background-image sans background-color fallback
+    findings.append(
+        Finding(
+            element=selector,
+            message=(
+                f"L'élément utilise une image d'arrière-plan (background-image: {bg_image_value[:50]}...) "
+                "mais aucune couleur de fond de secours (background-color) n'est définie "
+                "sur l'élément ni héritée d'un parent. Si l'image ne se charge pas, "
+                "le texte peut devenir illisible."
+            ),
+            recommendation=(
+                "Ajouter une déclaration background-color sur cet élément "
+                "ou sur un parent, avec une couleur assurant un contraste suffisant "
+                "avec la couleur du texte, pour garantir la lisibilité si l'image échoue."
+            ),
+            evidence={
+                "property": "background-image",
+                "bg_image_value": bg_image_value[:100],
+                "inline_style": style[:300],
+                "test_id": test_id,
+                "risk_type": "background_image_without_fallback",
+            },
+        )
+    )
+
+    return findings
 
 
-def _ancestor_has_background(element: Tag, styles_by_element: dict[int, list[tuple[str, str, str]]]) -> bool:
-    """Cherche une couleur de fond déclarée sur l'élément ou un ancêtre."""
-    current: Tag | None = element
-    while current is not None:
-        styles = styles_by_element.get(id(current), [])
-        if _own_background_declarations(styles):
-            return True
-        parent = current.parent
-        current = parent if isinstance(parent, Tag) else None
-    return False
+def _analyze_stylesheet_for_1053(
+    html_source: str,
+    test_id: str,
+) -> list[Finding]:
+    """Analyse les règles CSS des feuilles de style internes pour le test 10.5.3."""
+    rules = _extract_stylesheet_rules(html_source)
+    findings: list[Finding] = []
+
+    for selector, declarations in rules:
+        # Vérifier si la règle a background-image sans background-color
+        has_bg_image, bg_image_value = _has_bg_image_declaration(declarations)
+        if not has_bg_image:
+            continue
+
+        has_bg_color, bg_value = _has_bg_color_declaration(declarations)
+        if has_bg_color and _is_explicit_bg_color(bg_value):
+            continue  # OK
+
+        # Pour les feuilles de style, on ne peut pas vérifier l'héritage facilement
+        findings.append(
+            Finding(
+                element=selector[:160],
+                message=(
+                    f"Règle CSS avec background-image ({bg_image_value[:50]}...) "
+                    "sans background-color de secours explicite. "
+                    "Vérifier si une couleur de fond est héritée d'un parent dans le rendu final."
+                ),
+                recommendation=(
+                    "Vérifier dans le navigateur si cet élément a une couleur de fond de secours "
+                    "lorsqu'il est rendu, ou ajouter background-color explicitement "
+                    "pour garantir la lisibilité si l'image échoue."
+                ),
+                evidence={
+                    "selector": selector[:160],
+                    "declarations": declarations[:300],
+                    "source_type": "stylesheet",
+                    "risk_type": "stylesheet_background_image_without_fallback",
+                    "test_id": test_id,
+                    "bg_image_value": bg_image_value[:100],
+                },
+            )
+        )
+
+    return findings
 
 
-def _ancestor_has_text_color(element: Tag, styles_by_element: dict[int, list[tuple[str, str, str]]]) -> bool:
-    """Cherche une couleur de texte déclarée sur l'élément ou un ancêtre."""
-    current: Tag | None = element
-    while current is not None:
-        styles = styles_by_element.get(id(current), [])
-        if _own_color_declarations(styles):
-            return True
-        parent = current.parent
-        current = parent if isinstance(parent, Tag) else None
-    return False
+class Test1051(RGAATest):
+    """Test 10.5.1 : Chaque déclaration CSS de couleur de police est accompagnée
+    d'une déclaration de couleur de fond."""
 
-
-class _ColorDeclarationTest(RGAATest):
-    """Socle partagé des contrôles statiques du critère RGAA 10.5."""
-
-    required_capabilities = frozenset({Capability.DOM, Capability.HTML_SOURCE})
+    test_id = "10.5.1"
     criterion_id = "10.5"
-    test_id = ""
-    _mode = ""
+
+    required_capabilities = frozenset(
+        {
+            Capability.DOM,
+            Capability.HTML_SOURCE,
+        }
+    )
 
     async def run(
         self,
@@ -291,10 +567,11 @@ class _ColorDeclarationTest(RGAATest):
                 test_id=self.test_id,
                 criterion_id=self.criterion_id,
                 status=TestStatus.NOT_TESTED,
-                summary="Le DOM n'est pas disponible pour analyser les déclarations de couleurs.",
+                summary="Le DOM n'est pas disponible ; le test 10.5.1 nécessite l'analyse de la page.",
                 tested_elements=0,
-                metadata={"reason": "missing_dom", "analysis": "static_html_css"},
+                metadata={"reason": "missing_dom"},
             )
+
         if not isinstance(html_source, str) or not html_source.strip():
             return TestResult(
                 test_id=self.test_id,
@@ -302,147 +579,49 @@ class _ColorDeclarationTest(RGAATest):
                 status=TestStatus.NOT_TESTED,
                 summary="Le code source HTML n'est pas disponible pour analyser les styles.",
                 tested_elements=0,
-                metadata={"reason": "missing_html_source", "analysis": "static_html_css"},
+                metadata={"reason": "missing_html_source"},
             )
 
-        rules = _extract_stylesheets(html_source)
-        text_elements = [
-            element for element in soup.find_all(True)
-            if element.name not in _NON_CONTENT_TAGS and _has_text(element)
-        ]
-
-        # Index des styles par élément pour prendre en compte des déclarations
-        # présentes sur les ancêtres, sans prétendre calculer la cascade CSS réelle.
-        styles_by_element: dict[int, list[tuple[str, str, str]]] = {}
-        stylesheet_rule_count = len(rules)
-        unparsed_external_stylesheets = len(
-            soup.find_all("link", rel=lambda value: value and "stylesheet" in value)
-        )
-        for element in soup.find_all(True):
-            styles_by_element[id(element)] = _element_styles(soup, element, rules)
+        # Sélectionner les éléments à vérifier (textuels + leurs conteneurs avec styles)
+        elements_to_check = _get_elements_to_check(soup, _TEXT_TAGS)
 
         findings: list[Finding] = []
-        examined = 0
-        skipped_default = 0
-        explicit_color_count = 0
-        explicit_background_count = 0
-        background_image_count = 0
-        inherited_background_count = 0
-        inherited_color_count = 0
+        for element in elements_to_check:
+            findings.extend(_analyze_element_for_1051(soup, element, self.test_id))
 
-        for element in text_elements:
-            examined += 1
-            selector = _selector_for(soup, element)
-            own_styles = styles_by_element.get(id(element), [])
-            colors = _own_color_declarations(own_styles)
-            backgrounds = _own_background_declarations(own_styles)
-            images = _own_background_images(own_styles)
-            explicit_color_count += len(colors)
-            explicit_background_count += len(backgrounds)
-            background_image_count += len(images)
+        # Analyser aussi les règles CSS internes
+        css_findings = _analyze_stylesheet_for_1051(html_source, self.test_id)
+        findings.extend(css_findings)
 
-            if self._mode == "text_requires_background":
-                if not colors:
-                    # Pas de couleur de police déclarée sur cet élément : le test
-                    # 10.5.1 ne demande pas de contrôle pour les couleurs par défaut.
-                    if element.name in _DEFAULT_COLOR_TAGS:
-                        skipped_default += 1
-                    continue
-                if _ancestor_has_background(element, styles_by_element):
-                    inherited_background_count += 1
-                    continue
-                for source, value, origin in colors:
-                    findings.append(
-                        Finding(
-                            element=selector,
-                            message=(
-                                f"Une couleur de police explicite ({value}) est déclarée "
-                                "sans couleur de fond détectée sur l'élément ou ses ancêtres."
-                            ),
-                            recommendation=(
-                                "Définir une couleur de fond explicite adaptée sur l'élément "
-                                "ou un ancêtre, puis vérifier le rendu réel et le contraste."
-                            ),
-                            evidence={
-                                "test_id": self.test_id,
-                                "property": "color",
-                                "value": value,
-                                "declaration_source": source,
-                                "declaration_origin": origin,
-                                "risk_type": "text_color_without_background",
-                            },
-                        )
-                    )
-
-            elif self._mode == "background_requires_text":
-                if not backgrounds:
-                    continue
-                if _ancestor_has_text_color(element, styles_by_element):
-                    inherited_color_count += 1
-                    continue
-                for source, value, origin in backgrounds:
-                    findings.append(
-                        Finding(
-                            element=selector,
-                            message=(
-                                f"Une couleur de fond ({value}) est déclarée sans couleur "
-                                "de police détectée sur l'élément ou ses ancêtres."
-                            ),
-                            recommendation=(
-                                "Définir une couleur de police explicite adaptée sur l'élément "
-                                "ou un ancêtre, puis vérifier le rendu réel et le contraste."
-                            ),
-                            evidence={
-                                "test_id": self.test_id,
-                                "property": "background-color",
-                                "value": value,
-                                "declaration_source": source,
-                                "declaration_origin": origin,
-                                "risk_type": "background_without_text_color",
-                            },
-                        )
-                    )
-
-            elif self._mode == "background_image_requires_color":
-                if not images:
-                    continue
-                if _ancestor_has_background(element, styles_by_element):
-                    inherited_background_count += 1
-                    continue
-                for source, value, origin in images:
-                    findings.append(
-                        Finding(
-                            element=selector,
-                            message=(
-                                "Une image d'arrière-plan CSS est appliquée à un élément "
-                                "contenant du texte sans couleur de fond de secours détectée."
-                            ),
-                            recommendation=(
-                                "Définir une couleur de fond de secours sur l'élément ou un "
-                                "ancêtre afin que le texte reste lisible si l'image ne charge "
-                                "pas, puis vérifier visuellement ce scénario."
-                            ),
-                            evidence={
-                                "test_id": self.test_id,
-                                "property": "background-image",
-                                "value": value,
-                                "declaration_source": source,
-                                "declaration_origin": origin,
-                                "risk_type": "background_image_without_fallback",
-                            },
-                        )
-                    )
-
-        status = TestStatus.FAIL if findings else TestStatus.PASS
+        # Déterminer le statut
         if findings:
-            summary = (
-                f"{len(findings)} déclaration(s) potentiellement non conforme(s) détectée(s) "
-                f"par l'analyse statique du test {self.test_id}."
-            )
+            # Si des risques certains sont détectés (inline styles), c'est un FAIL
+            inline_risks = [f for f in findings if f.evidence.get("risk_type") != "stylesheet_color_without_background"]
+            if inline_risks:
+                status = TestStatus.FAIL
+                summary = (
+                    f"{len(inline_risks)} élément(s) avec color sans background-color détecté(s) "
+                    "dans les styles en ligne. "
+                    f"{len(css_findings)} risque(s) additionnel(s) dans les feuilles de style. "
+                    "La validation exige un contrôle du rendu réel dans le navigateur."
+                )
+            else:
+                # Risques seulement dans les feuilles de style = NEEDS_REVIEW
+                status = TestStatus.NEEDS_REVIEW
+                summary = (
+                    "Analyse statique terminée : "
+                    f"{len(elements_to_check)} élément(s) examiné(s), "
+                    f"{len(findings)} risque(s) potentiel(s) détecté(s) dans les feuilles de style. "
+                    "Aucun risque certain dans les styles en ligne. "
+                    "La validation exige un contrôle du rendu réel dans le navigateur."
+                )
         else:
+            status = TestStatus.PASS
             summary = (
-                f"Aucun risque statique n'a été détecté par le test {self.test_id} "
-                "dans les styles HTML et CSS internes analysés."
+                f"Aucun risque détecté : toutes les déclarations color "
+                f"ont une background-color correspondante sur les "
+                f"{len(elements_to_check)} élément(s) examiné(s). "
+                "La validation finale exige un contrôle du rendu réel dans le navigateur."
             )
 
         return TestResult(
@@ -451,48 +630,241 @@ class _ColorDeclarationTest(RGAATest):
             status=status,
             summary=summary,
             findings=findings,
-            tested_elements=examined,
+            tested_elements=len(elements_to_check),
             metadata={
-                "analysis": "static_html_css_heuristic",
-                "text_elements_examined": examined,
-                "stylesheet_rules_examined": stylesheet_rule_count,
-                "external_stylesheets_detected": unparsed_external_stylesheets,
-                "explicit_text_color_declarations": explicit_color_count,
-                "explicit_background_color_declarations": explicit_background_count,
-                "background_image_declarations": background_image_count,
-                "ancestor_background_found": inherited_background_count,
-                "ancestor_text_color_found": inherited_color_count,
-                "default_color_exceptions_skipped": skipped_default,
-                "potential_violations": len(findings),
-                "computed_browser_styles_available": False,
-                "contrast_ratio_measured": False,
-                "limitations": [
-                    "Les feuilles CSS externes ne sont pas téléchargées ni analysées.",
-                    "La cascade CSS, la spécificité, les media queries et les styles dynamiques "
-                    "ne sont pas entièrement calculés.",
-                    "Une absence de risque détecté ne prouve pas la conformité du rendu final.",
-                    "Ce test ne mesure pas le contraste de couleurs.",
+                "elements_examined": len(elements_to_check),
+                "potential_color_risks": len(findings),
+                "inline_style_risks": len(
+                    [f for f in findings if f.evidence.get("risk_type") != "stylesheet_color_without_background"]
+                ),
+                "stylesheet_risks": len(css_findings),
+                "browser_check_required": True,
+                "required_manual_checks": [
+                    "vérifier le contraste texte/fond dans le navigateur",
+                    "vérifier l'héritage des couleurs de fond",
                 ],
+                "manual_check_for": "color sans background-color (critère 10.5.1)",
             },
         )
 
 
-class Test1051(_ColorDeclarationTest):
-    """10.5.1 : une couleur de police explicite doit avoir un fond détectable."""
-
-    test_id = "10.5.1"
-    _mode = "text_requires_background"
-
-
-class Test1052(_ColorDeclarationTest):
-    """10.5.2 : une couleur de fond explicite doit avoir une couleur de texte détectable."""
+class Test1052(RGAATest):
+    """Test 10.5.2 : Chaque déclaration CSS de couleur de fond est accompagnée
+    d'une déclaration de couleur de police."""
 
     test_id = "10.5.2"
-    _mode = "background_requires_text"
+    criterion_id = "10.5"
+
+    required_capabilities = frozenset(
+        {
+            Capability.DOM,
+            Capability.HTML_SOURCE,
+        }
+    )
+
+    async def run(
+        self,
+        context: AuditContext,
+        services: Any | None = None,
+    ) -> TestResult:
+        soup = getattr(context, "dom", None)
+        html_source = getattr(context, "html_source", None)
+
+        if not isinstance(soup, BeautifulSoup):
+            return TestResult(
+                test_id=self.test_id,
+                criterion_id=self.criterion_id,
+                status=TestStatus.NOT_TESTED,
+                summary="Le DOM n'est pas disponible ; le test 10.5.2 nécessite l'analyse de la page.",
+                tested_elements=0,
+                metadata={"reason": "missing_dom"},
+            )
+
+        if not isinstance(html_source, str) or not html_source.strip():
+            return TestResult(
+                test_id=self.test_id,
+                criterion_id=self.criterion_id,
+                status=TestStatus.NOT_TESTED,
+                summary="Le code source HTML n'est pas disponible pour analyser les styles.",
+                tested_elements=0,
+                metadata={"reason": "missing_html_source"},
+            )
+
+        # Sélectionner les éléments à vérifier (textuels + leurs conteneurs avec styles)
+        elements_to_check = _get_elements_to_check(soup, _TEXT_TAGS)
+
+        findings: list[Finding] = []
+        for element in elements_to_check:
+            findings.extend(_analyze_element_for_1052(soup, element, self.test_id))
+
+        # Analyser aussi les règles CSS internes
+        css_findings = _analyze_stylesheet_for_1052(html_source, self.test_id)
+        findings.extend(css_findings)
+
+        # Déterminer le statut
+        if findings:
+            # Si des risques certains sont détectés (inline styles), c'est un FAIL
+            inline_risks = [f for f in findings if f.evidence.get("risk_type") != "stylesheet_background_without_color"]
+            if inline_risks:
+                status = TestStatus.FAIL
+                summary = (
+                    f"{len(inline_risks)} élément(s) avec background-color sans color détecté(s) "
+                    "dans les styles en ligne. "
+                    f"{len(css_findings)} risque(s) additionnel(s) dans les feuilles de style. "
+                    "La validation exige un contrôle du rendu réel dans le navigateur."
+                )
+            else:
+                # Risques seulement dans les feuilles de style = NEEDS_REVIEW
+                status = TestStatus.NEEDS_REVIEW
+                summary = (
+                    "Analyse statique terminée : "
+                    f"{len(elements_to_check)} élément(s) examiné(s), "
+                    f"{len(findings)} risque(s) potentiel(s) détecté(s) dans les feuilles de style. "
+                    "Aucun risque certain dans les styles en ligne. "
+                    "La validation exige un contrôle du rendu réel dans le navigateur."
+                )
+        else:
+            status = TestStatus.PASS
+            summary = (
+                f"Aucun risque détecté : toutes les déclarations background-color "
+                f"ont une color correspondante sur les "
+                f"{len(elements_to_check)} élément(s) examiné(s). "
+                "La validation finale exige un contrôle du rendu réel dans le navigateur."
+            )
+
+        return TestResult(
+            test_id=self.test_id,
+            criterion_id=self.criterion_id,
+            status=status,
+            summary=summary,
+            findings=findings,
+            tested_elements=len(elements_to_check),
+            metadata={
+                "elements_examined": len(elements_to_check),
+                "potential_background_risks": len(findings),
+                "inline_style_risks": len(
+                    [f for f in findings if f.evidence.get("risk_type") != "stylesheet_background_without_color"]
+                ),
+                "stylesheet_risks": len(css_findings),
+                "browser_check_required": True,
+                "required_manual_checks": [
+                    "vérifier le contraste texte/fond dans le navigateur",
+                    "vérifier l'héritage des couleurs de police",
+                ],
+                "manual_check_for": "background-color sans color (critère 10.5.2)",
+            },
+        )
 
 
-class Test1053(_ColorDeclarationTest):
-    """10.5.3 : une image d'arrière-plan doit disposer d'une couleur de secours."""
+class Test1053(RGAATest):
+    """Test 10.5.3 : Chaque utilisation d'image pour créer une couleur de fond
+    est accompagnée d'une déclaration de couleur de fond de secours."""
 
     test_id = "10.5.3"
-    _mode = "background_image_requires_color"
+    criterion_id = "10.5"
+
+    required_capabilities = frozenset(
+        {
+            Capability.DOM,
+            Capability.HTML_SOURCE,
+        }
+    )
+
+    async def run(
+        self,
+        context: AuditContext,
+        services: Any | None = None,
+    ) -> TestResult:
+        soup = getattr(context, "dom", None)
+        html_source = getattr(context, "html_source", None)
+
+        if not isinstance(soup, BeautifulSoup):
+            return TestResult(
+                test_id=self.test_id,
+                criterion_id=self.criterion_id,
+                status=TestStatus.NOT_TESTED,
+                summary="Le DOM n'est pas disponible ; le test 10.5.3 nécessite l'analyse de la page.",
+                tested_elements=0,
+                metadata={"reason": "missing_dom"},
+            )
+
+        if not isinstance(html_source, str) or not html_source.strip():
+            return TestResult(
+                test_id=self.test_id,
+                criterion_id=self.criterion_id,
+                status=TestStatus.NOT_TESTED,
+                summary="Le code source HTML n'est pas disponible pour analyser les styles.",
+                tested_elements=0,
+                metadata={"reason": "missing_html_source"},
+            )
+
+        # Sélectionner les éléments à vérifier (textuels + leurs conteneurs avec styles)
+        elements_to_check = _get_elements_to_check(soup, _TEXT_TAGS)
+
+        findings: list[Finding] = []
+        for element in elements_to_check:
+            findings.extend(_analyze_element_for_1053(soup, element, self.test_id))
+
+        # Analyser aussi les règles CSS internes
+        css_findings = _analyze_stylesheet_for_1053(html_source, self.test_id)
+        findings.extend(css_findings)
+
+        # Déterminer le statut
+        if findings:
+            # Si des risques certains sont détectés (inline styles), c'est un FAIL
+            inline_risks = [
+                f for f in findings if f.evidence.get("risk_type") != "stylesheet_background_image_without_fallback"
+            ]
+            if inline_risks:
+                status = TestStatus.FAIL
+                summary = (
+                    f"{len(inline_risks)} élément(s) avec background-image sans background-color de secours détecté(s) "
+                    "dans les styles en ligne. "
+                    f"{len(css_findings)} risque(s) additionnel(s) dans les feuilles de style. "
+                    "La validation exige un contrôle du rendu réel dans le navigateur."
+                )
+            else:
+                # Risques seulement dans les feuilles de style = NEEDS_REVIEW
+                status = TestStatus.NEEDS_REVIEW
+                summary = (
+                    "Analyse statique terminée : "
+                    f"{len(elements_to_check)} élément(s) examiné(s), "
+                    f"{len(findings)} risque(s) potentiel(s) détecté(s) dans les feuilles de style. "
+                    "Aucun risque certain dans les styles en ligne. "
+                    "La validation exige un contrôle du rendu réel dans le navigateur."
+                )
+        else:
+            status = TestStatus.PASS
+            summary = (
+                f"Aucun risque détecté : toutes les déclarations background-image "
+                f"ont une background-color de secours correspondante sur les "
+                f"{len(elements_to_check)} élément(s) examiné(s). "
+                "La validation finale exige un contrôle du rendu réel dans le navigateur."
+            )
+
+        return TestResult(
+            test_id=self.test_id,
+            criterion_id=self.criterion_id,
+            status=status,
+            summary=summary,
+            findings=findings,
+            tested_elements=len(elements_to_check),
+            metadata={
+                "elements_examined": len(elements_to_check),
+                "potential_bg_image_risks": len(findings),
+                "inline_style_risks": len(
+                    [
+                        f
+                        for f in findings
+                        if f.evidence.get("risk_type") != "stylesheet_background_image_without_fallback"
+                    ]
+                ),
+                "stylesheet_risks": len(css_findings),
+                "browser_check_required": True,
+                "required_manual_checks": [
+                    "vérifier la lisibilité du texte si l'image de fond échoue",
+                    "vérifier l'héritage des couleurs de fond de secours",
+                ],
+                "manual_check_for": "background-image sans background-color fallback (critère 10.5.3)",
+            },
+        )
