@@ -529,7 +529,7 @@ def _analyze_link_for_1061(
                     "Ajouter un indicateur visuel au focus : outline, soulignement, bordure, ombre, "
                     "changement de fond, etc. (note: outline est recommandé pour l'accessibilité)."
                 ),
-                focus_detail = focus_details[:3] if focus_details else "Aucune règle :focus correspondante trouvée"
+                focus_detail = focus_details[:3] if focus_details else "Aucune regle :focus correspondante trouvee",
                 evidence={
                     "focus_rules_checked": len(focus_rules),
                     "focus_details": focus_detail,
