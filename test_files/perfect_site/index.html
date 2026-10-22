@@ -178,6 +178,40 @@
         </section>
     </main>
 
+    <!-- 8.7.1 et 8.8.1 : changement de langue correct -->
+    <p>
+        Bienvenue sur notre site.
+        <span lang="en">Welcome to our website</span>
+    </p>
+    
+    <!-- 8.8.1 : code de langue incorrect pour le texte -->
+    <p>
+        <span lang="fr">Please contact our support team.</span>
+    </p>
+    
+    <!-- 8.10.1 et 8.10.2 : direction de texte correcte -->
+    <p>
+        Texte en français :
+        <span lang="ar" dir="rtl">مرحبا بكم</span>
+    </p>
+    
+    <!-- 8.10.2 : valeur de dir invalide -->
+    <p>
+        <span lang="ar" dir="right">مرحبا بكم</span>
+    </p>
+    
+    <!-- 8.10.1 : texte RTL sans indication de direction -->
+    <p>
+        <span lang="ar">مرحبا بكم</span>
+    </p>
+    
+    <!-- 8.9.1 : utilisation potentiellement incorrecte -->
+    <blockquote>
+        Ce texte est simplement indenté pour la présentation,
+        ce n'est pas une citation.
+    </blockquote>
+
+
     <footer>
         <p>AccessiCode - page de démonstration accessible</p>
     </footer>

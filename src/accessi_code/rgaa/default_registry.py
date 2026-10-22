@@ -37,8 +37,27 @@ from accessi_code.rgaa.tests.theme_08_mandatory.criterion_8_4 import (
 from accessi_code.rgaa.tests.theme_08_mandatory.criterion_8_5 import (
     Test851,
 )
+from accessi_code.rgaa.tests.theme_08_mandatory.criterion_8_2 import (
+    Test821,
+)
+from accessi_code.rgaa.tests.theme_08_mandatory.criterion_8_3 import (
+    Test831,
+)
 from accessi_code.rgaa.tests.theme_08_mandatory.criterion_8_6 import (
     Test861,
+)
+from accessi_code.rgaa.tests.theme_08_mandatory.criterion_8_7 import (
+    Test871,
+)
+from accessi_code.rgaa.tests.theme_08_mandatory.criterion_8_8 import (
+    Test881,
+)
+from accessi_code.rgaa.tests.theme_08_mandatory.criterion_8_9 import (
+    Test891,
+)
+from accessi_code.rgaa.tests.theme_08_mandatory.criterion_8_10 import (
+    Test8101,
+    Test8102,
 )
 from accessi_code.rgaa.tests.theme_11_forms.criterion_11_1 import (
     Test1111,
@@ -65,9 +84,16 @@ def build_default_registry() -> TestRegistry:
             Test811(),
             Test812(),
             Test813(),
+            Test821(),
+            Test831(),
             Test841(),
             Test851(),
             Test861(),
+            Test871(),
+            Test881(),
+            Test891(),
+            Test8101(),
+            Test8102(),
             Test1111(),
         ]
     )

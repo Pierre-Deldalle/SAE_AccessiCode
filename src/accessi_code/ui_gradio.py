@@ -228,6 +228,7 @@ def _build_context_from_uploaded_files(
 async def run_audit(
     html_text: str,
     file_obj,
+    progress: gr.Progress = None,
 ):
     """
     Fonction d'audit déclenchée par l'onglet HTML.
@@ -262,9 +263,17 @@ async def run_audit(
 
     try:
         if html_file is not None:
+            if progress:
+                progress(0.05, description="🔍 Début de l'analyse...")
+            elif progress:
+                progress(0.15, description="📁 Construction du contexte des fichiers...")
             context = _build_context_from_uploaded_files(uploaded_files)
 
         elif html_text and html_text.strip():
+            if progress:
+                progress(0.05, description="🔍 Début de l'analyse...")
+            elif progress:
+                progress(0.15, description="📝 Construction du contexte depuis le texte HTML...")
             context = _build_context_from_html_text(html_text)
 
         else:
@@ -273,7 +282,13 @@ async def run_audit(
                 [],
             )
 
+        if progress:
+            progress(0.30, description="⚙️ Exécution des tests RGAA (étapes longues possibles)...")
+
         audit_result = await audit_service.audit(context)
+
+        if progress:
+            progress(0.70, description="📊 Agrégation des résultats des tests...")
 
     except Exception as error:
         return (
@@ -284,6 +299,11 @@ async def run_audit(
     table_data = _result_table(audit_result)
 
     json_formatted = _format_json(audit_result)
+
+    if progress:
+        progress(0.90, description="📝 Génération du rapport JSON...")
+    if progress:
+        progress(1.0, description="✅ Analyse terminée avec succès !")
 
     return (
         json_formatted,
@@ -298,6 +318,7 @@ async def run_audit(
 
 async def test_vlm(
     image_file,
+    progress: gr.Progress = None,
 ):
     """
     Lance le test RGAA 1.1.1 sur une image isolée en utilisant le moteur
@@ -313,6 +334,11 @@ async def test_vlm(
         )
 
     try:
+        if progress:
+            progress(0.05, description="🖼️ Début de l'analyse d'image...")
+        if progress:
+            progress(0.15, description="📁 Traitement et validation du fichier image...")
+
         image_path = _uploaded_file_path(image_file)
 
         if not image_path.is_file():
@@ -320,6 +346,9 @@ async def test_vlm(
                 (f"Le fichier image fourni est introuvable : {image_path}"),
                 [],
             )
+
+        if progress:
+            progress(0.25, description="🌐 Construction du contexte HTML temporaire...")
 
         with TemporaryDirectory(
             prefix="accessicode_vlm_",
@@ -357,9 +386,20 @@ async def test_vlm(
                 ]
             )
 
+        if progress:
+            progress(0.40, description="⚙️ Lancement de l'analyse VLM (étapes longues possibles)...")
+
         audit_result = await image_audit_service.audit(context)
 
+        if progress:
+            progress(0.70, description="📊 Traitement et agrégation des résultats VLM...")
+
         table_data = _result_table(audit_result)
+
+        if progress:
+            progress(0.90, description="📝 Génération du rapport VLM...")
+        if progress:
+            progress(1.0, description="✅ Analyse VLM terminée avec succès !")
 
         return (
             _format_json(audit_result),

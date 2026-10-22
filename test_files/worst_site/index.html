@@ -1,0 +1,76 @@
+<html lang="xx">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title></title>
+</head>
+<body>
+    <header>
+        <nav>
+            <a href="#contenu"></a>
+        </nav>
+    </header>
+
+    <main id="contenu">
+        <h1></h1>
+        <p>Page volontairement non conforme utilisée pour tester les échecs de l'audit RGAA.</p>
+
+        <figure>
+            <img src="logo.png" alt="Image sans légende conforme" title="Description redondante">
+            <figcaption>Légende incorrectement reliée</figcaption>
+        </figure>
+
+        <img src="logo.png" alt="" aria-label="Image décorative avec une étiquette inutile">
+        <map name="bad-map">
+            <area shape="rect" coords="0,0,240,120" href="#contenu">
+        </map>
+        <img src="logo.png" usemap="#bad-map" ismap alt="Image réactive sans alternative équivalente">
+
+        <input type="image" src="logo.png">
+
+        <svg width="240" height="80" xmlns="http://www.w3.org/2000/svg">
+            <rect width="240" height="80"></rect>
+        </svg>
+
+        <iframe src="https://www.example.com"></iframe>
+        <iframe src="https://www.example.com" title=""></iframe>
+        <frame src="https://www.example.com" title="pub"></frame>
+
+        <table id="bad-table">
+            <thead>
+                <tr>
+                    <th rowspan="2">Critère</th>
+                    <th colspan="2">Résultat</th>
+                </tr>
+                <tr>
+                    <th>Statut</th>
+                    <th>Détail</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Structure</td>
+                    <td>Inconnu</td>
+                    <td>Résumé absent</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <form>
+            <h2>Formulaire sans intitulé</h2>
+            <input id="email" name="email" type="email">
+            <button type="submit"></button>
+        </form>
+
+        <section>
+            <h2></h2>
+            <p dir="invalid">محتوى عربي بلا اتجاه صالح.</p>
+        </section>
+    </main>
+
+    <footer>
+        <p></p>
+    </footer>
+</body>
+</html>
+<!DOCTYPE invalid>
