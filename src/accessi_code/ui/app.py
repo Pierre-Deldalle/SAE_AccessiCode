@@ -1,5 +1,4 @@
-"""
-Construit l'application Gradio et charge les styles de l'interface.
+"""Construit l'application Gradio et charge les styles de l'interface.
 
 Parcours :
 Accueil -> Préparation -> Chargement -> Résultats
@@ -19,6 +18,7 @@ from accessi_code.ui.pages.accueil import build_accueil_page
 from accessi_code.ui.pages.chargement_page import build_chargement_page
 from accessi_code.ui.pages.explications import build_explications_page
 from accessi_code.ui.pages.preparation_audit import (
+    RGAA_THEMES,
     build_preparation_audit_page,
 )
 from accessi_code.ui.pages.resultats_page import (
@@ -31,6 +31,29 @@ STYLES_DIR = UI_DIR / "styles"
 
 ACCUEIL_CLASSES = ["page-container"]
 ACCUEIL_FADE_CLASSES = ["page-container", "accueil-fade-out"]
+
+
+# Appelé après chaque changement de page, une fois les composants mis à jour.
+# Double requestAnimationFrame : attend que le navigateur ait appliqué le rendu.
+SCROLL_TO_TOP_JS = """() => {
+    const resetScroll = () => {
+        window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+        if (document.scrollingElement) document.scrollingElement.scrollTop = 0;
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+
+        // Certaines versions de Gradio utilisent un conteneur défilant.
+        const app = document.querySelector("gradio-app");
+        for (const root of [document, app?.shadowRoot].filter(Boolean)) {
+            for (const container of root.querySelectorAll(".gradio-container, main")) {
+                if (container.scrollHeight > container.clientHeight) {
+                    container.scrollTop = 0;
+                }
+            }
+        }
+    };
+    requestAnimationFrame(() => requestAnimationFrame(resetScroll));
+}"""
 
 
 def load_css(*filenames: str) -> str:
@@ -60,11 +83,7 @@ def start_accueil_transition():
 
 
 async def finish_accueil_transition():
-    """
-    Laisse le fondu se terminer avant de changer de page.
-
-    Le délai est limité à 350 millisecondes.
-    """
+    """Laisse le fondu se terminer avant de changer de page (350 ms)."""
     await asyncio.sleep(0.35)
 
     return (
@@ -125,11 +144,12 @@ def confirm_return_home():
         gr.update(
             visible=True,
             elem_classes=ACCUEIL_CLASSES,
-        ),  # Accueil : visible et sans l'ancienne classe de fondu
+        ),  # Accueil
         gr.update(visible=False),  # Confirmation
         gr.update(value=""),  # URL
         gr.update(value=None),  # Fichiers
         gr.update(value=DEFAULT_THEME_DETAIL),  # Détail
+        gr.update(value=list(RGAA_THEMES)),  # Sélection RGAA
     )
 
 
@@ -141,7 +161,6 @@ def create_app():
         css=CSS,
         theme=gr.themes.Base(),
     ) as app:
-        # Construction des pages.
         accueil_page, start_button = build_accueil_page()
 
         (
@@ -150,6 +169,7 @@ def create_app():
             files_input,
             validate_button,
             help_button,
+            selected_themes,
         ) = build_preparation_audit_page()
 
         explications_page, back_button = build_explications_page()
@@ -165,7 +185,6 @@ def create_app():
             confirm_button,
         ) = build_resultats_page()
 
-        # Accueil : lancement du fondu, puis navigation.
         start_button.click(
             fn=start_accueil_transition,
             inputs=[],
@@ -174,56 +193,38 @@ def create_app():
         ).then(
             fn=finish_accueil_transition,
             inputs=[],
-            outputs=[
-                accueil_page,
-                preparation_audit_page,
-            ],
+            outputs=[accueil_page, preparation_audit_page],
             show_progress="hidden",
-        )
+        ).then(fn=None, js=SCROLL_TO_TOP_JS, inputs=[], outputs=[], queue=False)
 
-        # Préparation -> Explications.
         help_button.click(
             fn=open_explications,
             inputs=[],
-            outputs=[
-                preparation_audit_page,
-                explications_page,
-            ],
+            outputs=[preparation_audit_page, explications_page],
             show_progress="hidden",
-        )
+        ).then(fn=None, js=SCROLL_TO_TOP_JS, inputs=[], outputs=[], queue=False)
 
-        # Explications -> Préparation.
         back_button.click(
             fn=close_explications,
             inputs=[],
-            outputs=[
-                explications_page,
-                preparation_audit_page,
-            ],
+            outputs=[explications_page, preparation_audit_page],
             show_progress="hidden",
-        )
+        ).then(fn=None, js=SCROLL_TO_TOP_JS, inputs=[], outputs=[], queue=False)
 
-        # Préparation -> Chargement -> Résultats.
+        # Le filtrage réel par thème sera connecté au moteur ultérieurement.
+        # Pour l'instant, seul le parcours d'interface est simulé.
         validate_button.click(
             fn=show_loading,
             inputs=[],
-            outputs=[
-                preparation_audit_page,
-                chargement_page,
-                resultats_page,
-            ],
+            outputs=[preparation_audit_page, chargement_page, resultats_page],
             show_progress="hidden",
-        ).then(
+        ).then(fn=None, js=SCROLL_TO_TOP_JS, inputs=[], outputs=[], queue=False).then(
             fn=finish_demo_loading,
             inputs=[],
-            outputs=[
-                chargement_page,
-                resultats_page,
-            ],
+            outputs=[chargement_page, resultats_page],
             show_progress="hidden",
-        )
+        ).then(fn=None, js=SCROLL_TO_TOP_JS, inputs=[], outputs=[], queue=False)
 
-        # Demande de confirmation du nouvel audit.
         home_button.click(
             fn=show_return_confirmation,
             inputs=[],
@@ -231,7 +232,6 @@ def create_app():
             show_progress="hidden",
         )
 
-        # Annulation du retour à l'accueil.
         cancel_button.click(
             fn=hide_return_confirmation,
             inputs=[],
@@ -239,7 +239,6 @@ def create_app():
             show_progress="hidden",
         )
 
-        # Retour confirmé à l'accueil.
         confirm_button.click(
             fn=confirm_return_home,
             inputs=[],
@@ -250,9 +249,10 @@ def create_app():
                 website_input,
                 files_input,
                 theme_detail,
+                selected_themes,
             ],
             show_progress="hidden",
-        )
+        ).then(fn=None, js=SCROLL_TO_TOP_JS, inputs=[], outputs=[], queue=False)
 
     return app
 
