@@ -471,3 +471,169 @@
         transition: none !important;
     }
 }
+
+
+/* =========================================
+   SÉLECTION RGAA — harmonisation de la page
+   ========================================= */
+
+#rgaa-themes-title {
+    margin: 19px 0 2px !important;
+    padding: 0 !important;
+    background: transparent !important;
+}
+
+#rgaa-themes-title h3 {
+    margin: 0 !important;
+    color: #17212b !important;
+    font-family: var(--font-title) !important;
+    font-size: 17px !important;
+    font-weight: 600 !important;
+    line-height: 1.5 !important;
+}
+
+#rgaa-themes-description {
+    margin: 0 0 10px !important;
+    padding: 0 !important;
+    background: transparent !important;
+}
+
+#rgaa-themes-description p {
+    margin: 0 !important;
+    color: #475569 !important;
+    font-family: var(--font-body) !important;
+    font-size: 13px !important;
+    line-height: 1.5 !important;
+}
+
+#rgaa-themes-actions {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    flex-wrap: wrap !important;
+    gap: 9px !important;
+    margin: 0 0 10px !important;
+    padding: 0 !important;
+}
+
+#select-all-themes-button,
+#deselect-all-themes-button {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+    min-height: 38px !important;
+    margin: 0 !important;
+    padding: 8px 13px !important;
+    border: 1px solid #b9cde8 !important;
+    border-radius: 6px !important;
+    background: #eef5ff !important;
+    color: #0153c6 !important;
+    font-family: var(--font-body) !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    box-shadow: none !important;
+}
+
+#select-all-themes-button:hover,
+#deselect-all-themes-button:hover {
+    background: #dceafd !important;
+    border-color: #0153c6 !important;
+}
+
+#select-all-themes-button:focus-visible,
+#deselect-all-themes-button:focus-visible {
+    outline: 3px solid #0ca0b0 !important;
+    outline-offset: 2px !important;
+}
+
+#rgaa-themes-selection {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 12px 14px !important;
+    border: 1px solid #d7e2ed !important;
+    border-radius: 8px !important;
+    background: #f8fbff !important;
+    color: #17212b !important;
+    box-shadow: none !important;
+}
+
+#rgaa-themes-selection label,
+#rgaa-themes-selection span,
+#rgaa-themes-selection .label-wrap,
+#rgaa-themes-selection .wrap,
+#rgaa-themes-selection .form {
+    color: #17212b !important;
+}
+
+#rgaa-themes-selection .wrap {
+    gap: 7px !important;
+    background: transparent !important;
+}
+
+/* Une pastille claire par thématique, plutôt qu'un panneau sombre. */
+#rgaa-themes-selection .wrap > label {
+    margin: 0 !important;
+    padding: 7px 10px !important;
+    border: 1px solid #d7e2ed !important;
+    border-radius: 6px !important;
+    background: #fff !important;
+    color: #17212b !important;
+    cursor: pointer;
+}
+
+#rgaa-themes-selection input[type="checkbox"] {
+    accent-color: #0153c6;
+}
+
+#rgaa-themes-selection input[type="checkbox"]:focus-visible {
+    outline: 2px solid #0153c6 !important;
+    outline-offset: 3px !important;
+}
+
+#validate-files-button {
+    margin-top: 18px !important;
+}
+
+#validate-files-button:disabled,
+#validate-files-button[disabled] {
+    opacity: .55 !important;
+    cursor: not-allowed !important;
+}
+
+#audit-estimated-time {
+    width: 100% !important;
+    margin: 8px auto 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    text-align: center !important;
+}
+
+#audit-estimated-time p,
+#audit-estimated-time strong {
+    margin: 0 !important;
+    color: #334155 !important;
+    font-family: var(--font-body) !important;
+    font-size: 13px !important;
+    line-height: 1.6 !important;
+}
+
+#audit-estimated-time em {
+    color: #64748b !important;
+    font-size: 12px !important;
+}
+
+/* Réduire la hauteur du dépôt afin de garder l'action visible. */
+#file-drop-zone,
+#file-drop-zone > div,
+#file-drop-zone .wrap {
+    min-height: 175px !important;
+}
+
+@media (max-width: 600px) {
+    #rgaa-themes-actions { gap: 7px !important; }
+    #rgaa-themes-selection { padding: 10px !important; }
+    #rgaa-themes-selection .wrap > label { padding: 7px 8px !important; }
+    #file-drop-zone,
+    #file-drop-zone > div,
+    #file-drop-zone .wrap { min-height: 155px !important; }
+}
