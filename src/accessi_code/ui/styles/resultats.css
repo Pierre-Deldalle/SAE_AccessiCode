@@ -32,6 +32,7 @@
 
 #resultats-demo-notice {
     margin: 0 auto 26px !important;
+    width: min(100%, 1100px) !important;
     text-align: center !important;
 }
 
@@ -39,8 +40,9 @@
     margin: 0 !important;
 
     font-family: var(--font-body) !important;
-    font-size: 13px !important;
-    color: #475569 !important;
+    font-size: 14px !important;
+    line-height: 1.65 !important;
+    color: #334155 !important;
 }
 
 #resultats-themes {
@@ -57,7 +59,7 @@
 
 .resultats-theme-column {
     min-width: 0 !important;
-    max-width: 200px !important;
+    max-width: 220px !important;
     margin: 0 !important;
     padding: 0 !important;
 }
@@ -74,10 +76,10 @@
     box-sizing: border-box;
 
     width: 100% !important;
-    min-height: 142px !important;
+    min-height: 170px !important;
 
     margin: 0 !important;
-    padding: 16px 12px 76px !important;
+    padding: 19px 12px 105px !important;
 
     display: flex !important;
     align-items: flex-start !important;
@@ -90,7 +92,7 @@
     color: #17212b !important;
 
     font-family: var(--font-body) !important;
-    font-size: 13px !important;
+    font-size: 14px !important;
     font-weight: 600 !important;
     line-height: 1.35 !important;
 
@@ -105,28 +107,44 @@
         background-color 150ms ease;
 }
 
-/*
- * Cercle derrière le score.
- * Les chiffres sont contenus dans le libellé du bouton.
+/* Le pourcentage est affiché dans le cercle lui-même.
+ * Ces valeurs correspondent uniquement aux scores de THEMES_DEMO.
+ * Lors du branchement des résultats réels, il faudra adapter cette
+ * représentation pour les scores dynamiques.
  */
-
 .resultats-theme-card::after {
-    content: "";
+    content: var(--score-text, "—");
     position: absolute;
-
     left: 50%;
-    bottom: 12px;
-
-    width: 59px;
-    height: 59px;
-
+    bottom: 13px;
+    width: 80px;
+    height: 80px;
     transform: translateX(-50%);
-
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
     border: 5px solid var(--score-color);
     border-radius: 50%;
-
+    background: #ffffff;
+    color: #17212b;
+    font-family: var(--font-body);
+    font-size: 19px;
+    font-weight: 750;
+    line-height: 1;
+    white-space: nowrap;
     pointer-events: none;
 }
+
+.theme-score-11 { --score-text: "11 %"; }
+.theme-score-64 { --score-text: "64 %"; }
+.theme-score-100 { --score-text: "100 %"; }
+.theme-score-28 { --score-text: "28 %"; }
+.theme-score-69 { --score-text: "69 %"; }
+.theme-score-81 { --score-text: "81 %"; }
+.theme-score-52 { --score-text: "52 %"; }
+.theme-score-42 { --score-text: "42 %"; }
+.theme-score-78 { --score-text: "78 %"; }
 
 .theme-status-danger {
     --score-color: #ff0000;
@@ -245,7 +263,7 @@
 
     .resultats-theme-column {
         min-width: 155px !important;
-        max-width: 190px !important;
+        max-width: 210px !important;
     }
 }
 
@@ -261,11 +279,11 @@
 
     .resultats-theme-column {
         min-width: 135px !important;
-        max-width: 175px !important;
+        max-width: 190px !important;
     }
 
     .resultats-theme-card {
-        min-height: 135px !important;
+        min-height: 166px !important;
         font-size: 12px !important;
     }
 
@@ -508,4 +526,20 @@
     #resultats-confirmation-dialog {
         padding: 22px 20px !important;
     }
+}
+
+
+/* Correction de la lisibilité de la légende */
+#resultats-legend,
+#resultats-legend p,
+#resultats-legend strong,
+#resultats-legend span,
+#resultats-legend em,
+#resultats-demo-notice,
+#resultats-demo-notice p,
+#resultats-demo-notice strong,
+#resultats-demo-notice span,
+#resultats-demo-notice em {
+    color: #17212b !important;
+    opacity: 1 !important;
 }

@@ -1,4 +1,3 @@
-
 """Construit la page de résultats de l'audit AccessiCode."""
 
 from dataclasses import dataclass
@@ -15,8 +14,7 @@ class ThemeDemo:
     score: int
 
 
-# Résultats fictifs pour tester l'interface.
-# Ces scores ne représentent pas un véritable audit RGAA.
+# Ces scores servent uniquement à illustrer l'interface.
 THEMES_DEMO = (
     ThemeDemo(1, "Images", 11),
     ThemeDemo(2, "Cadres", 64),
@@ -33,7 +31,6 @@ THEMES_DEMO = (
     ThemeDemo(13, "Consultation", 78),
 )
 
-
 DEFAULT_THEME_DETAIL = (
     "Sélectionnez une carte ci-dessus pour afficher "
     "les informations du thème."
@@ -42,36 +39,27 @@ DEFAULT_THEME_DETAIL = (
 
 def score_category(score: int) -> str:
     """Détermine la couleur associée au score fictif."""
-
     if not 0 <= score <= 100:
         raise ValueError("Le score doit être compris entre 0 et 100.")
-
     if score <= 35:
         return "danger"
-
     if score <= 65:
         return "warning"
-
     return "success"
 
 
 def priority_label(score: int) -> str:
     """Retourne une indication compréhensible sans la couleur."""
-
     category = score_category(score)
-
     if category == "danger":
         return "Priorité élevée"
-
     if category == "warning":
         return "À surveiller"
-
     return "Satisfaisant"
 
 
 def build_theme_detail(theme: ThemeDemo) -> str:
     """Construit le détail fictif du thème sélectionné."""
-
     return (
         f"## {theme.numero}. {theme.nom}\n\n"
         "**Mode démonstration — aucun audit réel n'a encore été chargé.**\n\n"
@@ -89,23 +77,13 @@ def build_theme_detail(theme: ThemeDemo) -> str:
 
 
 def build_resultats_page():
-    """
-    Construit la page des résultats et sa confirmation de retour.
-
-    Retourne les composants nécessaires à la navigation Gradio.
-    """
-
+    """Construit la page des résultats et sa confirmation de retour."""
     with gr.Column(
         visible=False,
         elem_id="resultats-page",
         elem_classes=["page-container"],
     ) as resultats_page:
-
-        # En-tête et bouton de retour.
-        with gr.Row(
-            elem_id="resultats-header",
-            equal_height=False,
-        ):
+        with gr.Row(elem_id="resultats-header", equal_height=False):
             home_button = gr.Button(
                 "← Nouvel audit",
                 variant="secondary",
@@ -117,15 +95,17 @@ def build_resultats_page():
             elem_id="resultats-title",
         )
 
+        # Légende placée sous le titre, à l'ancien emplacement de la notice.
         gr.Markdown(
-            "Démonstration de l'interface — scores fictifs, "
-            "en attente du raccordement aux résultats d'audit.",
+            "**Codes de couleur :** **rouge (0–35 %)** · "
+            "**jaune (36–65 %)** · **vert (66–100 %)**. "
+            "Ces seuils sont des repères visuels propres à AccessiCode, "
+            "pas une échelle officielle du RGAA. "
+            "**Scores fictifs pour cette démonstration.**",
             elem_id="resultats-demo-notice",
         )
 
-        # Cartes des 13 thèmes RGAA.
         theme_buttons = []
-
         with gr.Column(elem_id="resultats-themes"):
             for start, end in ((0, 5), (5, 10), (10, 13)):
                 with gr.Row(
@@ -138,11 +118,10 @@ def build_resultats_page():
                             min_width=145,
                             elem_classes=["resultats-theme-column"],
                         ):
+                            # Le libellé reste concis ; le score apparaît
+                            # dans le cercle via la classe theme-score-*.
                             button = gr.Button(
-                                value=(
-                                    f"{theme.numero}. {theme.nom}\n"
-                                    f"{theme.score} %"
-                                ),
+                                value=f"{theme.numero}. {theme.nom}",
                                 variant="secondary",
                                 elem_id=f"theme-card-{theme.numero}",
                                 elem_classes=[
@@ -153,69 +132,43 @@ def build_resultats_page():
                             )
                             theme_buttons.append(button)
 
-        # Détail du thème sélectionné.
         with gr.Column(elem_id="resultats-detail-section"):
             gr.Markdown(
                 "## Détail du thème",
                 elem_id="resultats-detail-title",
             )
-
             theme_detail = gr.Markdown(
                 DEFAULT_THEME_DETAIL,
                 elem_id="resultats-detail-content",
             )
 
-        gr.Markdown(
-            "Codes de couleur : **rouge (0–35)** · "
-            "**jaune (36–65)** · **vert (66–100)**. "
-            "Ces seuils sont des indicateurs visuels du projet, "
-            "pas une échelle officielle du RGAA.",
-            elem_id="resultats-legend",
-        )
-
-        # Confirmation de retour.
-        # Invisible tant que l'utilisateur n'a pas cliqué
-        # sur « Nouvel audit ».
         with gr.Column(
             visible=False,
             elem_id="resultats-confirmation-overlay",
         ) as confirmation_panel:
-
-            with gr.Column(
-                elem_id="resultats-confirmation-dialog",
-            ):
+            with gr.Column(elem_id="resultats-confirmation-dialog"):
                 gr.Markdown(
                     "## Retourner à l'accueil ?",
                     elem_id="resultats-confirmation-title",
                 )
-
                 gr.Markdown(
                     "Voulez-vous vraiment retourner à l'accueil ? "
                     "**Les résultats de l'audit en cours seront perdus.**",
                     elem_id="resultats-confirmation-message",
                 )
-
-                with gr.Row(
-                    elem_id="resultats-confirmation-actions",
-                ):
+                with gr.Row(elem_id="resultats-confirmation-actions"):
                     cancel_button = gr.Button(
                         "Annuler",
                         variant="secondary",
                         elem_id="resultats-cancel-button",
                     )
-
                     confirm_button = gr.Button(
                         "Confirmer le retour",
                         variant="primary",
                         elem_id="resultats-confirm-button",
                     )
 
-    # Affichage des détails lors du clic sur une carte.
-    for theme, button in zip(
-        THEMES_DEMO,
-        theme_buttons,
-        strict=True,
-    ):
+    for theme, button in zip(THEMES_DEMO, theme_buttons, strict=True):
         button.click(
             fn=lambda selected=theme: build_theme_detail(selected),
             inputs=[],
