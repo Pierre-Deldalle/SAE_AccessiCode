@@ -42,6 +42,16 @@ def parse_args() -> argparse.Namespace:
         default="train",
         help="Dataset utilisé pour la comparaison.",
     )
+    
+    parser.add_argument(
+        "--concurrency",
+        type=int,
+        default=2,
+        help=(
+            "Nombre maximal d'appels IA "
+            "exécutés simultanément."
+        ),
+    )
 
     return parser.parse_args()
 
@@ -105,6 +115,11 @@ def print_comparison(
 
 async def main() -> None:
     args = parse_args()
+    
+    if args.concurrency < 1:
+        raise SystemExit(
+            "--concurrency doit être supérieur ou égal à 1."
+        )
 
     services = build_default_audit_services(
         ollama_host=settings.OLLAMA_HOST,
@@ -129,9 +144,14 @@ async def main() -> None:
     for candidate in candidates:
         task.validate_prompt_template(candidate.template)
 
-    runner = EvalRunner()
+    runner = EvalRunner(
+        max_concurrency=args.concurrency
+    )
 
-    print("Exécution du prompt de référence...")
+    print(
+        "Exécution du prompt de référence "
+        f"(concurrency={args.concurrency})..."
+    )
 
     baseline_results = await runner.run(
         task=task,

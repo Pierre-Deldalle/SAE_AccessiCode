@@ -35,6 +35,26 @@ def parse_args() -> argparse.Namespace:
         default="train",
         help="Dataset à utiliser : train, validation ou test.",
     )
+    
+    parser.add_argument(
+        "--concurrency",
+        type=int,
+        default=2,
+        help=(
+            "Nombre maximal d'appels IA "
+            "exécutés simultanément."
+        ),
+    )
+    
+    parser.add_argument(
+        "--prompt-file",
+        type=Path,
+        default=None,
+        help=(
+            "Prompt candidat à utiliser à la place "
+            "du prompt de production."
+        ),
+    )
 
     return parser.parse_args()
 
@@ -174,6 +194,11 @@ def print_summary(
 
 async def main() -> None:
     args = parse_args()
+    
+    if args.concurrency < 1:
+        raise SystemExit(
+            "--concurrency doit être supérieur ou égal à 1."
+        )
 
     services = build_default_audit_services(
         ollama_host=settings.OLLAMA_HOST,
@@ -190,6 +215,35 @@ async def main() -> None:
 
     except KeyError as error:
         raise SystemExit(str(error)) from error
+    
+    prompt_template: str | None = None
+
+    if args.prompt_file is not None:
+        prompt_path = (
+            args.prompt_file.resolve()
+        )
+
+        if not prompt_path.exists():
+            raise SystemExit(
+                f"Prompt introuvable : "
+                f"{prompt_path}"
+            )
+
+        prompt_template = (
+            prompt_path.read_text(
+                encoding="utf-8"
+            )
+        )
+
+        try:
+            task.validate_prompt_template(
+                prompt_template
+            )
+
+        except ValueError as error:
+            raise SystemExit(
+                f"Prompt invalide : {error}"
+            ) from error
 
     dataset_path = get_dataset_path(
         task_name=task.name,
@@ -219,15 +273,20 @@ async def main() -> None:
     print(f"File       : {dataset_path}")
 
     print(f"Cases      : {len(cases)}")
+    
+    print(f"Concurrency: {args.concurrency}")
 
     print("=" * 60)
     print()
 
-    runner = EvalRunner()
+    runner = EvalRunner(
+        max_concurrency=args.concurrency
+    )
 
     results = await runner.run(
         task=task,
         cases=cases,
+        prompt_template=prompt_template,
     )
 
     for result in results:
