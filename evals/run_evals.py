@@ -59,6 +59,37 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def load_prompt_template(
+    *,
+    task,
+    prompt_file: Path | None,
+) -> str | None:
+    if prompt_file is None:
+        return None
+
+    prompt_path = (
+        prompt_file.resolve()
+    )
+
+    if not prompt_path.exists():
+        raise FileNotFoundError(
+            f"Prompt introuvable : "
+            f"{prompt_path}"
+        )
+
+    prompt_template = (
+        prompt_path.read_text(
+            encoding="utf-8"
+        )
+    )
+
+    task.validate_prompt_template(
+        prompt_template
+    )
+
+    return prompt_template
+
+
 def get_dataset_path(
     task_name: str,
     dataset_name: str,
@@ -218,32 +249,23 @@ async def main() -> None:
     
     prompt_template: str | None = None
 
-    if args.prompt_file is not None:
-        prompt_path = (
-            args.prompt_file.resolve()
-        )
-
-        if not prompt_path.exists():
-            raise SystemExit(
-                f"Prompt introuvable : "
-                f"{prompt_path}"
-            )
-
+    try:
         prompt_template = (
-            prompt_path.read_text(
-                encoding="utf-8"
+            load_prompt_template(
+                task=task,
+                prompt_file=(
+                    args.prompt_file
+                ),
             )
         )
 
-        try:
-            task.validate_prompt_template(
-                prompt_template
-            )
-
-        except ValueError as error:
-            raise SystemExit(
-                f"Prompt invalide : {error}"
-            ) from error
+    except (
+        FileNotFoundError,
+        ValueError,
+    ) as error:
+        raise SystemExit(
+            str(error)
+        ) from error
 
     dataset_path = get_dataset_path(
         task_name=task.name,
