@@ -32,3 +32,5 @@ Thumbs.db
 
 # Workspace d'audits
 workspace/audits/*
+
+evals/prompts/title/generated/*
