@@ -26,10 +26,26 @@ class EvalRunner:
         *,
         decision_grader: DecisionGrader | None = None,
         integrity_grader: ResponseIntegrityGrader | None = None,
+        max_concurrency: int = 1,
     ):
-        self.decision_grader = decision_grader or DecisionGrader()
+        if max_concurrency < 1:
+            raise ValueError(
+                "max_concurrency doit être supérieur ou égal à 1."
+            )
 
-        self.integrity_grader = integrity_grader or ResponseIntegrityGrader()
+        self.decision_grader = (
+            decision_grader
+            or DecisionGrader()
+        )
+
+        self.integrity_grader = (
+            integrity_grader
+            or ResponseIntegrityGrader()
+        )
+
+        self.max_concurrency = (
+            max_concurrency
+        )
 
     async def run(
         self,
@@ -38,18 +54,32 @@ class EvalRunner:
         *,
         prompt_template: str | None = None,
     ) -> list[EvalResult]:
-        results: list[EvalResult] = []
+        semaphore = asyncio.Semaphore(
+            self.max_concurrency
+        )
 
-        for case in cases:
-            result = await self.run_one(
-                task=task,
-                case=case,
-                prompt_template=prompt_template,
+        async def run_limited(
+            case: EvalCase,
+        ) -> EvalResult:
+            async with semaphore:
+                return await self.run_one(
+                    task=task,
+                    case=case,
+                    prompt_template=(
+                        prompt_template
+                    ),
+                )
+
+        results = await asyncio.gather(
+            *(
+                run_limited(case)
+                for case in cases
             )
+        )
 
-            results.append(result)
-
-        return results
+        return list(
+            results
+        )
 
     async def run_one(
         self,

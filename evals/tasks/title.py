@@ -8,6 +8,7 @@ from accessi_code.ai.analyzers.page_analyzer import (
 )
 from evals.models.case import EvalCase
 from evals.tasks.base import EvalTask
+from accessi_code.ai.prompts.page import TITLE_PROMPT
 
 
 class TitleEvalTask(EvalTask):
@@ -18,6 +19,7 @@ class TitleEvalTask(EvalTask):
 
     name = "title"
     decision_key = "relevant"
+    production_prompt_template = TITLE_PROMPT
 
     def __init__(
         self,
@@ -77,13 +79,15 @@ class TitleEvalTask(EvalTask):
         self,
         prompt_template: str,
     ) -> None:
-        super().validate_prompt_template(prompt_template)
+        super().validate_prompt_template(
+            prompt_template
+        )
 
         try:
-            prompt_template.format(
-                title="TITLE",
-                heading="HEADING",
-                content="CONTENT",
+            formatted = prompt_template.format(
+                title="__TITLE_VALUE__",
+                heading="__HEADING_VALUE__",
+                content="__CONTENT_VALUE__",
             )
 
         except (
@@ -93,8 +97,32 @@ class TitleEvalTask(EvalTask):
         ) as error:
             raise ValueError(
                 "Le prompt title est invalide. "
-                "Il doit notamment supporter les variables "
+                "Il doit utiliser uniquement les variables "
                 "{title}, {heading} et {content}, "
-                "et les accolades JSON doivent être échappées "
-                "avec {{ et }}."
+                "et les accolades JSON littérales doivent "
+                "être échappées avec {{ et }}."
             ) from error
+
+        required_values = {
+            "title": "__TITLE_VALUE__",
+            "heading": "__HEADING_VALUE__",
+            "content": "__CONTENT_VALUE__",
+        }
+
+        missing = [
+            name
+            for name, value in required_values.items()
+            if value not in formatted
+        ]
+
+        if missing:
+            missing_text = ", ".join(
+                f"{{{name}}}"
+                for name in missing
+            )
+
+            raise ValueError(
+                "Le prompt title n'utilise pas correctement "
+                "les variables obligatoires : "
+                f"{missing_text}."
+            )

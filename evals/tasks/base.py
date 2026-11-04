@@ -4,25 +4,17 @@ from abc import ABC, abstractmethod
 from typing import Any, ClassVar
 
 from accessi_code.ai.schemas import AIConfidence
+
 from evals.models.case import EvalCase
 
 
 class EvalTask(ABC):
-    """
-    Fonctionnalité IA pouvant être évaluée par le moteur.
-
-    Une tâche sait :
-    - comment appeler l'analyseur IA ;
-    - quel champ représente sa décision principale.
-    """
-
     name: ClassVar[str]
 
-    # La majorité de nos analyses utilisent "relevant".
-    # Une tâche peut surcharger cette valeur.
     decision_key: ClassVar[str] = "relevant"
-
     confidence_key: ClassVar[str] = "confidence"
+
+    production_prompt_template: ClassVar[str | None] = None
 
     @abstractmethod
     async def execute(
@@ -31,27 +23,43 @@ class EvalTask(ABC):
         *,
         prompt_template: str | None = None,
     ) -> dict[str, Any]:
-        """
-        Exécute l'analyse IA correspondant au cas.
-
-        prompt_template permet aux évaluations de tester
-        un prompt alternatif sans modifier le prompt
-        utilisé normalement par l'application.
-        """
         raise NotImplementedError
+
+    def get_production_prompt_template(self) -> str:
+        prompt = self.production_prompt_template
+
+        if prompt is None or not prompt.strip():
+            raise RuntimeError(
+                f"La tâche {self.name!r} ne déclare pas "
+                "de prompt de production."
+            )
+
+        return prompt
+
+    def validate_prompt_template(
+        self,
+        prompt_template: str,
+    ) -> None:
+        if not prompt_template.strip():
+            raise ValueError(
+                "Un prompt candidat ne peut pas être vide."
+            )
 
     def get_expected_decision(
         self,
         case: EvalCase,
     ) -> bool | None:
         if self.decision_key not in case.expected:
-            raise ValueError(f"Le cas {case.id!r} ne possède pas de valeur attendue pour {self.decision_key!r}.")
+            raise ValueError(
+                f"Le cas {case.id!r} ne possède pas "
+                f"de valeur attendue pour {self.decision_key!r}."
+            )
 
         value = case.expected[self.decision_key]
 
         self._validate_decision(
             value,
-            field_name=(f"expected.{self.decision_key}"),
+            field_name=f"expected.{self.decision_key}",
         )
 
         return value
@@ -61,7 +69,10 @@ class EvalTask(ABC):
         actual: dict[str, Any],
     ) -> bool | None:
         if self.decision_key not in actual:
-            raise ValueError(f"La réponse IA ne possède pas le champ {self.decision_key!r}.")
+            raise ValueError(
+                f"La réponse IA ne possède pas "
+                f"le champ {self.decision_key!r}."
+            )
 
         value = actual[self.decision_key]
 
@@ -83,7 +94,10 @@ class EvalTask(ABC):
             "medium",
             "high",
         }:
-            raise ValueError("La réponse IA doit contenir une confidence 'low', 'medium' ou 'high'.")
+            raise ValueError(
+                "La réponse IA doit contenir une "
+                "confidence 'low', 'medium' ou 'high'."
+            )
 
         return value
 
@@ -93,18 +107,11 @@ class EvalTask(ABC):
         *,
         field_name: str,
     ) -> None:
-        if value is not True and value is not False and value is not None:
-            raise ValueError(f"{field_name} doit être true, false ou null.")
-
-    def validate_prompt_template(
-        self,
-        prompt_template: str,
-    ) -> None:
-        """
-        Vérifie qu'un prompt candidat peut être utilisé par cette tâche.
-
-        Les tâches peuvent surcharger cette méthode si elles ont
-        des contraintes particulières.
-        """
-        if not prompt_template.strip():
-            raise ValueError("Un prompt candidat ne peut pas être vide.")
+        if (
+            value is not True
+            and value is not False
+            and value is not None
+        ):
+            raise ValueError(
+                f"{field_name} doit être true, false ou null."
+            )

@@ -68,17 +68,28 @@ class OllamaPageAnalyzer:
         title: str,
         heading: str,
         content: str,
+        *,
+        prompt_template: str | None = None,
     ) -> TitleAnalysis:
         """
         Analyse la pertinence d'un titre par rapport à la page.
         """
-        prompt = TITLE_PROMPT.format(
+        template = (
+            TITLE_PROMPT
+            if prompt_template is None
+            else prompt_template
+        )
+
+        prompt = template.format(
             title=title,
             heading=heading,
             content=content,
         )
 
-        data = await self._generate_json(prompt)
+        data = await self._generate_json(
+            prompt,
+            max_tokens=250,
+        )
 
         relevant = self._get_relevant(data)
 
@@ -86,16 +97,24 @@ class OllamaPageAnalyzer:
             relevant=relevant,
             explanation=self._get_explanation(
                 data.get("explanation"),
-                fallback=("La pertinence du titre n'a pas pu être déterminée."),
+                fallback="La pertinence du titre n'a pas pu être déterminée.",
             ),
-            contradictions=self._get_strings(data.get("contradictions")),
-            uncertainties=self._get_strings(data.get("uncertainties")),
-            confidence=self._get_confidence(data.get("confidence")),
+            contradictions=self._get_strings(
+                data.get("contradictions")
+            ),
+            uncertainties=self._get_strings(
+                data.get("uncertainties")
+            ),
+            confidence=self._get_confidence(
+                data.get("confidence")
+            ),
         )
 
     async def _generate_json(
         self,
         prompt: str,
+        *,
+        max_tokens: int = 600,
     ) -> dict[str, Any]:
         """
         Demande une réponse JSON au LLM.
@@ -113,7 +132,7 @@ class OllamaPageAnalyzer:
             strict_prompt,
         ):
             try:
-                response = await self._generate_with_retry(candidate)
+                response = await self._generate_with_retry(candidate, max_tokens=max_tokens)
 
                 return parse_ai_json(response)
 
@@ -125,6 +144,8 @@ class OllamaPageAnalyzer:
     async def _generate_with_retry(
         self,
         prompt: str,
+        *,
+        max_tokens: int,
     ) -> str:
         """
         Effectue une seconde tentative en cas d'erreur réseau transitoire.
@@ -136,7 +157,7 @@ class OllamaPageAnalyzer:
                 return await self.llm.generate(
                     prompt,
                     format="json",
-                    max_tokens=600,
+                    max_tokens=max_tokens,
                     temperature=0,
                 )
 
