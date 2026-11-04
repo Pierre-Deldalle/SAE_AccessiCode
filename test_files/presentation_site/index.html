@@ -134,6 +134,201 @@
             color: #333333;
             /* Pas de background-color dans le shorthand */
         }
+
+        /* ===== CAS DE TEST CRITERE 10.14 ===== */
+        /* Test 10.14.1 : Contenus additionnels au survol (hover) */
+        /* Bon cas : tooltip accessible au hover ET au focus */
+        .tooltip-good {
+            display: none;
+            position: absolute;
+            background: #333;
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+            z-index: 100;
+            max-width: 250px;
+        }
+        .trigger-good:hover .tooltip-good,
+        .trigger-good:focus .tooltip-good {
+            display: block;
+        }
+
+        /* Bon cas : tooltip accessible au hover ET a l'activation (active) */
+        .tooltip-active {
+            display: none;
+            position: absolute;
+            background: #333;
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+            z-index: 100;
+        }
+        .trigger-active:hover .tooltip-active,
+        .trigger-active:active .tooltip-active {
+            display: block;
+        }
+
+        /* Mauvais cas : tooltip UNIQUEMENT au hover */
+        .tooltip-bad {
+            display: none;
+            position: absolute;
+            background: #333;
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+            z-index: 100;
+        }
+        .trigger-bad:hover .tooltip-bad {
+            display: block;
+        }
+
+        /* Mauvais cas : dropdown UNIQUEMENT au hover (sans focus) */
+        .dropdown-bad {
+            display: none;
+            position: absolute;
+            background: #fff;
+            border: 1px solid #ccc;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            padding: 10px;
+            min-width: 200px;
+            z-index: 100;
+        }
+        .dropdown-trigger-bad:hover .dropdown-bad {
+            display: block;
+        }
+
+        /* Bon cas : dropdown accessible au hover ET focus */
+        .dropdown-good {
+            display: none;
+            position: absolute;
+            background: #fff;
+            border: 1px solid #ccc;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            padding: 10px;
+            min-width: 200px;
+            z-index: 100;
+        }
+        .dropdown-trigger-good:hover .dropdown-good,
+        .dropdown-trigger-good:focus .dropdown-good,
+        .dropdown-trigger-good:focus-within .dropdown-good {
+            display: block;
+        }
+
+        /* Test 10.14.2 : Contenus additionnels au focus */
+        /* Bon cas : contenu au focus accessible aussi au hover */
+        .focus-tooltip-good {
+            display: none;
+            position: absolute;
+            background: #333;
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+            z-index: 100;
+        }
+        .focus-trigger-good:focus .focus-tooltip-good,
+        .focus-trigger-good:hover .focus-tooltip-good {
+            display: block;
+        }
+
+        /* Bon cas : contenu au focus accessible aussi a l'activation */
+        .focus-tooltip-active {
+            display: none;
+            position: absolute;
+            background: #333;
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+            z-index: 100;
+        }
+        .focus-trigger-active:focus .focus-tooltip-active,
+        .focus-trigger-active:active .focus-tooltip-active {
+            display: block;
+        }
+
+        /* Mauvais cas : contenu UNIQUEMENT au focus */
+        .focus-tooltip-bad {
+            display: none;
+            position: absolute;
+            background: #333;
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+            z-index: 100;
+        }
+        .focus-trigger-bad:focus .focus-tooltip-bad {
+            display: block;
+        }
+
+        /* Mauvais cas : menu contextuel UNIQUEMENT au focus */
+        .context-menu-bad {
+            display: none;
+            position: absolute;
+            background: #fff;
+            border: 1px solid #ccc;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            padding: 5px 0;
+            min-width: 180px;
+            z-index: 100;
+        }
+        .context-trigger-bad:focus .context-menu-bad {
+            display: block;
+        }
+
+        /* Bon cas : menu contextuel au focus ET hover */
+        .context-menu-good {
+            display: none;
+            position: absolute;
+            background: #fff;
+            border: 1px solid #ccc;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            padding: 5px 0;
+            min-width: 180px;
+            z-index: 100;
+        }
+        .context-trigger-good:focus .context-menu-good,
+        .context-trigger-good:hover .context-menu-good {
+            display: block;
+        }
+
+        /* Test avec visibility/opacity au lieu de display */
+        .tooltip-opacity {
+            opacity: 0;
+            visibility: hidden;
+            position: absolute;
+            background: #333;
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+            transition: opacity 0.3s, visibility 0.3s;
+            pointer-events: none;
+        }
+        .trigger-opacity:hover .tooltip-opacity {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+        }
+
+        /* Test avec focus-visible */
+        .focus-visible-tooltip {
+            display: none;
+            position: absolute;
+            background: #333;
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+        }
+        .focus-visible-trigger:focus-visible .focus-visible-tooltip,
+        .focus-visible-trigger:hover .focus-visible-tooltip {
+            display: block;
+        }
+
+        /* Test avec role=tooltip (ARIA) */
+        .tooltip[role="tooltip"] {
+            display: none;
+        }
+        .aria-trigger:hover [role="tooltip"] {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -411,6 +606,135 @@
                 Ce paragraphe a background-image sans background-color MAIS herite du background-color du parent.
                 <strong>Devrait passer le test 10.5.3 grace a l'heritage</strong>
             </p>
+        </div>
+    </section>
+
+    <!-- ===== CAS DE TEST CRITERE 10.14 ===== -->
+    <section id="test-10-14">
+        <h2>Tests Critere 10.14 - Contenus additionnels au survol et au focus</h2>
+
+        <!-- Test 10.14.1 : Contenus additionnels au survol -->
+        <h3>Test 10.14.1 : Contenus additionnels reveles au survol (:hover)</h3>
+
+        <!-- Bon cas : tooltip accessible au hover ET au focus -->
+        <div class="trigger-good" tabindex="0" style="position: relative; display: inline-block; margin: 10px; padding: 10px; border: 2px solid green; cursor: pointer;">
+            <span>Declencheur BON (hover + focus)</span>
+            <div class="tooltip-good" style="top: 100%; left: 0; margin-top: 5px;">
+                <strong>Tooltip conforme :</strong> Visible au survol ET au focus clavier (Tab).
+            </div>
+        </div>
+
+        <!-- Bon cas : tooltip accessible au hover ET a l'activation -->
+        <div class="trigger-active" tabindex="0" style="position: relative; display: inline-block; margin: 10px; padding: 10px; border: 2px solid green; cursor: pointer;">
+            <span>Declencheur BON (hover + active)</span>
+            <div class="tooltip-active" style="top: 100%; left: 0; margin-top: 5px;">
+                <strong>Tooltip conforme :</strong> Visible au survol ET a l'activation (clic/maintenir).
+            </div>
+        </div>
+
+        <!-- Mauvais cas : tooltip UNIQUEMENT au hover -->
+        <div class="trigger-bad" tabindex="0" style="position: relative; display: inline-block; margin: 10px; padding: 10px; border: 2px solid red; cursor: pointer;">
+            <span>Declencheur MAUVAIS (hover uniquement)</span>
+            <div class="tooltip-bad" style="top: 100%; left: 0; margin-top: 5px;">
+                <strong>Tooltip NON conforme :</strong> Visible UNIQUEMENT au survol souris.
+            </div>
+        </div>
+
+        <!-- Mauvais cas : dropdown UNIQUEMENT au hover -->
+        <div class="dropdown-trigger-bad" tabindex="0" style="position: relative; display: inline-block; margin: 10px; padding: 10px; border: 2px solid red; cursor: pointer;">
+            <span>Menu deroulant MAUVAIS (hover uniquement)</span>
+            <div class="dropdown-bad" style="top: 100%; left: 0; margin-top: 5px;">
+                <p><strong>Menu non conforme :</strong> Accessible uniquement au survol.</p>
+                <ul>
+                    <li><a href="#">Option 1</a></li>
+                    <li><a href="#">Option 2</a></li>
+                    <li><a href="#">Option 3</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Bon cas : dropdown accessible au hover ET focus -->
+        <div class="dropdown-trigger-good" tabindex="0" style="position: relative; display: inline-block; margin: 10px; padding: 10px; border: 2px solid green; cursor: pointer;">
+            <span>Menu deroulant BON (hover + focus + focus-within)</span>
+            <div class="dropdown-good" style="top: 100%; left: 0; margin-top: 5px;">
+                <p><strong>Menu conforme :</strong> Accessible au survol, focus, et focus dans le menu.</p>
+                <ul>
+                    <li><a href="#" tabindex="0">Option 1 (focusable)</a></li>
+                    <li><a href="#" tabindex="0">Option 2 (focusable)</a></li>
+                    <li><a href="#" tabindex="0">Option 3 (focusable)</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Test avec visibility/opacity -->
+        <div class="trigger-opacity" tabindex="0" style="position: relative; display: inline-block; margin: 10px; padding: 10px; border: 2px solid orange; cursor: pointer;">
+            <span>Tooltip opacity (hover uniquement)</span>
+            <div class="tooltip-opacity" style="top: 100%; left: 0; margin-top: 5px;">
+                <strong>Tooltip opacity :</strong> Visible au hover via opacity/visibility.
+            </div>
+        </div>
+
+        <!-- Test avec focus-visible -->
+        <div class="focus-visible-trigger" tabindex="0" style="position: relative; display: inline-block; margin: 10px; padding: 10px; border: 2px solid blue; cursor: pointer;">
+            <span>Declencheur focus-visible (hover + focus-visible)</span>
+            <div class="focus-visible-tooltip" style="top: 100%; left: 0; margin-top: 5px;">
+                <strong>Tooltip focus-visible :</strong> Visible au hover ET au focus clavier (:focus-visible).
+            </div>
+        </div>
+
+        <!-- Test avec role=tooltip (ARIA) -->
+        <div class="aria-trigger" tabindex="0" style="position: relative; display: inline-block; margin: 10px; padding: 10px; border: 2px solid red; cursor: pointer;">
+            <span>Tooltip ARIA (hover uniquement)</span>
+            <div class="tooltip" role="tooltip" style="top: 100%; left: 0; margin-top: 5px; background: #333; color: white; padding: 8px; border-radius: 4px;">
+                <strong>Tooltip ARIA :</strong> role=tooltip mais visible uniquement au hover.
+            </div>
+        </div>
+
+        <!-- Test 10.14.2 : Contenus additionnels au focus -->
+        <h3>Test 10.14.2 : Contenus additionnels reveles au focus (:focus, :focus-visible, :focus-within)</h3>
+
+        <!-- Bon cas : contenu au focus accessible aussi au hover -->
+        <div class="focus-trigger-good" tabindex="0" style="position: relative; display: inline-block; margin: 10px; padding: 10px; border: 2px solid green; cursor: pointer;">
+            <span>Declencheur BON (focus + hover)</span>
+            <div class="focus-tooltip-good" style="top: 100%; left: 0; margin-top: 5px;">
+                <strong>Contenu conforme :</strong> Visible au focus ET au survol.
+            </div>
+        </div>
+
+        <!-- Bon cas : contenu au focus accessible aussi a l'activation -->
+        <div class="focus-trigger-active" tabindex="0" style="position: relative; display: inline-block; margin: 10px; padding: 10px; border: 2px solid green; cursor: pointer;">
+            <span>Declencheur BON (focus + active)</span>
+            <div class="focus-tooltip-active" style="top: 100%; left: 0; margin-top: 5px;">
+                <strong>Contenu conforme :</strong> Visible au focus ET a l'activation (clic/maintenir).
+            </div>
+        </div>
+
+        <!-- Mauvais cas : contenu UNIQUEMENT au focus -->
+        <div class="focus-trigger-bad" tabindex="0" style="position: relative; display: inline-block; margin: 10px; padding: 10px; border: 2px solid red; cursor: pointer;">
+            <span>Declencheur MAUVAIS (focus uniquement)</span>
+            <div class="focus-tooltip-bad" style="top: 100%; left: 0; margin-top: 5px;">
+                <strong>Contenu NON conforme :</strong> Visible UNIQUEMENT au focus clavier.
+            </div>
+        </div>
+
+        <!-- Mauvais cas : menu contextuel UNIQUEMENT au focus -->
+        <div class="context-trigger-bad" tabindex="0" style="position: relative; display: inline-block; margin: 10px; padding: 10px; border: 2px solid red; cursor: pointer;">
+            <span>Menu contextuel MAUVAIS (focus uniquement)</span>
+            <div class="context-menu-bad" style="top: 100%; left: 0; margin-top: 5px;" role="menu">
+                <div role="menuitem" tabindex="-1">Option 1</div>
+                <div role="menuitem" tabindex="-1">Option 2</div>
+                <div role="menuitem" tabindex="-1">Option 3</div>
+            </div>
+        </div>
+
+        <!-- Bon cas : menu contextuel au focus ET hover -->
+        <div class="context-trigger-good" tabindex="0" style="position: relative; display: inline-block; margin: 10px; padding: 10px; border: 2px solid green; cursor: pointer;">
+            <span>Menu contextuel BON (focus + hover)</span>
+            <div class="context-menu-good" style="top: 100%; left: 0; margin-top: 5px;" role="menu">
+                <div role="menuitem" tabindex="-1">Option 1</div>
+                <div role="menuitem" tabindex="-1">Option 2</div>
+                <div role="menuitem" tabindex="-1">Option 3</div>
+            </div>
         </div>
     </section>
 </body>
