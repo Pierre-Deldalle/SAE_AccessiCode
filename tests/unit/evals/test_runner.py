@@ -124,6 +124,39 @@ class PromptAwareTask(EvalTask):
         }
 
 
+class ConcurrencyTask(EvalTask):
+    name = "concurrency"
+
+    def __init__(self):
+        self.active = 0
+        self.max_active = 0
+
+    async def execute(
+        self,
+        case: EvalCase,
+        *,
+        prompt_template: str | None = None,
+    ) -> dict[str, Any]:
+        self.active += 1
+
+        self.max_active = max(
+            self.max_active,
+            self.active,
+        )
+
+        await asyncio.sleep(
+            0.03
+        )
+
+        self.active -= 1
+
+        return {
+            "relevant": True,
+            "confidence": "high",
+            "explanation": "Correct.",
+        }
+
+
 def test_runner_marks_correct_answer_as_correct():
     runner = EvalRunner()
 
@@ -347,3 +380,49 @@ def test_runner_uses_no_alternative_prompt_by_default():
     )
 
     assert task.received_prompt is None
+
+
+def test_runner_limits_parallel_execution():
+    runner = EvalRunner(
+        max_concurrency=3
+    )
+
+    task = ConcurrencyTask()
+
+    cases = [
+        create_case(
+            f"case_{index}",
+            actual=True,
+            expected=True,
+        )
+        for index in range(10)
+    ]
+
+    results = asyncio.run(
+        runner.run(
+            task=task,
+            cases=cases,
+        )
+    )
+
+    assert len(results) == 10
+
+    assert (
+        task.max_active
+        <= 3
+    )
+
+    assert (
+        task.max_active
+        >= 2
+    )
+
+
+def test_runner_rejects_invalid_concurrency():
+    with pytest.raises(
+        ValueError,
+        match="max_concurrency",
+    ):
+        EvalRunner(
+            max_concurrency=0
+        )

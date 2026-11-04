@@ -317,6 +317,12 @@ def test_title_task_rejects_invalid_json_braces_in_prompt():
 Titre :
 {title}
 
+Titre principal :
+{heading}
+
+Contenu :
+{content}
+
 {
   "relevant": true
 }
@@ -326,7 +332,9 @@ Titre :
         ValueError,
         match="prompt title est invalide",
     ):
-        task.validate_prompt_template(prompt)
+        task.validate_prompt_template(
+            prompt
+        )
 
 
 def test_title_task_rejects_unknown_prompt_variable():
