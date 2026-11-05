@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <!--
+        La balise title existe : 8.5.1 devrait PASS.
+        Mais son contenu est volontairement sans rapport avec la page :
+        8.6.1 devrait normalement FAIL avec l'analyse IA.
+    -->
+    <title>Recette traditionnelle de crêpes</title>
+</head>
+
+<body>
+
+    <header>
+        <h1>Page complète de test AccessiCode</h1>
+
+        <p>
+            Cette page est écrite en français et contient volontairement
+            différents exemples permettant de tester les contrôles RGAA
+            actuellement implémentés dans AccessiCode.
+        </p>
+
+        <p>
+            Certains éléments sont volontairement conformes et d'autres
+            volontairement non conformes.
+        </p>
+    </header>
+
+
+    <main>
+
+        <!-- ========================================================= -->
+        <!-- 1.1.1 : IMAGES                                           -->
+        <!-- ========================================================= -->
+
+        <section>
+            <h2>Images</h2>
+
+            <p>
+                L'image suivante est utilisée comme illustration
+                informative de l'application AccessiCode.
+            </p>
+
+            <!-- Image informative avec alternative -->
+            <img
+                src="logo.png"
+                alt="Illustration de l'application AccessiCode"
+            >
+
+            <p>
+                L'image suivante est également une capture informative,
+                mais son alternative textuelle a volontairement été omise.
+            </p>
+
+            <!--
+                Si l'IA considère bien cette image informative :
+                1.1.1 doit détecter une non-conformité.
+            -->
+            <img
+                src="logo.png"
+            >
+        </section>
+
+
+        <!-- ========================================================= -->
+        <!-- 1.1.2 : IMAGE RÉACTIVE                                   -->
+        <!-- ========================================================= -->
+
+        <section>
+            <h2>Image réactive</h2>
+
+            <p>
+                Cette image permet fictivement d'accéder à deux zones
+                différentes de la page.
+            </p>
+
+            <img
+                src="logo.png"
+                alt="Navigation dans la page de démonstration"
+                usemap="#navigation-map"
+            >
+
+            <map name="navigation-map">
+
+                <!-- Zone conforme -->
+                <area
+                    shape="rect"
+                    coords="0,0,150,150"
+                    href="#formulaire"
+                    alt="Accéder au formulaire"
+                >
+
+                <!-- Zone volontairement sans alternative -->
+                <area
+                    shape="rect"
+                    coords="150,0,300,150"
+                    href="#tableaux"
+                >
+
+            </map>
+        </section>
+
+
+        <!-- ========================================================= -->
+        <!-- 1.1.3 : INPUT TYPE IMAGE                                 -->
+        <!-- ========================================================= -->
+
+        <section>
+            <h2>Boutons image</h2>
+
+            <form>
+
+                <!-- Bouton image conforme -->
+                <input
+                    type="image"
+                    src="logo.png"
+                    alt="Envoyer le formulaire"
+                >
+
+                <!-- Bouton image volontairement incorrect -->
+                <input
+                    type="image"
+                    src="logo.png"
+                >
+
+            </form>
+        </section>
+
+
+        <!-- ========================================================= -->
+        <!-- 1.7.1 : DESCRIPTION DÉTAILLÉE                            -->
+        <!-- ========================================================= -->
+
+        <section>
+            <h2>Description détaillée</h2>
+
+            <p>
+                Cette image dispose d'une description détaillée externe.
+            </p>
+
+            <img
+                src="logo.png"
+                alt="Capture d'écran utilisée pour le test de description détaillée"
+                longdesc="description.html"
+            >
+        </section>
+
+
+        <!-- ========================================================= -->
+        <!-- 5.1.1 : TABLEAUX COMPLEXES                               -->
+        <!-- ========================================================= -->
+
+        <section id="tableaux">
+            <h2>Tableaux</h2>
+
+            <!-- Tableau complexe avec résumé -->
+            <table>
+                <caption>
+                    Résultats des audits AccessiCode par trimestre.
+                    Les colonnes regroupent les tests conformes et
+                    non conformes pour chaque période.
+                </caption>
+
+                <thead>
+                    <tr>
+                        <th rowspan="2" scope="col">
+                            Projet
+                        </th>
+
+                        <th colspan="2" scope="colgroup">
+                            Premier trimestre
+                        </th>
+
+                        <th colspan="2" scope="colgroup">
+                            Deuxième trimestre
+                        </th>
+                    </tr>
+
+                    <tr>
+                        <th scope="col">
+                            Conformes
+                        </th>
+
+                        <th scope="col">
+                            Non conformes
+                        </th>
+
+                        <th scope="col">
+                            Conformes
+                        </th>
+
+                        <th scope="col">
+                            Non conformes
+                        </th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    <tr>
+                        <th scope="row">
+                            Projet A
+                        </th>
+
+                        <td>10</td>
+                        <td>2</td>
+                        <td>15</td>
+                        <td>1</td>
+                    </tr>
+                </tbody>
+            </table>
+
+
+            <!--
+                Deuxième tableau complexe sans résumé :
+                permet de vérifier le FAIL de 5.1.1.
+            -->
+            <table>
+                <thead>
+                    <tr>
+                        <th rowspan="2" scope="col">
+                            Projet
+                        </th>
+
+                        <th colspan="2" scope="colgroup">
+                            Résultats
+                        </th>
+                    </tr>
+
+                    <tr>
+                        <th scope="col">
+                            Succès
+                        </th>
+
+                        <th scope="col">
+                            Erreurs
+                        </th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    <tr>
+                        <th scope="row">
+                            Projet B
+                        </th>
+
+                        <td>20</td>
+                        <td>4</td>
+                    </tr>
+                </tbody>
+            </table>
+
+        </section>
+
+
+        <!-- ========================================================= -->
+        <!-- 11.1.1 : FORMULAIRES                                     -->
+        <!-- ========================================================= -->
+
+        <section id="formulaire">
+            <h2>Formulaire</h2>
+
+            <form>
+
+                <!-- Champ conforme -->
+                <div>
+                    <label for="email">
+                        Adresse email
+                    </label>
+
+                    <input
+                        id="email"
+                        name="email"
+                        type="email"
+                    >
+                </div>
+
+
+                <!-- aria-label : conforme -->
+                <div>
+                    <input
+                        name="recherche"
+                        type="search"
+                        aria-label="Rechercher sur le site"
+                    >
+                </div>
+
+
+                <!--
+                    Champ volontairement sans aucune étiquette :
+                    11.1.1 doit FAIL.
+                -->
+                <div>
+                    <input
+                        name="telephone"
+                        type="tel"
+                    >
+                </div>
+
+            </form>
+        </section>
+
+
+        <!-- Contenu supplémentaire pour les tests 8.4 et 8.6 -->
+
+        <section>
+            <h2>À propos du projet</h2>
+
+            <p>
+                AccessiCode est un outil expérimental destiné à analyser
+                automatiquement certains critères d'accessibilité d'une
+                page web à l'aide de contrôles déterministes et de modèles
+                d'intelligence artificielle.
+            </p>
+
+            <p>
+                Cette page contient uniquement du contenu en français afin
+                que la langue déclarée en anglais dans la balise html soit
+                volontairement incorrecte.
+            </p>
+        </section>
+
+    </main>
+
+</body>
+</html>
