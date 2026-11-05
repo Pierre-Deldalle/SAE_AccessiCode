@@ -205,6 +205,12 @@ from accessi_code.rgaa.tests.theme_10_presentation_information.criterion_10_14 i
 from accessi_code.rgaa.tests.theme_11_forms.criterion_11_1 import (
     Test1111,
 )
+from accessi_code.rgaa.tests.theme_13_consultation.criterion_13_1 import (
+    Test1311,
+    Test1312,
+    Test1313,
+    Test1314,
+)
 
 
 def build_default_registry() -> TestRegistry:
@@ -315,5 +321,9 @@ def build_default_registry() -> TestRegistry:
             Test10141(),
             Test10142(),
             Test1111(),
+            Test1311(),
+            Test1312(),
+            Test1313(),
+            Test1314(),
         ]
     )

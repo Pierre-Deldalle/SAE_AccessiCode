@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Critère 13.1 - Contrôle des limites de temps</title>
+
+    <!-- Test 13.1.1 : Meta refresh ≥ 20h (PASS) -->
+    <meta http-equiv="refresh" content="72000">
+
+    <!-- Test 13.1.1 : Meta refresh < 20h sans contrôle (NEEDS_REVIEW) -->
+    <meta http-equiv="refresh" content="300">
+
+    <!-- Test 13.1.2 : Redirection meta immédiate (PASS) -->
+    <meta http-equiv="refresh" content="0;url=https://example.com/nouvelle-page">
+
+    <!-- Test 13.1.4 : Timeout de session via meta ≥ 20h (PASS) -->
+    <meta name="session-timeout" content="72000">
+
+    <!-- Test 13.1.4 : Timeout de session via meta < 20h (NEEDS_REVIEW) -->
+    <meta name="idle-timeout" content="1800">
+
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
+        .test-section { border: 1px solid #ddd; padding: 1rem; margin: 1rem 0; border-radius: 4px; }
+        .test-section h2 { margin-top: 0; color: #333; }
+        code { background: #f4f4f4; padding: 0.2em 0.4em; border-radius: 3px; }
+        .controls button { margin-right: 0.5rem; padding: 0.5rem 1rem; cursor: pointer; }
+        .warning { background: #fff3cd; border: 1px solid #ffc107; padding: 1rem; border-radius: 4px; margin: 1rem 0; }
+    </style>
+</head>
+<body>
+    <h1>Page de test pour le critère RGAA 13.1</h1>
+    <p>Cette page contient divers mécanismes de rafraîchissement, redirection et limitation de temps pour tester les tests 13.1.1 à 13.1.4.</p>
+
+    <!-- Test 13.1.1 : Élément object (NEEDS_REVIEW - intervalle inconnu) -->
+    <section class="test-section">
+        <h2>Test 13.1.1 - Élément <object> (rafraîchissement potentiel)</h2>
+        <p>Un élément object qui pourrait rafraîchir son contenu automatiquement :</p>
+        <object data="contenu-dynamique.html" type="text/html" width="100%" height="200">
+            <p>Contenu alternatif si l'object n'est pas supporté.</p>
+        </object>
+    </section>
+
+    <!-- Test 13.1.1 : Élément embed (NEEDS_REVIEW) -->
+    <section class="test-section">
+        <h2>Test 13.1.1 - Élément <embed> (rafraîchissement potentiel)</h2>
+        <p>Un élément embed (plugin) qui pourrait avoir un rafraîchissement automatique :</p>
+        <embed src="animation.svg" type="image/svg+xml" width="300" height="200">
+    </section>
+
+    <!-- Test 13.1.1 : Élément SVG (NEEDS_REVIEW) -->
+    <section class="test-section">
+        <h2>Test 13.1.1 - Élément <svg> (animation/rafraîchissement potentiel)</h2>
+        <svg width="200" height="100" viewBox="0 0 200 100">
+            <circle cx="50" cy="50" r="40" fill="blue">
+                <animate attributeName="cx" from="50" to="150" dur="5s" repeatCount="indefinite" />
+            </circle>
+        </svg>
+        <p>Animation SVG qui pourrait être considérée comme un rafraîchissement.</p>
+    </section>
+
+    <!-- Test 13.1.1 : Élément canvas (NEEDS_REVIEW) -->
+    <section class="test-section">
+        <h2>Test 13.1.1 - Élément <canvas> (rafraîchissement potentiel via JS)</h2>
+        <canvas id="animationCanvas" width="300" height="150" style="border: 1px solid #ccc;"></canvas>
+        <p>Canvas qui pourrait être rafraîchi par JavaScript (voir script ci-dessous).</p>
+    </section>
+
+    <!-- Test 13.1.3 : Redirection JavaScript avec setTimeout (NEEDS_REVIEW) -->
+    <section class="test-section">
+        <h2>Test 13.1.3 - Redirection JavaScript avec setTimeout</h2>
+        <p>Une redirection déclenchée après 10 secondes :</p>
+        <div class="warning" id="redirectWarning">
+            <strong>Attention :</strong> Vous serez redirigé vers <a href="https://example.com" id="redirectLink">example.com</a> dans <span id="countdown">10</span> secondes.
+            <div class="controls">
+                <button id="stopRedirect" type="button">Arrêter la redirection</button>
+                <button id="extendRedirect" type="button">Prolonger de 10x</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Test 13.1.3 : Redirection JavaScript immédiate (NEEDS_REVIEW) -->
+    <section class="test-section">
+        <h2>Test 13.1.3 - Redirection JavaScript immédiate (déclenchée par action utilisateur)</h2>
+        <p>Ce lien déclenche une redirection JavaScript (conforme si action utilisateur explicite) :</p>
+        <a href="#" id="userTriggeredRedirect" class="button">Aller vers la nouvelle version (action utilisateur)</a>
+    </section>
+
+    <!-- Test 13.1.4 : Timeout de session JavaScript (NEEDS_REVIEW) -->
+    <section class="test-section">
+        <h2>Test 13.1.4 - Gestion de session avec timeout</h2>
+        <p>Simulation d'une session avec timeout d'inactivité :</p>
+        <div class="warning" id="sessionWarning" style="display: none;">
+            <strong>Session sur le point d'expirer !</strong> Il reste <span id="sessionTime">5</span> minutes.
+            <div class="controls">
+                <button id="extendSession" type="button">Prolonger la session</button>
+                <button id="keepAlive" type="button">Rester connecté</button>
+            </div>
+        </div>
+        <p>Dernière activité : <span id="lastActivity">--:--:--</span></p>
+    </section>
+
+    <!-- Test 13.1.4 : Auto-logout (NEEDS_REVIEW) -->
+    <section class="test-section">
+        <h2>Test 13.1.4 - Déconnexion automatique programmée</h2>
+        <p>Script de déconnexion automatique après inactivité (voir script ci-dessous).</p>
+    </section>
+
+    <!-- Contrôles utilisateur pour tester la détection -->
+    <section class="test-section">
+        <h2>Contrôles utilisateur (pour test 13.1.1, 13.1.3, 13.1.4)</h2>
+        <p>Ces boutons permettent de tester la détection des mécanismes de contrôle :</p>
+        <div class="controls">
+            <button id="stopRefresh" type="button">Arrêter tous les rafraîchissements</button>
+            <button id="restartRefresh" type="button">Relancer les rafraîchissements</button>
+            <button id="increaseInterval" type="button">Augmenter les intervalles (x10)</button>
+            <button id="warnBeforeRefresh" type="button">Avertir 20s avant</button>
+        </div>
+    </section>
+
+    <script>
+        // Test 13.1.3 - Redirection avec setTimeout
+        let redirectTimeout;
+        let countdownValue = 10;
+        const countdownEl = document.getElementById('countdown');
+        const warningEl = document.getElementById('redirectWarning');
+
+        function startRedirectCountdown() {
+            countdownValue = 10;
+            updateCountdown();
+            redirectTimeout = setInterval(() => {
+                countdownValue--;
+                updateCountdown();
+                if (countdownValue <= 0) {
+                    clearInterval(redirectTimeout);
+                    // window.location.href = "https://example.com/nouvelle-page";
+                    console.log('Redirection would happen here');
+                }
+            }, 1000);
+        }
+
+        function updateCountdown() {
+            if (countdownEl) countdownEl.textContent = countdownValue;
+        }
+
+        // Test 13.1.3 - Redirection immédiate déclenchée par utilisateur
+        document.getElementById('userTriggeredRedirect')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            // window.location.href = "https://example.com/nouvelle-version";
+            console.log('Redirection utilisateur déclenchée');
+        });
+
+        // Test 13.1.4 - Session timeout
+        let sessionTimeout;
+        let sessionTimeLeft = 300; // 5 minutes en secondes
+        const sessionWarningEl = document.getElementById('sessionWarning');
+        const sessionTimeEl = document.getElementById('sessionTime');
+        const lastActivityEl = document.getElementById('lastActivity');
+
+        function updateLastActivity() {
+            const now = new Date();
+            if (lastActivityEl) {
+                lastActivityEl.textContent = now.toLocaleTimeString();
+            }
+        }
+
+        function startSessionTimer() {
+            sessionTimeLeft = 300;
+            if (sessionWarningEl) sessionWarningEl.style.display = 'block';
+            updateSessionDisplay();
+
+            sessionTimeout = setInterval(() => {
+                sessionTimeLeft--;
+                updateSessionDisplay();
+                if (sessionTimeLeft <= 0) {
+                    clearInterval(sessionTimeout);
+                    // autoLogout();
+                    console.log('Auto-logout would happen here');
+                }
+            }, 1000);
+        }
+
+        function updateSessionDisplay() {
+            const minutes = Math.floor(sessionTimeLeft / 60);
+            const seconds = sessionTimeLeft % 60;
+            if (sessionTimeEl) {
+                sessionTimeEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            }
+        }
+
+        // Test 13.1.4 - Auto logout après inactivité
+        let idleTimeout;
+        const IDLE_LIMIT = 600; // 10 minutes
+
+        function resetIdleTimer() {
+            clearTimeout(idleTimeout);
+            idleTimeout = setTimeout(() => {
+                // autoLogout();
+                console.log('Auto-logout par inactivité');
+            }, IDLE_LIMIT * 1000);
+        }
+
+        // Contrôles utilisateur
+        document.getElementById('stopRedirect')?.addEventListener('click', () => {
+            clearInterval(redirectTimeout);
+            if (warningEl) warningEl.style.display = 'none';
+            console.log('Redirection arrêtée par l\'utilisateur');
+        });
+
+        document.getElementById('extendRedirect')?.addEventListener('click', () => {
+            clearInterval(redirectTimeout);
+            countdownValue *= 10;
+            startRedirectCountdown();
+            console.log('Délai de redirection augmenté 10x');
+        });
+
+        document.getElementById('extendSession')?.addEventListener('click', () => {
+            sessionTimeLeft += 300; // +5 minutes
+            updateSessionDisplay();
+            console.log('Session prolongée');
+        });
+
+        document.getElementById('keepAlive')?.addEventListener('click', () => {
+            sessionTimeLeft = 300; // Reset à 5 minutes
+            updateSessionDisplay();
+            resetIdleTimer();
+            console.log('Session maintenue active');
+        });
+
+        document.getElementById('stopRefresh')?.addEventListener('click', () => {
+            clearInterval(redirectTimeout);
+            clearInterval(sessionTimeout);
+            clearTimeout(idleTimeout);
+            console.log('Tous les rafraîchissements/timeouts arrêtés');
+        });
+
+        document.getElementById('restartRefresh')?.addEventListener('click', () => {
+            startRedirectCountdown();
+            startSessionTimer();
+            resetIdleTimer();
+            console.log('Rafraîchissements relancés');
+        });
+
+        document.getElementById('increaseInterval')?.addEventListener('click', () => {
+            countdownValue *= 10;
+            sessionTimeLeft *= 10;
+            updateCountdown();
+            updateSessionDisplay();
+            console.log('Intervalles augmentés 10x');
+        });
+
+        document.getElementById('warnBeforeRefresh')?.addEventListener('click', () => {
+            // Simulation d'avertissement 20s avant
+            console.log('Avertissement 20s avant rafraîchissement activé');
+        });
+
+        // Canvas animation (test 13.1.1)
+        const canvas = document.getElementById('animationCanvas');
+        const ctx = canvas?.getContext('2d');
+        let x = 0;
+
+        function animateCanvas() {
+            if (!ctx) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = 'blue';
+            ctx.beginPath();
+            ctx.arc(x, 75, 20, 0, Math.PI * 2);
+            ctx.fill();
+            x = (x + 2) % (canvas.width + 40) - 20;
+            requestAnimationFrame(animateCanvas);
+        }
+
+        // Initialisation
+        startRedirectCountdown();
+        startSessionTimer();
+        resetIdleTimer();
+        animateCanvas();
+        updateLastActivity();
+
+        // Mise à jour activité utilisateur
+        ['click', 'keydown', 'mousemove', 'scroll'].forEach(event => {
+            document.addEventListener(event, () => {
+                updateLastActivity();
+                resetIdleTimer();
+            }, { passive: true });
+        });
+    </script>
+</body>
+</html>
