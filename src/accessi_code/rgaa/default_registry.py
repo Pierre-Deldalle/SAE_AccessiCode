@@ -1,22 +1,15 @@
 from __future__ import annotations
 
 from accessi_code.rgaa.registry import TestRegistry
-from accessi_code.rgaa.tests.theme_01_images.criterion_1_1 import (
-    Test111,
-    Test112,
-    Test113,
-    Test114,
-    Test115,
-)
-from accessi_code.rgaa.tests.theme_01_images.criterion_1_2 import (
-    Test121,
-)
-from accessi_code.rgaa.tests.theme_01_images.criterion_1_7 import (
-    Test171,
-)
-from accessi_code.rgaa.tests.theme_01_images.criterion_1_9 import (
-    Test191,
-)
+from accessi_code.rgaa.tests.theme_01_images.criterion_1_1 import (Test111, Test112, Test113, Test114, Test115, Test116, Test117, Test118)
+from accessi_code.rgaa.tests.theme_01_images.criterion_1_2 import (Test121, Test122, Test123, Test124, Test125, Test126)
+from accessi_code.rgaa.tests.theme_01_images.criterion_1_3 import (Test131, Test132, Test133, Test134, Test135, Test136, Test137, Test138, Test139)
+from accessi_code.rgaa.tests.theme_01_images.criterion_1_4 import (Test141, Test142, Test143, Test144, Test145, Test146, Test147)
+from accessi_code.rgaa.tests.theme_01_images.criterion_1_5 import (Test151, Test152)
+from accessi_code.rgaa.tests.theme_01_images.criterion_1_6 import (Test161, Test162, Test163, Test164, Test165, Test166, Test167, Test168, Test169, Test1610)
+from accessi_code.rgaa.tests.theme_01_images.criterion_1_7 import (Test171, Test172, Test173, Test174, Test175, Test176)
+from accessi_code.rgaa.tests.theme_01_images.criterion_1_8 import (Test181, Test182, Test183, Test184, Test185, Test186)
+from accessi_code.rgaa.tests.theme_01_images.criterion_1_9 import (Test191, Test192, Test193, Test194, Test195)
 from accessi_code.rgaa.tests.theme_02_frames.criterion_2_1 import (
     Test211,
 )
@@ -128,9 +121,60 @@ def build_default_registry() -> TestRegistry:
             Test113(),
             Test114(),
             Test115(),
+            Test116(),
+            Test117(),
+            Test118(),
             Test121(),
-            Test191(),
+            Test122(),
+            Test123(),
+            Test124(),
+            Test125(),
+            Test126(),
+            Test131(),
+            Test132(),
+            Test133(),
+            Test134(),
+            Test135(),
+            Test136(),
+            Test137(),
+            Test138(),
+            Test139(),
+            Test141(),
+            Test142(),
+            Test143(),
+            Test144(),
+            Test145(),
+            Test146(),
+            Test147(),
+            Test151(),
+            Test152(),
+            Test161(),
+            Test162(),
+            Test163(),
+            Test164(),
+            Test165(),
+            Test166(),
+            Test167(),
+            Test168(),
+            Test169(),
+            Test1610(),
             Test171(),
+            Test172(),
+            Test173(),
+            Test174(),
+            Test175(),
+            Test176(),
+            Test181(),
+            Test182(),
+            Test183(),
+            Test184(),
+            Test185(),
+            Test186(),
+            Test191(),
+            Test192(),
+            Test193(),
+            Test194(),
+            Test195(),
             Test211(),
             Test221(),
             Test511(),
