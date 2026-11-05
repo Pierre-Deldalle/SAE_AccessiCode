@@ -64,6 +64,59 @@ from accessi_code.rgaa.tests.theme_11_forms.criterion_11_1 import (
 )
 
 
+from accessi_code.rgaa.tests.theme_11_forms.criterion_11_2 import (
+    Test1121, Test1122, Test1123, Test1124, Test1125, Test1126,
+)
+from accessi_code.rgaa.tests.theme_11_forms.criterion_11_3 import (
+    Test1131, Test1132,
+)
+from accessi_code.rgaa.tests.theme_11_forms.criterion_11_4 import (
+    Test1141, Test1142, Test1143,
+)
+
+from accessi_code.rgaa.tests.theme_11_forms.criterion_11_5 import (
+    Test1151,
+)
+from accessi_code.rgaa.tests.theme_11_forms.criterion_11_6 import (
+    Test1161,
+)
+from accessi_code.rgaa.tests.theme_11_forms.criterion_11_7 import (
+    Test1171,
+)
+from accessi_code.rgaa.tests.theme_11_forms.criterion_11_8 import (
+    Test1181, Test1182, Test1183,
+)
+from accessi_code.rgaa.tests.theme_11_forms.criterion_11_9 import (
+    Test1191, Test1192,
+)
+from accessi_code.rgaa.tests.theme_11_forms.criterion_11_10 import (
+    Test11101, Test11102, Test11103, Test11104, Test11105, Test11106, Test11107,
+)
+from accessi_code.rgaa.tests.theme_11_forms.criterion_11_11 import (
+    Test11111, Test11112,
+)
+from accessi_code.rgaa.tests.theme_11_forms.criterion_11_12 import (
+    Test11121, Test11122,
+)
+from accessi_code.rgaa.tests.theme_11_forms.criterion_11_13 import (
+    Test11131,
+)
+
+
+
+# Thème 12 — Navigation
+from accessi_code.rgaa.tests.theme_12_navigation.criterion_12_1 import (Test1211,)
+from accessi_code.rgaa.tests.theme_12_navigation.criterion_12_2 import (Test1221,)
+from accessi_code.rgaa.tests.theme_12_navigation.criterion_12_3 import (Test1231, Test1232, Test1233,)
+from accessi_code.rgaa.tests.theme_12_navigation.criterion_12_4 import (Test1241, Test1242, Test1243,)
+from accessi_code.rgaa.tests.theme_12_navigation.criterion_12_5 import (Test1251, Test1252, Test1253,)
+from accessi_code.rgaa.tests.theme_12_navigation.criterion_12_6 import (Test1261,)
+from accessi_code.rgaa.tests.theme_12_navigation.criterion_12_7 import (Test1271, Test1272,)
+from accessi_code.rgaa.tests.theme_12_navigation.criterion_12_8 import (Test1281, Test1282,)
+from accessi_code.rgaa.tests.theme_12_navigation.criterion_12_9 import (Test1291,)
+from accessi_code.rgaa.tests.theme_12_navigation.criterion_12_10 import (Test12101,)
+from accessi_code.rgaa.tests.theme_12_navigation.criterion_12_11 import (Test12111,)
+
 def build_default_registry() -> TestRegistry:
     """
     Construit le registre des tests RGAA actuellement implémentés.
@@ -95,5 +148,47 @@ def build_default_registry() -> TestRegistry:
             Test8101(),
             Test8102(),
             Test1111(),
+            Test1121(), Test1122(), Test1123(), Test1124(), Test1125(), Test1126(),
+            Test1131(), Test1132(),
+            Test1141(), Test1142(), Test1143(),
+            Test1151(),
+            Test1161(),
+            Test1171(),
+            Test1181(),
+            Test1182(),
+            Test1183(),
+            Test1191(),
+            Test1192(),
+            Test11101(),
+            Test11102(),
+            Test11103(),
+            Test11104(),
+            Test11105(),
+            Test11106(),
+            Test11107(),
+            Test11111(),
+            Test11112(),
+            Test11121(),
+            Test11122(),
+            Test11131(),
+            Test1211(),
+            Test1221(),
+            Test1231(),
+            Test1232(),
+            Test1233(),
+            Test1241(),
+            Test1242(),
+            Test1243(),
+            Test1251(),
+            Test1252(),
+            Test1253(),
+            Test1261(),
+            Test1271(),
+            Test1272(),
+            Test1281(),
+            Test1282(),
+            Test1291(),
+            Test12101(),
+            Test12111(),
         ]
     )

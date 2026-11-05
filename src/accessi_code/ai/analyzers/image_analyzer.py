@@ -12,6 +12,7 @@ import aiohttp
 from accessi_code.ai.clients.llm import OllamaLLM
 from accessi_code.ai.clients.vlm import OllamaVLM
 from accessi_code.ai.json_utils import parse_ai_json
+from accessi_code.ai.text_safety import clean_explanation
 from accessi_code.ai.prompts.images import (
     DETAILED_DESCRIPTION_PROMPT,
     IMAGE_ELEMENT_ROLE_PROMPT,
@@ -176,19 +177,17 @@ class OllamaImageAnalyzer:
         if is_detailed is False:
             relevant = None
 
+        explanation, corrupted = clean_explanation(data.get("explanation"))
+        if corrupted:
+            relevant = None
         return DescriptionAnalysis(
             relevant=relevant,
-            explanation=str(
-                data.get(
-                    "explanation",
-                    "",
-                )
-            ),
+            explanation=explanation,
             is_detailed_description=is_detailed,
             missing_information=self._get_strings(data.get("missing_information")),
             contradictions=self._get_strings(data.get("contradictions")),
             uncertainties=self._get_strings(data.get("uncertainties")),
-            confidence=self._get_confidence(data.get("confidence")),
+            confidence="low" if corrupted else self._get_confidence(data.get("confidence")),
         )
 
     async def _get_image_input(
@@ -236,12 +235,7 @@ class OllamaImageAnalyzer:
         data = await self._generate_visual_json(image_input)
 
         visual = VisualObservation(
-            summary=str(
-                data.get(
-                    "summary",
-                    "",
-                )
-            ),
+            summary=clean_explanation(data.get("summary"))[0],
             important_information=self._get_strings(data.get("important_information")),
             uncertainties=self._get_strings(data.get("uncertainties")),
         )
@@ -370,16 +364,12 @@ class OllamaImageAnalyzer:
         }:
             raise ValueError("information_bearing doit être true, false ou null.")
 
+        explanation, corrupted = clean_explanation(data.get("explanation"))
         return ImageRoleAnalysis(
-            information_bearing=information_bearing,
-            explanation=str(
-                data.get(
-                    "explanation",
-                    "",
-                )
-            ),
+            information_bearing=None if corrupted else information_bearing,
+            explanation=explanation,
             uncertainties=OllamaImageAnalyzer._get_strings(data.get("uncertainties")),
-            confidence=OllamaImageAnalyzer._get_confidence(data.get("confidence")),
+            confidence="low" if corrupted else OllamaImageAnalyzer._get_confidence(data.get("confidence")),
         )
 
     @staticmethod

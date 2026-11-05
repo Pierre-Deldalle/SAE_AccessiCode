@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Description détaillée de l'image</title>
+</head>
+
+<body>
+
+    <main>
+
+        <h1>Description détaillée</h1>
+
+        <p>
+            L'image représente un graphique financier composé de plusieurs
+            courbes montrant l'évolution du cours d'une action sur une
+            période de dix années.
+        </p>
+
+        <p>
+            La courbe principale augmente fortement entre 2020 et 2022,
+            puis diminue légèrement avant de se stabiliser.
+        </p>
+
+    </main>
+
+</body>
+</html>

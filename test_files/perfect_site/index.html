@@ -1,219 +1,257 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>AccessiCode - Audit d'accessibilité</title>
+    <title>AccessiCode - démonstration accessible</title>
 </head>
 <body>
+    <a href="#contenu">Aller au contenu principal</a>
+
     <header>
+        <p>AccessiCode</p>
+        <h1>Une démonstration accessible</h1>
         <nav aria-label="Navigation principale">
-            <a href="#contenu">Accéder au contenu</a>
+            <h2>Navigation principale</h2>
+            <ul>
+                <li><a href="#presentation">Présentation</a></li>
+                <li><a href="#resultats">Résultats</a></li>
+                <li><a href="#contact">Contact</a></li>
+                <li><a href="sitemap.html">Plan du site</a></li>
+            </ul>
         </nav>
+        <form action="#resultats" method="get" role="search">
+            <label for="recherche">Rechercher sur le site</label>
+            <input id="recherche" name="q" type="text" autocomplete="off">
+            <button type="submit">Rechercher</button>
+        </form>
     </header>
 
     <main id="contenu">
-        <h1>AccessiCode - Audit d'accessibilité</h1>
-
-        <p>
-            Cette page présente AccessiCode, une application qui aide à vérifier
-            l'accessibilité des sites web selon les critères du RGAA.
-        </p>
-
-        <figure id="illustration" role="figure" aria-label="Illustration d'une page web accessible">
-            <img
-                src="logo.png"
-                alt="Illustration d'une page web accessible"
-                aria-describedby="illustration-description"
-            >
-            <figcaption>Illustration d'une page web accessible</figcaption>
-        </figure>
-        <p id="illustration-description">
-            L'illustration représente une page web structurée avec un titre,
-            un contenu principal et des éléments correctement identifiés.
-        </p>
-
-        <div aria-label="Indicateur de conformité de l'audit">
-            <svg
-                role="img"
-                aria-labelledby="audit-status-title"
-                width="240"
-                height="80"
-                viewBox="0 0 240 80"
-                xmlns="http://www.w3.org/2000/svg"
-            >
-                <title id="audit-status-title">Audit conforme</title>
-                <rect width="240" height="80" rx="12" fill="#e8f1ff"></rect>
-                <circle cx="42" cy="40" r="18" fill="#2f855a"></circle>
-                <path d="M32 40l7 7 13-16" fill="none" stroke="white" stroke-width="5"></path>
-                <text x="75" y="47" font-family="sans-serif" font-size="18" fill="#173b6c">
-                    Conforme
-                </text>
-            </svg>
-        </div>
-
-        <div>
-            <img src="logo.png" alt="" aria-hidden="true">
-        </div>
-
-        <p>
-            <img
-                src="logo.png"
-                alt="Accéder à la présentation visuelle"
-                usemap="#navigation-map"
-            >
-            <map name="navigation-map">
-                <area
-                    shape="rect"
-                    coords="0,0,240,120"
-                    href="#objectif"
-                    alt="Voir l'objectif de la page"
-                >
-            </map>
-        </p>
-
-        <p>
-            <input
-                type="image"
-                src="logo.png"
-                alt="Rechercher dans la page"
-                aria-label="Rechercher dans la page"
-            >
-        </p>
-
-        <figure id="server-image" role="figure" aria-label="Navigation par image">
-            <img
-                src="logo.png"
-                alt="Accéder à la navigation par image"
-                ismap
-            >
-            <figcaption>Navigation par image</figcaption>
-            <a href="#objectif" aria-label="Accéder à l'objectif de la page"></a>
-        </figure>
-
-        <table id="audit-results">
-            <caption>Résumé des résultats de l'audit d'accessibilité</caption>
-            <thead>
-                <tr>
-                    <th scope="col" rowspan="2">Critère</th>
-                    <th scope="col" colspan="2">Résultat</th>
-                </tr>
-                <tr>
-                    <th scope="col">Statut</th>
-                    <th scope="col">Détail</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <th scope="row">Structure</th>
-                    <td>Conforme</td>
-                    <td>Les éléments sont correctement structurés.</td>
-                </tr>
-            </tbody>
-        </table>
-
-        <form aria-labelledby="contact-title">
-            <h2 id="contact-title">Demander un audit</h2>
-            <label for="email">Adresse électronique</label>
-            <input id="email" name="email" type="email" autocomplete="email">
-            <button type="submit">Envoyer la demande</button>
-        </form>
-
-        <section aria-labelledby="objectif">
-            <h2 id="objectif">Objectif de la page</h2>
+        <section id="presentation" aria-labelledby="titre-presentation">
+            <h2 id="titre-presentation">Présentation</h2>
             <p>
-                L'objectif est de fournir une vérification claire et
-                compréhensible des éléments d'accessibilité analysés.
+                AccessiCode aide à vérifier les critères d'accessibilité d'une
+                page web avec des contrôles lisibles et reproductibles.
             </p>
+            <p>
+                Cette page présente une structure sémantique, des liens explicites,
+                un formulaire étiqueté et un tableau de données accessible.
+            </p>
+            <p lang="en">Accessible web demonstration.</p>
+            <p dir="ltr">Ce passage possède une direction de lecture explicite.</p>
+
+            <figure role="figure" aria-label="Logo AccessiCode, symbole d'une application accessible">
+                <img src="logo.png"
+                     alt="Logo AccessiCode, symbole d'une application accessible"
+                     width="240" height="120"
+                     longdesc="description.txt">
+                <figcaption>Logo AccessiCode, symbole d'une application accessible</figcaption>
+            </figure>
+
+            <p>
+                L'image décorative suivante sépare visuellement les contenus
+                sans ajouter d'information.
+            </p>
+            <div>
+                <img src="logo.png" alt="" aria-hidden="true" width="1" height="1">
+            </div>
+
+            <h3>Navigation graphique</h3>
+            <div>
+                <img src="logo.png" alt="Accès aux rubriques de la démonstration"
+                     usemap="#navigation-map" width="240" height="120">
+            </div>
+            <map name="navigation-map">
+                <area shape="rect" coords="0,0,120,120"
+                      href="#resultats" alt="Accéder aux résultats">
+                <area shape="rect" coords="120,0,240,120"
+                      href="#contact" alt="Accéder au formulaire de contact">
+            </map>
+
+            <p>Les mêmes destinations sont également accessibles avec des liens texte :</p>
+            <ul>
+                <li><a href="#resultats">Voir les résultats</a></li>
+                <li><a href="#contact">Ouvrir le formulaire de contact</a></li>
+            </ul>
+
+            <h3>Image réactive côté serveur</h3>
+            <div>
+                <img src="logo.png" alt="Accès rapide aux résultats et au contact"
+                     ismap width="240" height="120">
+                <button type="button"
+                        aria-label="Accéder aux résultats et au contact"></button>
+            </div>
+            <p>
+                <a href="#resultats">Accéder aux résultats</a> ou
+                <a href="#contact">accéder au contact</a>.
+            </p>
+
+            <h3>Illustration vectorielle</h3>
+            <div>
+                <svg id="accessibilite-svg" width="240" height="80"
+                     viewBox="0 0 240 80" role="img"
+                     aria-labelledby="svg-title svg-description"
+                     xmlns="http://www.w3.org/2000/svg">
+                    <title id="svg-title">Barre de progression des contrôles</title>
+                    <desc id="svg-description">La progression atteint cent pour cent.</desc>
+                    <rect width="240" height="80" fill="#e5e7eb"></rect>
+                    <rect width="200" height="80" fill="#176b87"></rect>
+                    <text x="20" y="48" fill="white">Contrôles conformes</text>
+                </svg>
+            </div>
         </section>
 
-        <section aria-labelledby="iframes-test">
-            <h2 id="iframes-test">Exemple de cadres iframes et frame conformes</h2>
-            <p>
-                Cette section présente des iframes et des frame avec des attributs title pertinents,
-                conformes aux critères RGAA 2.1.1 et 2.2.1.
-            </p>
+        <section id="resultats" aria-labelledby="titre-resultats">
+            <h2 id="titre-resultats">Résultats des contrôles</h2>
+            <table>
+                <caption>Nombre de contrôles conformes par domaine et par trimestre.</caption>
+                <thead>
+                    <tr>
+                        <th scope="col" rowspan="2">Domaine</th>
+                        <th scope="colgroup" colspan="2">Premier trimestre</th>
+                        <th scope="colgroup" colspan="2">Deuxième trimestre</th>
+                    </tr>
+                    <tr>
+                        <th scope="col">Conformes</th>
+                        <th scope="col">À vérifier</th>
+                        <th scope="col">Conformes</th>
+                        <th scope="col">À vérifier</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <th scope="row">Structure</th>
+                        <td>18</td>
+                        <td>0</td>
+                        <td>20</td>
+                        <td>0</td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Navigation</th>
+                        <td>14</td>
+                        <td>0</td>
+                        <td>16</td>
+                        <td>0</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
 
-            <div>
-                <h3>Iframe avec titre pertinent</h3>
-                <iframe src="https://www.example.com" title="Vidéo de démonstration d'une fonctionnalité" width="300" height="200">
-                    Votre navigateur ne supporte pas les iframes.
-                </iframe>
-            </div>
+        <section id="contact" aria-labelledby="titre-contact">
+            <h2 id="titre-contact">Contact</h2>
+            <form action="#confirmation" method="post">
+                <p id="aide-contact">Les champs sont facultatifs.</p>
+                <div>
+                    <label for="nom">Nom</label>
+                    <input id="nom" name="nom" type="text" autocomplete="name"
+                           aria-describedby="aide-contact">
+                </div>
+                <div>
+                    <label for="email">Adresse email</label>
+                    <input id="email" name="email" type="email" autocomplete="email"
+                           aria-describedby="aide-contact">
+                </div>
+                <div>
+                    <label for="message">Message</label>
+                    <textarea id="message" name="message" rows="5"
+                              aria-describedby="aide-contact"></textarea>
+                </div>
+                <button type="submit">Envoyer le message</button>
+            </form>
+            <p id="confirmation">Votre message sera traité par l'équipe AccessiCode.</p>
 
-            <div>
-                <h3>Iframe avec titre descriptif</h3>
-                <iframe src="https://www.example.com" title="Menu de navigation latéral" width="300" height="200">
-                    Votre navigateur ne supporte pas les iframes.
-                </iframe>
-            </div>
+            <form action="#confirmation" method="post">
+                <label for="demande">Demande rapide</label>
+                <input id="demande" name="demande" type="text" autocomplete="off">
+                <input type="image" src="logo.png" alt="Envoyer la demande"
+                       width="120" height="60">
+            </form>
 
-            <div>
-                <h3>Iframe avec titre explicatif</h3>
-                <iframe src="https://www.example.com" title="Publicité partenaire - Offre spéciale" width="300" height="200">
-                    Votre navigateur ne supporte pas les iframes.
-                </iframe>
-            </div>
+            <form action="#confirmation" method="post">
+                <h3>Autres mécanismes d'étiquetage</h3>
+                <input id="libelle-title" name="libelle-title" type="text"
+                       title="Libellé complémentaire">
+                <input id="libelle-aria" name="libelle-aria" type="search"
+                       aria-label="Rechercher un contact">
+                <span id="libelle-reference">Référence du contact</span>
+                <input id="reference" name="reference" type="text"
+                       aria-labelledby="libelle-reference">
+                <label for="email-secondaire">Adresse email</label>
+                <input id="email-secondaire" name="email" type="email"
+                       autocomplete="email">
 
-            <div>
-                <h3>Iframe avec titre détaillé</h3>
-                <iframe src="https://www.example.com" title="Tableau de bord des statistiques d'utilisation" width="300" height="200">
-                    Votre navigateur ne supporte pas les iframes.
-                </iframe>
-            </div>
+                <fieldset>
+                    <legend>Canal de réponse préféré</legend>
+                    <label for="canal-email">
+                        <input id="canal-email" name="canal" type="radio" value="email"
+                               autocomplete="email">
+                        Email
+                    </label>
+                    <label for="canal-telephone">
+                        <input id="canal-telephone" name="canal" type="radio" value="telephone"
+                               autocomplete="tel">
+                        Téléphone
+                    </label>
+                </fieldset>
 
-            <div>
-                <h3>Frame avec titre pertinent (élément obsolète)</h3>
-                <frame src="https://www.example.com" title="Navigation principale du site">
-                    Votre navigateur ne supporte pas les frames.
-                </frame>
-            </div>
+                <label for="categorie">Catégorie de la demande</label>
+                <select id="categorie" name="categorie">
+                    <optgroup label="Accessibilité">
+                        <option value="audit">Audit RGAA</option>
+                        <option value="conseil">Conseil accessibilité</option>
+                    </optgroup>
+                    <optgroup label="Formation">
+                        <option value="atelier">Atelier de formation</option>
+                        <option value="documentation">Documentation</option>
+                    </optgroup>
+                </select>
+                <button type="submit">Enregistrer la demande</button>
+            </form>
 
-            <div>
-                <h3>Frame avec titre secondaire</h3>
-                <frame src="https://www.example.com" title="Zone de contenu secondaire">
-                    Votre navigateur ne supporte pas les frames.
-                </frame>
+            <form action="#confirmation" method="post">
+                <h3>Exemple de validation</h3>
+                <label for="email-invalide">Adresse email obligatoire</label>
+                <input id="email-invalide" name="email-invalide" type="email"
+                       required aria-required="true" aria-invalid="true"
+                       aria-describedby="erreur-email format-email"
+                       autocomplete="email">
+                <p id="format-email">Format attendu : nom@exemple.fr.</p>
+                <p id="erreur-email">L'adresse email est obligatoire et doit respecter le format indiqué.</p>
+                <button type="submit">Valider l'adresse</button>
+            </form>
+        </section>
+
+        <section aria-labelledby="titre-cadre">
+            <h2 id="titre-cadre">Contenu intégré</h2>
+            <iframe title="Présentation textuelle du projet AccessiCode"
+                    srcdoc="<p>AccessiCode vérifie des critères d'accessibilité.</p>"
+                    width="420" height="100"></iframe>
+        </section>
+
+        <section aria-labelledby="titre-dynamique">
+            <h2 id="titre-dynamique">Préférences d'affichage</h2>
+            <button type="button" aria-expanded="false" aria-controls="details-affichage">
+                Afficher les détails
+            </button>
+            <div id="details-affichage" hidden>
+                <p>Les préférences sont accessibles au clavier et annoncées par le bouton.</p>
             </div>
         </section>
     </main>
 
-    <!-- 8.7.1 et 8.8.1 : changement de langue correct -->
-    <p>
-        Bienvenue sur notre site.
-        <span lang="en">Welcome to our website</span>
-    </p>
-    
-    <!-- 8.8.1 : code de langue incorrect pour le texte -->
-    <p>
-        <span lang="fr">Please contact our support team.</span>
-    </p>
-    
-    <!-- 8.10.1 et 8.10.2 : direction de texte correcte -->
-    <p>
-        Texte en français :
-        <span lang="ar" dir="rtl">مرحبا بكم</span>
-    </p>
-    
-    <!-- 8.10.2 : valeur de dir invalide -->
-    <p>
-        <span lang="ar" dir="right">مرحبا بكم</span>
-    </p>
-    
-    <!-- 8.10.1 : texte RTL sans indication de direction -->
-    <p>
-        <span lang="ar">مرحبا بكم</span>
-    </p>
-    
-    <!-- 8.9.1 : utilisation potentiellement incorrecte -->
-    <blockquote>
-        Ce texte est simplement indenté pour la présentation,
-        ce n'est pas une citation.
-    </blockquote>
-
-
     <footer>
-        <p>AccessiCode - page de démonstration accessible</p>
+        <h2>Informations complémentaires</h2>
+        <p>AccessiCode est un projet pédagogique consacré à l'accessibilité numérique.</p>
+        <p><a href="sitemap.html">Consulter le plan du site</a></p>
+        <p><a href="#contenu">Retour au contenu principal</a></p>
     </footer>
+    <script>
+    document.querySelectorAll("[aria-expanded]").forEach(function (button) {
+        button.addEventListener("click", function () {
+            button.setAttribute("aria-expanded", button.getAttribute("aria-expanded") !== "true");
+        });
+    });
+    </script>
 </body>
 </html>
