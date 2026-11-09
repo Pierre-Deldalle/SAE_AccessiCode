@@ -8,6 +8,9 @@
     <!-- Test 13.1.1 : Meta refresh ≥ 20h (PASS) -->
     <meta http-equiv="refresh" content="72000">
 
+    <!-- Test 13.3.1 : Documents bureautiques en téléchargement -->
+    <!-- Les vrais fichiers n'existent pas, mais les liens sont détectés par le test -->
+
     <!-- Test 13.1.1 : Meta refresh < 20h sans contrôle (NEEDS_REVIEW) -->
     <meta http-equiv="refresh" content="300">
 
@@ -206,6 +209,102 @@
             <button id="increaseInterval" type="button">Augmenter les intervalles (x10)</button>
             <button id="warnBeforeRefresh" type="button">Avertir 20s avant</button>
         </div>
+    </section>
+
+    <!-- ===== TESTS CRITÈRE 13.3 : Documents bureautiques en téléchargement ===== -->
+    <section class="test-section">
+        <h2>Test 13.3.1 - Téléchargement PDF sans version alternative (NEEDS_REVIEW)</h2>
+        <p>Lien direct vers un PDF sans alternative accessible détectée sur la page :</p>
+        <a href="rapport-annuel.pdf">Télécharger le rapport annuel (PDF)</a>
+        <p><em>Attendu : NEEDS_REVIEW - le document PDF doit être vérifié avec PAC (PDF Accessibility Checker).</em></p>
+    </section>
+
+    <section class="test-section">
+        <h2>Test 13.3.1 - Téléchargement PDF avec version HTML alternative (PASS)</h2>
+        <p>Lien vers un PDF avec une version HTML accessible proposée en alternative :</p>
+        <a href="guide-utilisateur.pdf">Télécharger le guide utilisateur (PDF)</a>
+        <a href="guide-utilisateur.html" class="alternative-link">Version HTML accessible</a>
+        <p><em>Attendu : PASS - alternative HTML détectée (même nom de base "guide-utilisateur").</em></p>
+    </section>
+
+    <section class="test-section">
+        <h2>Test 13.3.1 - Téléchargement PDF avec version PDF accessible alternative (PASS)</h2>
+        <p>Lien vers un PDF avec une version PDF accessible (taggée) proposée en alternative :</p>
+        <a href="document-technique.pdf">Télécharger le document technique (PDF)</a>
+        <a href="document-technique-accessible.pdf" class="alternative-link">Version PDF accessible (taggée)</a>
+        <p><em>Attendu : PASS - alternative PDF accessible détectée (texte contient "accessible").</em></p>
+    </section>
+
+    <section class="test-section">
+        <h2>Test 13.3.1 - Téléchargement DOCX sans alternative (NEEDS_REVIEW)</h2>
+        <p>Lien vers un document Word sans alternative :</p>
+        <a href="contrat-modele.docx">Télécharger le modèle de contrat (DOCX)</a>
+        <p><em>Attendu : NEEDS_REVIEW - vérifier avec le vérificateur d'accessibilité Microsoft Office.</em></p>
+    </section>
+
+    <section class="test-section">
+        <h2>Test 13.3.1 - Téléchargement ODT sans alternative (NEEDS_REVIEW)</h2>
+        <p>Lien vers un document OpenOffice/LibreOffice sans alternative :</p>
+        <a href="rapport-activite.odt">Télécharger le rapport d'activité (ODT)</a>
+        <p><em>Attendu : NEEDS_REVIEW - vérifier selon la "Liste document bureautique en téléchargement" (ou convertir en DOCX).</em></p>
+    </section>
+
+    <section class="test-section">
+        <h2>Test 13.3.1 - Téléchargement EPUB sans alternative (NEEDS_REVIEW)</h2>
+        <p>Lien vers un livre numérique EPUB sans alternative :</p>
+        <a href="manuel-utilisateur.epub">Télécharger le manuel utilisateur (EPUB)</a>
+        <p><em>Attendu : NEEDS_REVIEW - vérifier avec Ace by DAISY App pour EPUB 3.</em></p>
+    </section>
+
+    <section class="test-section">
+        <h2>Test 13.3.1 - Bouton de téléchargement via formulaire (NEEDS_REVIEW)</h2>
+        <p>Formulaire avec bouton submit qui déclenche le téléchargement d'un PDF :</p>
+        <form action="catalogue-produits.pdf" method="get">
+            <button type="submit">Télécharger le catalogue produits (PDF)</button>
+        </form>
+        <p><em>Attendu : NEEDS_REVIEW - détection via form action vers PDF.</em></p>
+    </section>
+
+    <section class="test-section">
+        <h2>Test 13.3.1 - Bouton avec onclick ouvrant un document (NEEDS_REVIEW)</h2>
+        <p>Bouton qui ouvre un document via window.open() dans onclick :</p>
+        <button onclick="window.open('fiche-technique.pdf', '_blank')">
+            Ouvrir la fiche technique (PDF)
+        </button>
+        <p><em>Attendu : NEEDS_REVIEW - détection via onclick avec URL PDF.</em></p>
+    </section>
+
+    <section class="test-section">
+        <h2>Test 13.3.1 - Plusieurs téléchargements : certains avec alternative, d'autres sans (NEEDS_REVIEW)</h2>
+        <p>Mélange de documents avec et sans alternatives :</p>
+        <a href="doc-avec-alt.pdf">Document avec alternative HTML</a>
+        <a href="doc-avec-alt.html">Version HTML accessible</a>
+        <br><br>
+        <a href="doc-sans-alt.pdf">Document sans alternative</a>
+        <br><br>
+        <a href="autre-sans-alt.docx">Autre document sans alternative (DOCX)</a>
+        <p><em>Attendu : NEEDS_REVIEW - 3 documents détectés, 1 avec alternative (PASS), 2 sans (NEEDS_REVIEW). Priorité NEEDS_REVIEW > PASS.</em></p>
+    </section>
+
+    <section class="test-section">
+        <h2>Test 13.3.1 - Lien avec attribut title indiquant version accessible (PASS)</h2>
+        <p>Lien PDF avec un lien alternatif ayant un title explicite :</p>
+        <a href="procedure-interne.pdf">Procédure interne (PDF)</a>
+        <a href="procedure-interne.html" title="Version HTML accessible de la procédure">HTML accessible</a>
+        <p><em>Attendu : PASS - alternative détectée via title contenant "accessible".</em></p>
+    </section>
+
+    <section class="test-section">
+        <h2>Test 13.3.1 - Formats non-bureautiques ignorés (NOT_APPLICABLE pour ces liens)</h2>
+        <p>Ces liens ne doivent PAS être détectés comme documents bureautiques :</p>
+        <a href="image.png">Image PNG</a> |
+        <a href="page.html">Page HTML normale</a> |
+        <a href="script.js">Fichier JavaScript</a> |
+        <a href="style.css">Feuille de style</a> |
+        <a href="archive.zip">Archive ZIP</a> |
+        <a href="video.mp4">Vidéo MP4</a> |
+        <a href="audio.mp3">Audio MP3</a>
+        <p><em>Attendu : NOT_APPLICABLE pour ces formats (pas dans la liste bureautique).</em></p>
     </section>
 
     <script>
