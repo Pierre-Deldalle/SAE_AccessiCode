@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Test Critère 13.1 - Contrôle des limites de temps</title>
+    <title>Test Critères 13 - Consultation</title>
 
     <!-- Test 13.1.1 : Meta refresh ≥ 20h (PASS) -->
     <meta http-equiv="refresh" content="72000">
@@ -20,6 +20,22 @@
     <!-- Test 13.1.4 : Timeout de session via meta < 20h (NEEDS_REVIEW) -->
     <meta name="idle-timeout" content="1800">
 
+    <!-- Test 13.2.1 : window.open() au chargement automatique (FAIL - ouverture sans action utilisateur) -->
+    <script>
+        window.onload = function() {
+            // window.open("https://example.com/popup-auto"); // Décommenter pour tester le FAIL
+            console.log('Test 13.2.1: window.open dans onload (auto) - devrait être FAIL si décommenté');
+        };
+    </script>
+
+    <!-- Test 13.2.1 : window.open() dans IIFE (FAIL - exécution immédiate) -->
+    <script>
+        (function() {
+            // window.open("https://example.com/popup-iife"); // Décommenter pour tester le FAIL
+            console.log('Test 13.2.1: window.open dans IIFE (auto) - devrait être FAIL si décommenté');
+        })();
+    </script>
+
     <style>
         body { font-family: sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
         .test-section { border: 1px solid #ddd; padding: 1rem; margin: 1rem 0; border-radius: 4px; }
@@ -30,8 +46,8 @@
     </style>
 </head>
 <body>
-    <h1>Page de test pour le critère RGAA 13.1</h1>
-    <p>Cette page contient divers mécanismes de rafraîchissement, redirection et limitation de temps pour tester les tests 13.1.1 à 13.1.4.</p>
+    <h1>Page de test pour les critères RGAA 13.1 et 13.2</h1>
+    <p>Cette page contient divers mécanismes de rafraîchissement, redirection, limitation de temps et ouverture de fenêtres pour tester les critères 13.1 (tests 13.1.1 à 13.1.4) et 13.2 (test 13.2.1).</p>
 
     <!-- Test 13.1.1 : Élément object (NEEDS_REVIEW - intervalle inconnu) -->
     <section class="test-section">
@@ -105,6 +121,79 @@
     <section class="test-section">
         <h2>Test 13.1.4 - Déconnexion automatique programmée</h2>
         <p>Script de déconnexion automatique après inactivité (voir script ci-dessous).</p>
+    </section>
+
+    <!-- ===== TESTS CRITÈRE 13.2 : Ouverture de nouvelle fenêtre ===== -->
+    <section class="test-section">
+        <h2>Test 13.2.1 - Ouverture fenêtre automatique au chargement (FAIL)</h2>
+        <p>Ce script ouvre une fenêtre automatiquement au chargement (non conforme 13.2) :</p>
+        <script>
+            // window.open("https://example.com/popup-onload", "popupOnload", "width=400,height=300");
+            console.log('Test 13.2.1: window.open dans script global - NEEDS_REVIEW (contexte indéterminé)');
+        </script>
+        <p><em>Note: Le window.open est commenté pour ne pas gêner. Décommenter pour tester le FAIL.</em></p>
+    </section>
+
+    <section class="test-section">
+        <h2>Test 13.2.1 - Ouverture fenêtre par action utilisateur - bouton onclick (PASS)</h2>
+        <p>Ce bouton ouvre une fenêtre suite à un clic utilisateur (conforme 13.2) :</p>
+        <button onclick="window.open('https://example.com/popup-click', 'popupClick', 'width=400,height=300')">
+            Ouvrir une popup (clic utilisateur)
+        </button>
+        <p><em>Conforme : ouverture déclenchée par action explicite (onclick).</em></p>
+    </section>
+
+    <section class="test-section">
+        <h2>Test 13.2.1 - Ouverture fenêtre par addEventListener click (PASS)</h2>
+        <p>Ce bouton utilise addEventListener pour ouvrir une fenêtre (conforme 13.2) :</p>
+        <button id="btnPopupEvent">Ouvrir une popup (addEventListener click)</button>
+        <script>
+            document.getElementById('btnPopupEvent')?.addEventListener('click', function() {
+                // window.open("https://example.com/popup-event", "popupEvent", "width=400,height=300");
+                console.log('Test 13.2.1: window.open dans addEventListener click - PASS');
+            });
+        </script>
+        <p><em>Conforme : ouverture déclenchée par événement utilisateur explicite.</em></p>
+    </section>
+
+    <section class="test-section">
+        <h2>Test 13.2.1 - Ouverture fenêtre par soumission formulaire (PASS)</h2>
+        <p>Ce formulaire ouvre une fenêtre à la soumission (conforme 13.2) :</p>
+        <form id="formPopup" onsubmit="event.preventDefault(); window.open('https://example.com/popup-form', 'popupForm', 'width=400,height=300');">
+            <input type="text" placeholder="Entrez quelque chose...">
+            <button type="submit">Soumettre et ouvrir popup</button>
+        </form>
+        <p><em>Conforme : ouverture déclenchée par soumission utilisateur (onsubmit).</em></p>
+    </section>
+
+    <section class="test-section">
+        <h2>Test 13.2.1 - window.open() au niveau global dans script (NEEDS_REVIEW)</h2>
+        <p>Ce script contient window.open() au niveau global (contexte indéterminé) :</p>
+        <script>
+            // window.open("https://example.com/popup-global", "popupGlobal", "width=400,height=300");
+            console.log('Test 13.2.1: window.open au niveau global - NEEDS_REVIEW (contexte indéterminé)');
+        </script>
+        <p><em>Indéterminé : impossible de savoir automatiquement si c'est déclenché par utilisateur ou auto.</em></p>
+    </section>
+
+    <section class="test-section">
+        <h2>Test 13.2.1 - window.open() dans une fonction (NEEDS_REVIEW)</h2>
+        <p>Cette fonction contient window.open() (contexte indéterminé jusqu'à appel) :</p>
+        <button onclick="openPopupManually()">Tester fonction avec window.open</button>
+        <script>
+            function openPopupManually() {
+                // window.open("https://example.com/popup-function", "popupFunction", "width=400,height=300");
+                console.log('Test 13.2.1: window.open dans fonction appelée par clic - PASS en réalité');
+            }
+        </script>
+        <p><em>Indéterminé statiquement : la fonction pourrait être appelée par user action ou auto.</em></p>
+    </section>
+
+    <section class="test-section">
+        <h2>Test 13.2.1 - window.open() dans onfocus (attention WCAG 3.2.1)</h2>
+        <p>Ce champ ouvre une fenêtre au focus (problématique pour l'accessibilité) :</p>
+        <input type="text" onfocus="window.open('https://example.com/popup-focus', 'popupFocus', 'width=400,height=300')" placeholder="Focus pour ouvrir popup (NON RECOMMANDÉ)">
+        <p><em>⚠️ Problématique : le focus ne devrait pas déclencher de changement de contexte (WCAG 3.2.1).</em></p>
     </section>
 
     <!-- Contrôles utilisateur pour tester la détection -->
