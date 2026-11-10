@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page de test pour le critère 9.2</title>
+</head>
+<body>
+    <!-- En-tête de la page -->
+    <header>
+        <h1>Mon Site Web</h1>
+        <nav aria-label="Primaire">
+            <ul>
+                <li><a href="/">Accueil</a></li>
+                <li><a href="/produits">Produits</a></li>
+                <li><a href="/services">Services</a></li>
+                <li><a href="/contact">Contact</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Navigation secondaire -->
+    <nav aria-label="Secondaire">
+        <ul>
+            <li><a href="/aide">Aide</a></li>
+            <li><a href="/faq">FAQ</a></li>
+            <li><a href="/plan-du-site">Plan du site</a></li>
+        </ul>
+    </nav>
+
+    <!-- Contenu principal -->
+    <main>
+        <h2>Bienvenue sur notre site</h2>
+        <p>Ceci est le contenu principal de la page web.</p>
+
+        <!-- Section pour tester le critère 9.3 : Structuration des listes -->
+        <section>
+            <h2>Tests de structuration des listes (Critère 9.3)</h2>
+
+            <!-- Liste non ordonnée avec balises HTML -->
+            <h3>Liste non ordonnée avec <code>&lt;ul&gt;</code> et <code>&lt;li&gt;</code></h3>
+            <ul>
+                <li>Premier élément de liste</li>
+                <li>Deuxième élément de liste</li>
+                <li>Troisième élément de liste</li>
+            </ul>
+
+            <!-- Liste ordonnée avec balises HTML -->
+            <h3>Liste ordonnée avec <code>&lt;ol&gt;</code> et <code>&lt;li&gt;</code></h3>
+            <ol>
+                <li>Première étape</li>
+                <li>Deuxième étape</li>
+                <li>Troisième étape</li>
+            </ol>
+
+            <!-- Liste de description -->
+            <h3>Liste de description avec <code>&lt;dl&gt;</code>, <code>&lt;dt&gt;</code> et <code>&lt;dd&gt;</code></h3>
+            <dl>
+                <dt>HTML</dt>
+                <dd>Langage de balisage pour créer des pages web</dd>
+                <dt>CSS</dt>
+                <dd>Feuilles de style pour mettre en forme les pages web</dd>
+                <dt>JavaScript</dt>
+                <dd>Langage de programmation pour ajouter de l'interactivité</dd>
+            </dl>
+
+            <!-- Liste non ordonnée avec attributs WAI-ARIA -->
+            <h3>Liste non ordonnée avec attributs WAI-ARIA</h3>
+            <div role="list">
+                <div role="listitem">Élément 1</div>
+                <div role="listitem">Élément 2</div>
+                <div role="listitem">Élément 3</div>
+            </div>
+
+            <!-- Liste ordonnée avec attributs WAI-ARIA -->
+            <h3>Liste ordonnée avec attributs WAI-ARIA</h3>
+            <div role="list">
+                <div role="listitem">Premier élément</div>
+                <div role="listitem">Deuxième élément</div>
+                <div role="listitem">Troisième élément</div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Section pour tester le critère 9.4 : Citations -->
+    <section>
+        <h2>Tests de citations (Critère 9.4)</h2>
+
+        <!-- Citations courtes avec balise <q> -->
+        <h3>Citations courtes avec balise <code>&lt;q&gt;</code></h3>
+        <p>Comme le disait <q>Albert Einstein</q>, "l'imagination est plus importante que le savoir".</p>
+        <p>Voici une <q></q> citation vide qui devrait échouer au test 9.4.1.</p>
+
+        <!-- Citations longues avec balise <blockquote> -->
+        <h3>Citations longues avec balise <code>&lt;blockquote&gt;</code></h3>
+        <blockquote>
+            <p>Ceci est une longue citation qui devrait utiliser la balise blockquote.</p>
+            <p>Elle peut contenir plusieurs paragraphes et éléments de mise en forme.</p>
+        </blockquote>
+        <blockquote></blockquote>
+        <blockquote>   </blockquote>
+        <blockquote>
+            <p>Cette citation contient du contenu et devrait passer le test.</p>
+        </blockquote>
+
+        <!-- Exemple de mauvaise utilisation (à éviter en pratique) -->
+        <h3>Exemple d'utilisation incorrecte (à titre informatif)</h3>
+        <p>Ce paragraphe montre ce qu'il ne faut pas faire :</p>
+        <p>"Ceci est une citation qui devrait utiliser les guillemets français mais n'utilise pas de balise sémantique"</p>
+    </section>
+
+    <!-- Pied de page -->
+    <footer>
+        <p>&copy; 2026 Mon Site Web. Tous droits réservés.</p>
+        <nav aria-label="Pied de page">
+            <ul>
+                <li><a href="/mentions-legales">Mentions légales</a></li>
+                <li><a href="/politique-confidentialite">Politique de confidentialité</a></li>
+            </ul>
+        </nav>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Page de test pour les criteres 10.1 a 10.5</title>
+    <style>
+        /* Styles CSS appropries - ces elements ne doivent pas declencher d'echec */
+        .correcte-mise-en-forme {
+            color: #0066cc;
+            font-weight: bold;
+            text-align: center;
+        }
+        .tableau-donnees {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .tableau-donnees th,
+        .tableau-donnees td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .tableau-donnees th {
+            background-color: #f2f2f2;
+        }
+
+        /* ===== CAS DE TEST CRITERE 10.2 ===== */
+        /* Test 10.2.1 : CSS ne doit pas generer de contenu informatif */
+        .pseudo-info::before {
+            content: "Important: ";
+            color: red;
+            font-weight: bold;
+        }
+        .pseudo-info::after {
+            content: " (fin)";
+        }
+        .bg-informatif {
+            background-image: url('graphique-ventes.png');
+            /* Image de fond potentiellement informative sans fallback de couleur */
+        }
+
+        /* Test 10.2.2 : Structure preservee sans CSS */
+        /* Les titres, listes, tableaux sont correctement structures en HTML */
+
+        /* Test 10.2.3 : CSS ne doit pas masquer du contenu informatif */
+        .masque-contenu {
+            display: none;
+        }
+        .masque-visuel {
+            position: absolute;
+            left: -9999px;
+        }
+        .texte-cache {
+            text-indent: -9999px;
+        }
+        .font-zero {
+            font-size: 0;
+        }
+        .couleur-transparente {
+            color: transparent;
+        }
+
+        /* ===== CAS DE TEST CRITERE 10.3 ===== */
+        /* Test 10.3.1 : Ordre de lecture compréhensible sans CSS */
+        /* Labels de formulaire non associes */
+        /* Tableaux sans en-tetes th */
+        /* Listes vides utilisees pour l'espacement */
+
+        /* ===== CAS DE TEST CRITERE 10.4 ===== */
+        /* Test 10.4.1 : Perte d'information a 200% */
+        .largeur-fixe-px {
+            width: 200px;
+            overflow: hidden;
+        }
+        .hauteur-fixe-px {
+            height: 50px;
+            overflow: hidden;
+        }
+        .nowrap-texte {
+            white-space: nowrap;
+            width: 150px;
+            overflow: hidden;
+        }
+        .position-absolue-fixe {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            width: 100px;
+            height: 50px;
+        }
+
+        /* Test 10.4.2 : Taille de police fixe empechant l'agrandissement */
+        .font-size-px {
+            font-size: 14px;
+        }
+        .font-size-pt {
+            font-size: 12pt;
+        }
+
+        /* ===== CAS DE TEST CRITERE 10.5 ===== */
+        /* Test 10.5.1 : color sans background-color */
+        .color-sans-bg {
+            color: #333333;
+            /* Pas de background-color defini */
+        }
+        .color-avec-bg-ok {
+            color: #333333;
+            background-color: #ffffff;
+        }
+
+        /* Test 10.5.2 : background-color sans color */
+        .bg-sans-color {
+            background-color: #ffffff;
+            /* Pas de color defini */
+        }
+        .bg-avec-color-ok {
+            background-color: #ffffff;
+            color: #333333;
+        }
+
+        /* Test 10.5.3 : background-image sans background-color fallback */
+        .bg-image-sans-fallback {
+            background-image: url('texture.png');
+            color: #333333;
+            /* Pas de background-color de secours */
+        }
+        .bg-image-avec-fallback {
+            background-image: url('texture.png');
+            background-color: #f0f0f0;
+            color: #333333;
+        }
+        .bg-shorthand-sans-fallback {
+            background: url('pattern.jpg') no-repeat center;
+            color: #333333;
+            /* Pas de background-color dans le shorthand */
+        }
+
+        /* ===== CAS DE TEST CRITERE 10.14 ===== */
+        /* Test 10.14.1 : Contenus additionnels au survol (hover) */
+        /* Bon cas : tooltip accessible au hover ET au focus */
+        .tooltip-good {
+            display: none;
+            position: absolute;
+            background: #333;
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+            z-index: 100;
+            max-width: 250px;
+        }
+        .trigger-good:hover .tooltip-good,
+        .trigger-good:focus .tooltip-good {
+            display: block;
+        }
+
+        /* Bon cas : tooltip accessible au hover ET a l'activation (active) */
+        .tooltip-active {
+            display: none;
+            position: absolute;
+            background: #333;
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+            z-index: 100;
+        }
+        .trigger-active:hover .tooltip-active,
+        .trigger-active:active .tooltip-active {
+            display: block;
+        }
+
+        /* Mauvais cas : tooltip UNIQUEMENT au hover */
+        .tooltip-bad {
+            display: none;
+            position: absolute;
+            background: #333;
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+            z-index: 100;
+        }
+        .trigger-bad:hover .tooltip-bad {
+            display: block;
+        }
+
+        /* Mauvais cas : dropdown UNIQUEMENT au hover (sans focus) */
+        .dropdown-bad {
+            display: none;
+            position: absolute;
+            background: #fff;
+            border: 1px solid #ccc;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            padding: 10px;
+            min-width: 200px;
+            z-index: 100;
+        }
+        .dropdown-trigger-bad:hover .dropdown-bad {
+            display: block;
+        }
+
+        /* Bon cas : dropdown accessible au hover ET focus */
+        .dropdown-good {
+            display: none;
+            position: absolute;
+            background: #fff;
+            border: 1px solid #ccc;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            padding: 10px;
+            min-width: 200px;
+            z-index: 100;
+        }
+        .dropdown-trigger-good:hover .dropdown-good,
+        .dropdown-trigger-good:focus .dropdown-good,
+        .dropdown-trigger-good:focus-within .dropdown-good {
+            display: block;
+        }
+
+        /* Test 10.14.2 : Contenus additionnels au focus */
+        /* Bon cas : contenu au focus accessible aussi au hover */
+        .focus-tooltip-good {
+            display: none;
+            position: absolute;
+            background: #333;
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+            z-index: 100;
+        }
+        .focus-trigger-good:focus .focus-tooltip-good,
+        .focus-trigger-good:hover .focus-tooltip-good {
+            display: block;
+        }
+
+        /* Bon cas : contenu au focus accessible aussi a l'activation */
+        .focus-tooltip-active {
+            display: none;
+            position: absolute;
+            background: #333;
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+            z-index: 100;
+        }
+        .focus-trigger-active:focus .focus-tooltip-active,
+        .focus-trigger-active:active .focus-tooltip-active {
+            display: block;
+        }
+
+        /* Mauvais cas : contenu UNIQUEMENT au focus */
+        .focus-tooltip-bad {
+            display: none;
+            position: absolute;
+            background: #333;
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+            z-index: 100;
+        }
+        .focus-trigger-bad:focus .focus-tooltip-bad {
+            display: block;
+        }
+
+        /* Mauvais cas : menu contextuel UNIQUEMENT au focus */
+        .context-menu-bad {
+            display: none;
+            position: absolute;
+            background: #fff;
+            border: 1px solid #ccc;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            padding: 5px 0;
+            min-width: 180px;
+            z-index: 100;
+        }
+        .context-trigger-bad:focus .context-menu-bad {
+            display: block;
+        }
+
+        /* Bon cas : menu contextuel au focus ET hover */
+        .context-menu-good {
+            display: none;
+            position: absolute;
+            background: #fff;
+            border: 1px solid #ccc;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            padding: 5px 0;
+            min-width: 180px;
+            z-index: 100;
+        }
+        .context-trigger-good:focus .context-menu-good,
+        .context-trigger-good:hover .context-menu-good {
+            display: block;
+        }
+
+        /* Test avec visibility/opacity au lieu de display */
+        .tooltip-opacity {
+            opacity: 0;
+            visibility: hidden;
+            position: absolute;
+            background: #333;
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+            transition: opacity 0.3s, visibility 0.3s;
+            pointer-events: none;
+        }
+        .trigger-opacity:hover .tooltip-opacity {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+        }
+
+        /* Test avec focus-visible */
+        .focus-visible-tooltip {
+            display: none;
+            position: absolute;
+            background: #333;
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+        }
+        .focus-visible-trigger:focus-visible .focus-visible-tooltip,
+        .focus-visible-trigger:hover .focus-visible-tooltip {
+            display: block;
+        }
+
+        /* Test avec role=tooltip (ARIA) */
+        .tooltip[role="tooltip"] {
+            display: none;
+        }
+        .aria-trigger:hover [role="tooltip"] {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <!-- En-tete principal -->
+    <h1 class="correcte-mise-en-forme">Titre principal de la page</h1>
+
+    <!-- Contenu principal avec mise en forme CSS appropriee -->
+    <section>
+        <h2>Section d'introduction</h2>
+        <p class="correcte-mise-en-forme">
+            Ceci est un paragraphe avec une mise en forme CSS appropriee.
+            Aucune balise ou attribut de presentation ne devrait etre present ici.
+        </p>
+    </section>
+
+    <!-- Tableau de donnees avec CSS approprie (pas d'attributs de presentation) -->
+    <section>
+        <h2>Tableau de donnees</h2>
+        <table class="tableau-donnees">
+            <thead>
+                <tr>
+                    <th>Nom</th>
+                    <th>Age</th>
+                    <th>Ville</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Jean Dupont</td>
+                    <td>28</td>
+                    <td>Paris</td>
+                </tr>
+                <tr>
+                    <td>Marie Martin</td>
+                    <td>32</td>
+                    <td>Lyon</td>
+                </tr>
+                <tr>
+                    <td>Pierre Durand</td>
+                    <td>25</td>
+                    <td>Marseille</td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <!-- ===== CAS DE TEST CRITERE 10.1 (decommenter pour tester) ===== -->
+    <!--
+    ===== EXEMPLES D'ECHECS POUR LE TEST 10.1.1 (balises de presentation) =====
+    Ces elements seraient detectes comme echouant le test 10.1.1 s'ils n'etaient pas commentes :
+
+    <basefont face="Arial" size="3">
+    <big>Texte en grand</big>
+    <blink>Texte clignotant</blink>
+    <center>Texte centre</center>
+    <font color="red">Texte rouge</font>
+    <marquee>Texte defilant</marquee>
+    Texte barre.
+
+    <strike>Autre texte barre</strike>
+    <tt>Texte a chasse fixe</tt>
+    <u>Texte souliglne</u> (Echoue seulement si pas HTML5)
+    -->
+
+    <!--
+    ===== EXEMPLES D'ECHECS POUR LE TEST 10.1.2 (attributs de presentation) =====
+    Ces attributs seraient detectes comme echouant le test 10.1.2 s'ils n'etaient pas commentes :
+
+    <p align="center">Paragraphe centre avec attribut align</p>
+    <table bgcolor="#ffffcc">
+        <tr><td>Cellule avec fond colore</td></tr>
+    </table>
+    <td width="100">Cellule avec largeur fixe</td>
+    <td height="50">Cellule avec hauteur fixe</td>
+    <hr size="2">
+    <div bgcolor="#cccccc">Div avec fond colore</div>
+    <img src="image.jpg" width="100" height="100">
+    <object data="video.mp4" width="400" height="300">
+    <embed src="audio.mp3" width="200" height="50">
+    <canvas width="200" height="200"></canvas>
+    <svg width="100" height="100"></svg>
+    -->
+
+    <!--
+    ===== EXEMPLES D'ECHECS POUR LE TEST 10.1.3 (espaces detournes) =====
+    Ces usages d'espaces seraient detectes comme echouant le test 10.1.3 s'ils n'etaient pas commentes :
+
+    Espaces entre les lettres d'un mot :
+    <p>H E L L O   W O R L D</p>
+
+    Espaces pour simuler un tableau :
+    <p>Nom           Age       Ville
+    Jean          25        Paris
+    Marie         30        Lyon
+    Pierre        25        Marseille</p>
+    -->
+
+    <!-- ===== CAS DE TEST CRITERE 10.2 ===== -->
+    <section id="test-10-2">
+        <h2>Tests Criter 10.2 - Presentation et structure sans CSS</h2>
+
+        <!-- Test 10.2.1 : CSS generant du contenu informatif (pseudo-elements) -->
+        <h3>Test 10.2.1 : Contenu informatif via pseudo-elements CSS</h3>
+        <p class="pseudo-info">Ce message a du contenu ajoute par CSS (::before et ::after).</p>
+        <div class="bg-informatif" style="height: 100px; border: 1px dashed #ccc;">
+            <p>Cette div a une image de fond potentiellement informative (graphique) sans fallback de couleur.</p>
+        </div>
+
+        <!-- Test 10.2.2 : Structure HTML correcte -->
+        <h3>Test 10.2.2 : Structure HTML preservee</h3>
+        <h4>Sous-titre niveau 4 (correct apres h3)</h4>
+        <p>Paragraphes et structure semantique corrects.</p>
+        <ul>
+            <li>Element de liste 1</li>
+            <li>Element de liste 2</li>
+        </ul>
+
+        <!-- Test 10.2.3 : CSS masquant du contenu -->
+        <h3>Test 10.2.3 : Contenu masque par CSS</h3>
+        <p class="masque-contenu">Ce texte est masque par display: none.</p>
+        <p class="masque-visuel">Ce texte est positionne hors ecran (left: -9999px).</p>
+        <p class="texte-cache">Ce texte est masque par text-indent negatif.</p>
+        <p class="font-zero">Ce texte a font-size: 0.</p>
+        <p class="couleur-transparente">Ce texte a color: transparent.</p>
+    </section>
+
+    <!-- ===== CAS DE TEST CRITERE 10.3 ===== -->
+    <section id="test-10-3">
+        <h2>Tests Criter 10.3 - Ordre de lecture sans CSS</h2>
+
+        <!-- Test 10.3.1 : Labels de formulaire non associes -->
+        <h3>Test 10.3.1 : Labels de formulaire</h3>
+        <form>
+            <p>
+                <!-- Label non associe explicitement (pas de for/id, pas d'imbrication) -->
+                <label>Prenom :</label>
+                <input type="text" name="prenom">
+            </p>
+            <p>
+                <!-- Label correctement associe via for/id -->
+                <label for="nom">Nom :</label>
+                <input type="text" id="nom" name="nom">
+            </p>
+            <p>
+                <!-- Label correctement imbrique -->
+                <label>
+                    Email :
+                    <input type="email" name="email">
+                </label>
+            </p>
+        </form>
+
+        <!-- Tableaux sans en-tetes th -->
+        <h3>Tableau sans en-tetes th</h3>
+        <table class="tableau-sans-th">
+            <tr>
+                <td>Donnee 1</td>
+                <td>Donnee 2</td>
+            </tr>
+            <tr>
+                <td>Donnee 3</td>
+                <td>Donnee 4</td>
+            </tr>
+        </table>
+
+        <!-- Liste vide pour espacement visuel -->
+        <h3>Liste potentiellement utilisee pour l'espacement</h3>
+        <ul class="liste-vide">
+            <li></li>
+            <li>   </li>
+            <li></li>
+        </ul>
+
+        <!-- Sauts de niveaux de titre -->
+        <h3>Niveau 3</h3>
+        <h5>Niveau 5 (saut du niveau 4)</h5>
+    </section>
+
+    <!-- ===== CAS DE TEST CRITERE 10.4 ===== -->
+    <section id="test-10-4">
+        <h2>Tests Criter 10.4 - Redimensionnement du texte</h2>
+
+        <!-- Test 10.4.1 : Perte d'information a 200% -->
+        <h3>Test 10.4.1 : Risques de perte d'information</h3>
+        <div class="largeur-fixe-px" style="border: 1px solid red; padding: 5px;">
+            <p>Ce texte est dans un conteneur a largeur fixe (200px) avec overflow:hidden - risque de coupure a 200%.</p>
+        </div>
+
+        <div class="hauteur-fixe-px" style="border: 1px solid blue; padding: 5px;">
+            <p>Ce conteneur a une hauteur fixe (50px) avec overflow:hidden - le texte peut etre coupe.</p>
+            <p>Deuxieme paragraphe qui ne rentrera probablement pas dans 50px.</p>
+        </div>
+
+        <p class="nowrap-texte" style="border: 1px solid green; padding: 5px;">
+            Ce texte a white-space:nowrap et largeur limitee - ne revient pas a la ligne.
+        </p>
+
+        <div class="position-absolue-fixe" style="border: 1px solid orange; padding: 5px;">
+            <p>Position absolute + dimensions fixes = risque de chevauchement a 200%.</p>
+        </div>
+
+        <!-- Test 10.4.2 : Taille de police fixe -->
+        <h3>Test 10.4.2 : Tailles de police fixes</h3>
+        <p class="font-size-px" style="border: 1px solid purple; padding: 5px;">
+            Cette taille de police est fixee en px (14px) - n'agrandira pas avec le zoom texte.
+        </p>
+        <p class="font-size-pt" style="border: 1px solid brown; padding: 5px;">
+            Cette taille de police est fixee en pt (12pt) - n'agrandira pas avec le zoom texte.
+        </p>
+        <p style="font-size: 1.2em; border: 1px solid teal; padding: 5px;">
+            Cette taille en em (1.2em) - s'agrandira correctement avec le zoom texte.
+        </p>
+    </section>
+
+    <!-- ===== CAS DE TEST CRITERE 10.5 ===== -->
+    <section id="test-10-5">
+        <h2>Tests Criter 10.5 - Couleurs de fond et de police</h2>
+
+        <!-- Test 10.5.1 : color sans background-color -->
+        <h3>Test 10.5.1 : color sans background-color</h3>
+        <p class="color-sans-bg" style="padding: 10px; border: 1px dashed #ccc;">
+            Ce paragraphe a une couleur de police (color: #333) mais PAS de background-color.
+            <strong>Devrait echouer au test 10.5.1</strong>
+        </p>
+
+        <p class="color-avec-bg-ok" style="padding: 10px; border: 1px dashed #ccc;">
+            Ce paragraphe a color: #333 ET background-color: #fff.
+            <strong>Devrait passer le test 10.5.1</strong>
+        </p>
+
+        <!-- Test 10.5.2 : background-color sans color -->
+        <h3>Test 10.5.2 : background-color sans color</h3>
+        <p class="bg-sans-color" style="padding: 10px; border: 1px dashed #ccc;">
+            Ce paragraphe a un background-color: #fff mais PAS de color explicite.
+            <strong>Devrait echouer au test 10.5.2</strong>
+        </p>
+
+        <p class="bg-avec-color-ok" style="padding: 10px; border: 1px dashed #ccc;">
+            Ce paragraphe a background-color: #fff ET color: #333.
+            <strong>Devrait passer le test 10.5.2</strong>
+        </p>
+
+        <!-- Test 10.5.3 : background-image sans background-color fallback -->
+        <h3>Test 10.5.3 : background-image sans background-color de secours</h3>
+        <p class="bg-image-sans-fallback" style="padding: 10px; border: 1px dashed #ccc; min-height: 50px;">
+            Ce paragraphe a background-image MAIS PAS de background-color fallback.
+            Si l'image ne charge pas, le texte peut devenir illisible.
+            <strong>Devrait echouer au test 10.5.3</strong>
+        </p>
+
+        <p class="bg-image-avec-fallback" style="padding: 10px; border: 1px dashed #ccc; min-height: 50px;">
+            Ce paragraphe a background-image ET background-color: #f0f0f0 en fallback.
+            <strong>Devrait passer le test 10.5.3</strong>
+        </p>
+
+        <p class="bg-shorthand-sans-fallback" style="padding: 10px; border: 1px dashed #ccc; min-height: 50px;">
+            Ce paragraphe utilise background shorthand avec image MAIS PAS de background-color.
+            <strong>Devrait echouer au test 10.5.3</strong>
+        </p>
+
+        <!-- Test d'heritage (parent a background-color) -->
+        <h3>Test d'heritage : parent avec background-color</h3>
+        <div style="background-color: #ffffcc; padding: 15px; border: 1px solid #ccc;">
+            <p class="color-sans-bg" style="padding: 5px;">
+                Ce paragraphe a color sans background-color MAIS herite du background-color du parent (#ffffcc).
+                <strong>Devrait passer le test 10.5.1 grace a l'heritage</strong>
+            </p>
+
+            <p class="bg-sans-color" style="padding: 5px;">
+                Ce paragraphe a background-color sans color MAIS herite du color du body (par defaut).
+                <strong>Note: color par defaut du navigateur peut ne pas compter comme "explicite"</strong>
+            </p>
+
+            <p class="bg-image-sans-fallback" style="padding: 5px; min-height: 50px;">
+                Ce paragraphe a background-image sans background-color MAIS herite du background-color du parent.
+                <strong>Devrait passer le test 10.5.3 grace a l'heritage</strong>
+            </p>
+        </div>
+    </section>
+
+    <!-- ===== CAS DE TEST CRITERE 10.14 ===== -->
+    <section id="test-10-14">
+        <h2>Tests Critere 10.14 - Contenus additionnels au survol et au focus</h2>
+
+        <!-- Test 10.14.1 : Contenus additionnels au survol -->
+        <h3>Test 10.14.1 : Contenus additionnels reveles au survol (:hover)</h3>
+
+        <!-- Bon cas : tooltip accessible au hover ET au focus -->
+        <div class="trigger-good" tabindex="0" style="position: relative; display: inline-block; margin: 10px; padding: 10px; border: 2px solid green; cursor: pointer;">
+            <span>Declencheur BON (hover + focus)</span>
+            <div class="tooltip-good" style="top: 100%; left: 0; margin-top: 5px;">
+                <strong>Tooltip conforme :</strong> Visible au survol ET au focus clavier (Tab).
+            </div>
+        </div>
+
+        <!-- Bon cas : tooltip accessible au hover ET a l'activation -->
+        <div class="trigger-active" tabindex="0" style="position: relative; display: inline-block; margin: 10px; padding: 10px; border: 2px solid green; cursor: pointer;">
+            <span>Declencheur BON (hover + active)</span>
+            <div class="tooltip-active" style="top: 100%; left: 0; margin-top: 5px;">
+                <strong>Tooltip conforme :</strong> Visible au survol ET a l'activation (clic/maintenir).
+            </div>
+        </div>
+
+        <!-- Mauvais cas : tooltip UNIQUEMENT au hover -->
+        <div class="trigger-bad" tabindex="0" style="position: relative; display: inline-block; margin: 10px; padding: 10px; border: 2px solid red; cursor: pointer;">
+            <span>Declencheur MAUVAIS (hover uniquement)</span>
+            <div class="tooltip-bad" style="top: 100%; left: 0; margin-top: 5px;">
+                <strong>Tooltip NON conforme :</strong> Visible UNIQUEMENT au survol souris.
+            </div>
+        </div>
+
+        <!-- Mauvais cas : dropdown UNIQUEMENT au hover -->
+        <div class="dropdown-trigger-bad" tabindex="0" style="position: relative; display: inline-block; margin: 10px; padding: 10px; border: 2px solid red; cursor: pointer;">
+            <span>Menu deroulant MAUVAIS (hover uniquement)</span>
+            <div class="dropdown-bad" style="top: 100%; left: 0; margin-top: 5px;">
+                <p><strong>Menu non conforme :</strong> Accessible uniquement au survol.</p>
+                <ul>
+                    <li><a href="#">Option 1</a></li>
+                    <li><a href="#">Option 2</a></li>
+                    <li><a href="#">Option 3</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Bon cas : dropdown accessible au hover ET focus -->
+        <div class="dropdown-trigger-good" tabindex="0" style="position: relative; display: inline-block; margin: 10px; padding: 10px; border: 2px solid green; cursor: pointer;">
+            <span>Menu deroulant BON (hover + focus + focus-within)</span>
+            <div class="dropdown-good" style="top: 100%; left: 0; margin-top: 5px;">
+                <p><strong>Menu conforme :</strong> Accessible au survol, focus, et focus dans le menu.</p>
+                <ul>
+                    <li><a href="#" tabindex="0">Option 1 (focusable)</a></li>
+                    <li><a href="#" tabindex="0">Option 2 (focusable)</a></li>
+                    <li><a href="#" tabindex="0">Option 3 (focusable)</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Test avec visibility/opacity -->
+        <div class="trigger-opacity" tabindex="0" style="position: relative; display: inline-block; margin: 10px; padding: 10px; border: 2px solid orange; cursor: pointer;">
+            <span>Tooltip opacity (hover uniquement)</span>
+            <div class="tooltip-opacity" style="top: 100%; left: 0; margin-top: 5px;">
+                <strong>Tooltip opacity :</strong> Visible au hover via opacity/visibility.
+            </div>
+        </div>
+
+        <!-- Test avec focus-visible -->
+        <div class="focus-visible-trigger" tabindex="0" style="position: relative; display: inline-block; margin: 10px; padding: 10px; border: 2px solid blue; cursor: pointer;">
+            <span>Declencheur focus-visible (hover + focus-visible)</span>
+            <div class="focus-visible-tooltip" style="top: 100%; left: 0; margin-top: 5px;">
+                <strong>Tooltip focus-visible :</strong> Visible au hover ET au focus clavier (:focus-visible).
+            </div>
+        </div>
+
+        <!-- Test avec role=tooltip (ARIA) -->
+        <div class="aria-trigger" tabindex="0" style="position: relative; display: inline-block; margin: 10px; padding: 10px; border: 2px solid red; cursor: pointer;">
+            <span>Tooltip ARIA (hover uniquement)</span>
+            <div class="tooltip" role="tooltip" style="top: 100%; left: 0; margin-top: 5px; background: #333; color: white; padding: 8px; border-radius: 4px;">
+                <strong>Tooltip ARIA :</strong> role=tooltip mais visible uniquement au hover.
+            </div>
+        </div>
+
+        <!-- Test 10.14.2 : Contenus additionnels au focus -->
+        <h3>Test 10.14.2 : Contenus additionnels reveles au focus (:focus, :focus-visible, :focus-within)</h3>
+
+        <!-- Bon cas : contenu au focus accessible aussi au hover -->
+        <div class="focus-trigger-good" tabindex="0" style="position: relative; display: inline-block; margin: 10px; padding: 10px; border: 2px solid green; cursor: pointer;">
+            <span>Declencheur BON (focus + hover)</span>
+            <div class="focus-tooltip-good" style="top: 100%; left: 0; margin-top: 5px;">
+                <strong>Contenu conforme :</strong> Visible au focus ET au survol.
+            </div>
+        </div>
+
+        <!-- Bon cas : contenu au focus accessible aussi a l'activation -->
+        <div class="focus-trigger-active" tabindex="0" style="position: relative; display: inline-block; margin: 10px; padding: 10px; border: 2px solid green; cursor: pointer;">
+            <span>Declencheur BON (focus + active)</span>
+            <div class="focus-tooltip-active" style="top: 100%; left: 0; margin-top: 5px;">
+                <strong>Contenu conforme :</strong> Visible au focus ET a l'activation (clic/maintenir).
+            </div>
+        </div>
+
+        <!-- Mauvais cas : contenu UNIQUEMENT au focus -->
+        <div class="focus-trigger-bad" tabindex="0" style="position: relative; display: inline-block; margin: 10px; padding: 10px; border: 2px solid red; cursor: pointer;">
+            <span>Declencheur MAUVAIS (focus uniquement)</span>
+            <div class="focus-tooltip-bad" style="top: 100%; left: 0; margin-top: 5px;">
+                <strong>Contenu NON conforme :</strong> Visible UNIQUEMENT au focus clavier.
+            </div>
+        </div>
+
+        <!-- Mauvais cas : menu contextuel UNIQUEMENT au focus -->
+        <div class="context-trigger-bad" tabindex="0" style="position: relative; display: inline-block; margin: 10px; padding: 10px; border: 2px solid red; cursor: pointer;">
+            <span>Menu contextuel MAUVAIS (focus uniquement)</span>
+            <div class="context-menu-bad" style="top: 100%; left: 0; margin-top: 5px;" role="menu">
+                <div role="menuitem" tabindex="-1">Option 1</div>
+                <div role="menuitem" tabindex="-1">Option 2</div>
+                <div role="menuitem" tabindex="-1">Option 3</div>
+            </div>
+        </div>
+
+        <!-- Bon cas : menu contextuel au focus ET hover -->
+        <div class="context-trigger-good" tabindex="0" style="position: relative; display: inline-block; margin: 10px; padding: 10px; border: 2px solid green; cursor: pointer;">
+            <span>Menu contextuel BON (focus + hover)</span>
+            <div class="context-menu-good" style="top: 100%; left: 0; margin-top: 5px;" role="menu">
+                <div role="menuitem" tabindex="-1">Option 1</div>
+                <div role="menuitem" tabindex="-1">Option 2</div>
+                <div role="menuitem" tabindex="-1">Option 3</div>
+            </div>
+        </div>
+    </section>
+</body>
+</html>

@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Test du critère RGAA 5 - Tables</title>
+    <description>
+        Fichier de test pour les critères RGAA 5.1, 5.2 et 5.3 :
+        - Chaque tableau de données doit posséder un résumé ou une légende.
+        - Chaque tableau de données complexe doit avoir un résumé pertinent.
+        - Chaque tableau de mise en forme doit avoir role="presentation" et un contenu linéarisé compréhensible.
+    </description>
+</head>
+<body>
+    <h1>Tests pour les critères RGAA 5 - Tables</h1>
+
+    <h2>1. Tableau de données avec légende valide (DOIT PASSER - Critère 5.1)</h2>
+    <table>
+        <caption>Liste des employés avec leur nom et prénom</caption>
+        <tr>
+            <th>Nom</th>
+            <th>Prénom</th>
+        </tr>
+        <tr>
+            <td>Dupont</td>
+            <td>Jean</td>
+        </tr>
+    </table>
+
+    <h2>2. Tableau de données avec légende modifiée (étais vide, maintenant valide - DOIT PASSER - Critère 5.1)</h2>
+    <table>
+        <caption>Tableau avec des données factices</caption>
+        <tr>
+            <th>Nom</th>
+            <th>Prénom</th>
+        </tr>
+        <tr>
+            <td>Dupont</td>
+            <td>Jean</td>
+        </tr>
+    </table>
+
+    <h2>3. Tableau de données avec légende modifiée (étais espaces seulement, maintenant valide - DOIT PASSER - Critère 5.1)</h2>
+    <table>
+        <caption>Informations sur les utilisateurs</caption>
+        <tr>
+            <th>Nom</th>
+            <th>Prénom</th>
+        </tr>
+        <tr>
+            <td>Dupont</td>
+            <td>Jean</td>
+        </tr>
+    </table>
+
+    <h2>4. Tableau de données avec légende valide (DOIT PASSER - Critère 5.1)</h2>
+    <table>
+        <caption>Résultats des projets par catégorie</caption>
+        <tr>
+            <th>Nom</th>
+            <th>Prénom</th>
+        </tr>
+        <tr>
+            <td>Dupont</td>
+            <td>Jean</td>
+        </tr>
+    </table>
+
+    <h2>5. Tableau de données complexe avec légende valide (DOIT PASSER - Critères 5.1 et 5.2)</h2>
+    <table>
+        <caption>Résultats des projets par catégorie</caption>
+        <thead>
+            <tr>
+                <th rowspan="2" scope="col">Projet</th>
+                <th colspan="2" scope="colgroup">Résultats</th>
+            </tr>
+            <tr>
+                <th scope="col">Succès</th>
+                <th scope="col">Erreurs</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <th scope="row">Projet A</th>
+                <td>20</td>
+                <td>2</td>
+            </tr>
+            <tr>
+                <th scope="row">Projet B</th>
+                <td>15</td>
+                <td>5</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>6. Tableau de données avec légende (au lieu de summary non valide en HTML5 - DOIT PASSER - Critère 5.1)</h2>
+    <table>
+        <caption>Ce tableau présente les résultats des projets</caption>
+        <tr>
+            <th>Projet</th>
+            <th>Succès</th>
+            <th>Erreurs</th>
+        </tr>
+        <tr>
+            <td>Projet A</td>
+            <td>20</td>
+            <td>2</td>
+        </tr>
+    </table>
+
+    <h2>7. Tableau de données avec légende (au lieu de summary nécessitant HTML4 - DOIT PASSER - Critère 5.1)</h2>
+    <table>
+        <caption>Structure du tableau avec projet en lignes et résultats en colonnes</caption>
+        <tr>
+            <th>Projet</th>
+            <th>Succès</th>
+            <th>Erreurs</th>
+        </tr>
+        <tr>
+            <td>Projet A</td>
+            <td>20</td>
+            <td>2</td>
+        </tr>
+    </table>
+
+    <h2>8. Tableau de données avec aria-describedby pointant vers un élément caché valide (DOIT PASSER - Critère 5.1)</h2>
+    <div id="table-summary" class="visually-hidden">
+        Ce tableau présente les résultats des différents projets avec leurs succès et erreurs.
+    </div>
+    <table aria-describedby="table-summary">
+        <tr>
+            <th>Projet</th>
+            <th>Succès</th>
+            <th>Erreurs</th>
+        </tr>
+        <tr>
+            <td>Projet A</td>
+            <td>20</td>
+            <td>2</td>
+        </tr>
+    </table>
+
+    <h2>9. Tableau de données avec aria-describedby pointant vers un élément existant (DOIT PASSER - Critère 5.1)</h2>
+    <div id="existing-summary">Ce tableau regroupe les résultats par projet et par catégorie.</div>
+    <table aria-describedby="existing-summary">
+        <tr>
+            <th>Projet</th>
+            <th>Succès</th>
+            <th>Erreurs</th>
+        </tr>
+        <tr>
+            <td>Projet A</td>
+            <td>20</td>
+            <td>2</td>
+        </tr>
+    </table>
+
+    <h2>10. Tableau de mise en forme avec role="presentation" et contenu compréhensible (DOIT PASSER - Critère 5.3)</h2>
+    <table role="presentation">
+        <tr>
+            <td>Logo de l'entreprise</td>
+            <td>Menu de navigation principal</td>
+            <td>Barre de recherche</td>
+        </tr>
+        <tr>
+            <td colspan="3">Contenu principal de la page d'accueil</td>
+        </tr>
+        <tr>
+            <td>Liens utiles du pied de page</td>
+            <td>Contacts et réseaux sociaux</td>
+            <td>Mentions légales</td>
+        </tr>
+    </table>
+
+    <h2>11. Tableau avec associations d'en-têtes par id (pour critère 5.7.4)</h2>
+    <table>
+        <thead>
+            <tr>
+                <th id="nom">Nom</th>
+                <th id="prenom">Prénom</th>
+                <th id="age">Âge</th>
+                <th id="service">Service</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td headers="nom prenom">Dupont Jean</td>
+                <td headers="age">25</td>
+                <td headers="service">Informatique</td>
+            </tr>
+            <tr>
+                <td headers="nom prenom">Martin Sophie</td>
+                <td headers="age">32</td>
+                <td headers="service">Marketing</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>12. Tableau avec en-têtes ayant role approprié (pour critère 5.7.5)</h2>
+    <table>
+        <thead>
+            <tr>
+                <th role="columnheader">Nom</th>
+                <th role="columnheader">Prénom</th>
+                <th role="columnheader">Âge</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Dupont</td>
+                <td>Jean</td>
+                <td>25</td>
+            </tr>
+            <tr>
+                <td>Martin</td>
+                <td>Sophie</td>
+                <td>32</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>13. Tableau avec en-têtes de ligne ayant role approprié (pour critère 5.7.5)</h2>
+    <table>
+        <tbody>
+            <tr>
+                <th role="rowheader">Nom</th>
+                <td>Dupont</td>
+                <td>Jean</td>
+            </tr>
+            <tr>
+                <th role="rowheader">Profession</th>
+                <td>Ingénieur</td>
+                <td>Développeur</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>14. Tableau avec en-têtes manquants d'identification (pour montrer les échecs de 5.7.1)</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Nom</th>
+                <th>Prénom</th>
+                <th>Âge</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Dupont</td>
+                <td>Jean</td>
+                <td>25</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>15. Tableau avec scope incorrect (pour montrer les échecs de 5.7.2)</h2>
+    <table>
+        <thead>
+            <tr>
+                <th scope="row">Nom</th>
+                <th scope="row">Prénom</th>
+                <th scope="row">Âge</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Dupont</td>
+                <td>Jean</td>
+                <td>25</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>16. Tableau avec en-tête partiel sans id (pour montrer les échecs de 5.7.3)</h2>
+    <table>
+        <thead>
+            <tr>
+                <th id="nom">Nom</th>
+                <th>Prénom</th>
+                <th>Âge</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <th>Service</th>
+                <td>Informatique</td>
+                <td>Marketing</td>
+                <td>Ventes</td>
+            </tr>
+            <tr>
+                <td>Dupont</td>
+                <td>Jean</td>
+                <td>25</td>
+                <td>Informatique</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <style>
+        .visually-hidden {
+            position: absolute !important;
+            height: 1px;
+            width: 1px;
+            overflow: hidden;
+            clip: rect(1px 1px 1px 1px);
+            /* IE6, IE7 */
+            clip: rect(1px, 1px, 1px, 1px);
+        }
+    </style>
+</body>
+</html>
