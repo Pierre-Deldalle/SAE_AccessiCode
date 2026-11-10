@@ -474,5 +474,418 @@
             }, { passive: true });
         });
     </script>
+
+    <!-- =========================================================================
+         TESTS CRITÈRE 13.7 : Flash / Changements brusques de luminosité
+         ========================================================================= -->
+
+    <!-- -------------------------------------------------------------------------
+         13.7.1 : Éléments multimédia (video, img animée, svg, canvas, embed, object)
+         ------------------------------------------------------------------------- -->
+    <section class="test-section">
+        <h2>Test 13.7.1 - GIF animé (NEEDS_REVIEW - analyse PEAT requise)</h2>
+        <p>Image GIF animée potentiellement source de flash :</p>
+        <img src="animation-flash.gif" alt="Animation clignotante" width="300" height="200">
+        <p><em>Attendu : NEEDS_REVIEW - nécessite analyse PEAT (Photosensitive Epilepsy Analysis Tool).</em></p>
+    </section>
+
+    <section class="test-section">
+        <h2>Test 13.7.1 - WebP animé (NEEDS_REVIEW)</h2>
+        <p>Image WebP animée :</p>
+        <img src="animation-flash.webp" alt="Animation WebP" width="300" height="200">
+        <p><em>Attendu : NEEDS_REVIEW - format animé détecté.</em></p>
+    </section>
+
+    <section class="test-section">
+        <h2>Test 13.7.1 - APNG (NEEDS_REVIEW)</h2>
+        <p>Image APNG (Animated PNG) :</p>
+        <img src="animation-flash.apng" alt="Animation APNG" width="300" height="200">
+        <p><em>Attendu : NEEDS_REVIEW - format animé détecté.</em></p>
+    </section>
+
+    <section class="test-section">
+        <h2>Test 13.7.1 - Élément <video> (NEEDS_REVIEW - analyse PEAT requise)</h2>
+        <p>Vidéo pouvant contenir des flashs :</p>
+        <video src="video-strobe.mp4" controls width="400" height="225" poster="video-poster.jpg"></video>
+        <p><em>Attendu : NEEDS_REVIEW - vidéo nécessitant analyse PEAT.</em></p>
+    </section>
+
+    <section class="test-section">
+        <h2>Test 13.7.1 - Vidéo avec source multiples (NEEDS_REVIEW)</h2>
+        <video controls width="400" height="225">
+            <source src="video-strobe.webm" type="video/webm">
+            <source src="video-strobe.mp4" type="video/mp4">
+            Votre navigateur ne supporte pas la vidéo HTML5.
+        </video>
+        <p><em>Attendu : NEEDS_REVIEW - vidéo détectée.</em></p>
+    </section>
+
+    <section class="test-section">
+        <h2>Test 13.7.1 - Élément <svg> avec animation SMIL (NEEDS_REVIEW)</h2>
+        <p>SVG avec animation <code><animate></code> potentiellement flashante :</p>
+        <svg width="200" height="100" viewBox="0 0 200 100">
+            <rect x="0" y="0" width="200" height="100" fill="black">
+                <animate attributeName="opacity" from="1" to="0" dur="0.5s" repeatCount="indefinite" />
+            </rect>
+        </svg>
+        <p><em>Attendu : NEEDS_REVIEW - animation SMIL détectée (durée 0.5s = 2 Hz, vérifier surface).</em></p>
+    </section>
+
+    <section class="test-section">
+        <h2>Test 13.7.1 - Élément <canvas> animé via JS (NEEDS_REVIEW)</h2>
+        <p>Canvas avec animation JavaScript (clignotement rapide) :</p>
+        <canvas id="flashCanvas" width="300" height="100" style="border: 1px solid #ccc; background: black;"></canvas>
+        <p><em>Attendu : NEEDS_REVIEW - canvas détecté (animation JS potentielle).</em></p>
+    </section>
+
+    <section class="test-section">
+        <h2>Test 13.7.1 - Élément <embed> Flash/SWF (NEEDS_REVIEW)</h2>
+        <p>Contenu Flash embarqué (obsolète mais détectable) :</p>
+        <embed src="animation-flash.swf" type="application/x-shockwave-flash" width="300" height="200">
+        <p><em>Attendu : NEEDS_REVIEW - embed détecté.</em></p>
+    </section>
+
+    <section class="test-section">
+        <h2>Test 13.7.1 - Élément <object> vidéo (NEEDS_REVIEW)</h2>
+        <p>Vidéo embarquée via object :</p>
+        <object data="video-strobe.mp4" type="video/mp4" width="400" height="225">
+            <p>Alternative : <a href="video-strobe.mp4">Télécharger la vidéo</a></p>
+        </object>
+        <p><em>Attendu : NEEDS_REVIEW - object avec type vidéo détecté.</em></p>
+    </section>
+
+    <section class="test-section">
+        <h2>Test 13.7.1 - Image statique (NOT_APPLICABLE)</h2>
+        <p>Image statique sans animation (ne devrait PAS déclencher le test) :</p>
+        <img src="image-statique.png" alt="Image statique" width="300" height="200">
+        <p><em>Attendu : NOT_APPLICABLE - pas d'animation détectée.</em></p>
+    </section>
+
+    <!-- -------------------------------------------------------------------------
+         13.7.2 : Scripts provoquant des flashs
+         ------------------------------------------------------------------------- -->
+    <section class="test-section">
+        <h2>Test 13.7.2 - setInterval modifiant opacity (NEEDS_REVIEW)</h2>
+        <p>Script qui fait clignoter un élément via setInterval :</p>
+        <div id="flashOpacity" style="width: 200px; height: 100px; background: red; color: white; display: flex; align-items: center; justify-content: center;">
+            CLIGNOTE
+        </div>
+        <script>
+            // Test 13.7.2 - Clignotement opacity via setInterval (5 Hz = 200ms)
+            let flashState = true;
+            const flashEl = document.getElementById('flashOpacity');
+            setInterval(function() {
+                if (flashEl) {
+                    flashEl.style.opacity = flashState ? '1' : '0';
+                    flashState = !flashState;
+                }
+            }, 200); // 5 Hz >= 3 Hz -> devrait être détecté
+        </script>
+        <p><em>Attendu : NEEDS_REVIEW - setInterval + opacity détecté (fréquence 5 Hz).</em></p>
+    </section>
+
+    <section class="test-section">
+        <h2>Test 13.7.2 - setTimeout modifiant filter brightness (NEEDS_REVIEW)</h2>
+        <p>Script qui modifie la luminosité via setTimeout :</p>
+        <div id="flashBrightness" style="width: 200px; height: 100px; background: blue; color: white; display: flex; align-items: center; justify-content: center;">
+            FLASH BRIGHTNESS
+        </div>
+        <script>
+            // Test 13.7.2 - Flash brightness via setTimeout
+            const brightEl = document.getElementById('flashBrightness');
+            let brightState = true;
+            function flashBrightness() {
+                if (brightEl) {
+                    brightEl.style.filter = brightState ? 'brightness(3)' : 'brightness(0.2)';
+                    brightState = !brightState;
+                    setTimeout(flashBrightness, 100); // 5 Hz
+                }
+            }
+            // flashBrightness(); // Décommenter pour activer
+        </script>
+        <p><em>Attendu : NEEDS_REVIEW - setTimeout + filter brightness détecté (si activé).</em></p>
+    </section>
+
+    <section class="test-section">
+        <h2>Test 13.7.2 - requestAnimationFrame animation continue (NEEDS_REVIEW)</h2>
+        <p>Animation continue via requestAnimationFrame :</p>
+        <div id="rafFlash" style="width: 200px; height: 100px; background: green; color: white; display: flex; align-items: center; justify-content: center;">
+            RAF ANIMATION
+        </div>
+        <script>
+            // Test 13.7.2 - requestAnimationFrame
+            let rafFrame = 0;
+            const rafEl = document.getElementById('rafFlash');
+            function animateRaf() {
+                rafFrame++;
+                if (rafEl && rafFrame % 10 < 5) {
+                    rafEl.style.opacity = '0.2';
+                } else if (rafEl) {
+                    rafEl.style.opacity = '1';
+                }
+                requestAnimationFrame(animateRaf);
+            }
+            // animateRaf(); // Décommenter pour activer
+        </script>
+        <p><em>Attendu : NEEDS_REVIEW - requestAnimationFrame détecté (si activé).</em></p>
+    </section>
+
+    <section class="test-section">
+        <h2>Test 13.7.2 - classList.toggle pour clignotement (NEEDS_REVIEW)</h2>
+        <p>Utilisation de classList.toggle pour créer un effet de flash :</p>
+        <style>
+            .flash-class { opacity: 0.1 !important; background: white !important; color: black !important; }
+        </style>
+        <div id="flashClassToggle" style="width: 200px; height: 100px; background: red; color: white; display: flex; align-items: center; justify-content: center;">
+            TOGGLE CLASS
+        </div>
+        <script>
+            // Test 13.7.2 - classList.toggle
+            const toggleEl = document.getElementById('flashClassToggle');
+            setInterval(function() {
+                if (toggleEl) {
+                    toggleEl.classList.toggle('flash-class');
+                }
+            }, 300); // ~3.3 Hz
+        </script>
+        <p><em>Attendu : NEEDS_REVIEW - classList.toggle + interval détecté (3.3 Hz).</em></p>
+    </section>
+
+    <section class="test-section">
+        <h2>Test 13.7.2 - Assignment direct style.opacity (NEEDS_REVIEW)</h2>
+        <p>Modification directe de style.opacity dans une boucle :</p>
+        <div id="directOpacity" style="width: 200px; height: 100px; background: purple; color: white; display: flex; align-items: center; justify-content: center;">
+            DIRECT OPACITY
+        </div>
+        <script>
+            // Test 13.7.2 - Assignment direct
+            const directEl = document.getElementById('directOpacity');
+            function directFlash() {
+                if (directEl) {
+                    directEl.style.opacity = Math.random() > 0.5 ? '1' : '0';
+                }
+                setTimeout(directFlash, 150); // ~6.6 Hz
+            }
+            // directFlash(); // Décommenter pour activer
+        </script>
+        <p><em>Attendu : NEEDS_REVIEW - style.opacity assignment détecté (si activé).</em></p>
+    </section>
+
+    <section class="test-section">
+        <h2>Test 13.7.2 - Script sans pattern flash (NOT_APPLICABLE)</h2>
+        <p>Script normal sans effet de flash :</p>
+        <script>
+            // Test 13.7.2 - Script normal
+            console.log('Script normal sans flash');
+            const data = { user: 'test', timestamp: Date.now() };
+            document.body.dataset.loaded = 'true';
+        </script>
+        <p><em>Attendu : NOT_APPLICABLE - aucun pattern flash détecté.</em></p>
+    </section>
+
+    <!-- -------------------------------------------------------------------------
+         13.7.3 : Animations CSS provoquant des flashs
+         ------------------------------------------------------------------------- -->
+    <section class="test-section">
+        <h2>Test 13.7.3 - Animation CSS @keyframes "flash" fréquence 5 Hz (FAIL)</h2>
+        <p>Animation CSS avec nom suggestif "flash" et fréquence 5 Hz (0.2s) :</p>
+        <style>
+            @keyframes flash {
+                0% { opacity: 1; background: white; }
+                50% { opacity: 0; background: black; }
+                100% { opacity: 1; background: white; }
+            }
+            .css-flash-fail { animation: flash 0.2s infinite; width: 200px; height: 100px; }
+        </style>
+        <div class="css-flash-fail"></div>
+        <p><em>Attendu : FAIL - fréquence 5 Hz (0.2s) >= 3 Hz, nom "flash" détecté.</em></p>
+    </section>
+
+    <section class="test-section">
+        <h2>Test 13.7.3 - Animation CSS @keyframes "strobe" fréquence 10 Hz (FAIL)</h2>
+        <p>Animation CSS strobe à 10 Hz (0.1s) :</p>
+        <style>
+            @keyframes strobe {
+                from { background: white; color: black; }
+                to { background: black; color: white; }
+            }
+            .css-strobe-fail { animation: strobe 0.1s infinite; width: 200px; height: 100px; }
+        </style>
+        <div class="css-strobe-fail"></div>
+        <p><em>Attendu : FAIL - fréquence 10 Hz (0.1s) >= 3 Hz, nom "strobe" détecté.</em></p>
+    </section>
+
+    <section class="test-section">
+        <h2>Test 13.7.3 - Animation CSS fréquence 3 Hz exacte (FAIL)</h2>
+        <p>Animation à exactement 3 Hz (0.333s) - seuil critique :</p>
+        <style>
+            @keyframes threeHz {
+                0% { opacity: 1; filter: brightness(1); }
+                50% { opacity: 0.3; filter: brightness(2); }
+                100% { opacity: 1; filter: brightness(1); }
+            }
+            .css-3hz-fail { animation: threeHz 0.333s infinite; width: 200px; height: 100px; }
+        </style>
+        <div class="css-3hz-fail"></div>
+        <p><em>Attendu : FAIL - fréquence 3.003 Hz >= 3 Hz.</em></p>
+    </section>
+
+    <section class="test-section">
+        <h2>Test 13.7.3 - Animation CSS fréquence 2 Hz (NEEDS_REVIEW)</h2>
+        <p>Animation lente (2 Hz = 0.5s) - sous le seuil 3 Hz :</p>
+        <style>
+            @keyframes slowPulse {
+                0% { opacity: 1; background: #ff0000; }
+                50% { opacity: 0.5; background: #ffff00; }
+                100% { opacity: 1; background: #ff0000; }
+            }
+            .css-slow-needs-review { animation: slowPulse 0.5s infinite; width: 200px; height: 100px; }
+        </style>
+        <div class="css-slow-needs-review"></div>
+        <p><em>Attendu : NEEDS_REVIEW - fréquence 2 Hz < 3 Hz, vérification surface requise.</em></p>
+    </section>
+
+    <section class="test-section">
+        <h2>Test 13.7.3 - Animation CSS fréquence 1 Hz avec changement luminosité (NEEDS_REVIEW)</h2>
+        <p>Animation lente avec changement de luminosité explicite (opacity + filter) :</p>
+        <style>
+            @keyframes brightnessPulse {
+                0% { opacity: 1; filter: brightness(1); }
+                50% { opacity: 0.3; filter: brightness(3); }
+                100% { opacity: 1; filter: brightness(1); }
+            }
+            .css-brightness-needs-review { animation: brightnessPulse 1s infinite; width: 200px; height: 100px; }
+        </style>
+        <div class="css-brightness-needs-review"></div>
+        <p><em>Attendu : NEEDS_REVIEW - fréquence 1 Hz < 3 Hz, mais luminosité détectée.</em></p>
+    </section>
+
+    <section class="test-section">
+        <h2>Test 13.7.3 - Animation CSS shorthand (NEEDS_REVIEW)</h2>
+        <p>Animation définie via la propriété raccourcie <code>animation:</code> :</p>
+        <style>
+            @keyframes shorthandFlash {
+                from { background: white; }
+                to { background: black; }
+            }
+            .css-shorthand { animation: shorthandFlash 0.5s ease-in-out infinite alternate; width: 200px; height: 100px; }
+        </style>
+        <div class="css-shorthand"></div>
+        <p><em>Attendu : NEEDS_REVIEW - animation shorthand parsée, fréquence 2 Hz.</em></p>
+    </section>
+
+    <section class="test-section">
+        <h2>Test 13.7.3 - Animation CSS en millisecondes (FAIL)</h2>
+        <p>Durée d'animation en millisecondes (200ms = 5 Hz) :</p>
+        <style>
+            @keyframes msFlash {
+                0% { opacity: 1; }
+                100% { opacity: 0; }
+            }
+            .css-ms-fail { animation: msFlash 200ms infinite; width: 200px; height: 100px; }
+        </style>
+        <div class="css-ms-fail"></div>
+        <p><em>Attendu : FAIL - 200ms = 5 Hz >= 3 Hz.</em></p>
+    </section>
+
+    <section class="test-section">
+        <h2>Test 13.7.3 - Style inline avec animation (NEEDS_REVIEW)</h2>
+        <p>Animation définie directement dans l'attribut style :</p>
+        <style>
+            @keyframes inlineFlash {
+                0% { opacity: 1; filter: brightness(1); }
+                100% { opacity: 0; filter: brightness(0); }
+            }
+        </style>
+        <div style="animation: inlineFlash 1s infinite; width: 200px; height: 100px; background: red;"></div>
+        <p><em>Attendu : NEEDS_REVIEW - animation inline détectée, fréquence 1 Hz.</em></p>
+    </section>
+
+    <section class="test-section">
+        <h2>Test 13.7.3 - Transition CSS sur opacity courte (NEEDS_REVIEW)</h2>
+        <p>Transition courte sur opacity au hover/focus (peut créer flash) :</p>
+        <style>
+            .transition-flash { width: 200px; height: 100px; background: blue; color: white; transition: opacity 0.05s; display: flex; align-items: center; justify-content: center; }
+            .transition-flash:hover { opacity: 0; }
+            .transition-flash:focus { opacity: 0; }
+        </style>
+        <button class="transition-flash" tabindex="0">Hover/Focus moi (transition 50ms)</button>
+        <p><em>Attendu : NEEDS_REVIEW - transition courte (50ms) sur opacity détectée.</em></p>
+    </section>
+
+    <section class="test-section">
+        <h2>Test 13.7.3 - Animation transform seulement (NOT_APPLICABLE ou NEEDS_REVIEW)</h2>
+        <p>Animation de rotation sans changement de luminosité :</p>
+        <style>
+            @keyframes spin {
+                from { transform: rotate(0deg); }
+                to { transform: rotate(360deg); }
+            }
+            .css-spin { animation: spin 1s linear infinite; width: 100px; height: 100px; background: linear-gradient(45deg, red, blue); }
+        </style>
+        <div class="css-spin"></div>
+        <p><em>Attendu : NOT_APPLICABLE ou NEEDS_REVIEW - pas de changement luminosité détecté (transform seulement).</em></p>
+    </section>
+
+    <section class="test-section">
+        <h2>Test 13.7.3 - Animation background-color change (NEEDS_REVIEW)</h2>
+        <p>Animation changeant la couleur de fond (flash color) :</p>
+        <style>
+            @keyframes colorFlash {
+                0% { background: white; }
+                50% { background: red; }
+                100% { background: white; }
+            }
+            .css-color-flash { animation: colorFlash 0.5s infinite; width: 200px; height: 100px; }
+        </style>
+        <div class="css-color-flash"></div>
+        <p><em>Attendu : NEEDS_REVIEW - changement background-color détecté, fréquence 2 Hz.</em></p>
+    </section>
+
+    <section class="test-section">
+        <h2>Test 13.7.3 - Animation box-shadow flash (NEEDS_REVIEW)</h2>
+        <p>Animation avec box-shadow pulsant :</p>
+        <style>
+            @keyframes shadowPulse {
+                0% { box-shadow: 0 0 0 rgba(255,255,255,0); }
+                50% { box-shadow: 0 0 30px rgba(255,255,255,1); }
+                100% { box-shadow: 0 0 0 rgba(255,255,255,0); }
+            }
+            .css-shadow-flash { animation: shadowPulse 1s infinite; width: 200px; height: 100px; background: black; }
+        </style>
+        <div class="css-shadow-flash"></div>
+        <p><em>Attendu : NEEDS_REVIEW - box-shadow change détecté, fréquence 1 Hz.</em></p>
+    </section>
+
+    <section class="test-section">
+        <h2>Test 13.7.3 - Sans animation CSS (NOT_APPLICABLE)</h2>
+        <p>Contenu statique sans aucune animation CSS :</p>
+        <div style="width: 200px; height: 100px; background: gray; color: white; display: flex; align-items: center; justify-content: center;">
+            STATIQUE
+        </div>
+        <p><em>Attendu : NOT_APPLICABLE - aucune animation détectée.</em></p>
+    </section>
+
+    <!-- -------------------------------------------------------------------------
+         Scripts additionnels pour tests 13.7.1 (canvas animation)
+         ------------------------------------------------------------------------- -->
+    <script>
+        // Test 13.7.1 - Canvas animation flash (5 Hz)
+        const flashCanvas = document.getElementById('flashCanvas');
+        const fctx = flashCanvas?.getContext('2d');
+        let flashFrame = 0;
+
+        function animateFlashCanvas() {
+            if (!fctx) return;
+            flashFrame++;
+            // Flash alterné blanc/noir à 5 Hz (chaque 3 frames à 60fps = ~5Hz)
+            const isWhite = Math.floor(flashFrame / 6) % 2 === 0;
+            fctx.fillStyle = isWhite ? 'white' : 'black';
+            fctx.fillRect(0, 0, flashCanvas.width, flashCanvas.height);
+            requestAnimationFrame(animateFlashCanvas);
+        }
+
+        // animateFlashCanvas(); // Décommenter pour activer l'animation flash canvas
+    </script>
 </body>
 </html>
