@@ -9,7 +9,6 @@ import gradio as gr
 from accessi_code.ui.components.bouton_component import create_button
 from accessi_code.ui.components.image_component import create_image
 
-
 # Chemin vers les ressources graphiques utilisées sur la page.
 ASSETS_DIR = Path(__file__).parent.parent / "assets"
 

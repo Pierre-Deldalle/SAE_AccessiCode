@@ -2,9 +2,9 @@
 Lance l'interface Gradio dans une fenêtre desktop avec PyWebView.
 """
 
+import sys
 import threading
 import time
-import sys
 from pathlib import Path
 
 import webview
@@ -16,7 +16,6 @@ if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
 from accessi_code.ui.app import create_app
-
 
 HOST = "127.0.0.1"
 PORT = 7860
