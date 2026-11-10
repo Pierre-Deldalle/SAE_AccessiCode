@@ -1,83 +1,67 @@
-"""Construit la page de résultats de l'audit AccessiCode."""
+"""Construit la page de résultats de l'audit AccessiCode.
 
-from dataclasses import dataclass
+Les cartes sont alimentées par des ThemeSummary (service/theme_summary.py),
+calculés à partir de l'AuditResult du moteur. Cette page ne dépend ni du
+moteur RGAA ni d'Ollama.
+"""
 
 import gradio as gr
 
-
-@dataclass(frozen=True)
-class ThemeDemo:
-    """Données fictives pour une carte de thème RGAA."""
-
-    numero: int
-    nom: str
-    score: int
-
-
-# Ces scores servent uniquement à illustrer l'interface.
-THEMES_DEMO = (
-    ThemeDemo(1, "Images", 11),
-    ThemeDemo(2, "Cadres", 64),
-    ThemeDemo(3, "Couleurs", 100),
-    ThemeDemo(4, "Multimédia", 28),
-    ThemeDemo(5, "Tableaux", 69),
-    ThemeDemo(6, "Liens", 81),
-    ThemeDemo(7, "Scripts", 100),
-    ThemeDemo(8, "Éléments obligatoires", 100),
-    ThemeDemo(9, "Structuration de l'information", 100),
-    ThemeDemo(10, "Présentation de l'information", 52),
-    ThemeDemo(11, "Formulaires", 42),
-    ThemeDemo(12, "Navigation", 100),
-    ThemeDemo(13, "Consultation", 78),
+from accessi_code.rgaa.themes import RGAA_THEMES
+from accessi_code.service.theme_summary import ThemeSummary
+from accessi_code.ui.results_view import (
+    DEFAULT_THEME_DETAIL,
+    LEGEND_TEXT,
+    SCORE_CSS,
+    build_notices,
+    build_theme_detail,
+    card_classes,
+    initial_card_classes,
+    priority_label,
+    score_category,
+    show_detail,
 )
 
-DEFAULT_THEME_DETAIL = (
-    "Sélectionnez une carte ci-dessus pour afficher "
-    "les informations du thème."
-)
+__all__ = [
+    "DEFAULT_THEME_DETAIL",
+    "SCORE_CSS",
+    "build_resultats_page",
+    "build_theme_detail",
+    "priority_label",
+    "reset_updates",
+    "results_updates",
+    "score_category",
+]
 
 
-def score_category(score: int) -> str:
-    """Détermine la couleur associée au score fictif."""
-    if not 0 <= score <= 100:
-        raise ValueError("Le score doit être compris entre 0 et 100.")
-    if score <= 35:
-        return "danger"
-    if score <= 65:
-        return "warning"
-    return "success"
+def results_updates(summaries: tuple[ThemeSummary, ...], notices: list[str]) -> list:
+    """
+    Mises à jour Gradio, dans l'ordre :
+    état des résultats, avertissements, détail, puis les 13 cartes.
+    """
+    notices_md = build_notices(notices)
+    return [
+        summaries,
+        gr.update(value=notices_md, visible=bool(notices_md)),
+        gr.update(value=DEFAULT_THEME_DETAIL),
+        *[gr.update(value=s.theme.label, elem_classes=card_classes(s)) for s in summaries],
+    ]
 
 
-def priority_label(score: int) -> str:
-    """Retourne une indication compréhensible sans la couleur."""
-    category = score_category(score)
-    if category == "danger":
-        return "Priorité élevée"
-    if category == "warning":
-        return "À surveiller"
-    return "Satisfaisant"
-
-
-def build_theme_detail(theme: ThemeDemo) -> str:
-    """Construit le détail fictif du thème sélectionné."""
-    return (
-        f"## {theme.numero}. {theme.nom}\n\n"
-        "**Mode démonstration — aucun audit réel n'a encore été chargé.**\n\n"
-        f"**Score fictif :** {theme.score} %  \n"
-        f"**Indication visuelle :** {priority_label(theme.score)}\n\n"
-        "### Détail de l'analyse\n\n"
-        "Les résultats des critères RGAA de ce thème apparaîtront ici "
-        "après le raccordement du moteur d'audit.\n\n"
-        "Cette section présentera les éléments concernés, les tests "
-        "effectués, les problèmes détectés et les recommandations.\n\n"
-        "**Attention :** le score affiché ici sert uniquement à "
-        "tester l'interface. Il ne constitue pas une mesure de "
-        "conformité RGAA."
-    )
+def reset_updates() -> list:
+    """Mises à jour remettant la page dans son état initial (même ordre)."""
+    return [
+        (),
+        gr.update(value="", visible=False),
+        gr.update(value=DEFAULT_THEME_DETAIL),
+        *[gr.update(elem_classes=initial_card_classes()) for _ in RGAA_THEMES],
+    ]
 
 
 def build_resultats_page():
     """Construit la page des résultats et sa confirmation de retour."""
+    results_state = gr.State(())
+
     with gr.Column(
         visible=False,
         elem_id="resultats-page",
@@ -95,15 +79,9 @@ def build_resultats_page():
             elem_id="resultats-title",
         )
 
-        # Légende placée sous le titre, à l'ancien emplacement de la notice.
-        gr.Markdown(
-            "**Codes de couleur :** **rouge (0–35 %)** · "
-            "**jaune (36–65 %)** · **vert (66–100 %)**. "
-            "Ces seuils sont des repères visuels propres à AccessiCode, "
-            "pas une échelle officielle du RGAA. "
-            "**Scores fictifs pour cette démonstration.**",
-            elem_id="resultats-demo-notice",
-        )
+        gr.Markdown(LEGEND_TEXT, elem_id="resultats-demo-notice")
+
+        audit_notices = gr.Markdown("", visible=False, elem_id="resultats-audit-notices")
 
         theme_buttons = []
         with gr.Column(elem_id="resultats-themes"):
@@ -112,23 +90,19 @@ def build_resultats_page():
                     elem_classes=["resultats-theme-row"],
                     equal_height=True,
                 ):
-                    for theme in THEMES_DEMO[start:end]:
+                    for theme in RGAA_THEMES[start:end]:
                         with gr.Column(
                             scale=1,
                             min_width=145,
                             elem_classes=["resultats-theme-column"],
                         ):
-                            # Le libellé reste concis ; le score apparaît
-                            # dans le cercle via la classe theme-score-*.
+                            # Le contenu du cercle est fourni par les classes
+                            # theme-score-* (voir SCORE_CSS).
                             button = gr.Button(
-                                value=f"{theme.numero}. {theme.nom}",
+                                value=theme.label,
                                 variant="secondary",
-                                elem_id=f"theme-card-{theme.numero}",
-                                elem_classes=[
-                                    "resultats-theme-card",
-                                    f"theme-score-{theme.score}",
-                                    f"theme-status-{score_category(theme.score)}",
-                                ],
+                                elem_id=f"theme-card-{theme.number}",
+                                elem_classes=initial_card_classes(),
                             )
                             theme_buttons.append(button)
 
@@ -152,8 +126,7 @@ def build_resultats_page():
                     elem_id="resultats-confirmation-title",
                 )
                 gr.Markdown(
-                    "Voulez-vous vraiment retourner à l'accueil ? "
-                    "**Les résultats de l'audit en cours seront perdus.**",
+                    "Voulez-vous vraiment retourner à l'accueil ? **Les résultats de l'audit en cours seront perdus.**",
                     elem_id="resultats-confirmation-message",
                 )
                 with gr.Row(elem_id="resultats-confirmation-actions"):
@@ -168,10 +141,10 @@ def build_resultats_page():
                         elem_id="resultats-confirm-button",
                     )
 
-    for theme, button in zip(THEMES_DEMO, theme_buttons, strict=True):
+    for index, button in enumerate(theme_buttons):
         button.click(
-            fn=lambda selected=theme: build_theme_detail(selected),
-            inputs=[],
+            fn=lambda summaries, i=index: show_detail(summaries, i),
+            inputs=[results_state],
             outputs=[theme_detail],
             show_progress="hidden",
         )
@@ -184,4 +157,6 @@ def build_resultats_page():
         confirmation_panel,
         cancel_button,
         confirm_button,
+        results_state,
+        audit_notices,
     )

@@ -107,10 +107,10 @@
         background-color 150ms ease;
 }
 
-/* Le pourcentage est affiché dans le cercle lui-même.
- * Ces valeurs correspondent uniquement aux scores de THEMES_DEMO.
- * Lors du branchement des résultats réels, il faudra adapter cette
- * représentation pour les scores dynamiques.
+/* Le pourcentage (ou l'état) est affiché dans le cercle lui-même.
+ * Les classes .theme-score-* sont générées en Python (SCORE_CSS dans
+ * ui/pages/resultats_page.py) pour tous les scores de 0 à 100 et pour
+ * chaque état sans pourcentage.
  */
 .resultats-theme-card::after {
     content: var(--score-text, "—");
@@ -136,15 +136,6 @@
     pointer-events: none;
 }
 
-.theme-score-11 { --score-text: "11 %"; }
-.theme-score-64 { --score-text: "64 %"; }
-.theme-score-100 { --score-text: "100 %"; }
-.theme-score-28 { --score-text: "28 %"; }
-.theme-score-69 { --score-text: "69 %"; }
-.theme-score-81 { --score-text: "81 %"; }
-.theme-score-52 { --score-text: "52 %"; }
-.theme-score-42 { --score-text: "42 %"; }
-.theme-score-78 { --score-text: "78 %"; }
 
 .theme-status-danger {
     --score-color: #ff0000;
@@ -156,6 +147,43 @@
 
 .theme-status-success {
     --score-color: #01cb26;
+}
+
+/* États sans pourcentage : texte plus petit, sur deux lignes. */
+.theme-score-word::after {
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.2;
+    white-space: pre;
+    text-align: center;
+}
+
+.theme-status-review {
+    --score-color: #0ca0b0;
+}
+
+.theme-status-error {
+    --score-color: #475569;
+}
+
+.theme-status-neutral {
+    --score-color: #cbd5e1;
+}
+
+#resultats-audit-notices {
+    max-width: 900px;
+    margin: 0 auto 16px auto;
+    padding: 10px 16px;
+    border-left: 4px solid #0153c6;
+    border-radius: 6px;
+    background: #eef4fd;
+}
+
+#resultats-audit-notices,
+#resultats-audit-notices p,
+#resultats-audit-notices li {
+    color: #17212b !important;
+    opacity: 1 !important;
 }
 
 .resultats-theme-card:hover {
