@@ -4,6 +4,7 @@ from typing import Any
 
 from bs4 import BeautifulSoup
 
+from accessi_code.analysis.page import is_html5_doctype
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
 from accessi_code.models.result import (
@@ -40,14 +41,8 @@ class Test1011(RGAATest):
         # List of presentation HTML elements to check for
         presentation_elements = {"basefont", "big", "blink", "center", "font", "marquee", "strike", "tt"}
 
-        # <u> element is only checked if DOCTYPE is not HTML5
-        # We'll need to check the doctype from context
-        is_html5_doctype = False
-        if hasattr(context, "html_source") and context.html_source:
-            # Simple check for HTML5 doctype
-            is_html5_doctype = "<!DOCTYPE html>" in context.html_source.upper()
-
-        if not is_html5_doctype:
+        # <u> n'est une balise de présentation qu'en dehors du HTML5.
+        if not is_html5_doctype(context.doctype):
             presentation_elements.add("u")
 
         # Find all presentation elements

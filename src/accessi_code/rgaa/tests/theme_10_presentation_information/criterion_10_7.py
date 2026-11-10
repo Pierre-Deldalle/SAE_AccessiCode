@@ -97,7 +97,7 @@ def _is_focusable_element(element: Tag) -> bool:
     if tabindex is not None:
         try:
             return int(tabindex) >= 1
-        except (ValueError, TypeError):
+        except ValueError, TypeError:
             pass
 
     # Contenteditable

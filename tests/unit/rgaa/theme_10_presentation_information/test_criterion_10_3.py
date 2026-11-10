@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import asyncio
 from unittest.mock import Mock
 
 import pytest
 
 from accessi_code.models.audit_context import AuditContext
-from accessi_code.models.capabilities import Capability
 from accessi_code.models.result import TestStatus
 from accessi_code.rgaa.tests.theme_10_presentation_information.criterion_10_3 import (
     Test1031,
@@ -70,7 +68,8 @@ class TestTest1031:
 
         context = Mock(spec=AuditContext)
         from bs4 import BeautifulSoup
-        context.dom = BeautifulSoup(html_source, 'html.parser')
+
+        context.dom = BeautifulSoup(html_source, "html.parser")
 
         test = Test1031()
         result = await test.run(context)
@@ -103,7 +102,8 @@ class TestTest1031:
 
         context = Mock(spec=AuditContext)
         from bs4 import BeautifulSoup
-        context.dom = BeautifulSoup(html_source, 'html.parser')
+
+        context.dom = BeautifulSoup(html_source, "html.parser")
 
         test = Test1031()
         result = await test.run(context)
@@ -111,9 +111,9 @@ class TestTest1031:
         assert result.status == TestStatus.FAIL
         assert len(result.findings) == 2  # Nom and email fields missing labels
         # Check that we found the elements with specific IDs
-        element_ids_found = [f.evidence.get('element_id') for f in result.findings]
-        assert 'nom' in element_ids_found
-        assert 'email' in element_ids_found
+        element_ids_found = [f.evidence.get("element_id") for f in result.findings]
+        assert "nom" in element_ids_found
+        assert "email" in element_ids_found
         assert result.tested_elements == 2
 
     @pytest.mark.asyncio
@@ -143,7 +143,8 @@ class TestTest1031:
 
         context = Mock(spec=AuditContext)
         from bs4 import BeautifulSoup
-        context.dom = BeautifulSoup(html_source, 'html.parser')
+
+        context.dom = BeautifulSoup(html_source, "html.parser")
 
         test = Test1031()
         result = await test.run(context)
@@ -178,7 +179,8 @@ class TestTest1031:
 
         context = Mock(spec=AuditContext)
         from bs4 import BeautifulSoup
-        context.dom = BeautifulSoup(html_source, 'html.parser')
+
+        context.dom = BeautifulSoup(html_source, "html.parser")
 
         test = Test1031()
         result = await test.run(context)
@@ -209,7 +211,8 @@ class TestTest1031:
 
         context = Mock(spec=AuditContext)
         from bs4 import BeautifulSoup
-        context.dom = BeautifulSoup(html_source, 'html.parser')
+
+        context.dom = BeautifulSoup(html_source, "html.parser")
 
         test = Test1031()
         result = await test.run(context)
@@ -242,7 +245,8 @@ class TestTest1031:
 
         context = Mock(spec=AuditContext)
         from bs4 import BeautifulSoup
-        context.dom = BeautifulSoup(html_source, 'html.parser')
+
+        context.dom = BeautifulSoup(html_source, "html.parser")
 
         test = Test1031()
         result = await test.run(context)
@@ -288,7 +292,8 @@ class TestTest1031:
 
         context = Mock(spec=AuditContext)
         from bs4 import BeautifulSoup
-        context.dom = BeautifulSoup(html_source, 'html.parser')
+
+        context.dom = BeautifulSoup(html_source, "html.parser")
 
         test = Test1031()
         result = await test.run(context)

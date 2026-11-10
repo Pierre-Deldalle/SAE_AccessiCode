@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import asyncio
 from unittest.mock import Mock
 
 import pytest
 
 from accessi_code.models.audit_context import AuditContext
-from accessi_code.models.capabilities import Capability
 from accessi_code.models.result import TestStatus
 from accessi_code.rgaa.tests.theme_10_presentation_information.criterion_10_2 import (
     Test1021,
@@ -207,7 +205,8 @@ class TestTest1022:
         context = Mock(spec=AuditContext)
         # We'll need to create a real BeautifulSoup object for this test
         from bs4 import BeautifulSoup
-        context.dom = BeautifulSoup(html_source, 'html.parser')
+
+        context.dom = BeautifulSoup(html_source, "html.parser")
 
         test = Test1022()
         result = await test.run(context)
@@ -230,7 +229,8 @@ class TestTest1022:
 
         context = Mock(spec=AuditContext)
         from bs4 import BeautifulSoup
-        context.dom = BeautifulSoup(html_source, 'html.parser')
+
+        context.dom = BeautifulSoup(html_source, "html.parser")
 
         test = Test1022()
         result = await test.run(context)
@@ -238,7 +238,9 @@ class TestTest1022:
         assert result.status == TestStatus.FAIL
         assert len(result.findings) > 0
         # Check that at least one finding is about heading levels
-        heading_findings = [f for f in result.findings if "heading" in f.element.lower() or "titre" in f.message.lower()]
+        heading_findings = [
+            f for f in result.findings if "heading" in f.element.lower() or "titre" in f.message.lower()
+        ]
         assert len(heading_findings) > 0
 
     @pytest.mark.asyncio
@@ -265,7 +267,8 @@ class TestTest1022:
 
         context = Mock(spec=AuditContext)
         from bs4 import BeautifulSoup
-        context.dom = BeautifulSoup(html_source, 'html.parser')
+
+        context.dom = BeautifulSoup(html_source, "html.parser")
 
         test = Test1022()
         result = await test.run(context)
@@ -292,7 +295,8 @@ class TestTest1022:
 
         context = Mock(spec=AuditContext)
         from bs4 import BeautifulSoup
-        context.dom = BeautifulSoup(html_source, 'html.parser')
+
+        context.dom = BeautifulSoup(html_source, "html.parser")
 
         test = Test1022()
         result = await test.run(context)
@@ -335,7 +339,8 @@ class TestTest1022:
 
         context = Mock(spec=AuditContext)
         from bs4 import BeautifulSoup
-        context.dom = BeautifulSoup(html_source, 'html.parser')
+
+        context.dom = BeautifulSoup(html_source, "html.parser")
 
         test = Test1022()
         result = await test.run(context)
@@ -374,7 +379,8 @@ class TestTest1022:
 
         context = Mock(spec=AuditContext)
         from bs4 import BeautifulSoup
-        context.dom = BeautifulSoup(html_source, 'html.parser')
+
+        context.dom = BeautifulSoup(html_source, "html.parser")
 
         test = Test1022()
         result = await test.run(context)
@@ -439,7 +445,9 @@ class TestTest1023:
         # Search for lowercase versions since we lowercased the findings string
         has_css_rule = "règle css" in findings_str or "r�gle css" in findings_str
         has_inline_style = "style en ligne" in findings_str
-        assert has_css_rule or has_inline_style, f"Expected to find 'règle css' or 'style en ligne' in findings. Findings lowercase: {repr(findings_str)}"
+        assert has_css_rule or has_inline_style, (
+            f"Expected to find 'règle css' or 'style en ligne' in findings. Findings lowercase: {repr(findings_str)}"
+        )
         assert len(result.findings) > 0
 
     @pytest.mark.asyncio
@@ -510,7 +518,9 @@ class TestTest1023:
         # Note: Current implementation only reports one finding per style block due to breaking after first match
         assert result.status == TestStatus.NEEDS_REVIEW
         findings_str_lower = str(result.findings).lower()
-        assert "règle css" in findings_str_lower, f"Expected to find 'règle css' in findings. Findings lowercase: {repr(findings_str_lower)}"
+        assert "règle css" in findings_str_lower, (
+            f"Expected to find 'règle css' in findings. Findings lowercase: {repr(findings_str_lower)}"
+        )
         assert len(result.findings) > 0
 
     @pytest.mark.asyncio

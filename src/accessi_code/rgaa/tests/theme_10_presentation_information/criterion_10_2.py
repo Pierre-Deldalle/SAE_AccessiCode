@@ -85,12 +85,12 @@ class Test1021(RGAATest):
                         # and is not a URI that likely points to a decorative image
                         is_likely_decorative = (
                             content_value in ('""', "''", '""', "''")  # Empty quotes
-                            or content_value.startswith("url(") and any(
+                            or content_value.startswith("url(")
+                            and any(
                                 ext in content_value.lower()
                                 for ext in [".png", ".jpg", ".jpeg", ".gif", ".svg"]
                                 and not any(
-                                    word in content_value.lower()
-                                    for word in ["icon", "logo", "bullet", "decoration"]
+                                    word in content_value.lower() for word in ["icon", "logo", "bullet", "decoration"]
                                 )
                             )
                         )
@@ -103,7 +103,9 @@ class Test1021(RGAATest):
                                 Finding(
                                     element=f"CSS block {css_index + 1}",
                                     message=f"Le pseudo-element :{pseudo_type} utilise la propriété 'content' avec une valeur qui pourrait transmettre de l'information : '{content_value[:50]}...'.",
-                                    recommendation=("Vérifier que l'information transmise par ce pseudo-element est également disponible sans CSS, ou utiliser du contenu HTML à la place."),
+                                    recommendation=(
+                                        "Vérifier que l'information transmise par ce pseudo-element est également disponible sans CSS, ou utiliser du contenu HTML à la place."
+                                    ),
                                     evidence={
                                         "pseudo_element": f":{pseudo_type}",
                                         "content_value": content_value,
@@ -118,8 +120,20 @@ class Test1021(RGAATest):
         background_matches = re.findall(background_pattern, html_source, re.IGNORECASE)
 
         informative_bg_keywords = [
-            "chart", "graph", "diagram", "icon", "logo", "symbol", "warning", "alert",
-            "error", "success", "info", "data", "map", "illustration"
+            "chart",
+            "graph",
+            "diagram",
+            "icon",
+            "logo",
+            "symbol",
+            "warning",
+            "alert",
+            "error",
+            "success",
+            "info",
+            "data",
+            "map",
+            "illustration",
         ]
 
         for bg_match in background_matches:
@@ -146,7 +160,9 @@ class Test1021(RGAATest):
                         Finding(
                             element="CSS background-image",
                             message=f"Une image d'arrière-plan potentiellement informative est utilisée : '{url_value}'.",
-                            recommendation=("Vérifier que l'information transmise par cette image est également disponible sans CSS, ou utiliser un élément <img> avec un attribut alt approprié."),
+                            recommendation=(
+                                "Vérifier que l'information transmise par cette image est également disponible sans CSS, ou utiliser un élément <img> avec un attribut alt approprié."
+                            ),
                             evidence={
                                 "background_image_url": url_value,
                                 "css_source": bg_match[:200],
@@ -176,7 +192,13 @@ class Test1021(RGAATest):
             tested_elements=len(findings),
             metadata={
                 "potential_css_issues": len(findings),
-                "pseudo_element_issues": len([f for f in findings if "pseudo-element" in f.element or ":before" in f.message or ":after" in f.message]),
+                "pseudo_element_issues": len(
+                    [
+                        f
+                        for f in findings
+                        if "pseudo-element" in f.element or ":before" in f.message or ":after" in f.message
+                    ]
+                ),
                 "background_image_issues": len([f for f in findings if "background-image" in f.element]),
             },
         )
@@ -224,20 +246,22 @@ class Test1022(RGAATest):
                 try:
                     level = int(tag[1])  # Get the number from h1, h2, etc.
                     heading_levels.append(level)
-                except (ValueError, IndexError):
+                except ValueError, IndexError:
                     pass
 
             # Check for skipped levels (e.g., h1 followed by h3 without h2)
             # This might indicate headings are used for visual styling only
             for i in range(1, len(heading_levels)):
-                if heading_levels[i] > heading_levels[i-1] + 1:
+                if heading_levels[i] > heading_levels[i - 1] + 1:
                     findings.append(
                         Finding(
                             element=f"heading {headings[i].name}",
-                            message=f"Niveau de titre sauté : {headings[i-1].name} suivi de {headings[i].name}. Cela pourrait indiquer une utilisation des titres uniquement pour la présentation visuelle.",
-                            recommendation=("Utiliser une hiérarchie de titres cohérente qui reflète la structure du contenu, indépendamment de la présentation visuelle."),
+                            message=f"Niveau de titre sauté : {headings[i - 1].name} suivi de {headings[i].name}. Cela pourrait indiquer une utilisation des titres uniquement pour la présentation visuelle.",
+                            recommendation=(
+                                "Utiliser une hiérarchie de titres cohérente qui reflète la structure du contenu, indépendamment de la présentation visuelle."
+                            ),
                             evidence={
-                                "previous_heading": headings[i-1].name,
+                                "previous_heading": headings[i - 1].name,
                                 "current_heading": headings[i].name,
                                 "heading_text": headings[i].get_text().strip()[:100],
                             },
@@ -264,7 +288,9 @@ class Test1022(RGAATest):
                         Finding(
                             element=f"{lst.name}[index={len(findings)}]",
                             message=f"La liste {lst.name} contient principalement des éléments vides ou quasi-vides, ce qui pourrait indiquer une utilisation pour l'espacement visuel plutôt que pour structurer de l'information.",
-                            recommendation=("Utiliser des listes uniquement pour regrouper des éléments liés sémantiquement, et utiliser CSS pour l'espacement si nécessaire."),
+                            recommendation=(
+                                "Utiliser des listes uniquement pour regrouper des éléments liés sémantiquement, et utiliser CSS pour l'espacement si nécessaire."
+                            ),
                             evidence={
                                 "list_type": lst.name,
                                 "total_items": len(items),
@@ -298,7 +324,9 @@ class Test1022(RGAATest):
                         Finding(
                             element=f"table[index={len(findings)}]",
                             message=f"Le tableau contient principalement des cellules vides ou quasi-vides ({meaningful_cells}/{len(all_cells)} avec contenu significatif), ce qui pourrait indiquer une utilisation pour la mise en page plutôt que pour présenter des données tabulaires.",
-                            recommendation=("Utiliser des tableaux uniquement pour présenter des données tabulaires réelles. Pour la mise en page, utiliser des éléments sémantiques comme <div>, <section>, <article> avec CSS."),
+                            recommendation=(
+                                "Utiliser des tableaux uniquement pour présenter des données tabulaires réelles. Pour la mise en page, utiliser des éléments sémantiques comme <div>, <section>, <article> avec CSS."
+                            ),
                             evidence={
                                 "total_cells": len(all_cells),
                                 "meaningful_cells": meaningful_cells,
@@ -387,7 +415,7 @@ class Test1023(RGAATest):
                 if re.search(hiding_pattern, style_string, re.IGNORECASE | re.DOTALL):
                     # Try to find which element this style belongs to
                     # We'll look for the element with this style attribute
-                    pattern = fr'<([^>]*)\s+style=["\']{re.escape(style_string)}["\'][^>]*>'
+                    pattern = rf'<([^>]*)\s+style=["\']{re.escape(style_string)}["\'][^>]*>'
                     element_match = re.search(pattern, html_source, re.IGNORECASE)
 
                     element_info = "unknown element"
@@ -400,7 +428,9 @@ class Test1023(RGAATest):
                         Finding(
                             element=element_info,
                             message=f"Un style en ligne masque potentiellement du contenu : '{style_string[:50]}...'.",
-                            recommendation=("Vérifier que le contenu masqué n'est pas essentiel à l'information ou à la compréhension de la page. Si c'est de l'information essentielle, elle devrait être visible ou accessible par d'autres moyens."),
+                            recommendation=(
+                                "Vérifier que le contenu masqué n'est pas essentiel à l'information ou à la compréhension de la page. Si c'est de l'information essentielle, elle devrait être visible ou accessible par d'autres moyens."
+                            ),
                             evidence={
                                 "hiding_style": style_string,
                                 "hiding_pattern_matched": hiding_pattern,
@@ -420,7 +450,9 @@ class Test1023(RGAATest):
                         Finding(
                             element=f"style block {style_index + 1}",
                             message=f"Une règle CSS masque potentiellement du contenu : '{style_content[:100]}...'.",
-                            recommendation=("Vérifier que le contenu masqué n'est pas essentiel à l'information ou à la compréhension de la page. Si c'est de l'information essentielle, elle devrait être visible ou accessible par d'autres moyens."),
+                            recommendation=(
+                                "Vérifier que le contenu masqué n'est pas essentiel à l'information ou à la compréhension de la page. Si c'est de l'information essentielle, elle devrait être visible ou accessible par d'autres moyens."
+                            ),
                             evidence={
                                 "style_block_index": style_index,
                                 "hiding_pattern_matched": hiding_pattern,
