@@ -1,0 +1,268 @@
+
+:root {
+  font-family: Arial, Helvetica, sans-serif;
+  color: #1f2937;
+  background: #f5f7fb;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  line-height: 1.55;
+}
+
+header {
+  background: #1f3a5f;
+  color: #fff;
+  padding: 2rem 1.25rem;
+}
+
+header .inner,
+main,
+footer {
+  width: min(100% - 2rem, 980px);
+  margin: 0 auto;
+}
+
+nav a {
+  color: #fff;
+  margin-right: 1rem;
+}
+
+main {
+  padding: 2rem 0 3rem;
+}
+
+section {
+  background: #fff;
+  border: 1px solid #d9e0ea;
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin: 1.25rem 0;
+}
+
+h2 {
+  margin-top: 0;
+}
+
+.test-id {
+  display: inline-block;
+  padding: .2rem .55rem;
+  border-radius: 999px;
+  background: #eef2f7;
+  font-weight: 700;
+  font-size: .9rem;
+}
+
+.ok {
+  border-left: 6px solid #237a45;
+}
+
+.ko {
+  border-left: 6px solid #b42318;
+}
+
+.example {
+  padding: 1rem;
+  margin-top: .75rem;
+  border-radius: 8px;
+  background: #fafafa;
+}
+
+/* ---------- 3.1 : information transmise par la couleur ---------- */
+
+.status-color-only .good {
+  color: #0a7a31;
+}
+
+.status-color-only .bad {
+  color: #b42318;
+}
+
+.status-with-text .good {
+  color: #0a7a31;
+  font-weight: 700;
+}
+
+.status-with-text .bad {
+  color: #b42318;
+  font-weight: 700;
+}
+
+.legend-color-only {
+  display: flex;
+  gap: 1rem;
+}
+
+.legend-color-only span {
+  padding: .5rem .75rem;
+  border-radius: 6px;
+  color: #fff;
+}
+
+.legend-color-only .success {
+  background: #177245;
+}
+
+.legend-color-only .error {
+  background: #b42318;
+}
+
+.required-bad label.required {
+  color: #b42318;
+}
+
+.required-good label.required::after {
+  content: " (obligatoire)";
+  font-weight: 700;
+}
+
+/* ---------- 3.2 : contraste texte / fond ---------- */
+
+/* volontairement non conforme : faible contraste */
+.text-small-fail {
+  color: #b5b5b5;
+  background: #ffffff;
+  font-size: 16px;
+}
+
+.text-small-pass {
+  color: #333333;
+  background: #ffffff;
+  font-size: 16px;
+}
+
+.text-bold-small-fail {
+  color: #b6b6b6;
+  background: #ffffff;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.text-bold-small-pass {
+  color: #303030;
+  background: #ffffff;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.text-large-fail {
+  color: #c0c0c0;
+  background: #ffffff;
+  font-size: 26px;
+}
+
+.text-large-pass {
+  color: #6a6a6a;
+  background: #ffffff;
+  font-size: 26px;
+}
+
+.text-bold-large-fail {
+  color: #c2c2c2;
+  background: #ffffff;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.text-bold-large-pass {
+  color: #686868;
+  background: #ffffff;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+/* ---------- 3.3 : composants / éléments graphiques ---------- */
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+}
+
+.button-fail {
+  background: #fff;
+  color: #222;
+  border: 2px solid #d9d9d9;
+  border-radius: 6px;
+  padding: .65rem 1rem;
+}
+
+.button-pass {
+  background: #fff;
+  color: #222;
+  border: 2px solid #555;
+  border-radius: 6px;
+  padding: .65rem 1rem;
+}
+
+.input-fail {
+  border: 2px solid #dcdcdc;
+  background: #fff;
+  padding: .55rem;
+}
+
+.input-pass {
+  border: 2px solid #666;
+  background: #fff;
+  padding: .55rem;
+}
+
+.chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  height: 150px;
+  padding: 1rem;
+  background: #fff;
+  border: 1px solid #ddd;
+}
+
+.bar {
+  width: 70px;
+}
+
+.chart-fail .bar-a {
+  height: 55%;
+  background: #e5e5e5;
+}
+
+.chart-fail .bar-b {
+  height: 85%;
+  background: #d9d9d9;
+}
+
+.chart-pass .bar-a {
+  height: 55%;
+  background: #555;
+}
+
+.chart-pass .bar-b {
+  height: 85%;
+  background: #111;
+}
+
+.chart-labels {
+  display: flex;
+  gap: 1rem;
+}
+
+.chart-labels span {
+  width: 70px;
+  text-align: center;
+}
+
+footer {
+  padding: 1rem 0 3rem;
+  color: #5d6675;
+}
+
+code {
+  background: #eef2f7;
+  padding: .1rem .3rem;
+  border-radius: 4px;
+}
