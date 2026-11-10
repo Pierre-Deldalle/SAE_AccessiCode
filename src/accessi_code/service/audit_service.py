@@ -13,6 +13,7 @@ from accessi_code.rgaa.registry import (
     TestRegistry,
 )
 from accessi_code.rgaa.runner import (
+    ProgressCallback,
     TestRunner,
 )
 from accessi_code.service.audit_services import (
@@ -50,11 +51,12 @@ class AuditService:
     async def audit(
         self,
         context: AuditContext,
+        on_progress: ProgressCallback | None = None,
     ) -> AuditResult:
         """
         Exécute un audit complet.
         """
-        test_results = await self.runner.run_all(context)
+        test_results = await self.runner.run_all(context, on_progress)
 
         return self.aggregator.aggregate(
             context,
