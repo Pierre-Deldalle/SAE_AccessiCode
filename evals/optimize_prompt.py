@@ -73,6 +73,28 @@ def parse_args() -> argparse.Namespace:
             "exécutés simultanément."
         ),
     )
+    
+    parser.add_argument(
+        "--evaluation-model",
+        type=str,
+        default=None,
+        help=(
+            "Modèle textuel Ollama dont le prompt "
+            "doit être évalué et optimisé. "
+            "Par défaut, utilise settings.LLM_MODEL."
+        ),
+    )
+
+    parser.add_argument(
+        "--optimizer-model",
+        type=str,
+        default=None,
+        help=(
+            "Modèle Ollama utilisé pour générer "
+            "les prompts candidats. "
+            "Par défaut, utilise settings.VLM_MODEL."
+        ),
+    )
 
     return parser.parse_args()
 
@@ -310,6 +332,18 @@ def print_selection(
 
 async def main() -> None:
     args = parse_args()
+    
+    evaluation_model = (
+        args.evaluation_model
+        if args.evaluation_model is not None
+        else settings.LLM_MODEL
+    )
+
+    optimizer_model = (
+        args.optimizer_model
+        if args.optimizer_model is not None
+        else settings.VLM_MODEL
+    )
 
     if args.candidates < 1:
         raise SystemExit(
@@ -323,7 +357,7 @@ async def main() -> None:
 
     services = build_default_audit_services(
         ollama_host=settings.OLLAMA_HOST,
-        llm_model=settings.LLM_MODEL,
+        llm_model=evaluation_model,
         vlm_model=settings.VLM_MODEL,
     )
 
@@ -356,13 +390,18 @@ async def main() -> None:
     # comme modèle textuel indépendant.
     #
     optimizer_llm = OllamaLLM(
-        model=settings.VLM_MODEL,
+        model=optimizer_model,
         host=settings.OLLAMA_HOST,
     )
 
     print(
+        "Modèle évalué             : "
+        f"{evaluation_model}"
+    )
+
+    print(
         "Modèle utilisé pour l'optimisation : "
-        f"{settings.VLM_MODEL}"
+        f"{optimizer_model}"
     )
 
     optimizer = PromptOptimizer(

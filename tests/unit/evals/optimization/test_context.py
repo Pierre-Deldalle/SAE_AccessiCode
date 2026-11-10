@@ -144,28 +144,34 @@ def test_context_contains_problematic_cases_and_protected_examples():
         == "PROMPT DE PRODUCTION"
     )
 
-    problematic_ids = {
-        case["id"]
+    problematic_categories = {
+        case["category"]
         for case in context[
             "problematic_cases"
         ]
     }
 
-    assert problematic_ids == {
-        "bad_case",
-        "low_confidence_case",
-    }
+    assert (
+        "wrong_verdict"
+        in problematic_categories
+    )
 
-    protected_ids = {
-        case["id"]
+    assert (
+        "low_confidence"
+        in problematic_categories
+    )
+
+    protected_categories = {
+        case["category"]
         for case in context[
             "protected_examples"
         ]
     }
 
-    assert protected_ids == {
-        "anchor_case",
-    }
+    assert (
+        "easy"
+        in protected_categories
+    )
 
 
 def test_context_prioritizes_critical_errors():
@@ -222,9 +228,20 @@ def test_context_prioritizes_critical_errors():
         report=report,
     )
 
+    first_problem = (
+        context["problematic_cases"][0]
+    )
+
     assert (
-        context["problematic_cases"][0]["id"]
-        == "critical_error"
+        first_problem["category"]
+        == "critical"
+    )
+
+    assert (
+        "critical_confidence_error"
+        in first_problem[
+            "decision_issues"
+        ]
     )
 
 

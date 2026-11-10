@@ -203,7 +203,6 @@ class OptimizationContextBuilder:
         result: EvalResult,
     ) -> dict[str, Any]:
         serialized: dict[str, Any] = {
-            "id": case.id,
             "input": (
                 OptimizationContextBuilder
                 ._sanitize_input(

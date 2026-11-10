@@ -225,7 +225,10 @@ class PromptOptimizer:
         # 7. Réévaluer chaque candidat
         #
         for candidate in candidates:
-            print("[5/6] Évaluation candidate_001 sur TRAIN...")
+            print(
+                f"[5/6] Évaluation "
+                f"{candidate.name} sur TRAIN..."
+            )
             
             train_results = (
                 await self.runner.run(
@@ -266,7 +269,10 @@ class PromptOptimizer:
                 )
             )
 
-            print("[6/6] Évaluation candidate_001 sur VALIDATION...")
+            print(
+                f"[6/6] Évaluation "
+                f"{candidate.name} sur VALIDATION..."
+            )
 
             validation_results = (
                 await self.runner.run(

@@ -4,6 +4,7 @@ import pytest
 
 from evals.optimization.generator import (
     PromptCandidateGenerator,
+    PromptGenerationError,
 )
 from evals.optimization.generator import (
     normalize_prompt_template,
@@ -13,57 +14,72 @@ from evals.optimization.generator import (
 class FakeLLM:
     def __init__(
         self,
-        response: str,
+        responses: str | list[str],
     ):
-        self.response = response
+        if isinstance(responses, str):
+            self.responses = [
+                responses
+            ]
+        else:
+            self.responses = list(
+                responses
+            )
 
-        self.calls: list[
-            dict
-        ] = []
+        self.calls = 0
+        self.prompts: list[str] = []
+        self.kwargs: list[dict] = []
 
     async def generate(
         self,
         prompt: str,
-        *,
-        format: str,
-        max_tokens: int,
-        temperature: float,
+        **kwargs,
     ) -> str:
-        self.calls.append(
-            {
-                "prompt": prompt,
-                "format": format,
-                "max_tokens": max_tokens,
-                "temperature": temperature,
-            }
+        if (
+            self.calls
+            >= len(self.responses)
+        ):
+            raise AssertionError(
+                "FakeLLM : aucun résultat "
+                "prévu pour cet appel."
+            )
+
+        self.prompts.append(
+            prompt
         )
 
-        return self.response
+        self.kwargs.append(
+            kwargs
+        )
 
+        response = self.responses[
+            self.calls
+        ]
+
+        self.calls += 1
+
+        return response
 
 @pytest.mark.asyncio
 async def test_generator_creates_candidates():
-    response = json.dumps(
-        {
-            "candidates": [
+    llm = FakeLLM(
+        [
+            json.dumps(
                 {
                     "prompt": (
                         "Prompt candidat 1 "
                         "{title} {heading} {content}"
-                    ),
-                },
+                    )
+                }
+            ),
+            json.dumps(
                 {
                     "prompt": (
                         "Prompt candidat 2 "
                         "{title} {heading} {content}"
-                    ),
-                },
-            ]
-        }
-    )
-
-    llm = FakeLLM(
-        response
+                    )
+                }
+            ),
+        ]
     )
 
     generator = PromptCandidateGenerator(
@@ -73,11 +89,7 @@ async def test_generator_creates_candidates():
     candidates = await generator.generate(
         optimization_context={
             "task": "title",
-            "problematic_cases": [
-                {
-                    "id": "title_001",
-                }
-            ],
+            "problematic_cases": [],
         },
         candidate_count=2,
     )
@@ -95,94 +107,58 @@ async def test_generator_creates_candidates():
     )
 
     assert (
+        candidates[0].template
+        == (
+            "Prompt candidat 1 "
+            "{title} {heading} {content}"
+        )
+    )
+
+    assert (
+        candidates[1].template
+        == (
+            "Prompt candidat 2 "
+            "{title} {heading} {content}"
+        )
+    )
+
+    assert (
         candidates[0].rationale
         == ""
     )
 
-    assert len(
-        llm.calls
-    ) == 1
-
-    call = llm.calls[0]
-
-    assert call["format"] == "json"
-
-    assert call["temperature"] == 0
-
     assert (
-        "title_001"
-        in call["prompt"]
+        candidates[1].rationale
+        == ""
     )
+
+    assert llm.calls == 2
 
 
 @pytest.mark.asyncio
 async def test_generator_removes_duplicate_prompts():
-    response = json.dumps(
-        {
-            "candidates": [
+    llm = FakeLLM(
+        [
+            json.dumps(
                 {
-                    "rationale": "A",
-                    "prompt": "Même prompt",
-                },
+                    "prompt": "Même prompt"
+                }
+            ),
+            json.dumps(
                 {
-                    "rationale": "B",
-                    "prompt": "Même prompt",
-                },
+                    "prompt": "Même prompt"
+                }
+            ),
+            json.dumps(
                 {
-                    "rationale": "C",
-                    "prompt": "Autre prompt",
-                },
-            ]
-        }
+                    "prompt": "Autre prompt"
+                }
+            ),
+        ]
     )
 
     generator = PromptCandidateGenerator(
-        llm=FakeLLM(
-            response
-        )
-    )
-
-    candidates = await generator.generate(
-        optimization_context={},
-        candidate_count=3,
-    )
-
-    assert len(candidates) == 2
-
-    assert [
-        candidate.template
-        for candidate in candidates
-    ] == [
-        "Même prompt",
-        "Autre prompt",
-    ]
-
-
-@pytest.mark.asyncio
-async def test_generator_respects_candidate_count():
-    response = json.dumps(
-        {
-            "candidates": [
-                {
-                    "rationale": "A",
-                    "prompt": "Prompt A",
-                },
-                {
-                    "rationale": "B",
-                    "prompt": "Prompt B",
-                },
-                {
-                    "rationale": "C",
-                    "prompt": "Prompt C",
-                },
-            ]
-        }
-    )
-
-    generator = PromptCandidateGenerator(
-        llm=FakeLLM(
-            response
-        )
+        llm=llm
     )
 
     candidates = await generator.generate(
@@ -191,6 +167,74 @@ async def test_generator_respects_candidate_count():
     )
 
     assert len(candidates) == 2
+
+    assert (
+        candidates[0].template
+        == "Même prompt"
+    )
+
+    assert (
+        candidates[1].template
+        == "Autre prompt"
+    )
+
+    #
+    # 1 appel pour candidate_001
+    # +
+    # 2 appels pour candidate_002,
+    # car sa première tentative est un doublon.
+    #
+    assert llm.calls == 3
+
+
+@pytest.mark.asyncio
+async def test_generator_respects_candidate_count():
+    llm = FakeLLM(
+        [
+            json.dumps(
+                {
+                    "prompt": "Prompt A"
+                }
+            ),
+            json.dumps(
+                {
+                    "prompt": "Prompt B"
+                }
+            ),
+            json.dumps(
+                {
+                    "prompt": "Prompt C"
+                }
+            ),
+        ]
+    )
+
+    generator = PromptCandidateGenerator(
+        llm=llm
+    )
+
+    candidates = await generator.generate(
+        optimization_context={},
+        candidate_count=2,
+    )
+
+    assert len(candidates) == 2
+
+    assert (
+        candidates[0].template
+        == "Prompt A"
+    )
+
+    assert (
+        candidates[1].template
+        == "Prompt B"
+    )
+
+    #
+    # Le troisième résultat FakeLLM
+    # ne doit jamais être consommé.
+    #
+    assert llm.calls == 2
 
 
 @pytest.mark.asyncio
@@ -212,46 +256,62 @@ async def test_generator_rejects_invalid_candidate_count():
 
 
 @pytest.mark.asyncio
-async def test_generator_rejects_missing_candidates_array():
+async def test_generator_rejects_missing_prompt_field():
     generator = PromptCandidateGenerator(
         llm=FakeLLM(
-            json.dumps(
-                {
-                    "result": "incorrect"
-                }
-            )
+            [
+                json.dumps(
+                    {
+                        "result": "incorrect"
+                    }
+                ),
+                json.dumps(
+                    {
+                        "result": "toujours incorrect"
+                    }
+                ),
+            ]
         )
     )
 
     with pytest.raises(
-        ValueError,
-        match="liste 'candidates'",
+        PromptGenerationError,
+        match=(
+            "aucun champ 'prompt'"
+        ),
     ):
         await generator.generate(
             optimization_context={},
-            candidate_count=2,
+            candidate_count=1,
         )
 
 
 @pytest.mark.asyncio
-async def test_generator_rejects_empty_candidates():
+async def test_generator_rejects_empty_prompt():
     generator = PromptCandidateGenerator(
         llm=FakeLLM(
-            json.dumps(
-                {
-                    "candidates": []
-                }
-            )
+            [
+                json.dumps(
+                    {
+                        "prompt": ""
+                    }
+                ),
+                json.dumps(
+                    {
+                        "prompt": "   "
+                    }
+                ),
+            ]
         )
     )
 
     with pytest.raises(
-        ValueError,
-        match="aucun prompt candidat",
+        PromptGenerationError,
+        match="prompt est vide",
     ):
         await generator.generate(
             optimization_context={},
-            candidate_count=2,
+            candidate_count=1,
         )
         
 def test_normalize_prompt_template_escapes_literal_json_braces():
@@ -347,3 +407,112 @@ Contenu :
     assert "Contact" in formatted
     assert "Nous contacter" in formatted
     assert "Téléphone et e-mail." in formatted
+
+@pytest.mark.asyncio
+async def test_generator_rejects_duplicate_after_retry():
+    generator = PromptCandidateGenerator(
+        llm=FakeLLM(
+            [
+                json.dumps(
+                    {
+                        "prompt": "Même prompt"
+                    }
+                ),
+                json.dumps(
+                    {
+                        "prompt": "Même prompt"
+                    }
+                ),
+                json.dumps(
+                    {
+                        "prompt": "Même prompt"
+                    }
+                ),
+            ]
+        )
+    )
+
+    with pytest.raises(
+        PromptGenerationError,
+        match=(
+            "Échec sur candidate_002"
+        ),
+    ) as error_info:
+        await generator.generate(
+            optimization_context={},
+            candidate_count=2,
+        )
+
+    assert (
+        "prompt dupliqué"
+        in str(
+            error_info.value
+        )
+    )
+
+@pytest.mark.asyncio
+async def test_generator_generates_one_candidate_per_call():
+    llm = FakeLLM(
+        [
+            json.dumps(
+                {
+                    "prompt": (
+                        "Prompt A "
+                        "{title} "
+                        "{heading} "
+                        "{content}"
+                    )
+                }
+            ),
+            json.dumps(
+                {
+                    "prompt": (
+                        "Prompt B "
+                        "{title} "
+                        "{heading} "
+                        "{content}"
+                    )
+                }
+            ),
+            json.dumps(
+                {
+                    "prompt": (
+                        "Prompt C "
+                        "{title} "
+                        "{heading} "
+                        "{content}"
+                    )
+                }
+            ),
+        ]
+    )
+
+    generator = PromptCandidateGenerator(
+        llm=llm
+    )
+
+    candidates = (
+        await generator.generate(
+            optimization_context={},
+            candidate_count=3,
+        )
+    )
+
+    assert len(candidates) == 3
+
+    assert llm.calls == 3
+
+    assert (
+        candidates[0].name
+        == "candidate_001"
+    )
+
+    assert (
+        candidates[1].name
+        == "candidate_002"
+    )
+
+    assert (
+        candidates[2].name
+        == "candidate_003"
+    )

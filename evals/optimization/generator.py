@@ -14,100 +14,188 @@ from evals.optimization.models import (
 )
 
 
+CANDIDATE_STRATEGIES = (
+    """
+Adopte une stratégie équilibrée.
+
+Cherche à améliorer globalement :
+- l'exactitude de relevant ;
+- la distinction entre true, false et null ;
+- la conservation des comportements déjà corrects.
+
+Évite de surcorriger une catégorie d'erreurs au détriment des autres.
+""".strip(),
+
+    """
+Concentre particulièrement ce candidat sur la gestion des preuves
+insuffisantes.
+
+Le prompt doit aider le modèle à distinguer :
+- une contradiction réelle, qui peut justifier false ;
+- une correspondance claire, qui peut justifier true ;
+- une absence réelle d'informations suffisantes, qui doit conduire à null.
+
+Évite les verdicts forcés lorsque le contenu est incomplet, ambigu,
+corrompu, principalement constitué de navigation ou encore en chargement,
+sans pour autant utiliser null lorsqu'une conclusion est clairement possible.
+""".strip(),
+
+    """
+Concentre particulièrement ce candidat sur la calibration de confidence
+et la prévention des erreurs critiques.
+
+Le prompt doit :
+- encourager high uniquement lorsque les preuves sont réellement fortes ;
+- éviter une confiance élevée lorsqu'il existe une contradiction,
+  une ambiguïté ou une information insuffisante ;
+- conserver une confiance élevée sur les cas clairement déterminables ;
+- ne pas confondre incertitude sur relevant et manque total de confiance
+  dans le verdict choisi.
+""".strip(),
+)
+
+
 OPTIMIZER_PROMPT = """
 Tu dois améliorer un prompt utilisé par AccessiCode pour déterminer
-si le titre HTML d'une page est pertinent par rapport à son contenu.
+si le titre HTML d'une page permet d'identifier correctement son contenu.
 
 Tu reçois :
 - le prompt de production actuel ;
-- des erreurs représentatives observées sur le dataset TRAIN ;
-- quelques exemples déjà correctement traités.
+- des erreurs représentatives observées uniquement sur le dataset TRAIN ;
+- quelques exemples déjà correctement traités ;
+- une stratégie particulière à suivre pour ce candidat.
 
-Tu dois produire exactement {candidate_count} nouveau(x) prompt(s)
-COMPLET(S) et AUTONOME(S).
+Tu dois produire UN SEUL nouveau prompt COMPLET, AUTONOME.
 
-OBJECTIFS :
+STRATÉGIE IMPOSÉE POUR CE CANDIDAT :
+
+{strategy}
+
+OBJECTIFS GÉNÉRAUX :
 - améliorer l'exactitude de relevant ;
+- préserver les comportements déjà corrects ;
 - distinguer une page réellement identifiée par son titre d'une page
   seulement liée au même thème ;
-- tenir compte des différences importantes comme une action, une étape,
-  un identifiant, un numéro de page ou une ressource précise ;
+- détecter les incohérences importantes portant notamment sur une action,
+  une étape, un état, un identifiant, une date, une pagination,
+  une ressource ou toute autre information distinctive ;
 - utiliser relevant=null lorsque les informations disponibles sont
   réellement insuffisantes pour conclure ;
+- ne pas forcer true ou false lorsque le contenu est trop incomplet,
+  ambigu, corrompu, principalement constitué de navigation,
+  ou encore en cours de chargement ;
 - ne pas utiliser null lorsque les informations permettent clairement
   de conclure ;
 - mieux calibrer confidence ;
-- éviter les erreurs à haute confiance ;
-- préserver les comportements déjà corrects.
+- éviter particulièrement les verdicts incorrects avec une confiance élevée.
 
-RÈGLES IMPORTANTES :
-- ne mémorise pas les exemples du dataset ;
-- ne cite jamais les identifiants des cas ;
-- ne transforme pas un nom, une date, un produit, une ville,
-  un numéro ou une valeur précise du dataset en règle générale ;
-- n'écris aucune analyse de ton travail ;
-- n'écris aucune justification séparée ;
-- chaque prompt candidat doit être directement utilisable.
+RÈGLE FONDAMENTALE DE GÉNÉRALISATION :
 
-Le prompt candidat sera ensuite interprété par Python avec str.format().
+Les exemples du dataset TRAIN servent uniquement à identifier des
+principes généraux.
 
-Dans le prompt candidat final, les trois variables obligatoires sont exactement :
-- {{title}}
-- {{heading}}
-- {{content}}
+Tu ne dois JAMAIS mémoriser ou recopier dans un prompt candidat une
+valeur précise provenant des exemples TRAIN.
 
-Ces trois variables doivent réellement être substituables par str.format().
+En particulier :
+- ne cite aucun identifiant de cas ;
+- ne cite aucun nom de site ou de service observé dans TRAIN ;
+- ne cite aucun titre exact observé dans TRAIN ;
+- ne cite aucun produit, ville, personne, numéro, date, identifiant
+  ou valeur spécifique provenant de TRAIN ;
+- ne transforme pas un exemple particulier en exception spéciale ;
+- ne crée pas une règle disant qu'un type précis de page reçoit
+  automatiquement true ou false simplement parce qu'un exemple TRAIN
+  appartenait à ce type.
 
-Toutes les autres accolades littérales présentes dans le prompt candidat,
-notamment celles utilisées pour montrer un objet JSON, doivent être doublées.
+Exemple de mauvaise généralisation :
+"Le titre X doit être considéré comme faux."
 
-Par exemple, si le prompt candidat contient un exemple de réponse JSON,
-il doit contenir exactement :
+Exemple de bonne généralisation :
+"Un titre constitué uniquement du nom du site ne suffit pas forcément
+à identifier le contenu spécifique de la page."
 
-{{{{
-  "relevant": true,
-  "explanation": "explication courte",
-  "contradictions": [],
-  "uncertainties": [],
-  "confidence": "high"
-}}}}
+Autre exemple de mauvaise généralisation :
+"Une page d'erreur doit toujours être considérée comme non pertinente."
 
-et non des accolades JSON simples.
+Exemple de bonne généralisation :
+"Un titre décrivant correctement l'état réel d'une page peut être pertinent ;
+le verdict doit dépendre de la correspondance entre le titre et le contenu,
+et non du type de page."
 
-Le prompt candidat doit demander au modèle analysé de répondre avec
-le même schéma JSON que le prompt actuel :
+Pour chaque erreur TRAIN, cherche donc la règle générale expliquant
+l'erreur plutôt que de recopier l'exemple.
 
-- relevant : true, false ou null ;
-- explanation : chaîne courte ;
-- contradictions : tableau de chaînes ;
-- uncertainties : tableau de chaînes ;
-- confidence : "low", "medium" ou "high".
+CONTRAINTES DU PROMPT CANDIDAT :
+
+Chaque prompt candidat doit :
+- être directement utilisable ;
+- contenir exactement les trois variables suivantes :
+  {{title}}
+  {{heading}}
+  {{content}}
+- demander une réponse JSON uniquement ;
+- utiliser exactement les champs :
+  relevant
+  explanation
+  contradictions
+  uncertainties
+  confidence
+- rester concis : chaque prompt candidat doit idéalement tenir en moins
+  de 500 mots ;
+- ne pas ajouter d'exemples spécifiques si une règle générale suffit ;
+- éviter les répétitions entre les différentes consignes du prompt.
+
+Le champ relevant doit pouvoir valoir :
+- true ;
+- false ;
+- null.
+
+Le champ confidence doit pouvoir valoir uniquement :
+- "low" ;
+- "medium" ;
+- "high".
 
 confidence représente la confiance dans la valeur choisie pour relevant.
 
+IMPORTANT :
 relevant=null signifie que les informations disponibles sont réellement
-insuffisantes pour décider.
-Cela ne signifie pas automatiquement confidence=low.
+insuffisantes pour déterminer si le titre est pertinent.
 
-Le système d'évaluation utilise une vérité humaine.
-N'essaie pas de contourner l'évaluation.
+Cela ne signifie PAS automatiquement confidence=low.
+
+Par exemple, si les données sont manifestement insuffisantes,
+le modèle peut être très certain que le bon verdict est null.
+
+Le prompt candidat doit également demander une explication courte.
+Il ne doit pas encourager les longues analyses, les répétitions
+ou le texte en dehors du JSON.
+
+Le code AccessiCode normalisera lui-même les accolades nécessaires
+à l'utilisation ultérieure avec Python str.format().
+Tu n'as donc pas besoin d'échapper spécialement les accolades JSON.
+
+IMPORTANT :
+- n'écris aucune analyse de ton travail ;
+- n'écris aucune justification séparée des candidats ;
+- n'essaie pas de contourner le système d'évaluation ;
+- le système utilise une vérité humaine indépendante.
 
 Voici le contexte issu exclusivement du dataset TRAIN :
 
 {optimization_context}
 
-Réponds UNIQUEMENT avec un objet JSON valide sous cette forme :
+{retry_instruction}
+
+Réponds UNIQUEMENT avec un objet JSON valide de cette forme :
 
 {{
-  "candidates": [
-    {{
-      "prompt": "prompt complet"
-    }}
-  ]
+  "prompt": "prompt complet"
 }}
 
 Aucun Markdown.
 Aucun texte avant ou après le JSON.
+Aucun champ supplémentaire.
 """.strip()
 
 
@@ -250,35 +338,8 @@ class PromptCandidateGenerator:
     ) -> list[GeneratedPromptCandidate]:
         if candidate_count < 1:
             raise ValueError(
-                "candidate_count doit être supérieur ou égal à 1."
-            )
-
-        prompt = OPTIMIZER_PROMPT.format(
-            candidate_count=candidate_count,
-            optimization_context=json.dumps(
-                optimization_context,
-                ensure_ascii=False,
-                indent=2,
-            ),
-        )
-
-        data, raw_response = (
-            await self._generate_json(
-                prompt
-            )
-        )
-
-        raw_candidates = data.get(
-            "candidates"
-        )
-
-        if not isinstance(
-            raw_candidates,
-            list,
-        ):
-            raise ValueError(
-                "La réponse de l'optimiseur doit contenir "
-                "une liste 'candidates'."
+                "candidate_count doit être "
+                "supérieur ou égal à 1."
             )
 
         candidates: list[
@@ -287,17 +348,107 @@ class PromptCandidateGenerator:
 
         seen_templates: set[str] = set()
 
+        raw_responses: list[str] = []
+
+        parsed_responses: dict[
+            str,
+            Any,
+        ] = {}
+
         rejection_reasons: list[str] = []
 
-        for index, raw_candidate in enumerate(
-            raw_candidates,
-            start=1,
+        context_json = json.dumps(
+            optimization_context,
+            ensure_ascii=False,
+            indent=2,
+        )
+
+        for index in range(
+            candidate_count
         ):
-            if isinstance(
-                raw_candidate,
-                dict,
-            ):
-                template = raw_candidate.get(
+            candidate_name = (
+                f"candidate_{index + 1:03d}"
+            )
+
+            strategy = (
+                self._get_strategy(
+                    index
+                )
+            )
+
+            candidate_created = False
+
+            #
+            # Deux tentatives maximum pour un candidat.
+            #
+            # _generate_json possède déjà son propre retry
+            # pour les erreurs JSON/réseau.
+            #
+            # Ici, cette boucle sert aux réponses valides
+            # mais inutilisables : prompt absent, vide
+            # ou dupliqué.
+            #
+            for candidate_attempt in range(2):
+                if candidate_attempt == 0:
+                    retry_instruction = ""
+                else:
+                    retry_instruction = """
+    ATTENTION :
+    La tentative précédente pour ce candidat était
+    inexploitable ou trop proche d'un candidat déjà généré.
+
+    Produis cette fois un prompt complet, valide et
+    réellement différent, tout en respectant la stratégie.
+    """.strip()
+
+                prompt = OPTIMIZER_PROMPT.format(
+                    strategy=strategy,
+                    optimization_context=(
+                        context_json
+                    ),
+                    retry_instruction=(
+                        retry_instruction
+                    ),
+                )
+
+                try:
+                    data, raw_response = (
+                        await self._generate_json(
+                            prompt,
+                            max_tokens=1500,
+                        )
+                    )
+
+                except RuntimeError as error:
+                    rejection_reasons.append(
+                        (
+                            f"{candidate_name} "
+                            f"(tentative "
+                            f"{candidate_attempt + 1}) : "
+                            f"{error}"
+                        )
+                    )
+
+                    continue
+
+                raw_responses.append(
+                    (
+                        f"===== {candidate_name} "
+                        f"/ tentative "
+                        f"{candidate_attempt + 1} =====\n"
+                        f"{raw_response}"
+                    )
+                )
+
+                parsed_responses[
+                    (
+                        f"{candidate_name}_"
+                        f"attempt_"
+                        f"{candidate_attempt + 1}"
+                    )
+                ] = data
+
+                template = data.get(
                     "prompt"
                 )
 
@@ -305,105 +456,104 @@ class PromptCandidateGenerator:
                     template,
                     str,
                 ):
-                    template = raw_candidate.get(
-                        "template"
+                    rejection_reasons.append(
+                        (
+                            f"{candidate_name} "
+                            f"(tentative "
+                            f"{candidate_attempt + 1}) : "
+                            "aucun champ 'prompt' "
+                            "contenant une chaîne."
+                        )
                     )
 
-            elif isinstance(
-                raw_candidate,
-                str,
-            ):
-                template = raw_candidate
+                    continue
 
-            else:
-                rejection_reasons.append(
-                    f"Candidat {index} : "
-                    "le candidat n'est ni un objet JSON "
-                    "ni une chaîne."
+                template = template.strip()
+
+                if not template:
+                    rejection_reasons.append(
+                        (
+                            f"{candidate_name} "
+                            f"(tentative "
+                            f"{candidate_attempt + 1}) : "
+                            "le prompt est vide."
+                        )
+                    )
+
+                    continue
+
+                template = (
+                    normalize_prompt_template(
+                        template
+                    )
                 )
 
-                continue
+                if template in seen_templates:
+                    rejection_reasons.append(
+                        (
+                            f"{candidate_name} "
+                            f"(tentative "
+                            f"{candidate_attempt + 1}) : "
+                            "prompt dupliqué."
+                        )
+                    )
 
-            if not isinstance(
-                template,
-                str,
-            ):
-                rejection_reasons.append(
-                    f"Candidat {index} : "
-                    "aucun champ 'prompt' ou 'template' "
-                    "contenant une chaîne."
+                    continue
+
+                seen_templates.add(
+                    template
                 )
 
-                continue
-
-            template = template.strip()
-
-            if not template:
-                rejection_reasons.append(
-                    f"Candidat {index} : "
-                    "le prompt est vide."
+                candidates.append(
+                    GeneratedPromptCandidate(
+                        name=candidate_name,
+                        template=template,
+                        rationale="",
+                    )
                 )
 
-                continue
-            
-            template = normalize_prompt_template(
-                template
-            )
+                candidate_created = True
 
-            if template in seen_templates:
-                rejection_reasons.append(
-                    f"Candidat {index} : "
-                    "prompt dupliqué."
-                )
-
-                continue
-
-            seen_templates.add(
-                template
-            )
-
-            candidates.append(
-                GeneratedPromptCandidate(
-                    name=(
-                        f"candidate_"
-                        f"{len(candidates) + 1:03d}"
-                    ),
-                    template=template,
-                    rationale="",
-                )
-            )
-
-            if len(candidates) >= candidate_count:
                 break
 
-        if not candidates:
-            details = "\n".join(
-                f"- {reason}"
-                for reason in rejection_reasons
-            )
+            if not candidate_created:
+                details = "\n".join(
+                    f"- {reason}"
+                    for reason in rejection_reasons
+                )
 
-            raise PromptGenerationError(
-                (
-                    "L'optimiseur n'a produit aucun "
-                    "prompt candidat exploitable."
-                    + (
-                        f"\n{details}"
-                        if details
-                        else ""
-                    )
-                ),
-                raw_response=raw_response,
-                parsed_data=data,
-                rejection_reasons=(
-                    rejection_reasons
-                ),
-            )
+                raise PromptGenerationError(
+                    (
+                        "L'optimiseur n'a pas réussi "
+                        "à produire tous les prompts "
+                        "candidats demandés.\n"
+                        f"Échec sur {candidate_name}."
+                        + (
+                            f"\n{details}"
+                            if details
+                            else ""
+                        )
+                    ),
+                    raw_response=(
+                        "\n\n".join(
+                            raw_responses
+                        )
+                    ),
+                    parsed_data=(
+                        parsed_responses
+                    ),
+                    rejection_reasons=(
+                        rejection_reasons
+                    ),
+                )
 
         return candidates
 
     async def _generate_json(
         self,
         prompt: str,
+        *,
+        max_tokens: int,
     ) -> tuple[
         dict[str, Any],
         str,
@@ -415,7 +565,7 @@ class PromptCandidateGenerator:
                 response = await self.llm.generate(
                     prompt,
                     format="json",
-                    max_tokens=1200,
+                    max_tokens=max_tokens,
                     temperature=0,
                 )
 
@@ -446,3 +596,22 @@ class PromptCandidateGenerator:
             "exploitable de l'optimiseur : "
             f"{last_error}"
         ) from last_error
+    
+    @staticmethod
+    def _get_strategy(
+        index: int,
+    ) -> str:
+        if index < len(
+            CANDIDATE_STRATEGIES
+        ):
+            return (
+                CANDIDATE_STRATEGIES[index]
+            )
+
+        return (
+            "Propose une stratégie complémentaire "
+            "différente des stratégies précédentes. "
+            "Cherche un autre compromis général entre "
+            "exactitude, utilisation de null et "
+            "calibration de confidence."
+        )

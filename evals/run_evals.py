@@ -55,6 +55,17 @@ def parse_args() -> argparse.Namespace:
             "du prompt de production."
         ),
     )
+    
+    parser.add_argument(
+        "--llm-model",
+        type=str,
+        default=None,
+        help=(
+            "Modèle textuel Ollama à utiliser "
+            "pour l'évaluation. "
+            "Par défaut, utilise settings.LLM_MODEL."
+        ),
+    )
 
     return parser.parse_args()
 
@@ -226,6 +237,12 @@ def print_summary(
 async def main() -> None:
     args = parse_args()
     
+    evaluation_model = (
+        args.llm_model
+        if args.llm_model is not None
+        else settings.LLM_MODEL
+    )
+    
     if args.concurrency < 1:
         raise SystemExit(
             "--concurrency doit être supérieur ou égal à 1."
@@ -233,7 +250,7 @@ async def main() -> None:
 
     services = build_default_audit_services(
         ollama_host=settings.OLLAMA_HOST,
-        llm_model=settings.LLM_MODEL,
+        llm_model=evaluation_model,
         vlm_model=settings.VLM_MODEL,
     )
 
@@ -297,6 +314,11 @@ async def main() -> None:
     print(f"Cases      : {len(cases)}")
     
     print(f"Concurrency: {args.concurrency}")
+    
+    print(
+        "Modèle textuel évalué : "
+        f"{evaluation_model}"
+    )
 
     print("=" * 60)
     print()

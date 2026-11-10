@@ -231,7 +231,7 @@ async def test_optimizer_never_exposes_validation_to_generator(
 ):
     train_cases = [
         create_case(
-            "TRAIN_SECRET_CASE",
+            "train_case",
             expected=False,
             production_actual=True,
             candidate_actual=False,
@@ -240,9 +240,13 @@ async def test_optimizer_never_exposes_validation_to_generator(
         ),
     ]
 
+    train_cases[0].input_data[
+        "title"
+    ] = "TRAIN_VISIBLE_CONTENT"
+
     validation_cases = [
         create_case(
-            "VALIDATION_MUST_NOT_BE_VISIBLE",
+            "validation_case",
             expected=False,
             production_actual=True,
             candidate_actual=False,
@@ -250,6 +254,12 @@ async def test_optimizer_never_exposes_validation_to_generator(
             candidate_confidence="high",
         ),
     ]
+
+    validation_cases[0].input_data[
+        "title"
+    ] = (
+        "VALIDATION_MUST_NOT_BE_VISIBLE"
+    )
 
     generator = FakeGenerator(
         [
@@ -294,11 +304,17 @@ async def test_optimizer_never_exposes_validation_to_generator(
         generator.received_context
     )
 
+    #
+    # TRAIN doit être visible par l'optimiseur.
+    #
     assert (
-        "TRAIN_SECRET_CASE"
+        "TRAIN_VISIBLE_CONTENT"
         in context_as_text
     )
 
+    #
+    # VALIDATION ne doit jamais être exposé.
+    #
     assert (
         "VALIDATION_MUST_NOT_BE_VISIBLE"
         not in context_as_text
