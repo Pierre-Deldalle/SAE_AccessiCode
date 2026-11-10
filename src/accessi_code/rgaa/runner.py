@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Awaitable, Callable
 from typing import Any
 
 from accessi_code.models.audit_context import AuditContext
@@ -10,6 +11,9 @@ from accessi_code.models.result import (
 )
 from accessi_code.rgaa.base import RGAATest
 from accessi_code.rgaa.registry import TestRegistry
+
+# Appelé après chaque test : (tests terminés, total, résultat du test).
+ProgressCallback = Callable[[int, int, TestResult], Awaitable[None] | None]
 
 
 class TestRunner:
@@ -36,11 +40,15 @@ class TestRunner:
     async def run_all(
         self,
         context: AuditContext,
+        on_progress: ProgressCallback | None = None,
     ) -> list[TestResult]:
         """
         Exécute tous les tests du registre dans leur ordre d'enregistrement.
+
+        Si ``on_progress`` est fourni, il est appelé après chaque test.
         """
         results: list[TestResult] = []
+        total = len(self.registry)
 
         for test in self.registry:
             result = await self._run_test(
@@ -50,7 +58,31 @@ class TestRunner:
 
             results.append(result)
 
+            if on_progress is not None:
+                await self._notify(on_progress, len(results), total, result)
+
         return results
+
+    @staticmethod
+    async def _notify(
+        on_progress: ProgressCallback,
+        done: int,
+        total: int,
+        result: TestResult,
+    ) -> None:
+        """
+        Prévient l'appelant de l'avancement.
+
+        Une erreur dans le suivi de progression ne doit jamais interrompre l'audit.
+        """
+        try:
+            outcome = on_progress(done, total, result)
+            if asyncio.iscoroutine(outcome):
+                await outcome
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            pass
 
     async def _run_test(
         self,
