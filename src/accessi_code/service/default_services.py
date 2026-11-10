@@ -3,10 +3,10 @@ from __future__ import annotations
 from accessi_code.ai.analyzers.image_analyzer import (
     OllamaImageAnalyzer,
 )
+from accessi_code.ai.analyzers.mandatory_analyzer import OllamaMandatoryAnalyzer
 from accessi_code.ai.analyzers.page_analyzer import (
     OllamaPageAnalyzer,
 )
-from accessi_code.ai.analyzers.mandatory_analyzer import OllamaMandatoryAnalyzer
 from accessi_code.ai.clients.llm import OllamaLLM
 from accessi_code.ai.clients.vlm import OllamaVLM
 from accessi_code.service.audit_services import (

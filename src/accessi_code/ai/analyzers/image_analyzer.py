@@ -12,7 +12,6 @@ import aiohttp
 from accessi_code.ai.clients.llm import OllamaLLM
 from accessi_code.ai.clients.vlm import OllamaVLM
 from accessi_code.ai.json_utils import parse_ai_json
-from accessi_code.ai.text_safety import clean_explanation
 from accessi_code.ai.prompts.images import (
     DETAILED_DESCRIPTION_PROMPT,
     IMAGE_ELEMENT_ROLE_PROMPT,
@@ -25,6 +24,7 @@ from accessi_code.ai.schemas import (
     ImageRoleAnalysis,
     VisualObservation,
 )
+from accessi_code.ai.text_safety import clean_explanation
 from accessi_code.analysis.images import (
     DetailedDescription,
     ImageInfo,
