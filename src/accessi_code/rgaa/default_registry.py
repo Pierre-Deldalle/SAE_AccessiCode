@@ -223,6 +223,9 @@ from accessi_code.rgaa.tests.theme_13_consultation.criterion_13_4 import (
 from accessi_code.rgaa.tests.theme_13_consultation.criterion_13_5 import (
     Test1351,
 )
+from accessi_code.rgaa.tests.theme_13_consultation.criterion_13_6 import (
+    Test1361,
+)
 
 
 def build_default_registry() -> TestRegistry:
@@ -341,5 +344,6 @@ def build_default_registry() -> TestRegistry:
             Test1331(),
             Test1341(),
             Test1351(),
+            Test1361(),
         ]
     )
