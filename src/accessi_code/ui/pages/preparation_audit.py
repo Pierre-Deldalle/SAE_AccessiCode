@@ -2,26 +2,13 @@
 
 import gradio as gr
 
+from accessi_code.rgaa.themes import RGAA_THEMES as RGAA_THEME_CATALOG
 from accessi_code.ui.components.bouton_component import create_button
 from accessi_code.ui.components.file_drop_component import create_file_drop
 from accessi_code.ui.components.texte_box_component import create_textbox
 
-# Les noms et l'ordre suivent les 13 thématiques RGAA.
-RGAA_THEMES = (
-    "1. Images",
-    "2. Cadres",
-    "3. Couleurs",
-    "4. Multimédia",
-    "5. Tableaux",
-    "6. Liens",
-    "7. Scripts",
-    "8. Éléments obligatoires",
-    "9. Structuration de l'information",
-    "10. Présentation de l'information",
-    "11. Formulaires",
-    "12. Navigation",
-    "13. Consultation",
-)
+# Libellés « N. Nom » issus du catalogue officiel des 13 thématiques.
+RGAA_THEMES = tuple(theme.label for theme in RGAA_THEME_CATALOG)
 
 # Ordres de grandeur provisoires, en secondes, à recalibrer avec des audits réels.
 # Il ne s'agit PAS de temps mesurés ou garantis par le moteur RGAA.
@@ -74,11 +61,7 @@ def estimated_audit_time(selected_themes: list[str] | None, files: object = None
 
     # Une page est comptée même si le contenu provient d'une URL.
     page_count = max(1, count)
-    duration = page_count * sum(
-        ESTIMATED_SECONDS_BY_THEME[theme]
-        for theme in RGAA_THEMES
-        if theme in selected
-    )
+    duration = page_count * sum(ESTIMATED_SECONDS_BY_THEME[theme] for theme in RGAA_THEMES if theme in selected)
     return (
         f"⏱️ **Temps estimé : environ {_format_duration(duration)}**  "
         "\n*Estimation indicative, non mesurée. "
@@ -129,8 +112,7 @@ def build_preparation_audit_page():
                 elem_id="rgaa-themes-title",
             )
             gr.Markdown(
-                "Sélectionnez les thématiques à inclure dans le futur audit. "
-                "Toutes sont cochées par défaut.",
+                "Sélectionnez les thématiques à inclure dans l'audit. Toutes sont cochées par défaut.",
                 elem_id="rgaa-themes-description",
             )
 
@@ -160,6 +142,8 @@ def build_preparation_audit_page():
                 estimated_audit_time(list(RGAA_THEMES)),
                 elem_id="audit-estimated-time",
             )
+            # Message affiché si l'audit ne peut pas être lancé.
+            audit_error = gr.Markdown("", visible=False, elem_id="audit-error-message")
 
         help_button = create_button("?", elem_id="help-button")
 
@@ -199,4 +183,5 @@ def build_preparation_audit_page():
         validate_button,
         help_button,
         selected_themes,
+        audit_error,
     )

@@ -637,3 +637,20 @@
     #file-drop-zone > div,
     #file-drop-zone .wrap { min-height: 155px !important; }
 }
+
+/* Message d'erreur affiché si l'audit ne peut pas être lancé. */
+#audit-error-message {
+    max-width: 640px;
+    margin: 8px auto 0 auto;
+    padding: 10px 14px;
+    border-left: 4px solid #b91c1c;
+    border-radius: 6px;
+    background: #fef2f2;
+}
+
+#audit-error-message,
+#audit-error-message p,
+#audit-error-message strong {
+    color: #17212b !important;
+    opacity: 1 !important;
+}
