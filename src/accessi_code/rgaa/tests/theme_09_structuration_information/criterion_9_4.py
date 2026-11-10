@@ -17,12 +17,12 @@ def _is_visible_element(element: Tag) -> bool:
     Vérifie si un élément est visible (pas caché par attribut hidden ou style display:none).
     """
     # Vérifier l'attribut hidden
-    if element.has_attr('hidden'):
+    if element.has_attr("hidden"):
         return False
 
     # Vérifier le style display:none (simplifié)
-    style = element.get('style', '')
-    if isinstance(style, str) and 'display:none' in style.replace(' ', '').lower():
+    style = element.get("style", "")
+    if isinstance(style, str) and "display:none" in style.replace(" ", "").lower():
         return False
 
     return True
@@ -32,6 +32,7 @@ class Test941(RGAATest):
     """
     Test 9.4.1 : Dans chaque page web, chaque citation courte utilise-t-elle une balise <q> ?
     """
+
     test_id = "9.4.1"
     criterion_id = "9.4"
 
@@ -46,7 +47,7 @@ class Test941(RGAATest):
         context: AuditContext,
         services: object | None = None,
     ) -> TestResult:
-        if not hasattr(context, 'dom'):
+        if not hasattr(context, "dom"):
             raise ValueError("Le test 9.4.1 nécessite un DOM.")
 
         soup = context.dom
@@ -59,7 +60,7 @@ class Test941(RGAATest):
         # Mais on peut au moins vérifier que les balises <q> existantes sont bien utilisées
 
         # Vérifier que toutes les balises <q> sont bien utilisées (contiennent du texte)
-        q_elements = soup.find_all('q')
+        q_elements = soup.find_all("q")
         visible_q_elements = [q for q in q_elements if _is_visible_element(q)]
 
         for index, q_element in enumerate(visible_q_elements):
@@ -67,17 +68,13 @@ class Test941(RGAATest):
             q_text = q_element.get_text(strip=True)
             if not q_text:
                 element_id = (
-                    f"q#{q_element.get('id')}"
-                    if q_element.get('id')
-                    else f"q[{visible_q_elements.index(q_element)}]"
+                    f"q#{q_element.get('id')}" if q_element.get("id") else f"q[{visible_q_elements.index(q_element)}]"
                 )
                 findings.append(
                     Finding(
                         element=element_id,
                         message="La balise <q> est vide.",
-                        recommendation=(
-                            "La balise <q> doit contenir le texte de la citation courte."
-                        ),
+                        recommendation=("La balise <q> doit contenir le texte de la citation courte."),
                     )
                 )
 
@@ -105,10 +102,7 @@ class Test941(RGAATest):
             test_id=self.test_id,
             criterion_id=self.criterion_id,
             status=status,
-            summary=(
-                f"Analyse des balises <q> : "
-                f"{len(visible_q_elements)} balise(s) <q> visible(s) détectée(s)."
-            ),
+            summary=(f"Analyse des balises <q> : {len(visible_q_elements)} balise(s) <q> visible(s) détectée(s)."),
             findings=findings,
             tested_elements=len(visible_q_elements),
             metadata={
@@ -122,6 +116,7 @@ class Test942(RGAATest):
     """
     Test 9.4.2 : Dans chaque page web, chaque bloc de citation utilise-t-il une balise <blockquote> ?
     """
+
     test_id = "9.4.2"
     criterion_id = "9.4"
 
@@ -136,14 +131,14 @@ class Test942(RGAATest):
         context: AuditContext,
         services: object | None = None,
     ) -> TestResult:
-        if not hasattr(context, 'dom'):
+        if not hasattr(context, "dom"):
             raise ValueError("Le test 9.4.2 nécessite un DOM.")
 
         soup = context.dom
         findings: list[Finding] = []
 
         # Trouver toutes les balises <blockquote>
-        blockquote_elements = soup.find_all('blockquote')
+        blockquote_elements = soup.find_all("blockquote")
         visible_blockquote_elements = [bq for bq in blockquote_elements if _is_visible_element(bq)]
 
         for index, blockquote_element in enumerate(visible_blockquote_elements):
@@ -152,16 +147,14 @@ class Test942(RGAATest):
             if not blockquote_text:
                 element_id = (
                     f"blockquote#{blockquote_element.get('id')}"
-                    if blockquote_element.get('id')
+                    if blockquote_element.get("id")
                     else f"blockquote[{visible_blockquote_elements.index(blockquote_element)}]"
                 )
                 findings.append(
                     Finding(
                         element=element_id,
                         message="La balise <blockquote> est vide.",
-                        recommendation=(
-                            "La balise <blockquote> doit contenir le texte de la citation longue."
-                        ),
+                        recommendation=("La balise <blockquote> doit contenir le texte de la citation longue."),
                     )
                 )
 
@@ -170,14 +163,13 @@ class Test942(RGAATest):
             # Une balise <blockquote> devrait idéalement contenir soit du texte, soit des éléments blocs
             children = list(blockquote_element.children)
             non_whitespace_children = [
-                child for child in children
-                if not (isinstance(child, str) and child.strip() == "")
+                child for child in children if not (isinstance(child, str) and child.strip() == "")
             ]
 
             if not non_whitespace_children:
                 element_id = (
                     f"blockquote#{blockquote_element.get('id')}"
-                    if blockquote_element.get('id')
+                    if blockquote_element.get("id")
                     else f"blockquote[{visible_blockquote_elements.index(blockquote_element)}]"
                 )
                 findings.append(
@@ -223,9 +215,7 @@ class Test942(RGAATest):
             tested_elements=len(visible_blockquote_elements),
             metadata={
                 "total_blockquote_tags": len(visible_blockquote_elements),
-                "empty_blockquote_tags": len(
-                    [f for f in findings if "La balise <blockquote> est vide." in f.message]
-                ),
+                "empty_blockquote_tags": len([f for f in findings if "La balise <blockquote> est vide." in f.message]),
                 "blockquote_without_content": len(
                     [f for f in findings if "La balise <blockquote> ne contient aucun contenu." in f.message]
                 ),

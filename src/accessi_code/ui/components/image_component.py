@@ -24,10 +24,8 @@ def create_image(
         show_label=False,
         interactive=False,
         container=False,
-
         # Masque les boutons d'action affichés par défaut sur l'image.
         buttons=[],
-
         # Permet de cibler facilement le composant dans le CSS.
         elem_id=elem_id,
         elem_classes=elem_classes,

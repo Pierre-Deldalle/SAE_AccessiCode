@@ -1,7 +1,4 @@
-from types import SimpleNamespace
-from unittest.mock import AsyncMock
 
-import pytest
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_09_structuration_information.criterion_9_1 import (
@@ -253,4 +250,7 @@ def test_913_missing_heading_structure_not_detected_deterministically(context_fa
     assert result.tested_elements == 1  # Seul le h2 est compté comme titre
     # Le résumé devrait mentionner la limitation
     if result.metadata and "note" in result.metadata:
-        assert "titres manquants" in result.metadata["note"].lower() or "vérification manuelle" in result.metadata["note"].lower()
+        assert (
+            "titres manquants" in result.metadata["note"].lower()
+            or "vérification manuelle" in result.metadata["note"].lower()
+        )

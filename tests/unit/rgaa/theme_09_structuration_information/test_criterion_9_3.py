@@ -1,7 +1,11 @@
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_09_structuration_information.criterion_9_3 import (
     Test931 as RGAA931,
+)
+from accessi_code.rgaa.tests.theme_09_structuration_information.criterion_9_3 import (
     Test932 as RGAA932,
+)
+from accessi_code.rgaa.tests.theme_09_structuration_information.criterion_9_3 import (
     Test933 as RGAA933,
 )
 

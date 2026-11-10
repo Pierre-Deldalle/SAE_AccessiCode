@@ -16,10 +16,8 @@ def create_button(
 
     return gr.Button(
         value=text,
-
         # Définit le style général du bouton dans Gradio.
         variant=variant,
-
         # Permet de cibler le bouton dans le CSS.
         elem_id=elem_id,
         elem_classes=elem_classes,

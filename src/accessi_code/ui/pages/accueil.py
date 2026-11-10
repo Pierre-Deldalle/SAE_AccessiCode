@@ -19,7 +19,6 @@ def build_accueil_page():
         elem_id="accueil-page",
         elem_classes=["page-container"],
     ) as accueil_page:
-
         # Titre affiché au-dessus du logo.
         gr.Markdown(
             "## Bienvenue sur",

@@ -1,7 +1,4 @@
-from types import SimpleNamespace
-from unittest.mock import AsyncMock
 
-import pytest
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_09_structuration_information.criterion_9_4 import (

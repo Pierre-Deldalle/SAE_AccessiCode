@@ -1,4 +1,3 @@
-
 """Construit la page d'explications de l'application AccessiCode."""
 
 from pathlib import Path
@@ -20,7 +19,6 @@ def build_explications_page():
         elem_id="explications-page",
         elem_classes=["page-container"],
     ) as explications_page:
-
         # Navigation vers la page précédente.
         back_button = create_button(
             "← Retour",
@@ -35,7 +33,6 @@ def build_explications_page():
 
         # Présentation : texte à gauche, logo à droite.
         with gr.Row(elem_id="explications-top"):
-
             gr.Markdown(
                 """
 **AccessiCode** est une application d'aide à l'audit

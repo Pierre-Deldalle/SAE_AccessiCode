@@ -112,7 +112,9 @@ class Test911(RGAATest):
                 element_text = _get_heading_text(element)[:50]  # Limiter la longueur
                 findings.append(
                     Finding(
-                        element=f"{element.name}[index={index}]" if element.name in {"h1", "h2", "h3", "h4", "h5", "h6"} else f"[role='heading'][index={index}]",
+                        element=f"{element.name}[index={index}]"
+                        if element.name in {"h1", "h2", "h3", "h4", "h5", "h6"}
+                        else f"[role='heading'][index={index}]",
                         message=f"Hiérarchie de titres incorrecte : saut de niveau détecté (niveau {prev_level} → niveau {level}).",
                         recommendation=("Respecter l'ordre hiérarchique des titres (pas de saut de niveaux)."),
                         evidence={
@@ -200,7 +202,9 @@ class Test912(RGAATest):
             if not heading_text:
                 findings.append(
                     Finding(
-                        element=f"{element.name}[index={index}]" if element.name in {"h1", "h2", "h3", "h4", "h5", "h6"} else f"[role='heading'][index={index}]",
+                        element=f"{element.name}[index={index}]"
+                        if element.name in {"h1", "h2", "h3", "h4", "h5", "h6"}
+                        else f"[role='heading'][index={index}]",
                         message="Le titre est vide.",
                         recommendation=("Fournir un texte descriptif pour ce titre."),
                     )
@@ -212,7 +216,9 @@ class Test912(RGAATest):
             if len(heading_text.strip()) < 3:
                 findings.append(
                     Finding(
-                        element=f"{element.name}[index={index}]" if element.name in {"h1", "h2", "h3", "h4", "h5", "h6"} else f"[role='heading'][index={index}]",
+                        element=f"{element.name}[index={index}]"
+                        if element.name in {"h1", "h2", "h3", "h4", "h5", "h6"}
+                        else f"[role='heading'][index={index}]",
                         message=f"Le titre est très court ({len(heading_text)} caractère(s)) et pourrait ne pas être suffisamment descriptif.",
                         recommendation=("Vérifier manuellement la pertinence du contenu de ce titre."),
                         evidence={
@@ -227,10 +233,7 @@ class Test912(RGAATest):
         # Déterminer le statut basé sur les findings
         # Comme la pertinence du contenu est partiellement subjective,
         # on ne retourne FAIL que pour les titres clairement vides
-        empty_title_findings = [
-            f for f in findings
-            if "Le titre est vide." in f.message
-        ]
+        empty_title_findings = [f for f in findings if "Le titre est vide." in f.message]
 
         if empty_title_findings:
             status = TestStatus.FAIL
@@ -320,9 +323,13 @@ class Test913(RGAATest):
                 # Cela ne devrait pas arriver, mais au cas où
                 findings.append(
                     Finding(
-                        element=f"{element.name}[index={index}]" if element.name in {"h1", "h2", "h3", "h4", "h5", "h6"} else f"[role='heading'][index={index}]",
+                        element=f"{element.name}[index={index}]"
+                        if element.name in {"h1", "h2", "h3", "h4", "h5", "h6"}
+                        else f"[role='heading'][index={index}]",
                         message="L'élément est identifié comme titre mais ne possède pas de structure de titre valide.",
-                        recommendation=("Utiliser une balise <hx> (h1-h6) ou ajouter role='heading' avec aria-level approprié."),
+                        recommendation=(
+                            "Utiliser une balise <hx> (h1-h6) ou ajouter role='heading' avec aria-level approprié."
+                        ),
                     )
                 )
                 continue

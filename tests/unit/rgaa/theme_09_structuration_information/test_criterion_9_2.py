@@ -3,7 +3,6 @@ from accessi_code.rgaa.tests.theme_09_structuration_information.criterion_9_2 im
     Test921 as RGAA921,
 )
 
-
 HTML5_DOCTYPE = "<!DOCTYPE html>"
 HTML4_DOCTYPE = '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">'
 
@@ -196,7 +195,11 @@ def test_921_multiple_visible_mains_fails(context_factory, run_rgaa):
     assert len(result.findings) >= 1
     # Vérifier qu'il y a bien une finding concernant les multiples mains visibles
     # Using "un seul" instead of "unique" due to encoding issues in the test environment
-    main_findings = [f for f in result.findings if "main" in f.element.lower() and ("plusieurs" in f.message.lower() or "un seul" in f.message.lower())]
+    main_findings = [
+        f
+        for f in result.findings
+        if "main" in f.element.lower() and ("plusieurs" in f.message.lower() or "un seul" in f.message.lower())
+    ]
     assert len(main_findings) >= 1
     assert result.tested_elements > 0
 

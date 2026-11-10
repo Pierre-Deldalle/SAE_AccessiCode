@@ -1,4 +1,3 @@
-
 """Composant de dépôt de fichiers pour AccessiCode."""
 
 import gradio as gr
@@ -32,8 +31,7 @@ def create_file_drop(
     )
 
     gr.Markdown(
-        "**Formats pris en charge :** HTML (.html, .htm), "
-        "CSS (.css), images (.png, .jpg, .jpeg, .webp).",
+        "**Formats pris en charge :** HTML (.html, .htm), CSS (.css), images (.png, .jpg, .jpeg, .webp).",
         elem_id="file-formats-hint",
     )
 

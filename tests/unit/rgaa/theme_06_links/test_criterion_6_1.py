@@ -872,180 +872,109 @@ def test_615_no_links_not_applicable(context_factory, run_rgaa):
 
 
 def test_615_simple_text_link_passes(context_factory, run_rgaa):
-    context = context_factory(
-        '<a href="/contact">Contact</a>'
-    )
+    context = context_factory('<a href="/contact">Contact</a>')
     result = run_rgaa(RGAA615(), context)
 
     assert result.status == Status.PASS
     assert result.tested_elements == 1
 
 
-def test_615_aria_label_contains_visible_text(
-    context_factory, run_rgaa
-):
-    context = context_factory(
-        '<a href="/contact" aria-label="Contacter notre équipe">'
-        "Contact</a>"
-    )
+def test_615_aria_label_contains_visible_text(context_factory, run_rgaa):
+    context = context_factory('<a href="/contact" aria-label="Contacter notre équipe">Contact</a>')
     result = run_rgaa(RGAA615(), context)
 
     assert result.status == Status.PASS
 
 
-def test_615_aria_label_missing_visible_text_fails(
-    context_factory, run_rgaa
-):
-    context = context_factory(
-        '<a href="/contact" aria-label="Envoyer un message">'
-        "Contact</a>"
-    )
+def test_615_aria_label_missing_visible_text_fails(context_factory, run_rgaa):
+    context = context_factory('<a href="/contact" aria-label="Envoyer un message">Contact</a>')
     result = run_rgaa(RGAA615(), context)
 
     assert result.status == Status.FAIL
     assert len(result.findings) == 1
-    assert (
-        result.findings[0].evidence["visible_label"]
-        == "Contact"
-    )
+    assert result.findings[0].evidence["visible_label"] == "Contact"
 
 
-def test_615_words_must_remain_contiguous(
-    context_factory, run_rgaa
-):
-    context = context_factory(
-        '<a href="/achat" '
-        'aria-label="Commander le produit maintenant">'
-        "Commander maintenant</a>"
-    )
+def test_615_words_must_remain_contiguous(context_factory, run_rgaa):
+    context = context_factory('<a href="/achat" aria-label="Commander le produit maintenant">Commander maintenant</a>')
     result = run_rgaa(RGAA615(), context)
 
     assert result.status == Status.FAIL
 
 
-def test_615_case_difference_allowed(
-    context_factory, run_rgaa
-):
+def test_615_case_difference_allowed(context_factory, run_rgaa):
+    context = context_factory('<a href="/contact" aria-label="CONTACTER">Contacter</a>')
+    result = run_rgaa(RGAA615(), context)
+
+    assert result.status == Status.PASS
+
+
+def test_615_punctuation_difference_allowed(context_factory, run_rgaa):
+    context = context_factory('<a href="/contact" aria-label="Contact notre équipe">Contact : notre équipe</a>')
+    result = run_rgaa(RGAA615(), context)
+
+    assert result.status == Status.PASS
+
+
+def test_615_valid_aria_labelledby_passes(context_factory, run_rgaa):
     context = context_factory(
-        '<a href="/contact" aria-label="CONTACTER">'
-        "Contacter</a>"
+        '<span id="label">Contacter le service client</span><a href="/contact" aria-labelledby="label">Contacter</a>'
     )
     result = run_rgaa(RGAA615(), context)
 
     assert result.status == Status.PASS
 
 
-def test_615_punctuation_difference_allowed(
-    context_factory, run_rgaa
-):
-    context = context_factory(
-        '<a href="/contact" aria-label="Contact notre équipe">'
-        "Contact : notre équipe</a>"
-    )
-    result = run_rgaa(RGAA615(), context)
-
-    assert result.status == Status.PASS
-
-
-def test_615_valid_aria_labelledby_passes(
-    context_factory, run_rgaa
-):
-    context = context_factory(
-        '<span id="label">Contacter le service client</span>'
-        '<a href="/contact" aria-labelledby="label">'
-        "Contacter</a>"
-    )
-    result = run_rgaa(RGAA615(), context)
-
-    assert result.status == Status.PASS
-
-
-def test_615_invalid_aria_labelledby_requires_review(
-    context_factory, run_rgaa
-):
-    context = context_factory(
-        '<a href="/contact" aria-labelledby="unknown">'
-        "Contacter</a>"
-    )
+def test_615_invalid_aria_labelledby_requires_review(context_factory, run_rgaa):
+    context = context_factory('<a href="/contact" aria-labelledby="unknown">Contacter</a>')
     result = run_rgaa(RGAA615(), context)
 
     assert result.status == Status.NEEDS_REVIEW
 
 
-def test_615_symbol_requires_review(
-    context_factory, run_rgaa
-):
-    context = context_factory(
-        '<a href="/suite" aria-label="Suivant">&gt;</a>'
-    )
+def test_615_symbol_requires_review(context_factory, run_rgaa):
+    context = context_factory('<a href="/suite" aria-label="Suivant">&gt;</a>')
     result = run_rgaa(RGAA615(), context)
 
     assert result.status == Status.NEEDS_REVIEW
 
 
-def test_615_css_styled_link_requires_review(
-    context_factory, run_rgaa
-):
-    context = context_factory(
-        '<a class="link" href="/contact" '
-        'aria-label="Envoyer un message">Contact</a>'
-    )
+def test_615_css_styled_link_requires_review(context_factory, run_rgaa):
+    context = context_factory('<a class="link" href="/contact" aria-label="Envoyer un message">Contact</a>')
     result = run_rgaa(RGAA615(), context)
 
     assert result.status == Status.NEEDS_REVIEW
 
 
-def test_615_image_link_requires_review(
-    context_factory, run_rgaa
-):
-    context = context_factory(
-        '<a href="/accueil">'
-        '<img src="home.png" alt="Accueil">'
-        "</a>"
-    )
+def test_615_image_link_requires_review(context_factory, run_rgaa):
+    context = context_factory('<a href="/accueil"><img src="home.png" alt="Accueil"></a>')
     result = run_rgaa(RGAA615(), context)
 
     assert result.status == Status.NEEDS_REVIEW
 
 
-def test_615_svg_link_requires_review(
-    context_factory, run_rgaa
-):
-    context = context_factory(
-        '<svg><a href="/contact">'
-        "<text>Contact</text>"
-        "</a></svg>"
-    )
+def test_615_svg_link_requires_review(context_factory, run_rgaa):
+    context = context_factory('<svg><a href="/contact"><text>Contact</text></a></svg>')
     result = run_rgaa(RGAA615(), context)
 
     assert result.status == Status.NEEDS_REVIEW
 
 
-def test_615_hidden_link_not_applicable(
-    context_factory, run_rgaa
-):
-    context = context_factory(
-        '<a href="/contact" hidden>Contact</a>'
-    )
+def test_615_hidden_link_not_applicable(context_factory, run_rgaa):
+    context = context_factory('<a href="/contact" hidden>Contact</a>')
     result = run_rgaa(RGAA615(), context)
 
     assert result.status == Status.NOT_APPLICABLE
 
 
-def test_615_missing_visible_text_not_applicable(
-    context_factory, run_rgaa
-):
-    context = context_factory(
-        '<a href="/contact" aria-label="Contact"></a>'
-    )
+def test_615_missing_visible_text_not_applicable(context_factory, run_rgaa):
+    context = context_factory('<a href="/contact" aria-label="Contact"></a>')
     result = run_rgaa(RGAA615(), context)
 
     assert result.status == Status.NOT_APPLICABLE
 
 
-def test_615_fail_takes_priority(
-    context_factory, run_rgaa
-):
+def test_615_fail_takes_priority(context_factory, run_rgaa):
     context = context_factory(
         '<a href="/ok">Contact</a>'
         '<a href="/bad" aria-label="Envoyer un message">'
@@ -1061,13 +990,8 @@ def test_615_fail_takes_priority(
     assert result.metadata["needs_review"] == 1
 
 
-def test_615_role_link_is_checked(
-    context_factory, run_rgaa
-):
-    context = context_factory(
-        '<span role="link" aria-label="Contacter notre équipe">'
-        "Contact</span>"
-    )
+def test_615_role_link_is_checked(context_factory, run_rgaa):
+    context = context_factory('<span role="link" aria-label="Contacter notre équipe">Contact</span>')
     result = run_rgaa(RGAA615(), context)
 
     assert result.status == Status.PASS
@@ -1079,12 +1003,8 @@ def test_615_role_link_is_checked(
 # ---------------------------------------------------------------------------
 
 
-def test_611_svg_internal_link_is_not_counted(
-    context_factory, run_rgaa
-):
-    context = context_factory(
-        '<svg><a href="/aide"><text>Consulter l’aide</text></a></svg>'
-    )
+def test_611_svg_internal_link_is_not_counted(context_factory, run_rgaa):
+    context = context_factory('<svg><a href="/aide"><text>Consulter l’aide</text></a></svg>')
 
     text_result = run_rgaa(RGAA611(), context)
     svg_result = run_rgaa(RGAA614(), context)

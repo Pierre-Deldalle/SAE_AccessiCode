@@ -204,7 +204,6 @@ def build_default_registry() -> TestRegistry:
             Test112(),
             Test113(),
             Test171(),
-
             # Thème 3 — Couleurs
             Test311(),
             Test312(),
@@ -221,7 +220,6 @@ def build_default_registry() -> TestRegistry:
             Test332(),
             Test333(),
             Test334(),
-
             # Thème 4 — Multimédia
             Test411(),
             Test412(),
@@ -248,7 +246,6 @@ def build_default_registry() -> TestRegistry:
             Test4122(),
             Test4131(),
             Test4132(),
-
             # Thème 5 — Tableaux
             Test511(),
             Test521(),
@@ -265,7 +262,6 @@ def build_default_registry() -> TestRegistry:
             Test574(),
             Test575(),
             Test581(),
-
             # Thème 6 — Liens
             Test611(),
             Test612(),
@@ -273,7 +269,6 @@ def build_default_registry() -> TestRegistry:
             Test614(),
             Test615(),
             Test621(),
-
             # Thème 7 — Scripts
             Test711(),
             Test712(),
@@ -286,7 +281,6 @@ def build_default_registry() -> TestRegistry:
             Test751(),
             Test752(),
             Test753(),
-
             # Thème 8 — Éléments obligatoires
             Test811(),
             Test812(),
@@ -294,7 +288,6 @@ def build_default_registry() -> TestRegistry:
             Test841(),
             Test851(),
             Test861(),
-
             # Thème 9 — Structuration de l’information
             Test911(),
             Test912(),
@@ -305,7 +298,6 @@ def build_default_registry() -> TestRegistry:
             Test933(),
             Test941(),
             Test942(),
-
             # Thème 10 — Présentation de l’information
             Test1011(),
             Test1012(),
@@ -338,9 +330,7 @@ def build_default_registry() -> TestRegistry:
             Test10133(),
             Test10141(),
             Test10142(),
-
             # Thème 11 — Formulaires
             Test1111(),
-
         ]
     )

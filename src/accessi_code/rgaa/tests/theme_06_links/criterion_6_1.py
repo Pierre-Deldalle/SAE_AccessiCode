@@ -1282,7 +1282,6 @@ class Test614(RGAATest):
         )
 
 
-
 class Test615(RGAATest):
     """
     RGAA 4.1.2 — Test 6.1.5.
@@ -1307,29 +1306,20 @@ class Test615(RGAATest):
     def _comparable(cls, value: str) -> str:
         """Ignore la casse et la ponctuation pour la comparaison."""
         value = value.casefold()
-        value = "".join(
-            " " if unicodedata.category(char).startswith("P") else char
-            for char in value
-        )
+        value = "".join(" " if unicodedata.category(char).startswith("P") else char for char in value)
         return cls._normalize(value)
 
     @staticmethod
     def _has_symbol(value: str) -> bool:
         """Repère les symboles potentiellement non littéraux."""
-        return any(
-            unicodedata.category(char).startswith("S")
-            for char in value
-        )
+        return any(unicodedata.category(char).startswith("S") for char in value)
 
     @staticmethod
     def _is_svg_link(element: Tag) -> bool:
         return (
             element.name == "a"
             and element.find_parent("svg") is not None
-            and any(
-                element.has_attr(attribute)
-                for attribute in Test614.LINK_ATTRIBUTES
-            )
+            and any(element.has_attr(attribute) for attribute in Test614.LINK_ATTRIBUTES)
         )
 
     @classmethod
@@ -1352,12 +1342,7 @@ class Test615(RGAATest):
             if ancestor.has_attr("hidden"):
                 return True
 
-            if (
-                str(ancestor.get("aria-hidden", ""))
-                .strip()
-                .lower()
-                == "true"
-            ):
+            if str(ancestor.get("aria-hidden", "")).strip().lower() == "true":
                 return True
 
         return False
@@ -1435,9 +1420,7 @@ class Test615(RGAATest):
         """
 
         if element.has_attr("aria-labelledby"):
-            references = cls._normalize(
-                str(element.get("aria-labelledby", ""))
-            ).split()
+            references = cls._normalize(str(element.get("aria-labelledby", ""))).split()
 
             if not references:
                 return "", "aria-labelledby_empty", True
@@ -1450,10 +1433,7 @@ class Test615(RGAATest):
                 if not isinstance(target, Tag):
                     return "", "aria-labelledby_invalid", True
 
-                if (
-                    target.find(["img", "svg", "object", "canvas", "math"])
-                    is not None
-                ):
+                if target.find(["img", "svg", "object", "canvas", "math"]) is not None:
                     return "", "aria-labelledby_complex", True
 
                 if (
@@ -1464,9 +1444,7 @@ class Test615(RGAATest):
                 ):
                     return "", "aria-labelledby_complex", True
 
-                text = cls._normalize(
-                    target.get_text(" ", strip=True)
-                )
+                text = cls._normalize(target.get_text(" ", strip=True))
 
                 if not text:
                     return "", "aria-labelledby_empty_target", True
@@ -1475,9 +1453,7 @@ class Test615(RGAATest):
 
             return " ".join(texts), "aria-labelledby", False
 
-        aria_label = cls._normalize(
-            str(element.get("aria-label", ""))
-        )
+        aria_label = cls._normalize(str(element.get("aria-label", "")))
 
         if aria_label:
             return aria_label, "aria-label", False
@@ -1488,16 +1464,12 @@ class Test615(RGAATest):
             direct_title = element.find("title", recursive=False)
 
             if isinstance(direct_title, Tag):
-                title = cls._normalize(
-                    direct_title.get_text(" ", strip=True)
-                )
+                title = cls._normalize(direct_title.get_text(" ", strip=True))
 
                 if title:
                     return title, "svg_title_candidate", True
 
-            xlink_title = cls._normalize(
-                str(element.get("xlink:title", ""))
-            )
+            xlink_title = cls._normalize(str(element.get("xlink:title", "")))
 
             if xlink_title:
                 return xlink_title, "xlink_title_candidate", True
@@ -1529,11 +1501,7 @@ class Test615(RGAATest):
         visible = cls._visible_label(link)
 
         evidence: dict[str, Any] = {
-            "href": (
-                Test614._get_href(link)
-                if cls._is_svg_link(link)
-                else link.get("href")
-            ),
+            "href": (Test614._get_href(link) if cls._is_svg_link(link) else link.get("href")),
             "visible_label": visible,
             "accessible_name_candidate": "",
             "name_source": "none",
@@ -1554,12 +1522,10 @@ class Test615(RGAATest):
 
             return None, evidence, "Aucun intitulé visible détecté."
 
-        name, source, uncertain = (
-            cls._get_accessible_name_candidate(
-                link,
-                soup,
-                visible,
-            )
+        name, source, uncertain = cls._get_accessible_name_candidate(
+            link,
+            soup,
+            visible,
         )
 
         evidence["accessible_name_candidate"] = name
@@ -1588,23 +1554,20 @@ class Test615(RGAATest):
             return (
                 TestStatus.NEEDS_REVIEW,
                 evidence,
-                "L'intitulé visible ne permet pas une "
-                "comparaison automatique fiable.",
+                "L'intitulé visible ne permet pas une comparaison automatique fiable.",
             )
 
         if comparable_visible in comparable_name:
             return (
                 TestStatus.PASS,
                 evidence,
-                "L'intitulé visible est contenu dans "
-                "le nom accessible candidat.",
+                "L'intitulé visible est contenu dans le nom accessible candidat.",
             )
 
         return (
             TestStatus.FAIL,
             evidence,
-            "Le nom accessible candidat ne contient pas "
-            "l'intitulé visible.",
+            "Le nom accessible candidat ne contient pas l'intitulé visible.",
         )
 
     async def run(
@@ -1615,11 +1578,7 @@ class Test615(RGAATest):
         """Exécute le contrôle partiel RGAA 6.1.5."""
         soup = Test611._get_dom(context)
 
-        links = [
-            node
-            for node in soup.find_all(True)
-            if self._is_link(node)
-        ]
+        links = [node for node in soup.find_all(True) if self._is_link(node)]
 
         findings: list[Finding] = []
         counts = {
