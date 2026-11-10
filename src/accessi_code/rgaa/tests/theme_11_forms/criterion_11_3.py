@@ -274,9 +274,9 @@ class Test1131(RGAATest):
 class Test1132(RGAATest):
     """11.3.2 : cohérence entre les pages d'un même ensemble.
 
-    Contrat optionnel : context.page_doms = {"page_a.html": soup_a, ...}.
-    Le moteur AccessiCode actuel ne renseigne pas cet attribut : tant qu'il
-    n'est pas alimenté, le test ne conclut pas artificiellement à PASS.
+    Contrat : context.page_doms = {"page_a.html": soup_a, ...}, rempli par
+    AuditContextBuilder avec chaque page HTML importée. Avec moins de deux
+    pages, le test ne conclut pas artificiellement à PASS.
     """
 
     test_id = "11.3.2"

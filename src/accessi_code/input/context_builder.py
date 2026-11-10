@@ -93,6 +93,7 @@ class AuditContextBuilder:
                 context,
                 html_files[0].path,
             )
+            self._extract_page_doms(context, [file.path for file in html_files])
 
         for css_file in css_files:
             self._extract_css_file(
@@ -122,6 +123,32 @@ class AuditContextBuilder:
         context.html_source = extraction.source
         context.dom = extraction.dom
         context.doctype = extraction.doctype
+
+    @staticmethod
+    def _extract_page_doms(
+        context: AuditContext,
+        html_paths: list[Path],
+    ) -> None:
+        """
+        Conserve le DOM de chaque page HTML importée (utilisé par le test 11.3.2).
+
+        Les pages sont indexées par leur chemin relatif dans l'audit
+        (par exemple « index.html » ou « contact/index.html »). La page
+        principale réutilise le DOM déjà extrait.
+        """
+
+        source_root = context.workspace_path / "source"
+
+        for html_path in html_paths:
+            try:
+                key = html_path.relative_to(source_root).as_posix()
+            except ValueError:
+                key = html_path.name
+
+            if html_path == context.html_path:
+                context.page_doms[key] = context.dom
+            else:
+                context.page_doms[key] = extract_html(html_path).dom
 
     @staticmethod
     def _extract_css_file(
