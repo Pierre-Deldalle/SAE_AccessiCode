@@ -887,5 +887,442 @@
 
         // animateFlashCanvas(); // Décommenter pour activer l'animation flash canvas
     </script>
+
+    <!-- =========================================================================
+         TESTS CRITÈRE 13.9 : Consultation possible quelle que soit l'orientation de l'écran
+         ========================================================================= -->
+    <!-- RGAA 13.9 : Le contenu doit être consultable en mode portrait ET paysage.
+         Cas particuliers (NOT_APPLICABLE si orientation essentielle) :
+         - Jeux vidéo, piano, dépôt chèque, VR/AR, boussole/niveau, signature/dessin
+         FAIL si : screen.orientation.lock(), screen.lockOrientation(), viewport orientation,
+         NEEDS_REVIEW si : @media (orientation:) masquant contenu, classes orientation-spécifiques,
+         orientationchange (peut être légitime), cas particulier sans alternative
+         PASS si : aucune restriction, ou cas particulier AVEC alternative accessible -->
+
+    <!-- Test 13.9.1 : Page sans restriction d'orientation (PASS) -->
+    <section class="test-section">
+        <h2>Test 13.9.1 - Page sans restriction d'orientation (PASS)</h2>
+        <p>Contenu simple accessible en portrait et paysage sans aucun mécanisme de restriction :</p>
+        <div class="simple-content">
+            <h3>Titre principal</h3>
+            <p>Paragraphe de texte qui s'adapte naturellement à l'orientation.</p>
+            <ul>
+                <li>Élément de liste 1</li>
+                <li>Élément de liste 2</li>
+                <li>Élément de liste 3</li>
+            </ul>
+        </div>
+        <p><em>Attendu : PASS - aucune restriction d'orientation détectée.</em></p>
+    </section>
+
+    <!-- Test 13.9.1 : CSS responsive avec media queries d'adaptation (NEEDS_REVIEW) -->
+    <section class="test-section">
+        <h2>Test 13.9.1 - CSS responsive avec @media orientation (NEEDS_REVIEW)</h2>
+        <p>Media queries d'orientation pour adapter la présentation (pas masquer) :</p>
+        <style>
+            @media (orientation: portrait) {
+                .responsive-container { flex-direction: column; }
+                .responsive-container > div { width: 100%; }
+            }
+            @media (orientation: landscape) {
+                .responsive-container { flex-direction: row; }
+                .responsive-container > div { width: 50%; }
+            }
+        </style>
+        <div class="responsive-container" style="display: flex; flex-wrap: wrap; gap: 1rem;">
+            <div style="background: #e0e0e0; padding: 1rem;">Colonne 1</div>
+            <div style="background: #e0e0e0; padding: 1rem;">Colonne 2</div>
+        </div>
+        <p><em>Attendu : NEEDS_REVIEW - media queries orientation détectées, vérifier qu'elles ne masquent pas de contenu.</em></p>
+    </section>
+
+    <!-- Test 13.9.1 : CSS media queries masquant du contenu (NEEDS_REVIEW) -->
+    <section class="test-section">
+        <h2>Test 13.9.1 - @media (orientation:) masquant du contenu (NEEDS_REVIEW)</h2>
+        <p>Media queries qui masquent des éléments selon l'orientation :</p>
+        <style>
+            @media (orientation: portrait) { .landscape-only { display: none; } }
+            @media (orientation: landscape) { .portrait-only { display: none; } }
+        </style>
+        <div class="portrait-only" style="background: #ffe0e0; padding: 1rem; margin: 0.5rem 0;">
+            <strong>Visible uniquement en portrait</strong> - Ce contenu est masqué en paysage.
+        </div>
+        <div class="landscape-only" style="background: #e0ffe0; padding: 1rem; margin: 0.5rem 0;">
+            <strong>Visible uniquement en paysage</strong> - Ce contenu est masqué en portrait.
+        </div>
+        <p><em>Attendu : NEEDS_REVIEW - contenu masqué selon orientation détecté, vérification manuelle requise.</em></p>
+    </section>
+
+    <!-- Test 13.9.1 : JavaScript screen.orientation.lock() (FAIL) -->
+    <section class="test-section">
+        <h2>Test 13.9.1 - JavaScript screen.orientation.lock() (FAIL)</h2>
+        <p>Verrouillage d'orientation via Screen Orientation API :</p>
+        <button id="btnLockPortrait" type="button">Verrouiller en portrait</button>
+        <button id="btnLockLandscape" type="button">Verrouiller en paysage</button>
+        <button id="btnUnlockOrientation" type="button">Déverrouiller</button>
+        <script>
+            document.getElementById('btnLockPortrait')?.addEventListener('click', async () => {
+                try {
+                    await screen.orientation.lock('portrait');
+                    console.log('Orientation verrouillée en portrait');
+                } catch (e) { console.log('Lock portrait failed:', e); }
+            });
+            document.getElementById('btnLockLandscape')?.addEventListener('click', async () => {
+                try {
+                    await screen.orientation.lock('landscape');
+                    console.log('Orientation verrouillée en paysage');
+                } catch (e) { console.log('Lock landscape failed:', e); }
+            });
+            document.getElementById('btnUnlockOrientation')?.addEventListener('click', () => {
+                screen.orientation.unlock();
+                console.log('Orientation déverrouillée');
+            });
+            // Verrouillage automatique au chargement (pour test FAIL)
+            // screen.orientation.lock('portrait');
+        </script>
+        <p><em>Attendu : FAIL - screen.orientation.lock() détecté (décommenter la dernière ligne pour tester le verrouillage auto).</em></p>
+    </section>
+
+    <!-- Test 13.9.1 : JavaScript screen.lockOrientation() legacy (FAIL) -->
+    <section class="test-section">
+        <h2>Test 13.9.1 - JavaScript screen.lockOrientation() legacy (FAIL)</h2>
+        <p>Ancienne API de verrouillage d'orientation (toujours détectée) :</p>
+        <script>
+            // screen.lockOrientation('landscape'); // Décommenter pour tester FAIL
+            console.log('Test 13.9.1: screen.lockOrientation legacy - décommenter pour FAIL');
+        </script>
+        <p><em>Attendu : FAIL - screen.lockOrientation() détecté (API legacy).</em></p>
+    </section>
+
+    <!-- Test 13.9.1 : Viewport meta tag avec orientation (FAIL) -->
+    <section class="test-section">
+        <h2>Test 13.9.1 - Viewport meta tag orientation=portrait (FAIL)</h2>
+        <p>Restriction d'orientation via meta viewport (dans head, mais simulé ici) :</p>
+        <div style="background: #fff3cd; padding: 1rem; border: 1px solid #ffc107; border-radius: 4px;">
+            <strong>Note :</strong> Le meta viewport avec <code>orientation=portrait</code> ou <code>orientation=landscape</code>
+            doit être dans le <code><head></code>. Ce test montre la pattern à détecter.
+            <br>Exemple : <code><meta name="viewport" content="width=device-width, orientation=portrait"></code>
+        </div>
+        <p><em>Attendu : FAIL - viewport orientation restriction détectée dans le head.</em></p>
+    </section>
+
+    <!-- Test 13.9.1 : Classes CSS orientation-spécifiques (NEEDS_REVIEW) -->
+    <section class="test-section">
+        <h2>Test 13.9.1 - Classes CSS suggérant contenu orientation-spécifique (NEEDS_REVIEW)</h2>
+        <p>Classes comme portrait-only, landscape-only, orientation-portrait, etc. :</p>
+        <div class="portrait-only" style="background: #ffe0e0; padding: 1rem; margin: 0.5rem 0; border: 1px solid #ffcccc;">
+            Contenu avec classe <code>portrait-only</code>
+        </div>
+        <div class="landscape-only" style="background: #e0ffe0; padding: 1rem; margin: 0.5rem 0; border: 1px solid #ccffcc;">
+            Contenu avec classe <code>landscape-only</code>
+        </div>
+        <div class="orientation-portrait" style="background: #ffe0ff; padding: 1rem; margin: 0.5rem 0; border: 1px solid #ffccff;">
+            Contenu avec classe <code>orientation-portrait</code>
+        </div>
+        <div class="orientation-landscape" style="background: #e0e0ff; padding: 1rem; margin: 0.5rem 0; border: 1px solid #cccfff;">
+            Contenu avec classe <code>orientation-landscape</code>
+        </div>
+        <p><em>Attendu : NEEDS_REVIEW - classes orientation-spécifiques détectées, vérifier si contenu masqué.</em></p>
+    </section>
+
+    <!-- Test 13.9.1 : Cas particulier - Jeu vidéo (NOT_APPLICABLE) -->
+    <section class="test-section">
+        <h2>Test 13.9.1 - Cas particulier : Jeu vidéo / Canvas jeu (NOT_APPLICABLE)</h2>
+        <p>Interface de jeu où l'orientation paysage est essentielle (ex: jeu de course, FPS) :</p>
+        <canvas id="gameCanvas" width="800" height="450" style="border: 2px solid #333; background: #1a1a1a; display: block; margin: 1rem auto;"></canvas>
+        <p style="text-align: center; color: #666;">Zone de jeu - Orientation paysage requise pour l'expérience de jeu</p>
+        <script>
+            const gameCanvas = document.getElementById('gameCanvas');
+            const gctx = gameCanvas?.getContext('2d');
+            if (gctx) {
+                gctx.fillStyle = '#333';
+                gctx.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
+                gctx.fillStyle = '#fff';
+                gctx.font = '24px Arial';
+                gctx.textAlign = 'center';
+                gctx.fillText('JEU VIDÉO - Canvas 800x450', gameCanvas.width/2, gameCanvas.height/2);
+            }
+        </script>
+        <p><em>Attendu : NOT_APPLICABLE - jeu vidéo détecté (canvas grand + titre/contexte jeu), orientation essentielle.</em></p>
+    </section>
+
+    <!-- Test 13.9.1 : Cas particulier - Piano virtuel (NOT_APPLICABLE) -->
+    <section class="test-section">
+        <h2>Test 13.9.1 - Cas particulier : Piano / Clavier virtuel (NOT_APPLICABLE)</h2>
+        <p>Application piano où l'orientation paysage est essentielle pour afficher toutes les touches :</p>
+        <div class="piano" style="background: linear-gradient(180deg, #111 0%, #333 100%); padding: 2rem; border-radius: 8px; margin: 1rem 0;">
+            <div style="display: flex; justify-content: center; gap: 2px; margin-bottom: 0.5rem;">
+                <div style="width: 40px; height: 120px; background: white; border: 1px solid #ccc; border-radius: 0 0 4px 4px;"></div>
+                <div style="width: 40px; height: 120px; background: white; border: 1px solid #ccc; border-radius: 0 0 4px 4px;"></div>
+                <div style="width: 40px; height: 120px; background: white; border: 1px solid #ccc; border-radius: 0 0 4px 4px;"></div>
+                <div style="width: 40px; height: 120px; background: white; border: 1px solid #ccc; border-radius: 0 0 4px 4px;"></div>
+                <div style="width: 40px; height: 120px; background: white; border: 1px solid #ccc; border-radius: 0 0 4px 4px;"></div>
+                <div style="width: 40px; height: 120px; background: white; border: 1px solid #ccc; border-radius: 0 0 4px 4px;"></div>
+                <div style="width: 40px; height: 120px; background: white; border: 1px solid #ccc; border-radius: 0 0 4px 4px;"></div>
+            </div>
+            <div style="display: flex; justify-content: center; gap: 2px;">
+                <div style="width: 24px; height: 80px; background: black; border-radius: 0 0 4px 4px; margin-right: 8px;"></div>
+                <div style="width: 24px; height: 80px; background: black; border-radius: 0 0 4px 4px; margin-right: 8px;"></div>
+                <div style="width: 24px; height: 80px; background: black; border-radius: 0 0 4px 4px; margin-right: 24px;"></div>
+                <div style="width: 24px; height: 80px; background: black; border-radius: 0 0 4px 4px; margin-right: 8px;"></div>
+                <div style="width: 24px; height: 80px; background: black; border-radius: 0 0 4px 4px; margin-right: 8px;"></div>
+                <div style="width: 24px; height: 80px; background: black; border-radius: 0 0 4px 4px;"></div>
+            </div>
+        </div>
+        <p style="text-align: center; color: #666;">Piano virtuel - 7 touches blanches + 5 touches noires (octave)</p>
+        <p><em>Attendu : NOT_APPLICABLE - piano/clavier virtuel détecté, orientation essentielle.</em></p>
+    </section>
+
+    <!-- Test 13.9.1 : Cas particulier - Dépôt de chèque (NOT_APPLICABLE) -->
+    <section class="test-section">
+        <h2>Test 13.9.1 - Cas particulier : Dépôt de chèque bancaire (NOT_APPLICABLE)</h2>
+        <p>Interface de scan de chèque où l'orientation paysage est nécessaire :</p>
+        <div class="check-deposit" style="background: #f5f5f5; padding: 2rem; border-radius: 8px; border: 2px dashed #ccc; margin: 1rem 0; text-align: center;">
+            <div style="width: 100%; max-width: 400px; height: 180px; background: white; border: 2px solid #999; margin: 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                <svg width="80" height="80" viewBox="0 0 100 100" style="margin-bottom: 1rem;">
+                    <rect x="10" y="20" width="80" height="60" fill="none" stroke="#666" stroke-width="3" rx="5"/>
+                    <line x1="10" y1="50" x2="90" y2="50" stroke="#666" stroke-width="2" stroke-dasharray="10,5"/>
+                    <text x="50" y="55" text-anchor="middle" font-size="14" fill="#999">CHÈQUE</text>
+                </svg>
+                <p style="color: #999; margin: 0;">Placez le chèque dans le cadre</p>
+            </div>
+            <p style="margin-top: 1rem; color: #666;">Orientation paysage recommandée pour capturer tout le chèque</p>
+        </div>
+        <p><em>Attendu : NOT_APPLICABLE - dépôt de chèque / scanner chèque détecté, orientation essentielle.</em></p>
+    </section>
+
+    <!-- Test 13.9.1 : Cas particulier avec JS lock SANS alternative (NEEDS_REVIEW) -->
+    <section class="test-section">
+        <h2>Test 13.9.1 - Cas particulier (jeu) AVEC verrou JS SANS alternative (NEEDS_REVIEW)</h2>
+        <p>Jeu avec verrouillage d'orientation mais sans version accessible alternative :</p>
+        <canvas id="gameNoAlt" width="800" height="450" style="border: 2px solid #333; background: #1a1a1a; display: block; margin: 1rem auto;"></canvas>
+        <script>
+            // Verrouillage d'orientation pour le jeu
+            // screen.orientation.lock('landscape'); // Décommenter pour tester
+            console.log('Test 13.9.1: Jeu avec lock orientation - décommenter screen.orientation.lock pour NEEDS_REVIEW');
+        </script>
+        <p style="text-align: center; color: #666;">Jeu sans version accessible alternative</p>
+        <p><em>Attendu : NEEDS_REVIEW - cas particulier détecté MAIS verrouillage JS sans alternative accessible.</em></p>
+    </section>
+
+    <!-- Test 13.9.1 : Cas particulier AVEC alternative accessible (PASS) -->
+    <section class="test-section">
+        <h2>Test 13.9.1 - Cas particulier (jeu) AVEC alternative accessible (PASS)</h2>
+        <p>Jeu avec verrouillage d'orientation MAIS version accessible sans restriction :</p>
+        <canvas id="gameWithAlt" width="800" height="450" style="border: 2px solid #333; background: #1a1a1a; display: block; margin: 1rem auto;"></canvas>
+        <p style="text-align: center; margin: 1rem 0;">
+            <a href="/version-accessible-jeu" style="display: inline-block; background: #28a745; color: white; padding: 0.75rem 1.5rem; border-radius: 4px; text-decoration: none; font-weight: bold;">
+                Version accessible sans restriction d'orientation
+            </a>
+        </p>
+        <script>
+            // screen.orientation.lock('landscape'); // Décommenter pour tester
+            console.log('Test 13.9.1: Jeu avec alternative accessible - PASS si lock + alternative détectés');
+        </script>
+        <p><em>Attendu : PASS - cas particulier avec alternative accessible détectée (lien avec texte "accessible" + "sans restriction orientation").</em></p>
+    </section>
+
+    <!-- Test 13.9.1 : Cas particulier piano AVEC alternative bouton (PASS) -->
+    <section class="test-section">
+        <h2>Test 13.9.1 - Cas particulier (piano) AVEC bouton alternative (PASS)</h2>
+        <p>Application piano avec bouton pour mode accessible :</p>
+        <div class="piano-alt" style="background: linear-gradient(180deg, #111 0%, #333 100%); padding: 2rem; border-radius: 8px; margin: 1rem 0;">
+            <div style="display: flex; justify-content: center; gap: 2px; margin-bottom: 0.5rem;">
+                <div style="width: 40px; height: 120px; background: white; border: 1px solid #ccc; border-radius: 0 0 4px 4px;"></div>
+                <div style="width: 40px; height: 120px; background: white; border: 1px solid #ccc; border-radius: 0 0 4px 4px;"></div>
+                <div style="width: 40px; height: 120px; background: white; border: 1px solid #ccc; border-radius: 0 0 4px 4px;"></div>
+                <div style="width: 40px; height: 120px; background: white; border: 1px solid #ccc; border-radius: 0 0 4px 4px;"></div>
+                <div style="width: 40px; height: 120px; background: white; border: 1px solid #ccc; border-radius: 0 0 4px 4px;"></div>
+                <div style="width: 40px; height: 120px; background: white; border: 1px solid #ccc; border-radius: 0 0 4px 4px;"></div>
+                <div style="width: 40px; height: 120px; background: white; border: 1px solid #ccc; border-radius: 0 0 4px 4px;"></div>
+            </div>
+        </div>
+        <p style="text-align: center; margin: 1rem 0;">
+            <button aria-label="Version accessible sans restriction d'orientation" style="background: #007bff; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
+                Mode accessible (sans restriction d'orientation)
+            </button>
+        </p>
+        <script>
+            // screen.orientation.lock('landscape'); // Décommenter pour tester
+            console.log('Test 13.9.1: Piano avec bouton alternative aria-label - PASS');
+        </script>
+        <p><em>Attendu : PASS - cas particulier piano + bouton avec aria-label mentionnant "accessible" + "sans restriction orientation".</em></p>
+    </section>
+
+    <!-- Test 13.9.1 : Écouteur orientationchange (NEEDS_REVIEW) -->
+    <section class="test-section">
+        <h2>Test 13.9.1 - Écouteur orientationchange (NEEDS_REVIEW)</h2>
+        <p>Écouteur d'événement orientationchange (peut être légitime pour adapter la présentation) :</p>
+        <div id="orientationDisplay" style="background: #e7f3ff; padding: 1rem; border-radius: 4px; margin: 1rem 0; font-family: monospace;">
+            Orientation actuelle : <span id="currentOrientation">inconnue</span>
+        </div>
+        <script>
+            function updateOrientationDisplay() {
+                const el = document.getElementById('currentOrientation');
+                if (el) {
+                    if (screen.orientation && screen.orientation.type) {
+                        el.textContent = screen.orientation.type;
+                    } else if (window.orientation !== undefined) {
+                        el.textContent = window.orientation === 0 || window.orientation === 180 ? 'portrait' : 'landscape';
+                    } else {
+                        el.textContent = window.innerHeight > window.innerWidth ? 'portrait' : 'landscape';
+                    }
+                }
+            }
+            // Écouteur orientationchange (légitime pour adaptation)
+            window.addEventListener('orientationchange', function() {
+                console.log('Orientation changée:', screen.orientation?.type || window.orientation);
+                setTimeout(updateOrientationDisplay, 100);
+            });
+            // Aussi écouter resize pour les navigateurs sans orientationchange
+            window.addEventListener('resize', updateOrientationDisplay);
+            updateOrientationDisplay();
+        </script>
+        <p><em>Attendu : NEEDS_REVIEW - orientationchange détecté, peut être légitime pour adaptation présentation.</em></p>
+    </section>
+
+    <!-- Test 13.9.1 : Plusieurs restrictions - FAIL l'emporte (FAIL) -->
+    <section class="test-section">
+        <h2>Test 13.9.1 - Multiples restrictions : JS lock + media query (FAIL priorité)</h2>
+        <p>Combinaison : verrouillage JS (FAIL) + media query masquant contenu (NEEDS_REVIEW) -> FAIL :</p>
+        <style>
+            @media (orientation: portrait) { .multi-landscape-only { display: none; } }
+        </style>
+        <div class="multi-landscape-only" style="background: #e0ffe0; padding: 1rem; margin: 0.5rem 0; border: 1px solid #ccffcc;">
+            Contenu masqué en portrait via media query
+        </div>
+        <script>
+            // screen.orientation.lock('portrait'); // Décommenter pour tester FAIL
+            console.log('Test 13.9.1: Multiples restrictions - décommenter lock pour FAIL (priorité sur NEEDS_REVIEW)');
+        </script>
+        <p><em>Attendu : FAIL - screen.orientation.lock() (FAIL) a priorité sur media query (NEEDS_REVIEW).</em></p>
+    </section>
+
+    <!-- Test 13.9.1 : Cas particulier VR/AR WebXR (NOT_APPLICABLE) -->
+    <section class="test-section">
+        <h2>Test 13.9.1 - Cas particulier : Application VR/AR WebXR (NOT_APPLICABLE)</h2>
+        <p>Expérience immersive VR/AR où l'orientation est gérée par le casque :</p>
+        <div style="background: #1a1a2e; padding: 2rem; border-radius: 8px; margin: 1rem 0; text-align: center;">
+            <h3 style="color: #e0e0ff; margin-top: 0;">Expérience VR Immersive</h3>
+            <button xr-session="immersive-vr" style="background: #6c5ce7; color: white; padding: 1rem 2rem; border: none; border-radius: 4px; font-size: 1.1rem; cursor: pointer; margin: 0.5rem;">
+                Entrer en mode VR
+            </button>
+            <button xr-session="immersive-ar" style="background: #00cec9; color: white; padding: 1rem 2rem; border: none; border-radius: 4px; font-size: 1.1rem; cursor: pointer; margin: 0.5rem;">
+                Entrer en mode AR
+            </button>
+            <p style="color: #aaa; margin-top: 1rem;">Nécessite un casque VR/AR compatible WebXR</p>
+        </div>
+        <p><em>Attendu : NOT_APPLICABLE - VR/AR WebXR détecté (xr-session, immersive-vr/ar), orientation gérée par device.</em></p>
+    </section>
+
+    <!-- Test 13.9.1 : Cas particulier Boussole / Niveau (NOT_APPLICABLE) -->
+    <section class="test-section">
+        <h2>Test 13.9.1 - Cas particulier : Boussole / Niveau à bulle (NOT_APPLICABLE)</h2>
+        <p>Applications utilisant les capteurs de l'appareil (boussole, niveau) :</p>
+        <div class="compass" style="background: #f8f9fa; padding: 2rem; border-radius: 8px; margin: 1rem 0; text-align: center;">
+            <div style="width: 200px; height: 200px; border: 4px solid #333; border-radius: 50%; margin: 0 auto 1rem; position: relative; background: linear-gradient(135deg, #fff 0%, #e0e0e0 100%);">
+                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 4px; height: 80px; background: #dc3545; transform-origin: center bottom; border-radius: 2px;"></div>
+                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80px; height: 4px; background: #dc3545; transform-origin: center center; border-radius: 2px;"></div>
+                <div style="position: absolute; top: 10px; left: 50%; transform: translateX(-50%); font-weight: bold; color: #dc3545;">N</div>
+                <div style="position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); font-weight: bold; color: #666;">S</div>
+                <div style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-weight: bold; color: #666;">O</div>
+                <div style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-weight: bold; color: #666;">E</div>
+            </div>
+            <p style="font-size: 1.2rem; font-weight: bold; color: #333;">Direction : <span id="compassHeading">--</span>°</p>
+            <p style="color: #666; font-size: 0.9rem;">Boussole utilisant DeviceOrientation API</p>
+        </div>
+        <script>
+            // Simulation boussole (nécessite HTTPS et permission DeviceOrientation)
+            if (window.DeviceOrientationEvent) {
+                window.addEventListener('deviceorientation', function(e) {
+                    const heading = document.getElementById('compassHeading');
+                    if (heading && e.alpha !== null) {
+                        heading.textContent = Math.round(e.alpha);
+                    }
+                });
+            }
+        </script>
+        <p><em>Attendu : NOT_APPLICABLE - boussole/compas détecté (classe compass, DeviceOrientation), orientation essentielle.</em></p>
+    </section>
+
+    <!-- Test 13.9.1 : Cas particulier Signature / Dessin (NOT_APPLICABLE) -->
+    <section class="test-section">
+        <h2>Test 13.9.1 - Cas particulier : Signature / Dessin (NOT_APPLICABLE)</h2>
+        <p>Interface de signature manuscrite ou dessin où l'orientation paysage facilite le tracé :</p>
+        <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin: 1rem 0;">
+            <label for="signaturePad" style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Signez ici :</label>
+            <canvas id="signaturePad" width="600" height="200" style="border: 2px solid #ccc; background: white; border-radius: 4px; cursor: crosshair; touch-action: none;"></canvas>
+            <div style="margin-top: 0.5rem;">
+                <button id="clearSignature" type="button" style="padding: 0.5rem 1rem; margin-right: 0.5rem;">Effacer</button>
+                <button id="saveSignature" type="button" style="padding: 0.5rem 1rem;">Enregistrer</button>
+            </div>
+        </div>
+        <script>
+            const sigCanvas = document.getElementById('signaturePad');
+            const sigCtx = sigCanvas?.getContext('2d');
+            let isDrawing = false;
+            let lastX = 0, lastY = 0;
+
+            if (sigCanvas && sigCtx) {
+                sigCtx.lineWidth = 2;
+                sigCtx.lineCap = 'round';
+                sigCtx.strokeStyle = '#000';
+
+                function getCoords(e) {
+                    const rect = sigCanvas.getBoundingClientRect();
+                    if (e.touches) {
+                        return { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
+                    }
+                    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+                }
+
+                function startDraw(e) {
+                    isDrawing = true;
+                    const coords = getCoords(e);
+                    lastX = coords.x;
+                    lastY = coords.y;
+                }
+
+                function draw(e) {
+                    if (!isDrawing) return;
+                    e.preventDefault();
+                    const coords = getCoords(e);
+                    sigCtx.beginPath();
+                    sigCtx.moveTo(lastX, lastY);
+                    sigCtx.lineTo(coords.x, coords.y);
+                    sigCtx.stroke();
+                    lastX = coords.x;
+                    lastY = coords.y;
+                }
+
+                function stopDraw() { isDrawing = false; }
+
+                sigCanvas.addEventListener('mousedown', startDraw);
+                sigCanvas.addEventListener('mousemove', draw);
+                sigCanvas.addEventListener('mouseup', stopDraw);
+                sigCanvas.addEventListener('mouseleave', stopDraw);
+                sigCanvas.addEventListener('touchstart', startDraw, { passive: false });
+                sigCanvas.addEventListener('touchmove', draw, { passive: false });
+                sigCanvas.addEventListener('touchend', stopDraw);
+
+                document.getElementById('clearSignature')?.addEventListener('click', () => {
+                    sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
+                });
+            }
+        </script>
+        <p><em>Attendu : NOT_APPLICABLE - signature/dessin détecté (canvas + label "signez", touch-action:none), orientation essentielle.</em></p>
+    </section>
+
+    <!-- Test 13.9.1 : Meta viewport orientation dans head (pour test réel) -->
+    <section class="test-section">
+        <h2>Test 13.9.1 - Meta viewport avec orientation (à placer dans <head> pour test réel)</h2>
+        <p>Pour tester la détection réelle du meta viewport orientation, ajoutez dans le <code><head></code> de cette page :</p>
+        <pre style="background: #f4f4f4; padding: 1rem; border-radius: 4px; overflow-x: auto;"><code><meta name="viewport" content="width=device-width, initial-scale=1.0, orientation=portrait">
+<!-- ou -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, orientation=landscape"></code></pre>
+        <p><strong>Note :</strong> Ce meta tag doit être dans le <code><head></code> pour être détecté par l'analyseur HTML.
+        Le test ci-dessus montre la pattern ; pour un vrai test, modifiez le head de ce fichier HTML.</p>
+    </section>
+
 </body>
 </html>
