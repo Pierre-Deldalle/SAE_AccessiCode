@@ -1,3 +1,4 @@
+
 """Service principal d'exécution des audits AccessiCode."""
 
 from __future__ import annotations
@@ -9,7 +10,7 @@ from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.audit_result import AuditResult
 from accessi_code.rgaa.aggregation import ResultAggregator
 from accessi_code.rgaa.registry import TestRegistry
-from accessi_code.rgaa.runner import TestRunner
+from accessi_code.rgaa.runner import ProgressCallback, TestRunner
 from accessi_code.service.audit_services import AuditServices
 
 if TYPE_CHECKING:
@@ -29,12 +30,12 @@ class AuditService:
     Le service :
     1. reçoit un AuditContext déjà construit ;
     2. enrichit facultativement le contexte via Playwright ;
-    3. exécute les tests RGAA ;
+    3. exécute les tests RGAA avec un suivi de progression ;
     4. agrège les résultats ;
     5. retourne un AuditResult.
 
-    L'enrichissement n'alimente pas encore les échantillons de contraste.
-    Il prépare uniquement des observations techniques.
+    L'enrichissement n'alimente pas encore les échantillons
+    de contraste. Il prépare des observations techniques.
     """
 
     def __init__(
@@ -45,7 +46,9 @@ class AuditService:
     ) -> None:
         self.registry = registry
 
-        self.services = services if services is not None else AuditServices()
+        self.services = (
+            services if services is not None else AuditServices()
+        )
 
         self.context_enricher = context_enricher
         self.last_enrichment_report: ContextEnrichmentReport | None = None
@@ -60,18 +63,24 @@ class AuditService:
     async def audit(
         self,
         context: AuditContext,
+        on_progress: ProgressCallback | None = None,
     ) -> AuditResult:
         """
         Exécute un audit complet.
 
-        L'enrichissement Playwright, lorsqu'il est configuré, est
-        exécuté avant les tests RGAA. Une erreur d'enrichissement
-        est journalisée sans interrompre l'audit.
+        L'enrichissement Playwright, lorsqu'il est configuré,
+        est exécuté avant les tests RGAA.
+
+        Une erreur d'enrichissement est journalisée sans
+        interrompre l'audit.
+
+        Le callback de progression est transmis au TestRunner.
         """
 
-        # Éviter de conserver le rapport d'un audit précédent.
+        # Évite de conserver le rapport d'un audit précédent.
         self.last_enrichment_report = None
 
+        # Enrichissement facultatif avec Playwright.
         if self.context_enricher is not None:
             try:
                 report = await self.context_enricher.enrich(context)
@@ -98,9 +107,14 @@ class AuditService:
                     "l'enrichissement du contexte."
                 )
 
-        test_results = await self.runner.run_all(context)
+        # Exécution des tests avec suivi de progression.
+        test_results = await self.runner.run_all(
+            context,
+            on_progress,
+        )
 
+        # Agrégation des résultats.
         return self.aggregator.aggregate(
             context,
             test_results,
-        )   
+        )
