@@ -127,6 +127,28 @@ class AuditContext:
     image_files: list[Path] = field(default_factory=list)
     screenshots: list[Path] = field(default_factory=list)
 
+    # Ensemble de pages HTML importées, pour RGAA 11.3.2.
+    page_doms: dict[str, Any] = field(default_factory=dict)
+
+    # Mesures de disposition collectées depuis un navigateur pour RGAA 11.4.
+    form_label_layout: dict[str, dict[str, Any]] = field(default_factory=dict)
+
+    # Diagnostic technique sans masquer l'incertitude des tests.
+    visual_evidence_error: str | None = None
+
+    # Vérifications fonctionnelles documentées pour RGAA 11.12.
+    form_transaction_evidence: dict[int, dict[str, Any]] = field(default_factory=dict)
+
+    # Preuves sémantiques documentées pour les tests du thème 1.
+    # Chaque entrée doit porter verified=True; jamais de PASS sur une supposition IA.
+    image_evidence: dict[str, dict[str, Any]] = field(default_factory=dict)
+
+    # Preuves issues de contrôles navigateur/humains pour les tests RGAA 12.
+    navigation_evidence: dict[str, dict[str, Any]] = field(default_factory=dict)
+
+    # True uniquement après inventaire exhaustif du site / ensemble de pages.
+    site_inventory_complete: bool = False
+
     # Feuilles de style CSS sources.
     css_files: list[Path] = field(default_factory=list)
     css_sources: dict[Path, str] = field(default_factory=dict)
@@ -144,7 +166,9 @@ class AuditContext:
     unresolved_text_contrasts: list[UnresolvedTextContrast] = field(default_factory=list)
 
     # Observations non textuelles à vérifier humainement.
-    unresolved_non_text_contrasts: list[UnresolvedNonTextContrast] = field(default_factory=list)
+    unresolved_non_text_contrasts: list[UnresolvedNonTextContrast] = field(
+        default_factory=list
+    )
 
     @property
     def text_contrast_is_partial(self) -> bool:
@@ -152,7 +176,10 @@ class AuditContext:
         Une extraction automatique a été tentée,
         sans preuve de couverture exhaustive.
         """
-        return self.text_contrast_extraction_attempted and not self.text_contrast_coverage_complete
+        return (
+            self.text_contrast_extraction_attempted
+            and not self.text_contrast_coverage_complete
+        )
 
     def get_capabilities(self) -> set[Capability]:
         """
@@ -163,9 +190,8 @@ class AuditContext:
             textuelles non résolues disponibles.
 
         NON_TEXT_CONTRAST :
-            Échantillons non textuels exploitables disponibles.
-            Les seules observations incertaines ne suffisent pas
-            encore à activer cette capacité.
+            Échantillons non textuels exploitables ou observations
+            non résolues disponibles.
 
         COMPUTED_STYLES :
             Au moins une catégorie d'échantillons est disponible.

@@ -6,6 +6,7 @@ from accessi_code.ai.analyzers.image_analyzer import (
 from accessi_code.ai.analyzers.page_analyzer import (
     OllamaPageAnalyzer,
 )
+from accessi_code.ai.analyzers.mandatory_analyzer import OllamaMandatoryAnalyzer
 from accessi_code.ai.clients.llm import OllamaLLM
 from accessi_code.ai.clients.vlm import OllamaVLM
 from accessi_code.service.audit_services import (
@@ -31,6 +32,7 @@ def build_default_audit_services(
         host=ollama_host,
         model=vlm_model,
     )
+    mandatory_analyzer = OllamaMandatoryAnalyzer(llm)
 
     return AuditServices(
         image_analyzer=OllamaImageAnalyzer(
@@ -40,4 +42,10 @@ def build_default_audit_services(
         page_analyzer=OllamaPageAnalyzer(
             llm=llm,
         ),
+        html_validator=mandatory_analyzer,
+        language_change_analyzer=mandatory_analyzer,
+        language_validity_analyzer=mandatory_analyzer,
+        semantic_presentation_analyzer=mandatory_analyzer,
+        text_direction_analyzer=mandatory_analyzer,
+        text_direction_validity_analyzer=mandatory_analyzer,
     )
