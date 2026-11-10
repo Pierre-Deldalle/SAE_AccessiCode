@@ -1,5 +1,6 @@
 """Non-régressions du critère RGAA 1.1."""
 import pytest
+
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_01_images.criterion_1_1 import (
     Test111,
@@ -11,6 +12,7 @@ from accessi_code.rgaa.tests.theme_01_images.criterion_1_1 import (
     Test117,
     Test118,
 )
+
 
 @pytest.mark.parametrize("cls", [
     Test111,
@@ -45,11 +47,11 @@ def test_input_image_alt_passes(context_factory, run_rgaa):
 def test_ismap_requires_verified_equivalence(context_factory, run_rgaa):
     html = '<a href="/map"><img id="map" src="map.png" ismap></a>'
     assert run_rgaa(Test114(), context_factory(html)).status == Status.NEEDS_REVIEW
-    assert run_rgaa(Test114(), context_factory(html, **{'img#map': {'verified':True, 'equivalent_destinations':True}})).status == Status.PASS
+    assert run_rgaa(Test114(), context_factory(html, image_evidence={'img#map': {'verified':True, 'equivalent_destinations':True}})).status == Status.PASS
 
 def test_svg_informative_missing_role_fails(context_factory, run_rgaa):
     html = '<svg id="s" aria-label="Graphique"><path d="M0 0"/></svg>'
-    ctx=context_factory(html, **{'svg#s': {'verified':True, 'information_bearing':True}})
+    ctx=context_factory(html, image_evidence={'svg#s': {'verified':True, 'information_bearing':True}})
     assert run_rgaa(Test115(), ctx).status == Status.FAIL
 
 def test_svg_role_and_alt_pass(context_factory, run_rgaa):
@@ -57,12 +59,12 @@ def test_svg_role_and_alt_pass(context_factory, run_rgaa):
 
 def test_object_image_with_role_and_alt_pass(context_factory, run_rgaa):
     html='<object type="image/svg+xml" role="img" aria-label="Logo"></object>'
-    ctx=context_factory(html, **{'object[index=0]': {'verified':True, 'information_bearing':True}})
+    ctx=context_factory(html, image_evidence={'object[index=0]': {'verified':True, 'information_bearing':True}})
     assert run_rgaa(Test116(), ctx).status == Status.PASS
 
 def test_canvas_with_fallback_pass(context_factory, run_rgaa):
     html='<canvas id="c">Graphique: 2, 3, 4</canvas>'
-    ctx=context_factory(html, **{'canvas#c': {'verified':True, 'information_bearing':True}})
+    ctx=context_factory(html, image_evidence={'canvas#c': {'verified':True, 'information_bearing':True}})
     assert run_rgaa(Test118(), ctx).status == Status.PASS
 
 def test_embed_role_alt_passes(context_factory, run_rgaa):

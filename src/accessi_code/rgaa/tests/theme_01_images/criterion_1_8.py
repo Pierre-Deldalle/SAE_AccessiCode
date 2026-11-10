@@ -1,6 +1,7 @@
 """RGAA thème 1, critère 1.8 : tests DOM et preuves vérifiées."""
 from accessi_code.rgaa.tests.theme_01_images._engine import ImageThemeTest
 
+
 class Test181(ImageThemeTest):
     test_id = "1.8.1"
     criterion_id = "1.8"

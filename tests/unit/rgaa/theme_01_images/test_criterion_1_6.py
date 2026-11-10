@@ -1,5 +1,6 @@
 """Non-régressions du critère RGAA 1.6."""
 import pytest
+
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_01_images.criterion_1_6 import (
     Test161,
@@ -13,6 +14,7 @@ from accessi_code.rgaa.tests.theme_01_images.criterion_1_6 import (
     Test169,
     Test1610,
 )
+
 
 @pytest.mark.parametrize("cls", [
     Test161,
@@ -33,7 +35,7 @@ def test_absent_elements_not_applicable(cls, context_factory, run_rgaa):
 
 def test_required_detailed_description_missing_fails(context_factory, run_rgaa):
     html='<img id="chart" alt="Résultats">'
-    ctx=context_factory(html, **{'img#chart': {'verified':True,'requires_detailed_description':True}})
+    ctx=context_factory(html, image_evidence={'img#chart': {'verified':True,'requires_detailed_description':True}})
     assert run_rgaa(Test161(), ctx).status == Status.FAIL
 
 def test_broken_describedby_fails(context_factory, run_rgaa):
@@ -42,7 +44,7 @@ def test_broken_describedby_fails(context_factory, run_rgaa):
 
 def test_svg_description_mechanism(context_factory, run_rgaa):
     html='<p id="d">Données</p><svg id="s" role="img" aria-label="Graphique" aria-describedby="d"></svg>'
-    ctx=context_factory(html, **{'svg#s': {'verified':True, 'requires_detailed_description':True, 'description_accessible':True}})
+    ctx=context_factory(html, image_evidence={'svg#s': {'verified':True, 'requires_detailed_description':True, 'description_accessible':True}})
     assert run_rgaa(Test165(), ctx).status == Status.PASS
 
 def test_aria_role_img_detailed_description(context_factory, run_rgaa):

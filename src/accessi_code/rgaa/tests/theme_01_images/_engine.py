@@ -5,12 +5,25 @@ Aucun appel IA: un audit ne doit pas générer 2 appels Ollama par image et par 
 from __future__ import annotations
 
 from typing import Any
+
 from bs4 import BeautifulSoup, Tag
 
 from accessi_code.analysis.image_rgaa import (
-    alternative, captcha_marker, caption, has_caption, has_detailed_description,
-    has_description_mechanism, identifier, image_elements, is_decorative,
-    is_functional, proof, role, semantic_alternatives, text_attr, text_refs,
+    alternative,
+    captcha_marker,
+    caption,
+    has_caption,
+    has_description_mechanism,
+    has_detailed_description,
+    identifier,
+    image_elements,
+    is_decorative,
+    is_functional,
+    proof,
+    role,
+    semantic_alternatives,
+    text_attr,
+    text_refs,
 )
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability

@@ -1,5 +1,6 @@
 """Non-régressions du critère RGAA 1.4."""
 import pytest
+
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_01_images.criterion_1_4 import (
     Test141,
@@ -10,6 +11,7 @@ from accessi_code.rgaa.tests.theme_01_images.criterion_1_4 import (
     Test146,
     Test147,
 )
+
 
 @pytest.mark.parametrize("cls", [
     Test141,

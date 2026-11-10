@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from bs4 import BeautifulSoup, Tag
+
 from accessi_code.analysis.dom import get_element_identifier
 
 

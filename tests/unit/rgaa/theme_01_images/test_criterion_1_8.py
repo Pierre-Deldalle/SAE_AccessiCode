@@ -1,5 +1,6 @@
 """Non-régressions du critère RGAA 1.8."""
 import pytest
+
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_01_images.criterion_1_8 import (
     Test181,
@@ -9,6 +10,7 @@ from accessi_code.rgaa.tests.theme_01_images.criterion_1_8 import (
     Test185,
     Test186,
 )
+
 
 @pytest.mark.parametrize("cls", [
     Test181,
@@ -32,5 +34,5 @@ def test_svg_with_real_text_only_not_in_scope(context_factory, run_rgaa):
 
 def test_text_image_exception_not_applicable(context_factory, run_rgaa):
     html='<img id="logo" alt="Marque" src="logo.png">'
-    ctx=context_factory(html, **{'img#logo': {'verified':True, 'is_text_image':True, 'special_case':True}})
+    ctx=context_factory(html, image_evidence={'img#logo': {'verified':True, 'is_text_image':True, 'special_case':True}})
     assert run_rgaa(Test181(), ctx).status == Status.NOT_APPLICABLE

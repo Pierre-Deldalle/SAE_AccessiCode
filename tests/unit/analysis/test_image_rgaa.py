@@ -1,7 +1,12 @@
 """Régressions pour les sélecteurs et la résolution des alternatives du thème 1."""
 from bs4 import BeautifulSoup
+
 from accessi_code.analysis.image_rgaa import (
-    alternative, image_elements, role, semantic_alternatives, text_refs,
+    alternative,
+    image_elements,
+    role,
+    semantic_alternatives,
+    text_refs,
 )
 
 
