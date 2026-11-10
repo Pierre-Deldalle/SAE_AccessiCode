@@ -79,11 +79,13 @@
 
 
 /* =========================================
-   BARRE DE PROGRESSION SIMULÉE
+   PROGRESSION RÉELLE DE L'AUDIT
+   La largeur de la barre est fixée en Python
+   (ui/loading_view.py) d'après le moteur.
    ========================================= */
 
 #chargement-progress {
-    width: min(100%, 420px) !important;
+    width: min(100%, 460px) !important;
     margin: 0 auto !important;
     padding: 0 !important;
 }
@@ -92,12 +94,64 @@
     width: 100%;
 }
 
+.accessicode-steps {
+    list-style: none;
+    margin: 0 0 16px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.accessicode-step {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-body);
+    font-size: 15px;
+    color: #475569;
+}
+
+.accessicode-step-marker {
+    width: 22px;
+    height: 22px;
+    flex: 0 0 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 12px;
+    font-weight: 700;
+    border: 2px solid #94a3b8;
+    color: #475569;
+    background: #ffffff;
+}
+
+.accessicode-step-done {
+    color: #17212b;
+}
+
+.accessicode-step-done .accessicode-step-marker {
+    border-color: #01a320;
+    background: #01a320;
+    color: #ffffff;
+}
+
+.accessicode-step-current {
+    color: #17212b;
+    font-weight: 700;
+}
+
+.accessicode-step-current .accessicode-step-marker {
+    border-color: #0153c6;
+    color: #0153c6;
+}
+
 .accessicode-progress-track {
+    position: relative;
     width: 100%;
     height: 10px;
-
     overflow: hidden;
-
     background-color: #e1e5e9;
     border-radius: 5px;
 }
@@ -105,37 +159,79 @@
 .accessicode-progress-fill {
     width: 0;
     height: 100%;
-
     background-color: #01cb26;
     border-radius: 5px;
+    transition: width 300ms ease;
+}
 
-    animation: accessicode-progress 2s linear forwards;
+/* Durée inconnue : segment qui défile, sans pourcentage. */
+.accessicode-progress-indeterminate .accessicode-progress-fill {
+    position: absolute;
+    left: 0;
+    width: 30%;
+    background-color: #0153c6;
+    animation: accessicode-indeterminate 1.4s ease-in-out infinite;
+}
+
+@keyframes accessicode-indeterminate {
+    from {
+        transform: translateX(-100%);
+    }
+
+    to {
+        transform: translateX(340%);
+    }
+}
+
+.accessicode-progress-percent {
+    margin: 6px 0 0 !important;
+    font-family: var(--font-body) !important;
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    color: #17212b !important;
+    text-align: center;
 }
 
 .accessicode-progress-description {
     margin: 10px 0 0 !important;
-
     font-family: var(--font-body) !important;
-    font-size: 13px !important;
-
-    color: #475569 !important;
+    font-size: 14px !important;
+    color: #17212b !important;
     text-align: center;
 }
 
-@keyframes accessicode-progress {
-    from {
-        width: 0%;
-    }
+.accessicode-progress-alert {
+    margin: 12px 0 0 !important;
+    padding: 8px 12px;
+    border-left: 4px solid #b91c1c;
+    border-radius: 6px;
+    background: #fef2f2;
+    font-family: var(--font-body) !important;
+    font-size: 14px !important;
+    color: #17212b !important;
+}
 
-    to {
-        width: 100%;
-    }
+.accessicode-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {
     .accessicode-progress-fill {
+        transition: none !important;
+    }
+
+    .accessicode-progress-indeterminate .accessicode-progress-fill {
         animation: none !important;
         width: 100%;
+        opacity: 0.35;
     }
 }
 
@@ -209,4 +305,34 @@
     #chargement-logo img {
         animation: none !important;
     }
+}
+
+
+/* =========================================
+   BOUTON D'ANNULATION
+   ========================================= */
+
+#chargement-cancel-button {
+    align-self: center !important;
+    width: auto !important;
+    min-width: 180px !important;
+    min-height: 44px !important;
+    margin: 20px auto 0 !important;
+    padding: 10px 24px !important;
+    border: 2px solid #0153c6 !important;
+    border-radius: 8px !important;
+    background: #ffffff !important;
+    color: #0153c6 !important;
+    font-family: var(--font-body) !important;
+    font-size: 15px !important;
+    font-weight: 600 !important;
+}
+
+#chargement-cancel-button:hover {
+    background: #eef4fd !important;
+}
+
+#chargement-cancel-button:focus-visible {
+    outline: 3px solid #0153c6 !important;
+    outline-offset: 3px !important;
 }

@@ -1,4 +1,3 @@
-
 """
 Construit la page de chargement de l'application AccessiCode.
 """
@@ -7,8 +6,9 @@ from pathlib import Path
 
 import gradio as gr
 
+from accessi_code.ui.components.bouton_component import create_button
 from accessi_code.ui.components.image_component import create_image
-
+from accessi_code.ui.loading_view import render_progress
 
 # Chemin vers les ressources graphiques.
 ASSETS_DIR = Path(__file__).parent.parent / "assets"
@@ -18,9 +18,9 @@ def build_chargement_page():
     """
     Crée la page de chargement de l'audit.
 
-    Pour le moment, le chargement est simulé.
-    La barre verte ne représente pas encore
-    la progression réelle du moteur d'audit.
+    Les étapes et la barre reflètent l'avancement réel du moteur
+    (voir ui/loading_view.py). Retourne la page, le bloc de progression
+    et le bouton d'annulation.
     """
 
     with gr.Column(
@@ -28,9 +28,7 @@ def build_chargement_page():
         elem_id="chargement-page",
         elem_classes=["page-container"],
     ) as chargement_page:
-
         with gr.Column(elem_id="chargement-content"):
-
             # Titre principal.
             gr.Markdown(
                 "# Analyse en cours",
@@ -51,27 +49,23 @@ def build_chargement_page():
                 elem_id="chargement-message",
             )
 
-            # Barre de progression verte simulée.
-            gr.HTML(
-                """
-                <div class="accessicode-progress-section">
-                    <div class="accessicode-progress-track"
-                         aria-hidden="true">
-                        <div class="accessicode-progress-fill"></div>
-                    </div>
-
-                    <p class="accessicode-progress-description">
-                        Simulation de progression
-                    </p>
-                </div>
-                """,
+            # Progression réelle, mise à jour par app.run_audit().
+            progress_html = gr.HTML(
+                render_progress(None),
                 elem_id="chargement-progress",
             )
 
             # Message secondaire.
             gr.Markdown(
-                "Veuillez patienter quelques instants.",
+                "La durée dépend du nombre de tests et des analyses par IA.",
                 elem_id="chargement-subtitle",
             )
 
-    return chargement_page
+            # Interrompt l'audit en cours et ramène à la préparation.
+            cancel_button = create_button(
+                "Annuler l'audit",
+                variant="secondary",
+                elem_id="chargement-cancel-button",
+            )
+
+    return chargement_page, progress_html, cancel_button
