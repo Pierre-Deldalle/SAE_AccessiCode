@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+
 from bs4 import BeautifulSoup, Tag
 
 from accessi_code.analysis.page import (
@@ -8,8 +9,8 @@ from accessi_code.analysis.page import (
 )
 from accessi_code.analysis.tables import (
     find_tables,
-    get_table_summary_evidence,
     get_referenced_text,
+    get_table_summary_evidence,
     has_complex_header_structure,
 )
 from accessi_code.models.audit_context import AuditContext
@@ -87,7 +88,9 @@ class Test521(RGAATest):
                     Finding(
                         element=element,
                         message=("Le résumé du tableau de données complexe n'est pas pertinent."),
-                        recommendation=("Fournir un résumé qui décrit précisément la structure ou le contenu du tableau."),
+                        recommendation=(
+                            "Fournir un résumé qui décrit précisément la structure ou le contenu du tableau."
+                        ),
                     )
                 )
 
@@ -108,7 +111,9 @@ class Test521(RGAATest):
             self.test_id,
             self.criterion_id,
             status,
-            (f"{len(complex_tables_with_summary)} tableau(x) complexe(s) avec résumé, {len(findings)} avec résumé non pertinent."),
+            (
+                f"{len(complex_tables_with_summary)} tableau(x) complexe(s) avec résumé, {len(findings)} avec résumé non pertinent."
+            ),
             findings=findings,
             tested_elements=len(complex_tables_with_summary),
             metadata={
@@ -146,16 +151,16 @@ class Test521(RGAATest):
         if not summary_text or not summary_text.strip():
             return False
 
-        summary_normalized = re.sub(r'\s+', ' ', summary_text.strip().lower())
+        summary_normalized = re.sub(r"\s+", " ", summary_text.strip().lower())
 
         non_pertinent_patterns = [
-            r'^\s*tableau\s*$',
-            r'^\s*données\s*$',
-            r'^\s*info\s*$',
-            r'^\s*table\s*$',
-            r'^\s*data\s*$',
-            r'^\s*\d+\s*$',  # Just numbers
-            r'^\s*[^a-zA-Z]*\s*$',  # No letters at all
+            r"^\s*tableau\s*$",
+            r"^\s*données\s*$",
+            r"^\s*info\s*$",
+            r"^\s*table\s*$",
+            r"^\s*data\s*$",
+            r"^\s*\d+\s*$",  # Just numbers
+            r"^\s*[^a-zA-Z]*\s*$",  # No letters at all
         ]
 
         for pattern in non_pertinent_patterns:
@@ -165,14 +170,47 @@ class Test521(RGAATest):
         header_texts = self._get_table_header_texts(table)
 
         if header_texts:
-            summary_words = set(re.findall(r'\b\w+\b', summary_normalized))
-            header_words = set(re.findall(r'\b\w+\b', ' '.join(header_texts).lower()))
+            summary_words = set(re.findall(r"\b\w+\b", summary_normalized))
+            header_words = set(re.findall(r"\b\w+\b", " ".join(header_texts).lower()))
 
             stop_words = {
-                'le', 'la', 'les', 'un', 'une', 'des', 'du', 'de', 'et', 'ou', 'avec',
-                'sur', 'dans', 'par', 'pour', 'vers', 'aux', 'aux', 'ce', 'cet', 'cette',
-                'ces', 'mon', 'ton', 'son', 'ma', 'ta', 'sa', 'mes', 'tes', 'ses',
-                'tableau', 'table', 'données', 'data', 'information', 'info'
+                "le",
+                "la",
+                "les",
+                "un",
+                "une",
+                "des",
+                "du",
+                "de",
+                "et",
+                "ou",
+                "avec",
+                "sur",
+                "dans",
+                "par",
+                "pour",
+                "vers",
+                "aux",
+                "aux",
+                "ce",
+                "cet",
+                "cette",
+                "ces",
+                "mon",
+                "ton",
+                "son",
+                "ma",
+                "ta",
+                "sa",
+                "mes",
+                "tes",
+                "ses",
+                "tableau",
+                "table",
+                "données",
+                "data",
+                "information",
+                "info",
             }
 
             meaningful_summary_words = summary_words - stop_words
@@ -194,10 +232,12 @@ class Test521(RGAATest):
         """Extract all header text from a table."""
         header_texts = []
 
-        for element in table.find_all(['th', 'td']):
-            if (element.name == 'th' or
-                element.get('role') in ['columnheader', 'rowheader'] or
-                element.get('scope') in ['col', 'row', 'colgroup', 'rowgroup']):
+        for element in table.find_all(["th", "td"]):
+            if (
+                element.name == "th"
+                or element.get("role") in ["columnheader", "rowheader"]
+                or element.get("scope") in ["col", "row", "colgroup", "rowgroup"]
+            ):
                 text = element.get_text(" ", strip=True)
                 if text:
                     header_texts.append(text)

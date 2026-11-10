@@ -4,8 +4,8 @@ from bs4 import BeautifulSoup, Tag
 
 from accessi_code.analysis.tables import (
     find_tables,
-    get_table_rows,
     get_row_cells,
+    get_table_rows,
     is_header_cell,
 )
 from accessi_code.models.audit_context import AuditContext
@@ -113,13 +113,25 @@ class Test581(RGAATest):
 
     def _is_data_table(self, table: Tag) -> bool:
         """
-        Détermine si un tableau est un tableau de données (au sens large).
-        Un tableau de données contient au moins une cellule d'en-tête.
+        Détermine si un tableau est un tableau de données (heuristique).
+
+        - role="presentation" ou role="none" : tableau de mise en forme ;
+        - sinon, tableau de données s'il possède une ligne entière d'en-têtes
+          ou une colonne entière d'en-têtes (sur au moins deux lignes).
+
+        Une cellule d'en-tête isolée ne suffit pas : c'est justement l'erreur
+        recherchée dans un tableau de mise en forme.
         """
-        for element in table.find_all(["th", "td"]):
-            if isinstance(element, Tag) and is_header_cell(element):
-                return True
-        return False
+        role = str(table.get("role", "")).strip().lower()
+        if role in {"presentation", "none"}:
+            return False
+
+        rows = [cells for cells in (get_row_cells(row) for row in get_table_rows(table)) if cells]
+
+        if any(all(is_header_cell(cell) for cell in cells) for cells in rows):
+            return True
+
+        return len(rows) >= 2 and all(is_header_cell(cells[0]) for cells in rows)
 
     def _check_layout_table_compliance(self, table: Tag) -> tuple[bool, list[str]]:
         """
@@ -132,14 +144,7 @@ class Test581(RGAATest):
         if summary is not None and isinstance(summary, str) and summary.strip() != "":
             violations.append("l'attribut summary n'est pas vide")
 
-        forbidden_selectors = [
-            "caption",
-            "th",
-            "thead",
-            "tfoot",
-            '[role="rowheader"]',
-            '[role="columnheader"]'
-        ]
+        forbidden_selectors = ["caption", "th", "thead", "tfoot", '[role="rowheader"]', '[role="columnheader"]']
 
         for selector in forbidden_selectors:
             if table.select_one(selector):
@@ -163,21 +168,21 @@ class Test581(RGAATest):
                 if cell.name == "td":
                     scope = cell.get("scope")
                     if scope is not None and isinstance(scope, str) and scope.strip() != "":
-                        violations.append(f"une cellule <td> possède l'attribut scope")
+                        violations.append("une cellule <td> possède l'attribut scope")
                         break  # Une seule violation de ce type suffit
 
                     headers = cell.get("headers")
                     if headers is not None:
                         if isinstance(headers, str) and headers.strip() != "":
-                            violations.append(f"une cellule <td> possède l'attribut headers")
+                            violations.append("une cellule <td> possède l'attribut headers")
                             break
                         elif isinstance(headers, list) and len(headers) > 0:
-                            violations.append(f"une cellule <td> possède l'attribut headers")
+                            violations.append("une cellule <td> possède l'attribut headers")
                             break
 
                     axis = cell.get("axis")
                     if axis is not None and isinstance(axis, str) and axis.strip() != "":
-                        violations.append(f"une cellule <td> possède l'attribut axis")
+                        violations.append("une cellule <td> possède l'attribut axis")
                         break
 
             if violations:

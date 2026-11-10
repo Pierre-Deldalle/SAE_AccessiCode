@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+
 from bs4 import BeautifulSoup, Tag
 
 from accessi_code.models.audit_context import AuditContext
@@ -68,7 +69,9 @@ class Test551(RGAATest):
                     Finding(
                         element=element,
                         message=("Le titre du tableau de données n'est pas pertinent."),
-                        recommendation=("Fournir un titre qui identifie clairement et concisément le contenu du tableau."),
+                        recommendation=(
+                            "Fournir un titre qui identifie clairement et concisément le contenu du tableau."
+                        ),
                     )
                 )
 
@@ -111,18 +114,18 @@ class Test551(RGAATest):
         if not title_text or not title_text.strip():
             return False
 
-        title_normalized = re.sub(r'\s+', ' ', title_text.strip().lower())
+        title_normalized = re.sub(r"\s+", " ", title_text.strip().lower())
 
         non_pertinent_patterns = [
-            r'^\s*tableau\s*$',
-            r'^\s*données\s*$',
-            r'^\s*info\s*$',
-            r'^\s*table\s*$',
-            r'^\s*data\s*$',
-            r'^\s*\d+\s*$',  # Just numbers
-            r'^\s*[^a-zA-Z]*\s*$',  # No letters at all
-            r'^\s*title\s*$',  # Generic "title"
-            r'^\s*nom\s*$',  # Generic "name"
+            r"^\s*tableau\s*$",
+            r"^\s*données\s*$",
+            r"^\s*info\s*$",
+            r"^\s*table\s*$",
+            r"^\s*data\s*$",
+            r"^\s*\d+\s*$",  # Just numbers
+            r"^\s*[^a-zA-Z]*\s*$",  # No letters at all
+            r"^\s*title\s*$",  # Generic "title"
+            r"^\s*nom\s*$",  # Generic "name"
         ]
 
         for pattern in non_pertinent_patterns:
@@ -132,14 +135,49 @@ class Test551(RGAATest):
         header_texts = self._get_table_header_texts(table)
 
         if header_texts:
-            title_words = set(re.findall(r'\b\w+\b', title_normalized))
-            header_words = set(re.findall(r'\b\w+\b', ' '.join(header_texts).lower()))
+            title_words = set(re.findall(r"\b\w+\b", title_normalized))
+            header_words = set(re.findall(r"\b\w+\b", " ".join(header_texts).lower()))
 
             stop_words = {
-                'le', 'la', 'les', 'un', 'une', 'des', 'du', 'de', 'et', 'ou', 'avec',
-                'sur', 'dans', 'par', 'pour', 'vers', 'aux', 'ce', 'cet', 'cette',
-                'ces', 'mon', 'ton', 'son', 'ma', 'ta', 'sa', 'mes', 'tes', 'ses',
-                'tableau', 'table', 'données', 'data', 'information', 'info', 'titre', 'title', 'nom'
+                "le",
+                "la",
+                "les",
+                "un",
+                "une",
+                "des",
+                "du",
+                "de",
+                "et",
+                "ou",
+                "avec",
+                "sur",
+                "dans",
+                "par",
+                "pour",
+                "vers",
+                "aux",
+                "ce",
+                "cet",
+                "cette",
+                "ces",
+                "mon",
+                "ton",
+                "son",
+                "ma",
+                "ta",
+                "sa",
+                "mes",
+                "tes",
+                "ses",
+                "tableau",
+                "table",
+                "données",
+                "data",
+                "information",
+                "info",
+                "titre",
+                "title",
+                "nom",
             }
 
             meaningful_title_words = title_words - stop_words
@@ -162,10 +200,12 @@ class Test551(RGAATest):
         """Extract all header text from a table."""
         header_texts = []
 
-        for element in table.find_all(['th', 'td']):
-            if (element.name == 'th' or
-                element.get('role') in ['columnheader', 'rowheader'] or
-                element.get('scope') in ['col', 'row', 'colgroup', 'rowgroup']):
+        for element in table.find_all(["th", "td"]):
+            if (
+                element.name == "th"
+                or element.get("role") in ["columnheader", "rowheader"]
+                or element.get("scope") in ["col", "row", "colgroup", "rowgroup"]
+            ):
                 text = element.get_text(" ", strip=True)
                 if text:
                     header_texts.append(text)

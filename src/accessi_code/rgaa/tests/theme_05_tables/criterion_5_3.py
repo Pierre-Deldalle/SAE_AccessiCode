@@ -59,10 +59,7 @@ class Test531(RGAATest):
             layout_tables.append(table)
 
             role = table.get("role")
-            has_presentation_role = (
-                isinstance(role, str) and
-                role.strip().lower() == "presentation"
-            )
+            has_presentation_role = isinstance(role, str) and role.strip().lower() == "presentation"
 
             content_comprehensible = self._is_linearized_content_comprehensible(table, soup)
 
@@ -82,7 +79,9 @@ class Test531(RGAATest):
                     Finding(
                         element=element,
                         message=("Et non : " + " ; ".join(issues)),
-                        recommendation=("Pour un tableau de mise en forme, ajouter l'attribut role='presentation' et s'assurer que le contenu reste compréhensible lorsqu'il est linéarisé."),
+                        recommendation=(
+                            "Pour un tableau de mise en forme, ajouter l'attribut role='presentation' et s'assurer que le contenu reste compréhensible lorsqu'il est linéarisé."
+                        ),
                     )
                 )
 
@@ -143,13 +142,13 @@ class Test531(RGAATest):
 
         def extract_text_from_element(element):
             if isinstance(element, Tag):
-                if element.name in ['td', 'th'] or element.get('role') in ['cell', 'columnheader', 'rowheader']:
+                if element.name in ["td", "th"] or element.get("role") in ["cell", "columnheader", "rowheader"]:
                     text = element.get_text(" ", strip=True)
                     if text:
                         texts.append(text)
                 for child in element.children:
                     extract_text_from_element(child)
-            elif hasattr(element, 'strip') and str(element).strip():
+            elif hasattr(element, "strip") and str(element).strip():
                 text = str(element).strip()
                 if text:
                     texts.append(text)
@@ -168,10 +167,26 @@ class Test531(RGAATest):
             return False
 
         filler_indicators = {
-            'cellule', 'cell', 'column', 'colonne', 'row', 'ligne',
-            'item', 'element', 'data', 'texte', 'text',
-            'lorem', 'ipsum', 'dummy', 'placeholder',
-            'bloc', 'zone', 'section', 'div', 'span'
+            "cellule",
+            "cell",
+            "column",
+            "colonne",
+            "row",
+            "ligne",
+            "item",
+            "element",
+            "data",
+            "texte",
+            "text",
+            "lorem",
+            "ipsum",
+            "dummy",
+            "placeholder",
+            "bloc",
+            "zone",
+            "section",
+            "div",
+            "span",
         }
 
         filler_word_count = sum(1 for word in words if word in filler_indicators)
@@ -182,9 +197,7 @@ class Test531(RGAATest):
         if len(words) >= 4:
             pattern_count = 0
             for i in range(0, len(words) - 2, 2):  # Check pairs of words
-                if (i + 1 < len(words) and
-                    words[i].isalpha() and
-                    words[i + 1].isdigit()):
+                if i + 1 < len(words) and words[i].isalpha() and words[i + 1].isdigit():
                     pattern_count += 1
 
             if len(words) >= 2 and (pattern_count * 2) / len(words) > 0.4:

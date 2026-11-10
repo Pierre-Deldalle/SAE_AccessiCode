@@ -9,7 +9,6 @@ from accessi_code.analysis.dom import (
 )
 from accessi_code.analysis.tables import (
     find_tables,
-    has_complex_header_structure,
 )
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
@@ -75,7 +74,9 @@ class Test541(RGAATest):
                     Finding(
                         element=element,
                         message=("Aucun titre associé à ce tableau de données."),
-                        recommendation=("Associer un titre au tableau de données au moyen d'un élément <caption>, d'un attribut 'title', d'un attribut 'aria-label' ou d'un attribut 'aria-labelledby' faisant référence à un texte descriptif."),
+                        recommendation=(
+                            "Associer un titre au tableau de données au moyen d'un élément <caption>, d'un attribut 'title', d'un attribut 'aria-label' ou d'un attribut 'aria-labelledby' faisant référence à un texte descriptif."
+                        ),
                     )
                 )
 

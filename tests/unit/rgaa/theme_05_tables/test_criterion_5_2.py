@@ -3,7 +3,6 @@ from accessi_code.rgaa.tests.theme_05_tables.criterion_5_2 import (
     Test521 as RGAA521,
 )
 
-
 TABLE_WITH_NON_PERTINENT_SUMMARY = """
 <table>
     <caption>Tableau</caption>

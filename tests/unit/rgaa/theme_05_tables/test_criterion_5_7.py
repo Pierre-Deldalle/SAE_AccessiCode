@@ -1,9 +1,17 @@
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_05_tables.criterion_5_7 import (
     Test571 as RGAA571,
+)
+from accessi_code.rgaa.tests.theme_05_tables.criterion_5_7 import (
     Test572 as RGAA572,
+)
+from accessi_code.rgaa.tests.theme_05_tables.criterion_5_7 import (
     Test573 as RGAA573,
+)
+from accessi_code.rgaa.tests.theme_05_tables.criterion_5_7 import (
     Test574 as RGAA574,
+)
+from accessi_code.rgaa.tests.theme_05_tables.criterion_5_7 import (
     Test575 as RGAA575,
 )
 
@@ -73,9 +81,9 @@ def table_with_id_headers() -> str:
         </thead>
         <tbody>
             <tr>
-                <td headers="nom prenom">Dupont Jean</td>
-                <td>25</td>
-                <td>Masculin</td>
+                <td headers="nom">Dupont</td>
+                <td headers="prenom">Jean</td>
+                <td headers="age">25</td>
             </tr>
         </tbody>
     </table>
@@ -225,25 +233,36 @@ def table_with_wrong_role() -> str:
     """
 
 
-def table_with_unique_id_headers_no_scope_no_role() -> str:
-    return """
+def table_with_group_header(group_header: str) -> str:
+    """
+    Tableau dont l'en-tête de groupe « Identité » couvre deux colonnes :
+    c'est un en-tête qui ne s'applique pas à la totalité d'une colonne (5.7.3).
+    """
+    return f"""
     <table>
         <thead>
             <tr>
-                <th id="header1">Nom</th>
-                <th id="header2">Prénom</th>
-                <th id="header3">Âge</th>
+                {group_header}
+                <th id="age" rowspan="2">Âge</th>
+            </tr>
+            <tr>
+                <th id="nom">Nom</th>
+                <th id="prenom">Prénom</th>
             </tr>
         </thead>
         <tbody>
             <tr>
-                <td>Dupont</td>
-                <td>Jean</td>
-                <td>25</td>
+                <td headers="identite nom">Dupont</td>
+                <td headers="identite prenom">Jean</td>
+                <td headers="age">25</td>
             </tr>
         </tbody>
     </table>
     """
+
+
+def table_with_unique_id_headers_no_scope_no_role() -> str:
+    return table_with_group_header('<th id="identite" colspan="2">Identité</th>')
 
 
 def table_with_header_that_is_not_entire_row_or_col() -> str:
@@ -412,7 +431,11 @@ def test_571_table_with_missing_identification_fails(
     assert result.status == Status.FAIL
     assert len(result.findings) == 2  # Two headers missing identification
     assert result.tested_elements == 2
-    assert all("L'en-tête de ligne ou de colonne doit avoir un identifiant unique (id), un attribut scope ou un rôle role='rowheader' ou role='columnheader'." in f.message for f in result.findings)
+    assert all(
+        "L'en-tête de ligne ou de colonne doit avoir un identifiant unique (id), un attribut scope ou un rôle role='rowheader' ou role='columnheader'."
+        in f.message
+        for f in result.findings
+    )
 
 
 def test_572_no_table_is_not_applicable(
@@ -476,7 +499,10 @@ def test_572_table_with_wrong_scope_fails(
     assert result.status == Status.FAIL
     assert len(result.findings) == 3  # Three headers with wrong scope
     assert result.tested_elements == 3
-    assert all("L'attribut scope de l'en-tête de ligne ou de colonne n'est pas approprié." in f.message for f in result.findings)
+    assert all(
+        "L'attribut scope de l'en-tête de ligne ou de colonne n'est pas approprié." in f.message
+        for f in result.findings
+    )
 
 
 def test_573_no_table_is_not_applicable(
@@ -513,29 +539,14 @@ def test_573_table_with_unique_id_no_scope_no_role_passes(
 
     assert result.status == Status.PASS
     assert result.findings == []
-    assert result.tested_elements == 3  # Three headers with unique id, no scope, no role
+    assert result.tested_elements == 1  # Seul « Identité » ne couvre pas une colonne entière
 
 
 def test_573_table_with_header_missing_id_fails(
     context_factory,
     run_rgaa,
 ):
-    html = """
-    <table>
-        <thead>
-            <tr>
-                <th>Nom</th>
-                <th id="prenom">Prénom</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>Dupont</td>
-                <td>Jean</td>
-            </tr>
-        </tbody>
-    </table>
-    """
+    html = table_with_group_header('<th colspan="2">Identité</th>')
     context = context_factory(html)
 
     result = run_rgaa(RGAA573(), context)
@@ -543,29 +554,18 @@ def test_573_table_with_header_missing_id_fails(
     assert result.status == Status.FAIL
     assert len(result.findings) >= 1  # At least the header without id should fail
     assert result.tested_elements >= 1
-    assert any("L'en-tête qui ne s'applique pas à la totalité de la ligne ou de la colonne doit avoir un id unique et ne pas avoir d'attribut scope ni de rôle role='rowheader'/'columnheader'." in f.message for f in result.findings)
+    assert any(
+        "L'en-tête qui ne s'applique pas à la totalité de la ligne ou de la colonne doit avoir un id unique et ne pas avoir d'attribut scope ni de rôle role='rowheader'/'columnheader'."
+        in f.message
+        for f in result.findings
+    )
 
 
 def test_573_table_with_header_with_scope_fails(
     context_factory,
     run_rgaa,
 ):
-    html = """
-    <table>
-        <thead>
-            <tr>
-                <th id="nom" scope="col">Nom</th>
-                <th id="prenom">Prénom</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>Dupont</td>
-                <td>Jean</td>
-            </tr>
-        </tbody>
-    </table>
-    """
+    html = table_with_group_header('<th id="identite" colspan="2" scope="colgroup">Identité</th>')
     context = context_factory(html)
 
     result = run_rgaa(RGAA573(), context)
@@ -573,29 +573,18 @@ def test_573_table_with_header_with_scope_fails(
     assert result.status == Status.FAIL
     assert len(result.findings) >= 1  # At least the header with scope should fail
     assert result.tested_elements >= 1
-    assert any("L'en-tête qui ne s'applique pas à la totalité de la ligne ou de la colonne doit avoir un id unique et ne pas avoir d'attribut scope ni de rôle role='rowheader'/'columnheader'." in f.message for f in result.findings)
+    assert any(
+        "L'en-tête qui ne s'applique pas à la totalité de la ligne ou de la colonne doit avoir un id unique et ne pas avoir d'attribut scope ni de rôle role='rowheader'/'columnheader'."
+        in f.message
+        for f in result.findings
+    )
 
 
 def test_573_table_with_header_with_role_fails(
     context_factory,
     run_rgaa,
 ):
-    html = """
-    <table>
-        <thead>
-            <tr>
-                <th id="nom" role="columnheader">Nom</th>
-                <th id="prenom">Prénom</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>Dupont</td>
-                <td>Jean</td>
-            </tr>
-        </tbody>
-    </table>
-    """
+    html = table_with_group_header('<th id="identite" colspan="2" role="columnheader">Identité</th>')
     context = context_factory(html)
 
     result = run_rgaa(RGAA573(), context)
@@ -603,7 +592,11 @@ def test_573_table_with_header_with_role_fails(
     assert result.status == Status.FAIL
     assert len(result.findings) >= 1  # At least the header with role should fail
     assert result.tested_elements >= 1
-    assert any("L'en-tête qui ne s'applique pas à la totalité de la ligne ou de la colonne doit avoir un id unique et ne pas avoir d'attribut scope ni de rôle role='rowheader'/'columnheader'." in f.message for f in result.findings)
+    assert any(
+        "L'en-tête qui ne s'applique pas à la totalité de la ligne ou de la colonne doit avoir un id unique et ne pas avoir d'attribut scope ni de rôle role='rowheader'/'columnheader'."
+        in f.message
+        for f in result.findings
+    )
 
 
 def test_574_no_table_is_not_applicable(
@@ -640,7 +633,7 @@ def test_574_table_with_proper_headers_attribute_passes(
 
     assert result.status == Status.PASS
     assert result.findings == []
-    assert result.tested_elements == 1  # One cell with proper headers attribute
+    assert result.tested_elements == 3  # Trois cellules avec un attribut headers correct
 
 
 def test_574_table_with_improper_headers_attribute_fails(
@@ -654,7 +647,11 @@ def test_574_table_with_improper_headers_attribute_fails(
     assert result.status == Status.FAIL
     assert len(result.findings) >= 1
     assert result.tested_elements >= 1
-    assert any("La cellule associée à un ou plusieurs en-têtes possédant un id doit avoir un attribut headers contenant la liste des ids des en-têtes associés." in f.message for f in result.findings)
+    assert any(
+        "La cellule associée à un ou plusieurs en-têtes possédant un id doit avoir un attribut headers contenant la liste des ids des en-têtes associés."
+        in f.message
+        for f in result.findings
+    )
 
 
 def test_575_no_table_is_not_applicable(
@@ -718,4 +715,8 @@ def test_575_table_with_wrong_role_fails(
     assert result.status == Status.FAIL
     assert len(result.findings) == 3  # Three headers with wrong role
     assert result.tested_elements == 3
-    assert all("L'élément avec role='rowheader' ou role='columnheader' doit avoir la valeur appropriée selon qu'il s'applique à une ligne ou une colonne." in f.message for f in result.findings)
+    assert all(
+        "L'élément avec role='rowheader' ou role='columnheader' doit avoir la valeur appropriée selon qu'il s'applique à une ligne ou une colonne."
+        in f.message
+        for f in result.findings
+    )

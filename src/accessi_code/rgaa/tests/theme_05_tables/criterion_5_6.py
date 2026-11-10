@@ -1,12 +1,28 @@
+"""
+Critère 5.6 : pour chaque tableau de données, chaque en-tête de colonne
+et chaque en-tête de ligne sont-ils correctement déclarés ?
+
+Le rôle d'une cellule (en-tête de colonne, en-tête de ligne ou donnée) est
+déduit de sa position dans le tableau, et non de la balise utilisée : c'est
+justement la balise que ces tests vérifient. Les éléments placés directement
+dans une ligne sans être des cellules (<span>, <div>…) sont aussi examinés,
+car ils correspondent à des cellules mal structurées.
+"""
+
 from __future__ import annotations
 
 from bs4 import BeautifulSoup, Tag
 
 from accessi_code.analysis.tables import (
-    get_table_rows,
-    get_row_cells,
+    COLUMN_HEADER,
+    ROW_HEADER,
+    TableSlot,
+    cell_role,
+    classify_table_cells,
+    find_tables,
     get_int_attribute,
-    is_header_cell,
+    is_header_like,
+    is_presentation_table,
 )
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
@@ -18,758 +34,217 @@ from accessi_code.models.result import (
 from accessi_code.rgaa.base import RGAATest
 
 
-class Test561(RGAATest):
-    test_id = "5.6.1"
-    criterion_id = "5.6"
+def _collect_slots(context: AuditContext, test_id: str) -> tuple[list[Tag], list[TableSlot]] | None:
+    if not isinstance(context.dom, BeautifulSoup):
+        raise ValueError(f"Le test {test_id} nécessite un DOM.")
 
-    required_capabilities = frozenset(
-        {
-            Capability.DOM,
-        }
-    )
+    tables = find_tables(context.dom)
+    if not tables:
+        return None
 
-    async def run(
-        self,
-        context: AuditContext,
-        services=None,
-    ) -> TestResult:
-        if not isinstance(
-            context.dom,
-            BeautifulSoup,
-        ):
-            raise ValueError("Le test 5.6.1 nécessite un DOM.")
+    slots: list[TableSlot] = []
+    for table_index, table in enumerate(tables):
+        if not is_presentation_table(table):
+            slots.extend(classify_table_cells(table, table_index))
 
-        soup = context.dom
+    return tables, slots
 
-        tables = soup.select("table, [role='table']")
 
-        if not tables:
-            return TestResult(
-                self.test_id,
-                self.criterion_id,
-                TestStatus.NOT_APPLICABLE,
-                "Aucun tableau détecté.",
-            )
-
-        data_tables = []
-        for table in tables:
-            if self._has_header_cells(table):
-                data_tables.append(table)
-
-        if not data_tables:
-            return TestResult(
-                self.test_id,
-                self.criterion_id,
-                TestStatus.NOT_APPLICABLE,
-                "Aucun tableau de données détecté.",
-                metadata={
-                    "total_tables": len(tables),
-                },
-            )
-
-        column_header_findings: list[Finding] = []
-        total_column_headers = 0
-
-        for table_index, table in enumerate(data_tables):
-            rows = get_table_rows(table)
-
-            for row_index, row in enumerate(rows):
-                cells = get_row_cells(row)
-
-                for col_index, cell in enumerate(cells):
-                    if is_header_cell(cell):
-                        if self._applies_to_entire_column(cell, table, row_index, col_index):
-                            total_column_headers += 1
-
-                            if not self._is_properly_structured_column_header(cell):
-                                table_id = table.get("id")
-                                row_id = row.get("id")
-                                cell_id = cell.get("id")
-
-                                if isinstance(cell_id, str) and cell_id.strip():
-                                    element = f"#{cell_id}"
-                                elif isinstance(row_id, str) and row_id.strip():
-                                    element = f"#{row_id} > *[{self._get_cell_index_string(row, col_index)}]"
-                                elif isinstance(table_id, str) and table_id.strip():
-                                    element = f"#{table_id} > *:nth-child({row_index + 1}) > *:nth-child({col_index + 1})"
-                                else:
-                                    element = f"table[index={table_index}] > *:nth-child({row_index + 1}) > *:nth-child({col_index + 1})"
-
-                                column_header_findings.append(
-                                    Finding(
-                                        element=element,
-                                        message=("L'en-tête de colonne n'est pas correctement déclaré."),
-                                        recommendation=("Utiliser un élément <th> ou un élément avec l'attribut role='columnheader' pour déclarer cet en-tête de colonne."),
-                                    )
-                                )
-
-        if total_column_headers == 0:
-            return TestResult(
-                self.test_id,
-                self.criterion_id,
-                TestStatus.NOT_APPLICABLE,
-                "Aucun en-tête de colonne s'appliquant à la totalité de la colonne détecté.",
-                metadata={
-                    "total_tables": len(tables),
-                    "data_tables": len(data_tables),
-                },
-            )
-
-        status = TestStatus.FAIL if column_header_findings else TestStatus.PASS
-
+def _build_result(
+    test: RGAATest,
+    tables: list[Tag],
+    tested: list[TableSlot],
+    failing: list[TableSlot],
+    *,
+    message: str,
+    recommendation: str,
+    empty_summary: str,
+    summary_label: str,
+) -> TestResult:
+    if not tested:
         return TestResult(
-            self.test_id,
-            self.criterion_id,
-            status,
-            (f"{total_column_headers} en-tête(s) de colonne s'appliquant à la totalité de la colonne, {len(column_header_findings)} non conforme(s)."),
-            findings=column_header_findings,
-            tested_elements=total_column_headers,
-            metadata={
-                "total_tables": len(tables),
-                "data_tables": len(data_tables),
-                "column_headers_checked": total_column_headers,
-            },
+            test.test_id,
+            test.criterion_id,
+            TestStatus.NOT_APPLICABLE,
+            empty_summary,
+            metadata={"total_tables": len(tables)},
         )
 
-    def _has_header_cells(self, table: Tag) -> bool:
-        """Check if table has any header cells."""
-        rows = get_table_rows(table)
-        for row in rows:
-            cells = get_row_cells(row)
-            for cell in cells:
-                if is_header_cell(cell):
-                    return True
-        return False
+    findings = [
+        Finding(
+            element=slot.selector,
+            message=message,
+            recommendation=recommendation,
+            evidence={"tag": slot.item.name, "role": cell_role(slot.item) or None},
+        )
+        for slot in failing
+    ]
 
-    def _applies_to_entire_column(self, cell: Tag, table: Tag, row_index: int, col_index: int) -> bool:
-        """
-        Check if a header cell applies to an entire column.
-        Applies to entire column if:
-        - columnspan == 1 (doesn't span multiple columns)
-        - AND it's positioned to header a column (typically in header area of table)
-        """
-        colspan = get_int_attribute(cell, "colspan")
-        rowspan = get_int_attribute(cell, "rowspan")
+    return TestResult(
+        test.test_id,
+        test.criterion_id,
+        TestStatus.FAIL if findings else TestStatus.PASS,
+        f"{len(tested)} {summary_label}, {len(findings)} non conforme(s).",
+        findings=findings,
+        tested_elements=len(tested),
+        metadata={
+            "total_tables": len(tables),
+            "checked": len(tested),
+        },
+    )
 
-        if colspan > 1:
-            return False
 
-        role = cell.get("role")
-        scope = cell.get("scope")
+class Test561(RGAATest):
+    """
+    Test 5.6.1 : chaque en-tête de colonne s'appliquant à la totalité de la
+    colonne est-il structuré avec <th> ou role="columnheader" ?
+    """
 
-        if role == "columnheader" or scope == "col":
-            return True
+    test_id = "5.6.1"
+    criterion_id = "5.6"
+    required_capabilities = frozenset({Capability.DOM})
 
-        parent = cell.parent
-        while parent and parent != table:
-            if parent.name == "thead":
-                return True
-            parent = parent.parent
+    async def run(self, context: AuditContext, services=None) -> TestResult:
+        collected = _collect_slots(context, self.test_id)
+        if collected is None:
+            return TestResult(self.test_id, self.criterion_id, TestStatus.NOT_APPLICABLE, "Aucun tableau détecté.")
 
-        rows = get_table_rows(table)
-        if row_index == 0 and len(rows) > 1:
-            second_row_cells = get_row_cells(rows[1])
-            if second_row_cells:
-                first_row_cells = get_row_cells(rows[0])
-                header_count = sum(1 for c in first_row_cells if is_header_cell(c))
-                data_count = sum(1 for c in second_row_cells if c.name == "td" or c.get("role") == "cell")
-                if header_count > 0 and data_count > 0:
-                    return True
+        tables, slots = collected
+        tested = [s for s in slots if s.kind == COLUMN_HEADER and get_int_attribute(s.item, "colspan") == 1]
+        failing = [s for s in tested if not (s.item.name == "th" or cell_role(s.item) == "columnheader")]
 
-        return rowspan == 1 and colspan == 1
-
-    def _is_properly_structured_column_header(self, cell: Tag) -> bool:
-        """Check if column header is properly structured (th or role='columnheader')."""
-        if cell.name == "th":
-            return True
-
-        role = cell.get("role")
-        if isinstance(role, str) and role.strip().lower() == "columnheader":
-            return True
-
-        return False
+        return _build_result(
+            self,
+            tables,
+            tested,
+            failing,
+            message="L'en-tête de colonne n'est pas correctement déclaré.",
+            recommendation=(
+                "Utiliser un élément <th> ou un élément avec l'attribut role='columnheader' "
+                "pour déclarer cet en-tête de colonne."
+            ),
+            empty_summary="Aucun en-tête de colonne s'appliquant à la totalité de la colonne détecté.",
+            summary_label="en-tête(s) de colonne s'appliquant à la totalité de la colonne",
+        )
 
 
 class Test562(RGAATest):
+    """
+    Test 5.6.2 : chaque en-tête de ligne s'appliquant à la totalité de la
+    ligne est-il structuré avec <th> ou role="rowheader" ?
+    """
+
     test_id = "5.6.2"
     criterion_id = "5.6"
+    required_capabilities = frozenset({Capability.DOM})
 
-    required_capabilities = frozenset(
-        {
-            Capability.DOM,
-        }
-    )
+    async def run(self, context: AuditContext, services=None) -> TestResult:
+        collected = _collect_slots(context, self.test_id)
+        if collected is None:
+            return TestResult(self.test_id, self.criterion_id, TestStatus.NOT_APPLICABLE, "Aucun tableau détecté.")
 
-    async def run(
-        self,
-        context: AuditContext,
-        services=None,
-    ) -> TestResult:
-        if not isinstance(
-            context.dom,
-            BeautifulSoup,
-        ):
-            raise ValueError("Le test 5.6.2 nécessite un DOM.")
+        tables, slots = collected
+        tested = [s for s in slots if s.kind == ROW_HEADER and get_int_attribute(s.item, "rowspan") == 1]
+        failing = [s for s in tested if not (s.item.name == "th" or cell_role(s.item) == "rowheader")]
 
-        soup = context.dom
-
-        tables = soup.select("table, [role='table']")
-
-        if not tables:
-            return TestResult(
-                self.test_id,
-                self.criterion_id,
-                TestStatus.NOT_APPLICABLE,
-                "Aucun tableau détecté.",
-            )
-
-        data_tables = []
-        for table in tables:
-            if self._has_header_cells(table):
-                data_tables.append(table)
-
-        if not data_tables:
-            return TestResult(
-                self.test_id,
-                self.criterion_id,
-                TestStatus.NOT_APPLICABLE,
-                "Aucun tableau de données détecté.",
-                metadata={
-                    "total_tables": len(tables),
-                },
-            )
-
-        row_header_findings: list[Finding] = []
-        total_row_headers = 0
-
-        for table_index, table in enumerate(data_tables):
-            rows = get_table_rows(table)
-
-            for row_index, row in enumerate(rows):
-                cells = get_row_cells(row)
-
-                for col_index, cell in enumerate(cells):
-                    if is_header_cell(cell):
-                        if self._applies_to_entire_row(cell, table, row_index, col_index):
-                            total_row_headers += 1
-
-                            if not self._is_properly_structured_row_header(cell):
-                                table_id = table.get("id")
-                                row_id = row.get("id")
-                                cell_id = cell.get("id")
-
-                                if isinstance(cell_id, str) and cell_id.strip():
-                                    element = f"#{cell_id}"
-                                elif isinstance(row_id, str) and row_id.strip():
-                                    element = f"#{row_id} > *[{self._get_cell_index_string(row, col_index)}]"
-                                elif isinstance(table_id, str) and table_id.strip():
-                                    element = f"#{table_id} > *:nth-child({row_index + 1}) > *:nth-child({col_index + 1})"
-                                else:
-                                    element = f"table[index={table_index}] > *:nth-child({row_index + 1}) > *:nth-child({col_index + 1})"
-
-                                row_header_findings.append(
-                                    Finding(
-                                        element=element,
-                                        message=("L'en-tête de ligne n'est pas correctement déclaré."),
-                                        recommendation=("Utiliser un élément <th> ou un élément avec l'attribut role='rowheader' pour déclarer cet en-tête de ligne."),
-                                    )
-                                )
-
-        if total_row_headers == 0:
-            return TestResult(
-                self.test_id,
-                self.criterion_id,
-                TestStatus.NOT_APPLICABLE,
-                "Aucun en-tête de ligne s'appliquant à la totalité de la ligne détecté.",
-                metadata={
-                    "total_tables": len(tables),
-                    "data_tables": len(data_tables),
-                },
-            )
-
-        status = TestStatus.FAIL if row_header_findings else TestStatus.PASS
-
-        return TestResult(
-            self.test_id,
-            self.criterion_id,
-            status,
-            (f"{total_row_headers} en-tête(s) de ligne s'appliquant à la totalité de la ligne, {len(row_header_findings)} non conforme(s)."),
-            findings=row_header_findings,
-            tested_elements=total_row_headers,
-            metadata={
-                "total_tables": len(tables),
-                "data_tables": len(data_tables),
-                "row_headers_checked": total_row_headers,
-            },
+        return _build_result(
+            self,
+            tables,
+            tested,
+            failing,
+            message="L'en-tête de ligne n'est pas correctement déclaré.",
+            recommendation=(
+                "Utiliser un élément <th> ou un élément avec l'attribut role='rowheader' "
+                "pour déclarer cet en-tête de ligne."
+            ),
+            empty_summary="Aucun en-tête de ligne s'appliquant à la totalité de la ligne détecté.",
+            summary_label="en-tête(s) de ligne s'appliquant à la totalité de la ligne",
         )
-
-    def _has_header_cells(self, table: Tag) -> bool:
-        """Check if table has any header cells."""
-        rows = get_table_rows(table)
-        for row in rows:
-            cells = get_row_cells(row)
-            for cell in cells:
-                if is_header_cell(cell):
-                    return True
-        return False
-
-    def _applies_to_entire_row(self, cell: Tag, table: Tag, row_index: int, col_index: int) -> bool:
-        """
-        Check if a header cell applies to an entire row.
-        Applies to entire row if:
-        - rowspan == 1 (doesn't span multiple rows)
-        - AND it's positioned to header a row (typically in first column of table)
-        """
-        colspan = get_int_attribute(cell, "colspan")
-        rowspan = get_int_attribute(cell, "rowspan")
-
-        if rowspan > 1:
-            return False
-
-        role = cell.get("role")
-        scope = cell.get("scope")
-
-        if role == "rowheader" or scope == "row":
-            return True
-
-        rows = get_table_rows(table)
-        if rows:
-            first_col_is_header_like = True
-            for r_idx, r in enumerate(rows):
-                r_cells = get_row_cells(r)
-                if len(r_cells) > 0:
-                    first_cell = r_cells[0]
-                    if not is_header_cell(first_cell):
-                        first_col_is_header_like = False
-                        break
-                else:
-                    continue
-
-            if first_col_is_header_like and col_index == 0:
-                return True
-
-        if col_index == 0 and len(get_row_cells(rows[0]) if rows else []) > 0:
-            first_row_cells = get_row_cells(rows[0]) if rows else []
-            if first_row_cells:
-                header_count_first_row = sum(1 for c in first_row_cells if is_header_cell(c))
-                if header_count_first_row >= len(first_row_cells) * 0.5:  # Majority are headers
-                    row_header_like_count = 0
-                    total_data_rows = 0
-                    for r_idx in range(1, min(len(rows), 4)):  # Check first few data rows
-                        r_cells = get_row_cells(rows[r_idx])
-                        if len(r_cells) > 0:
-                            total_data_rows += 1
-                            if is_header_cell(r_cells[0]):
-                                row_header_like_count += 1
-
-                    if total_data_rows > 0 and row_header_like_count >= total_data_rows * 0.5:
-                        return True
-
-        return rowspan == 1 and colspan == 1
-
-    def _is_properly_structured_row_header(self, cell: Tag) -> bool:
-        """Check if row header is properly structured (th or role='rowheader')."""
-        if cell.name == "th":
-            return True
-
-        role = cell.get("role")
-        if isinstance(role, str) and role.strip().lower() == "rowheader":
-            return True
-
-        return False
 
 
 class Test563(RGAATest):
+    """
+    Test 5.6.3 : chaque en-tête ne s'appliquant pas à la totalité de la ligne
+    ou de la colonne est-il structuré avec <th> ?
+
+    Sont concernés les en-têtes qui couvrent plusieurs colonnes (colspan)
+    ou plusieurs lignes (rowspan).
+    """
+
     test_id = "5.6.3"
     criterion_id = "5.6"
+    required_capabilities = frozenset({Capability.DOM})
 
-    required_capabilities = frozenset(
-        {
-            Capability.DOM,
-        }
-    )
+    async def run(self, context: AuditContext, services=None) -> TestResult:
+        collected = _collect_slots(context, self.test_id)
+        if collected is None:
+            return TestResult(self.test_id, self.criterion_id, TestStatus.NOT_APPLICABLE, "Aucun tableau détecté.")
 
-    async def run(
-        self,
-        context: AuditContext,
-        services=None,
-    ) -> TestResult:
-        if not isinstance(
-            context.dom,
-            BeautifulSoup,
-        ):
-            raise ValueError("Le test 5.6.3 nécessite un DOM.")
+        tables, slots = collected
+        tested = [
+            s
+            for s in slots
+            if (s.kind == COLUMN_HEADER and get_int_attribute(s.item, "colspan") > 1)
+            or (s.kind == ROW_HEADER and get_int_attribute(s.item, "rowspan") > 1)
+        ]
+        failing = [s for s in tested if s.item.name != "th"]
 
-        soup = context.dom
-
-        tables = soup.select("table, [role='table']")
-
-        if not tables:
-            return TestResult(
-                self.test_id,
-                self.criterion_id,
-                TestStatus.NOT_APPLICABLE,
-                "Aucun tableau détecté.",
-            )
-
-        data_tables = []
-        for table in tables:
-            if self._has_header_cells(table):
-                data_tables.append(table)
-
-        if not data_tables:
-            return TestResult(
-                self.test_id,
-                self.criterion_id,
-                TestStatus.NOT_APPLICABLE,
-                "Aucun tableau de données détecté.",
-                metadata={
-                    "total_tables": len(tables),
-                },
-            )
-
-        header_findings: list[Finding] = []
-        total_special_headers = 0
-
-        for table_index, table in enumerate(data_tables):
-            rows = get_table_rows(table)
-
-            for row_index, row in enumerate(rows):
-                cells = get_row_cells(row)
-
-                for col_index, cell in enumerate(cells):
-                    if is_header_cell(cell):
-                        if not self._applies_to_entire_column(cell, table, row_index, col_index) or \
-                           not self._applies_to_entire_row(cell, table, row_index, col_index):
-                            total_special_headers += 1
-
-                            if not self._is_th_element(cell):
-                                table_id = table.get("id")
-                                row_id = row.get("id")
-                                cell_id = cell.get("id")
-
-                                if isinstance(cell_id, str) and cell_id.strip():
-                                    element = f"#{cell_id}"
-                                elif isinstance(row_id, str) and row_id.strip():
-                                    element = f"#{row_id} > *[{self._get_cell_index_string(row, col_index)}]"
-                                elif isinstance(table_id, str) and table_id.strip():
-                                    element = f"#{table_id} > *:nth-child({row_index + 1}) > *:nth-child({col_index + 1})"
-                                else:
-                                    element = f"table[index={table_index}] > *:nth-child({row_index + 1}) > *:nth-child({col_index + 1})"
-
-                                header_findings.append(
-                                    Finding(
-                                        element=element,
-                                        message=("L'en-tête ne s'appliquant pas à la totalité de la ligne ou de la colonne doit être un élément <th>."),
-                                        recommendation=("Utiliser un élément <th> pour déclarer cet en-tête."),
-                                    )
-                                )
-
-        if total_special_headers == 0:
-            return TestResult(
-                self.test_id,
-                self.criterion_id,
-                TestStatus.NOT_APPLICABLE,
-                "Aucun en-tête ne s'appliquant pas à la totalité de la ligne ou de la colonne détecté.",
-                metadata={
-                    "total_tables": len(tables),
-                    "data_tables": len(data_tables),
-                },
-            )
-
-        status = TestStatus.FAIL if header_findings else TestStatus.PASS
-
-        return TestResult(
-            self.test_id,
-            self.criterion_id,
-            status,
-            (f"{total_special_headers} en-tête(s) ne s'appliquant pas à la totalité de la ligne ou de la colonne, {len(header_findings)} non conforme(s)."),
-            findings=header_findings,
-            tested_elements=total_special_headers,
-            metadata={
-                "total_tables": len(tables),
-                "data_tables": len(data_tables),
-                "special_headers_checked": total_special_headers,
-            },
+        return _build_result(
+            self,
+            tables,
+            tested,
+            failing,
+            message=(
+                "L'en-tête ne s'appliquant pas à la totalité de la ligne ou de la colonne doit être un élément <th>."
+            ),
+            recommendation="Utiliser un élément <th> pour déclarer cet en-tête.",
+            empty_summary="Aucun en-tête ne s'appliquant pas à la totalité de la ligne ou de la colonne détecté.",
+            summary_label="en-tête(s) ne s'appliquant pas à la totalité de la ligne ou de la colonne",
         )
-
-    def _has_header_cells(self, table: Tag) -> bool:
-        """Check if table has any header cells."""
-        rows = get_table_rows(table)
-        for row in rows:
-            cells = get_row_cells(row)
-            for cell in cells:
-                if is_header_cell(cell):
-                    return True
-        return False
-
-    def _applies_to_entire_column(self, cell: Tag, table: Tag, row_index: int, col_index: int) -> bool:
-        """
-        Check if a header cell applies to an entire column.
-        Same logic as in Test561.
-        """
-        colspan = get_int_attribute(cell, "colspan")
-        rowspan = get_int_attribute(cell, "rowspan")
-
-        if colspan > 1:
-            return False
-
-        role = cell.get("role")
-        scope = cell.get("scope")
-
-        if role == "columnheader" or scope == "col":
-            return True
-
-        parent = cell.parent
-        while parent and parent != table:
-            if parent.name == "thead":
-                return True
-            parent = parent.parent
-
-        rows = get_table_rows(table)
-        if row_index == 0 and len(rows) > 1:
-            second_row_cells = get_row_cells(rows[1])
-            if second_row_cells:
-                first_row_cells = get_row_cells(rows[0])
-                header_count = sum(1 for c in first_row_cells if is_header_cell(c))
-                data_count = sum(1 for c in second_row_cells if c.name == "td" or c.get("role") == "cell")
-                if header_count > 0 and data_count > 0:
-                    return True
-
-        return rowspan == 1 and colspan == 1
-
-    def _applies_to_entire_row(self, cell: Tag, table: Tag, row_index: int, col_index: int) -> bool:
-        """
-        Check if a header cell applies to an entire row.
-        Same logic as in Test562.
-        """
-        colspan = get_int_attribute(cell, "colspan")
-        rowspan = get_int_attribute(cell, "rowspan")
-
-        if rowspan > 1:
-            return False
-
-        role = cell.get("role")
-        scope = cell.get("scope")
-
-        if role == "rowheader" or scope == "row":
-            return True
-
-        if col_index == 0:
-            rows = get_table_rows(table)
-            if rows:
-                first_col_header_count = 0
-                total_rows_with_cells = 0
-                for r in rows:
-                    r_cells = get_row_cells(r)
-                    if len(r_cells) > 0:
-                        total_rows_with_cells += 1
-                        if is_header_cell(r_cells[0]):
-                            first_col_header_count += 1
-
-                if total_rows_with_cells > 0 and first_col_header_count >= total_rows_with_cells * 0.5:
-                    return True
-
-        return rowspan == 1 and colspan == 1
-
-    def _is_th_element(self, cell: Tag) -> bool:
-        """Check if cell is a th element."""
-        return cell.name == "th"
 
 
 class Test564(RGAATest):
+    """
+    Test 5.6.4 : chaque cellule associée à plusieurs en-têtes est-elle
+    structurée avec <td> ou <th> ?
+
+    Une cellule est considérée comme associée à plusieurs en-têtes si son
+    attribut headers référence au moins deux en-têtes, ou si elle couvre
+    plusieurs colonnes ou plusieurs lignes.
+    """
+
     test_id = "5.6.4"
     criterion_id = "5.6"
+    required_capabilities = frozenset({Capability.DOM})
 
-    required_capabilities = frozenset(
-        {
-            Capability.DOM,
-        }
-    )
+    async def run(self, context: AuditContext, services=None) -> TestResult:
+        collected = _collect_slots(context, self.test_id)
+        if collected is None:
+            return TestResult(self.test_id, self.criterion_id, TestStatus.NOT_APPLICABLE, "Aucun tableau détecté.")
 
-    async def run(
-        self,
-        context: AuditContext,
-        services=None,
-    ) -> TestResult:
-        if not isinstance(
-            context.dom,
-            BeautifulSoup,
-        ):
-            raise ValueError("Le test 5.6.4 nécessite un DOM.")
+        tables, slots = collected
+        tested = [s for s in slots if s.kind != COLUMN_HEADER and _is_multi_header_cell(s.item)]
+        failing = [s for s in tested if s.item.name not in {"td", "th"}]
 
-        soup = context.dom
-
-        tables = soup.select("table, [role='table']")
-
-        if not tables:
-            return TestResult(
-                self.test_id,
-                self.criterion_id,
-                TestStatus.NOT_APPLICABLE,
-                "Aucun tableau détecté.",
-            )
-
-        data_tables = []
-        for table in tables:
-            if self._has_header_cells(table):
-                data_tables.append(table)
-
-        if not data_tables:
-            return TestResult(
-                self.test_id,
-                self.criterion_id,
-                TestStatus.NOT_APPLICABLE,
-                "Aucun tableau de données détecté.",
-                metadata={
-                    "total_tables": len(tables),
-                },
-            )
-
-        cell_findings: list[Finding] = []
-        total_multi_header_cells = 0
-
-        for table_index, table in enumerate(data_tables):
-            rows = get_table_rows(table)
-
-            for row_index, row in enumerate(rows):
-                cells = get_row_cells(row)
-
-                for col_index, cell in enumerate(cells):
-                    if self._is_data_cell(cell):
-                        if self._is_associated_with_multiple_headers(cell, table, soup):
-                            total_multi_header_cells += 1
-
-                            if not self._is_td_or_th_element(cell):
-                                table_id = table.get("id")
-                                row_id = row.get("id")
-                                cell_id = cell.get("id")
-
-                                if isinstance(cell_id, str) and cell_id.strip():
-                                    element = f"#{cell_id}"
-                                elif isinstance(row_id, str) and row_id.strip():
-                                    element = f"#{row_id} > *[{self._get_cell_index_string(row, col_index)}]"
-                                elif isinstance(table_id, str) and table_id.strip():
-                                    element = f"#{table_id} > *:nth-child({row_index + 1}) > *:nth-child({col_index + 1})"
-                                else:
-                                    element = f"table[index={table_index}] > *:nth-child({row_index + 1}) > *:nth-child({col_index + 1})"
-
-                                cell_findings.append(
-                                    Finding(
-                                        element=element,
-                                        message=("La cellule associée à plusieurs en-têtes doit être structurée au moyen d'un élément <td> ou <th>."),
-                                        recommendation=("Utiliser un élément <td> ou <th> pour structurer cette cellule."),
-                                    )
-                                )
-
-        if total_multi_header_cells == 0:
-            return TestResult(
-                self.test_id,
-                self.criterion_id,
-                TestStatus.NOT_APPLICABLE,
-                "Aucune cellule associée à plusieurs en-têtes détectée.",
-                metadata={
-                    "total_tables": len(tables),
-                    "data_tables": len(data_tables),
-                },
-            )
-
-        status = TestStatus.FAIL if cell_findings else TestStatus.PASS
-
-        return TestResult(
-            self.test_id,
-            self.criterion_id,
-            status,
-            (f"{total_multi_header_cells} cellule(s) associée(s) à plusieurs en-têtes, {len(cell_findings)} non conforme(s)."),
-            findings=cell_findings,
-            tested_elements=total_multi_header_cells,
-            metadata={
-                "total_tables": len(tables),
-                "data_tables": len(data_tables),
-                "multi_header_cells_checked": total_multi_header_cells,
-            },
+        return _build_result(
+            self,
+            tables,
+            tested,
+            failing,
+            message="La cellule associée à plusieurs en-têtes doit être structurée au moyen d'un élément <td> ou <th>.",
+            recommendation="Utiliser un élément <td> ou <th> pour structurer cette cellule.",
+            empty_summary="Aucune cellule associée à plusieurs en-têtes détectée.",
+            summary_label="cellule(s) associée(s) à plusieurs en-têtes",
         )
 
-    def _has_header_cells(self, table: Tag) -> bool:
-        """Check if table has any header cells."""
-        rows = get_table_rows(table)
-        for row in rows:
-            cells = get_row_cells(row)
-            for cell in cells:
-                if is_header_cell(cell):
-                    return True
+
+def _is_multi_header_cell(item: Tag) -> bool:
+    if is_header_like(item):
         return False
 
-    def _is_data_cell(self, cell: Tag) -> bool:
-        """Check if cell is a data cell (td or role='cell')."""
-        if cell.name == "td":
-            return True
-        role = cell.get("role")
-        if isinstance(role, str) and role.strip().lower() == "cell":
-            return True
-        return False
+    headers = item.get("headers")
+    header_ids = headers.split() if isinstance(headers, str) else list(headers or [])
+    if len(header_ids) >= 2:
+        return True
 
-    def _is_associated_with_multiple_headers(self, cell: Tag, table: Tag, soup: BeautifulSoup) -> bool:
-        """
-        Check if a cell is associated with multiple headers.
-        A cell is associated with multiple headers if:
-        1. It has a headers attribute referencing multiple header elements, OR
-        2. It spans multiple columns or rows (colspan > 1 or rowspan > 1), OR
-        3. The table has colgroup/rowgroup scopes (indicating potential complex header association)
-        """
-        headers_attr = cell.get("headers")
-        if isinstance(headers_attr, str):
-            header_ids = headers_attr.split()
-            if len(header_ids) > 1:
-                valid_header_count = 0
-                for header_id in header_ids:
-                    header_elem = soup.find(id=header_id)
-                    if header_elem and is_header_cell(header_elem):
-                        valid_header_count += 1
-                if valid_header_count >= 2:
-                    return True
-        elif isinstance(headers_attr, list):
-            if len(headers_attr) > 1:
-                valid_header_count = 0
-                for header_elem in headers_attr:
-                    if isinstance(header_elem, Tag) and is_header_cell(header_elem):
-                        valid_header_count += 1
-                if valid_header_count >= 2:
-                    return True
-
-        colspan = get_int_attribute(cell, "colspan")
-        rowspan = get_int_attribute(cell, "rowspan")
-        if colspan > 1 or rowspan > 1:
-            return True
-
-        if self._table_has_colrowgroup_scopes(table):
-            rows = get_table_rows(table)
-            if len(rows) > 1:
-                first_row_cells = get_row_cells(rows[0])
-                if len(first_row_cells) > 1:
-                    return True
-
-        return False
-
-    def _table_has_colrowgroup_scopes(self, table: Tag) -> bool:
-        """Check if table has any header element with scope='colgroup' or scope='rowgroup'."""
-        rows = get_table_rows(table)
-        for row in rows:
-            cells = get_row_cells(row)
-            for cell in cells:
-                if is_header_cell(cell):
-                    scope = cell.get("scope")
-                    if isinstance(scope, str) and scope.strip().lower() in ["colgroup", "rowgroup"]:
-                        return True
-        return False
-
-    def _is_td_or_th_element(self, cell: Tag) -> bool:
-        """Check if cell is a td or th element."""
-        return cell.name in ["td", "th"]
-
-    def _get_cell_index_string(self, row: Tag, col_index: int) -> str:
-        """Get a string representation of cell's position within its row for error reporting."""
-        cells = get_row_cells(row)
-        if col_index < len(cells):
-            return f"[index={col_index}]"
-        return f"[index={col_index}]"
+    return get_int_attribute(item, "colspan") > 1 or get_int_attribute(item, "rowspan") > 1

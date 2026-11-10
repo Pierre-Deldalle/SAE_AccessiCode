@@ -1,8 +1,14 @@
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_05_tables.criterion_5_6 import (
     Test561 as RGAA561,
+)
+from accessi_code.rgaa.tests.theme_05_tables.criterion_5_6 import (
     Test562 as RGAA562,
+)
+from accessi_code.rgaa.tests.theme_05_tables.criterion_5_6 import (
     Test563 as RGAA563,
+)
+from accessi_code.rgaa.tests.theme_05_tables.criterion_5_6 import (
     Test564 as RGAA564,
 )
 
@@ -346,7 +352,6 @@ def test_563_table_with_spanning_header_fails(
 
     result = run_rgaa(RGAA563(), context)
 
-
     html = """
     <table>
         <thead>
@@ -372,7 +377,11 @@ def test_563_table_with_spanning_header_fails(
     assert result.status == Status.FAIL
     assert len(result.findings) >= 1
     assert result.tested_elements >= 1
-    assert any("L'en-tête ne s'appliquant pas à la totalité de la ligne ou de la colonne doit être un élément <th>." in f.message for f in result.findings)
+    assert any(
+        "L'en-tête ne s'appliquant pas à la totalité de la ligne ou de la colonne doit être un élément <th>."
+        in f.message
+        for f in result.findings
+    )
 
 
 def test_564_no_table_is_not_applicable(
@@ -440,7 +449,10 @@ def test_564_table_with_improper_multi_header_cell_fails(
     assert result.status == Status.FAIL
     assert len(result.findings) >= 1
     assert result.tested_elements >= 1
-    assert any("La cellule associée à plusieurs en-têtes doit être structurée au moyen d'un élément <td> ou <th>." in f.message for f in result.findings)
+    assert any(
+        "La cellule associée à plusieurs en-têtes doit être structurée au moyen d'un élément <td> ou <th>." in f.message
+        for f in result.findings
+    )
 
 
 def test_564_table_with_colspan_rowspan_multi_header_cell_passes(
@@ -471,7 +483,7 @@ def test_564_table_with_colspan_rowspan_multi_header_cell_passes(
 def test_564_table_with_colspan_rowspan_improper_multi_header_cell_fails(
     context_factory,
     run_rgaa,
-    ):
+):
     html = """
     <table>
         <tr>
@@ -491,4 +503,7 @@ def test_564_table_with_colspan_rowspan_improper_multi_header_cell_fails(
     assert result.status == Status.FAIL
     assert len(result.findings) >= 1
     assert result.tested_elements >= 1
-    assert any("La cellule associée à plusieurs en-têtes doit être structurée au moyen d'un élément <td> ou <th>." in f.message for f in result.findings)
+    assert any(
+        "La cellule associée à plusieurs en-têtes doit être structurée au moyen d'un élément <td> ou <th>." in f.message
+        for f in result.findings
+    )

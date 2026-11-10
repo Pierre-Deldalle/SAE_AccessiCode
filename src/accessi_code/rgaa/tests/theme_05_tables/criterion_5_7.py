@@ -3,9 +3,13 @@ from __future__ import annotations
 from bs4 import BeautifulSoup, Tag
 
 from accessi_code.analysis.tables import (
-    get_table_rows,
-    get_row_cells,
+    COLUMN_HEADER,
+    ROW_HEADER,
+    TableSlot,
+    classify_table_cells,
     get_int_attribute,
+    get_row_cells,
+    get_table_rows,
     is_header_cell,
 )
 from accessi_code.models.audit_context import AuditContext
@@ -78,8 +82,9 @@ class Test571(RGAATest):
 
                 for col_index, cell in enumerate(cells):
                     if is_header_cell(cell):
-                        if self._applies_to_entire_column(cell, table, row_index, col_index) or \
-                           self._applies_to_entire_row(cell, table, row_index, col_index):
+                        if self._applies_to_entire_column(
+                            cell, table, row_index, col_index
+                        ) or self._applies_to_entire_row(cell, table, row_index, col_index):
                             total_headers_entire += 1
 
                             if not self._has_proper_header_identification(cell):
@@ -92,15 +97,21 @@ class Test571(RGAATest):
                                 elif isinstance(row_id, str) and row_id.strip():
                                     element = f"#{row_id} > *[{self._get_cell_index_string(row, col_index)}]"
                                 elif isinstance(table_id, str) and table_id.strip():
-                                    element = f"#{table_id} > *:nth-child({row_index + 1}) > *:nth-child({col_index + 1})"
+                                    element = (
+                                        f"#{table_id} > *:nth-child({row_index + 1}) > *:nth-child({col_index + 1})"
+                                    )
                                 else:
                                     element = f"table[index={table_index}] > *:nth-child({row_index + 1}) > *:nth-child({col_index + 1})"
 
                                 header_findings.append(
                                     Finding(
                                         element=element,
-                                        message=("L'en-tête de ligne ou de colonne doit avoir un identifiant unique (id), un attribut scope ou un rôle role='rowheader' ou role='columnheader'."),
-                                        recommendation=("Ajouter un attribut id unique, un attribut scope approprié (row/col) ou un rôle role='rowheader'/'columnheader' à cet en-tête."),
+                                        message=(
+                                            "L'en-tête de ligne ou de colonne doit avoir un identifiant unique (id), un attribut scope ou un rôle role='rowheader' ou role='columnheader'."
+                                        ),
+                                        recommendation=(
+                                            "Ajouter un attribut id unique, un attribut scope approprié (row/col) ou un rôle role='rowheader'/'columnheader' à cet en-tête."
+                                        ),
                                     )
                                 )
 
@@ -122,7 +133,9 @@ class Test571(RGAATest):
             self.test_id,
             self.criterion_id,
             status,
-            (f"{total_headers_entire} en-tête(s) de ligne/colonne s'appliquant à la totalité de la ligne/colonne, {len(header_findings)} non conforme(s)."),
+            (
+                f"{total_headers_entire} en-tête(s) de ligne/colonne s'appliquant à la totalité de la ligne/colonne, {len(header_findings)} non conforme(s)."
+            ),
             findings=header_findings,
             tested_elements=total_headers_entire,
             metadata={
@@ -319,9 +332,10 @@ class Test572(RGAATest):
 
                 for col_index, cell in enumerate(cells):
                     if is_header_cell(cell):
-                        if (self._applies_to_entire_column(cell, table, row_index, col_index) or \
-                           self._applies_to_entire_row(cell, table, row_index, col_index)) and \
-                           self._has_scope_attribute(cell):
+                        if (
+                            self._applies_to_entire_column(cell, table, row_index, col_index)
+                            or self._applies_to_entire_row(cell, table, row_index, col_index)
+                        ) and self._has_scope_attribute(cell):
                             total_headers_with_scope += 1
 
                             if not self._has_appropriate_scope_value(cell, table, row_index, col_index):
@@ -334,15 +348,21 @@ class Test572(RGAATest):
                                 elif isinstance(row_id, str) and row_id.strip():
                                     element = f"#{row_id} > *[{self._get_cell_index_string(row, col_index)}]"
                                 elif isinstance(table_id, str) and table_id.strip():
-                                    element = f"#{table_id} > *:nth-child({row_index + 1}) > *:nth-child({col_index + 1})"
+                                    element = (
+                                        f"#{table_id} > *:nth-child({row_index + 1}) > *:nth-child({col_index + 1})"
+                                    )
                                 else:
                                     element = f"table[index={table_index}] > *:nth-child({row_index + 1}) > *:nth-child({col_index + 1})"
 
                                 header_findings.append(
                                     Finding(
                                         element=element,
-                                        message=("L'attribut scope de l'en-tête de ligne ou de colonne n'est pas approprié."),
-                                        recommendation=("Utiliser scope='row' pour un en-tête de ligne ou scope='col' pour un en-tête de colonne."),
+                                        message=(
+                                            "L'attribut scope de l'en-tête de ligne ou de colonne n'est pas approprié."
+                                        ),
+                                        recommendation=(
+                                            "Utiliser scope='row' pour un en-tête de ligne ou scope='col' pour un en-tête de colonne."
+                                        ),
                                     )
                                 )
 
@@ -364,7 +384,9 @@ class Test572(RGAATest):
             self.test_id,
             self.criterion_id,
             status,
-            (f"{total_headers_with_scope} en-tête(s) de ligne/colonne avec scope, {len(header_findings)} non conforme(s)."),
+            (
+                f"{total_headers_with_scope} en-tête(s) de ligne/colonne avec scope, {len(header_findings)} non conforme(s)."
+            ),
             findings=header_findings,
             tested_elements=total_headers_with_scope,
             metadata={
@@ -495,52 +517,12 @@ class Test572(RGAATest):
             return scope_value in ["row", "col", "rowgroup", "colgroup"]
 
     def _is_row_header(self, cell: Tag, table: Tag, row_index: int, col_index: int) -> bool:
-        """Determine if a header cell is a row header."""
-        role = cell.get("role")
-        if isinstance(role, str) and role.strip().lower() == "rowheader":
-            return True
-
-        scope = cell.get("scope")
-        if isinstance(scope, str) and scope.strip().lower() == "row":
-            return True
-
-        rows = get_table_rows(table)
-        if rows and col_index == 0:
-            first_col_header_count = 0
-            total_rows_with_cells = 0
-            for r in rows:
-                r_cells = get_row_cells(r)
-                if len(r_cells) > 0:
-                    total_rows_with_cells += 1
-                    if is_header_cell(r_cells[0]):
-                        first_col_header_count += 1
-
-            if total_rows_with_cells > 0 and first_col_header_count >= total_rows_with_cells * 0.5:
-                return True
-
-        return False
+        """En-tête de ligne d'après la structure du tableau (sans lire scope ni role)."""
+        return _structural_header_axis(cell, table, row_index, col_index) == "row"
 
     def _is_column_header(self, cell: Tag, table: Tag, row_index: int, col_index: int) -> bool:
-        """Determine if a header cell is a column header."""
-        role = cell.get("role")
-        if isinstance(role, str) and role.strip().lower() == "columnheader":
-            return True
-
-        scope = cell.get("scope")
-        if isinstance(scope, str) and scope.strip().lower() == "col":
-            return True
-
-        rows = get_table_rows(table)
-        if rows and row_index == 0 and len(rows) > 1:
-            second_row_cells = get_row_cells(rows[1])
-            if second_row_cells:
-                first_row_cells = get_row_cells(rows[0])
-                header_count = sum(1 for c in first_row_cells if is_header_cell(c))
-                data_count = sum(1 for c in second_row_cells if c.name == "td" or c.get("role") == "cell")
-                if header_count > 0 and data_count > 0:
-                    return True
-
-        return False
+        """En-tête de colonne d'après la structure du tableau (sans lire scope ni role)."""
+        return _structural_header_axis(cell, table, row_index, col_index) == "col"
 
     def _get_cell_index_string(self, row: Tag, col_index: int) -> str:
         """Get a string representation of cell's position within its row for error reporting."""
@@ -603,38 +585,28 @@ class Test573(RGAATest):
         total_headers_not_entire = 0
 
         for table_index, table in enumerate(data_tables):
-            rows = get_table_rows(table)
+            for slot in classify_table_cells(table, table_index):
+                cell = slot.item
+                if cell.name != "th" or not _is_partial_header(slot):
+                    continue
 
-            for row_index, row in enumerate(rows):
-                cells = get_row_cells(row)
+                total_headers_not_entire += 1
 
-                for col_index, cell in enumerate(cells):
-                    if is_header_cell(cell):
-                        if not (self._applies_to_entire_column(cell, table, row_index, col_index) or \
-                               self._applies_to_entire_row(cell, table, row_index, col_index)):
-                            total_headers_not_entire += 1
-
-                            if not self._meets_criteria_573(cell):
-                                table_id = table.get("id")
-                                row_id = row.get("id")
-                                cell_id = cell.get("id")
-
-                                if isinstance(cell_id, str) and cell_id.strip():
-                                    element = f"#{cell_id}"
-                                elif isinstance(row_id, str) and row_id.strip():
-                                    element = f"#{row_id} > *[{self._get_cell_index_string(row, col_index)}]"
-                                elif isinstance(table_id, str) and table_id.strip():
-                                    element = f"#{table_id} > *:nth-child({row_index + 1}) > *:nth-child({col_index + 1})"
-                                else:
-                                    element = f"table[index={table_index}] > *:nth-child({row_index + 1}) > *:nth-child({col_index + 1})"
-
-                                header_findings.append(
-                                    Finding(
-                                        element=element,
-                                        message=("L'en-tête qui ne s'applique pas à la totalité de la ligne ou de la colonne doit avoir un id unique et ne pas avoir d'attribut scope ni de rôle role='rowheader'/'columnheader'."),
-                                        recommendation=("Ajouter un attribut id unique et supprimer les attributs scope et rôle role='rowheader'/'columnheader' inappropriés."),
-                                    )
-                                )
+                if not self._meets_criteria_573(cell, soup):
+                    header_findings.append(
+                        Finding(
+                            element=slot.selector,
+                            message=(
+                                "L'en-tête qui ne s'applique pas à la totalité de la ligne ou de la colonne "
+                                "doit avoir un id unique et ne pas avoir d'attribut scope ni de rôle "
+                                "role='rowheader'/'columnheader'."
+                            ),
+                            recommendation=(
+                                "Ajouter un attribut id unique et supprimer les attributs scope et rôle "
+                                "role='rowheader'/'columnheader' inappropriés."
+                            ),
+                        )
+                    )
 
         if total_headers_not_entire == 0:
             return TestResult(
@@ -654,7 +626,9 @@ class Test573(RGAATest):
             self.test_id,
             self.criterion_id,
             status,
-            (f"{total_headers_not_entire} en-tête(s) ne s'appliquant pas à la totalité de la ligne/colonne, {len(header_findings)} non conforme(s)."),
+            (
+                f"{total_headers_not_entire} en-tête(s) ne s'appliquant pas à la totalité de la ligne/colonne, {len(header_findings)} non conforme(s)."
+            ),
             findings=header_findings,
             tested_elements=total_headers_not_entire,
             metadata={
@@ -761,18 +735,19 @@ class Test573(RGAATest):
 
         return rowspan == 1 and colspan == 1
 
-    def _meets_criteria_573(self, cell: Tag) -> bool:
+    def _meets_criteria_573(self, cell: Tag, soup: BeautifulSoup) -> bool:
         """Check if header meets criteria 5.7.3: unique id AND no scope AND no role='rowheader'/'columnheader'."""
         cell_id = cell.get("id")
-        has_unique_id = isinstance(cell_id, str) and cell_id.strip() != ""
+        has_unique_id = (
+            isinstance(cell_id, str) and cell_id.strip() != "" and len(soup.find_all(id=cell_id.strip())) == 1
+        )
 
         scope = cell.get("scope")
         has_no_scope = not (isinstance(scope, str) and scope.strip() != "")
 
         role = cell.get("role")
         has_no_inappropriate_role = not (
-            isinstance(role, str) and
-            role.strip().lower() in ["rowheader", "columnheader"]
+            isinstance(role, str) and role.strip().lower() in ["rowheader", "columnheader"]
         )
 
         return has_unique_id and has_no_scope and has_no_inappropriate_role
@@ -858,15 +833,21 @@ class Test574(RGAATest):
                                 elif isinstance(row_id, str) and row_id.strip():
                                     element = f"#{row_id} > *[{self._get_cell_index_string(row, col_index)}]"
                                 elif isinstance(table_id, str) and table_id.strip():
-                                    element = f"#{table_id} > *:nth-child({row_index + 1}) > *:nth-child({col_index + 1})"
+                                    element = (
+                                        f"#{table_id} > *:nth-child({row_index + 1}) > *:nth-child({col_index + 1})"
+                                    )
                                 else:
                                     element = f"table[index={table_index}] > *:nth-child({row_index + 1}) > *:nth-child({col_index + 1})"
 
                                 cell_findings.append(
                                     Finding(
                                         element=element,
-                                        message=("La cellule associée à un ou plusieurs en-têtes possédant un id doit avoir un attribut headers contenant la liste des ids des en-têtes associés."),
-                                        recommendation=("Ajouter un attribut headers contenant la liste des ids des en-têtes associés à cette cellule."),
+                                        message=(
+                                            "La cellule associée à un ou plusieurs en-têtes possédant un id doit avoir un attribut headers contenant la liste des ids des en-têtes associés."
+                                        ),
+                                        recommendation=(
+                                            "Ajouter un attribut headers contenant la liste des ids des en-têtes associés à cette cellule."
+                                        ),
                                     )
                                 )
 
@@ -888,7 +869,9 @@ class Test574(RGAATest):
             self.test_id,
             self.criterion_id,
             status,
-            (f"{total_associated_cells} cellule(s) associée(s) à un(en) en-tête(s) possédant un id, {len(cell_findings)} non conforme(s)."),
+            (
+                f"{total_associated_cells} cellule(s) associée(s) à un(en) en-tête(s) possédant un id, {len(cell_findings)} non conforme(s)."
+            ),
             findings=cell_findings,
             tested_elements=total_associated_cells,
             metadata={
@@ -939,6 +922,9 @@ class Test574(RGAATest):
             return False
 
         rows = get_table_rows(table)
+        # Seuls un en-tête de colonne au-dessus ou un en-tête de ligne à gauche
+        # sont associés à la cellule (pas un en-tête voisin de la même ligne).
+        kinds = _slot_kinds(table)
         cell_row_index = -1
         cell_col_index = -1
 
@@ -960,7 +946,7 @@ class Test574(RGAATest):
             cells = get_row_cells(row)
             if cell_col_index < len(cells):
                 header_cell = cells[cell_col_index]
-                if is_header_cell(header_cell):
+                if kinds.get(id(header_cell)) == COLUMN_HEADER:
                     header_id = header_cell.get("id")
                     if isinstance(header_id, str) and header_id.strip():
                         return True
@@ -969,7 +955,7 @@ class Test574(RGAATest):
         cells = get_row_cells(row)
         for col_idx in range(cell_col_index):
             header_cell = cells[col_idx]
-            if is_header_cell(header_cell):
+            if kinds.get(id(header_cell)) == ROW_HEADER:
                 header_id = header_cell.get("id")
                 if isinstance(header_id, str) and header_id.strip():
                     return True
@@ -1004,6 +990,9 @@ class Test574(RGAATest):
             return associated_ids
 
         rows = get_table_rows(table)
+        # Seuls un en-tête de colonne au-dessus ou un en-tête de ligne à gauche
+        # sont associés à la cellule (pas un en-tête voisin de la même ligne).
+        kinds = _slot_kinds(table)
         cell_row_index = -1
         cell_col_index = -1
 
@@ -1025,7 +1014,7 @@ class Test574(RGAATest):
             cells = get_row_cells(row)
             if cell_col_index < len(cells):
                 header_cell = cells[cell_col_index]
-                if is_header_cell(header_cell):
+                if kinds.get(id(header_cell)) == COLUMN_HEADER:
                     header_id = header_cell.get("id")
                     if isinstance(header_id, str) and header_id.strip():
                         associated_ids.append(header_id)
@@ -1034,7 +1023,7 @@ class Test574(RGAATest):
         cells = get_row_cells(row)
         for col_idx in range(cell_col_index):
             header_cell = cells[col_idx]
-            if is_header_cell(header_cell):
+            if kinds.get(id(header_cell)) == ROW_HEADER:
                 header_id = header_cell.get("id")
                 if isinstance(header_id, str) and header_id.strip():
                     associated_ids.append(header_id)
@@ -1110,8 +1099,9 @@ class Test575(RGAATest):
                 for col_index, cell in enumerate(cells):
                     role = cell.get("role")
                     if isinstance(role, str) and role.strip().lower() in ["rowheader", "columnheader"]:
-                        if self._applies_to_entire_column(cell, table, row_index, col_index) or \
-                           self._applies_to_entire_row(cell, table, row_index, col_index):
+                        if self._applies_to_entire_column(
+                            cell, table, row_index, col_index
+                        ) or self._applies_to_entire_row(cell, table, row_index, col_index):
                             total_role_headers_entire += 1
 
                             if not self._has_correct_role_value(cell, table, row_index, col_index):
@@ -1124,15 +1114,21 @@ class Test575(RGAATest):
                                 elif isinstance(row_id, str) and row_id.strip():
                                     element = f"#{row_id} > *[{self._get_cell_index_string(row, col_index)}]"
                                 elif isinstance(table_id, str) and table_id.strip():
-                                    element = f"#{table_id} > *:nth-child({row_index + 1}) > *:nth-child({col_index + 1})"
+                                    element = (
+                                        f"#{table_id} > *:nth-child({row_index + 1}) > *:nth-child({col_index + 1})"
+                                    )
                                 else:
                                     element = f"table[index={table_index}] > *:nth-child({row_index + 1}) > *:nth-child({col_index + 1})"
 
                                 header_findings.append(
                                     Finding(
                                         element=element,
-                                        message=("L'élément avec role='rowheader' ou role='columnheader' doit avoir la valeur appropriée selon qu'il s'applique à une ligne ou une colonne."),
-                                        recommendation=("Utiliser role='rowheader' pour un en-tête de ligne ou role='columnheader' pour un en-tête de colonne."),
+                                        message=(
+                                            "L'élément avec role='rowheader' ou role='columnheader' doit avoir la valeur appropriée selon qu'il s'applique à une ligne ou une colonne."
+                                        ),
+                                        recommendation=(
+                                            "Utiliser role='rowheader' pour un en-tête de ligne ou role='columnheader' pour un en-tête de colonne."
+                                        ),
                                     )
                                 )
 
@@ -1154,7 +1150,9 @@ class Test575(RGAATest):
             self.test_id,
             self.criterion_id,
             status,
-            (f"{total_role_headers_entire} élément(s) avec role='rowheader'/'columnheader' s'appliquant à la totalité de la ligne/colonne, {len(header_findings)} non conforme(s)."),
+            (
+                f"{total_role_headers_entire} élément(s) avec role='rowheader'/'columnheader' s'appliquant à la totalité de la ligne/colonne, {len(header_findings)} non conforme(s)."
+            ),
             findings=header_findings,
             tested_elements=total_role_headers_entire,
             metadata={
@@ -1280,44 +1278,12 @@ class Test575(RGAATest):
             return False
 
     def _is_row_header(self, cell: Tag, table: Tag, row_index: int, col_index: int) -> bool:
-        """Determine if a header cell is a row header."""
-        scope = cell.get("scope")
-        if isinstance(scope, str) and scope.strip().lower() == "row":
-            return True
-
-        rows = get_table_rows(table)
-        if rows and col_index == 0:
-            first_col_header_count = 0
-            total_rows_with_cells = 0
-            for r in rows:
-                r_cells = get_row_cells(r)
-                if len(r_cells) > 0:
-                    total_rows_with_cells += 1
-                    if is_header_cell(r_cells[0]):
-                        first_col_header_count += 1
-
-            if total_rows_with_cells > 0 and first_col_header_count >= total_rows_with_cells * 0.5:
-                return True
-
-        return False
+        """En-tête de ligne d'après la structure du tableau (sans lire scope ni role)."""
+        return _structural_header_axis(cell, table, row_index, col_index) == "row"
 
     def _is_column_header(self, cell: Tag, table: Tag, row_index: int, col_index: int) -> bool:
-        """Determine if a header cell is a column header."""
-        scope = cell.get("scope")
-        if isinstance(scope, str) and scope.strip().lower() == "col":
-            return True
-
-        rows = get_table_rows(table)
-        if rows and row_index == 0 and len(rows) > 1:
-            second_row_cells = get_row_cells(rows[1])
-            if second_row_cells:
-                first_row_cells = get_row_cells(rows[0])
-                header_count = sum(1 for c in first_row_cells if is_header_cell(c))
-                data_count = sum(1 for c in second_row_cells if c.name == "td" or c.get("role") == "cell")
-                if header_count > 0 and data_count > 0:
-                    return True
-
-        return False
+        """En-tête de colonne d'après la structure du tableau (sans lire scope ni role)."""
+        return _structural_header_axis(cell, table, row_index, col_index) == "col"
 
     def _get_cell_index_string(self, row: Tag, col_index: int) -> str:
         """Get a string representation of cell's position within its row for error reporting."""
@@ -1325,3 +1291,47 @@ class Test575(RGAATest):
         if col_index < len(cells):
             return f"[index={col_index}]"
         return f"[index={col_index}]"
+
+
+def _structural_header_axis(cell: Tag, table: Tag, row_index: int, col_index: int) -> str | None:
+    """
+    Déduit si un en-tête porte sur une colonne ("col") ou une ligne ("row")
+    uniquement à partir de la structure du tableau.
+
+    Les attributs scope et role ne sont volontairement pas lus : ce sont eux
+    que les tests 5.7.2 et 5.7.5 doivent vérifier.
+    """
+    parent = cell.parent
+    while isinstance(parent, Tag) and parent is not table:
+        if parent.name == "thead":
+            return "col"
+        parent = parent.parent
+
+    rows = get_table_rows(table)
+    row_cells = get_row_cells(rows[row_index]) if row_index < len(rows) else []
+
+    if row_cells and all(is_header_cell(other) for other in row_cells):
+        return "col"
+
+    if col_index == 0 and any(not is_header_cell(other) for other in row_cells):
+        return "row"
+
+    return None
+
+
+def _is_partial_header(slot: TableSlot) -> bool:
+    """
+    En-tête ne s'appliquant pas à la totalité de la ligne ou de la colonne :
+    en-tête de colonne couvrant plusieurs colonnes, ou en-tête de ligne
+    couvrant plusieurs lignes (même définition que le test 5.6.3).
+    """
+    if slot.kind == COLUMN_HEADER:
+        return get_int_attribute(slot.item, "colspan") > 1
+    if slot.kind == ROW_HEADER:
+        return get_int_attribute(slot.item, "rowspan") > 1
+    return False
+
+
+def _slot_kinds(table: Tag) -> dict[int, str]:
+    """Type de chaque élément du tableau (en-tête de colonne, de ligne, donnée)."""
+    return {id(slot.item): slot.kind for slot in classify_table_cells(table, 0)}

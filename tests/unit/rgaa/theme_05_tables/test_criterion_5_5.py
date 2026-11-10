@@ -116,7 +116,7 @@ def test_551_multiple_tables_mixed_results(
     context_factory,
     run_rgaa,
 ):
-    html = '''
+    html = """
     <table>
         <caption>Liste des produits avec leur prix et catégorie.</caption>
         <tr>
@@ -141,7 +141,7 @@ def test_551_multiple_tables_mixed_results(
             <td>100</td>
         </tr>
     </table>
-    '''
+    """
     context = context_factory(html)
 
     result = run_rgaa(RGAA551(), context)
