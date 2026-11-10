@@ -35,7 +35,7 @@ def test_431_caption_track_and_adjacent_alternative_need_content_review(context_
     [
         ('<video><track kind="captions" src="captions.vtt"></video>', Status.PASS),
         ('<video><track kind="caption" src="captions.vtt"></video>', Status.FAIL),
-        ('<video><track kind="subtitles" src="subtitles.vtt"></video>', Status.NOT_APPLICABLE),
+        ('<video><track kind="subtitles" src="subtitles.vtt"></video>', Status.FAIL),
         ('<video><track kind="captions"></video>', Status.NOT_APPLICABLE),
         ("<video></video>", Status.NOT_APPLICABLE),
     ],

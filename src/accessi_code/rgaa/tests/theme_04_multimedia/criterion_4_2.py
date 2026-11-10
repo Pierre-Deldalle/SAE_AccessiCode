@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from bs4 import BeautifulSoup, Tag
+from bs4 import BeautifulSoup
 
 from accessi_code.analysis.media import (
     TemporalMedia,
@@ -31,65 +31,48 @@ class _Criterion42Test(RGAATest):
             raise ValueError(f"Le test {self.test_id} nécessite un DOM.")
 
         media_items = [item for item in find_temporal_media(context.dom) if item.kind == self.media_kind]
-        
-        # Le périmètre d'applicabilité exclut uniquement les éléments explicitements exemptés/décoratifs
-        applicable_items = [item for item in media_items if not is_media_exempt(item.tag)]
+
+        # Le critère 4.2 porte sur la pertinence d'une alternative existante :
+        # seuls les médias non exemptés possédant une alternative candidate sont concernés.
+        non_exempt_items = [item for item in media_items if not is_media_exempt(item.tag)]
+        applicable_items = [item for item in non_exempt_items if _has_alternative_candidate(item)]
 
         if not applicable_items:
             return TestResult(
                 self.test_id,
                 self.criterion_id,
                 TestStatus.NOT_APPLICABLE,
-                f"Aucun média {self.media_description} détecté.",
+                f"Aucun média {self.media_description} possédant une alternative détecté.",
+                metadata={"media_without_alternative": len(non_exempt_items)},
             )
 
         findings: list[Finding] = []
-        statuses: list[TestStatus] = []
 
         for item in applicable_items:
-            has_alt = _has_alternative_candidate(item)
-            element_id = media_identifier(item.tag, item.index)
-            evidence = _alternative_evidence(item)
-
-            if has_alt:
-                statuses.append(TestStatus.PASS)
-                findings.append(
-                    Finding(
-                        element=element_id,
-                        message="Une alternative textuelle ou une piste de description candidate a été identifiée.",
-                        evidence=evidence,
-                    )
+            findings.append(
+                Finding(
+                    element=media_identifier(item.tag, item.index),
+                    message="Une alternative candidate a été identifiée : sa pertinence doit être vérifiée.",
+                    recommendation=(
+                        "Vérifier manuellement que l'alternative (transcription, audiodescription "
+                        "ou contenu accessible via le lien ou bouton adjacent) restitue fidèlement "
+                        "l'information du média."
+                    ),
+                    evidence=_alternative_evidence(item),
                 )
-            else:
-                statuses.append(TestStatus.FAIL)
-                findings.append(
-                    Finding(
-                        element=element_id,
-                        message=(
-                            "Aucune alternative pertinente (transcription, audiodescription, "
-                            "lien ou bouton adjacent) n'a été trouvée pour ce média."
-                        ),
-                        recommendation=(
-                            "Associer une alternative textuelle ou une audiodescription pertinente "
-                            "au média (ou fournir un bouton/lien d'accès adjacent)."
-                        ),
-                        evidence=evidence,
-                    )
-                )
+            )
 
-        final_status = _aggregate_statuses(statuses)
-
+        # La pertinence d'une alternative ne peut pas être évaluée automatiquement.
         return TestResult(
             self.test_id,
             self.criterion_id,
-            final_status,
-            f"Analyse effectuée sur {len(applicable_items)} média(s) {self.media_description}.",
+            TestStatus.NEEDS_REVIEW,
+            f"{len(applicable_items)} média(s) {self.media_description} avec une alternative à vérifier.",
             findings=findings,
             tested_elements=len(applicable_items),
             metadata={
                 "candidate_media": len(applicable_items),
-                "passed_count": statuses.count(TestStatus.PASS),
-                "failed_count": statuses.count(TestStatus.FAIL),
+                "media_without_alternative": len(non_exempt_items) - len(applicable_items),
             },
         )
 
@@ -124,10 +107,7 @@ def _has_alternative_candidate(item: TemporalMedia) -> bool:
         )
     )
     return bool(
-        alternatives.links_or_buttons
-        or alternatives.text_candidates
-        or item.aria_describedby_text
-        or has_track
+        alternatives.links_or_buttons or alternatives.text_candidates or item.aria_describedby_text or has_track
     )
 
 
@@ -145,14 +125,3 @@ def _alternative_evidence(item: TemporalMedia) -> dict[str, Any]:
         "has_aria_describedby": bool(item.aria_describedby_text),
         "has_description_track": has_track,
     }
-
-
-def _aggregate_statuses(statuses: list[TestStatus]) -> TestStatus:
-    """Priorité des résultats RGAA : FAIL > NEEDS_REVIEW > PASS."""
-    if TestStatus.FAIL in statuses:
-        return TestStatus.FAIL
-    if TestStatus.NEEDS_REVIEW in statuses:
-        return TestStatus.NEEDS_REVIEW
-    if TestStatus.PASS in statuses:
-        return TestStatus.PASS
-    return TestStatus.NOT_APPLICABLE

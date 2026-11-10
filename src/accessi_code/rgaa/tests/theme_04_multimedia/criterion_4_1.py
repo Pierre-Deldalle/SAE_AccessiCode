@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from typing import Any
+
 from bs4 import BeautifulSoup
 
 from accessi_code.analysis.media import (
-    TemporalMedia,
     find_adjacent_media_alternatives,
     find_temporal_media,
     is_media_exempt,
@@ -50,7 +50,7 @@ class _Criterion41Test(RGAATest):
 
         for item in applicable_items:
             alternatives = find_adjacent_media_alternatives(item.tag)
-            
+
             has_alternative = bool(
                 alternatives.links_or_buttons
                 or alternatives.text_candidates
@@ -60,8 +60,11 @@ class _Criterion41Test(RGAATest):
 
             element_id = media_identifier(item.tag, item.index)
 
+            # L'existence ou la pertinence de l'alternative, et la nature exacte
+            # du média, ne peuvent pas être confirmées depuis le HTML seul.
+            statuses.append(TestStatus.NEEDS_REVIEW)
+
             if has_alternative:
-                statuses.append(TestStatus.PASS)
                 findings.append(
                     Finding(
                         element=element_id,
@@ -70,12 +73,12 @@ class _Criterion41Test(RGAATest):
                             "has_track": item.has_track_description,
                             "has_aria_describedby": bool(item.aria_describedby_text),
                             "adjacent_links_or_buttons": len(alternatives.links_or_buttons),
+                            "adjacent_link_or_button_candidates": len(alternatives.links_or_buttons),
                             "adjacent_text_candidates": len(alternatives.text_candidates),
                         },
                     )
                 )
             else:
-                statuses.append(TestStatus.FAIL)
                 findings.append(
                     Finding(
                         element=element_id,
@@ -87,6 +90,7 @@ class _Criterion41Test(RGAATest):
                         evidence={
                             "has_track": item.has_track_description,
                             "adjacent_links_or_buttons": 0,
+                            "adjacent_link_or_button_candidates": 0,
                             "adjacent_text_candidates": 0,
                         },
                     )
@@ -101,6 +105,11 @@ class _Criterion41Test(RGAATest):
             f"Analyse terminée pour {len(applicable_items)} média(s) {self.media_description}.",
             findings=findings,
             tested_elements=len(applicable_items),
+            metadata={
+                "adjacent_link_or_button_candidates": sum(
+                    finding.evidence.get("adjacent_link_or_button_candidates", 0) for finding in findings
+                ),
+            },
         )
 
 

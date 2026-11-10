@@ -139,14 +139,16 @@ def is_media_exempt(tag: Tag) -> bool:
     Returns:
         True si le média est exempt (doit être ignored dans le test), False sinon
     """
-    # Cas décoratif: aria-hidden="true" ou role="presentation"
+    # Cas décoratif : aria-hidden="true", role="presentation" / "none"
+    # ou marquage explicite data-decorative.
     if tag.get("aria-hidden") == "true":
         return True
-    if tag.get("role") == "presentation":
+    if tag.get("role") in {"presentation", "none"}:
         return True
 
-    # Autres cas particuliers qui pourraient être détectés heuristiquement
-    # À enrichir selon les besoins et la faisabilité technique
+    decorative = tag.get("data-decorative")
+    if isinstance(decorative, str):
+        return decorative.strip().lower() in {"true", "1", "yes"}
 
     return False
 

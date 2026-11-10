@@ -16,7 +16,6 @@ from accessi_code.models.capabilities import Capability
 from accessi_code.models.result import Finding, TestResult, TestStatus
 from accessi_code.rgaa.base import RGAATest
 
-
 _ACTION_PATTERNS = {
     "playback": re.compile(
         r"\blecture\b|pause|stop|arr[êe]t|reprendre|play",
@@ -52,10 +51,7 @@ class _Criterion411Test(RGAATest):
         if not isinstance(context.dom, BeautifulSoup):
             raise ValueError(f"Le test {self.test_id} nécessite un DOM.")
 
-        media_items = [
-            item for item in find_temporal_media(context.dom)
-            if not is_media_exempt(item.tag)
-        ]
+        media_items = [item for item in find_temporal_media(context.dom) if not is_media_exempt(item.tag)]
 
         if not media_items:
             return TestResult(
@@ -84,8 +80,7 @@ class _Criterion411Test(RGAATest):
             not_applicable_count = sum(1 for s in statuses if s == TestStatus.NOT_APPLICABLE)
             if pass_count > 0:
                 status_message = (
-                    f"Conforme : {pass_count} média(s) temporel(s) "
-                    "avec des contrôles tous accessibles et fonctionnels."
+                    f"Conforme : {pass_count} média(s) temporel(s) avec des contrôles tous accessibles et fonctionnels."
                 )
             else:
                 status_message = (
@@ -98,13 +93,10 @@ class _Criterion411Test(RGAATest):
                 "nécessitent une vérification manuelle de leurs contrôles."
             )
             if fail_count > 0:
-                status_message += (
-                    f" De plus, {fail_count} média(s) ont des contrôles définitivement non fonctionnels."
-                )
+                status_message += f" De plus, {fail_count} média(s) ont des contrôles définitivement non fonctionnels."
         else:  # fail_count > 0 and needs_review_count == 0
             status_message = (
-                f"Non conforme : {fail_count} média(s) temporel(s) "
-                "avec des contrôles non fonctionnels détectés."
+                f"Non conforme : {fail_count} média(s) temporel(s) avec des contrôles non fonctionnels détectés."
             )
 
         return TestResult(
@@ -116,11 +108,7 @@ class _Criterion411Test(RGAATest):
             tested_elements=len(media_items),
             metadata={
                 "media_count": len(media_items),
-                "native_control_count": sum(
-                    1
-                    for item in media_items
-                    if item.tag.has_attr("controls")
-                ),
+                "native_control_count": sum(1 for item in media_items if item.tag.has_attr("controls")),
             },
         )
 
@@ -146,10 +134,7 @@ class Test4111(_Criterion411Test):
         element = media_identifier(media.tag, media.index)
         controls = _associated_controls(media, dom)
 
-        native_controls = (
-            media.tag.has_attr("controls")
-            and media.tag.name in {"audio", "video"}
-        )
+        native_controls = media.tag.has_attr("controls") and media.tag.name in {"audio", "video"}
 
         action_names = _recognized_actions(controls)
         tracks = _track_kinds(media.tag)
@@ -186,19 +171,14 @@ class Test4111(_Criterion411Test):
         elif media.tag.name == "object":
             missing_actions = required_actions - action_names
             status = TestStatus.NEEDS_REVIEW
-            message = (
-                "Le lecteur intégré ne peut pas être évalué "
-                "complètement depuis le DOM seul."
-            )
+            message = "Le lecteur intégré ne peut pas être évalué complètement depuis le DOM seul."
 
         else:
             missing_actions = required_actions - action_names
 
             if "playback" in missing_actions:
                 status = TestStatus.FAIL
-                message = (
-                    "Aucune commande de lecture, pause ou arrêt identifiable."
-                )
+                message = "Aucune commande de lecture, pause ou arrêt identifiable."
 
             elif missing_actions:
                 status = TestStatus.FAIL
@@ -245,10 +225,7 @@ class Test4112(_Criterion411Test):
     ) -> tuple[TestStatus, Finding]:
         controls = _associated_controls(media, dom)
 
-        native_controls = (
-            media.tag.has_attr("controls")
-            and media.tag.name in {"audio", "video"}
-        )
+        native_controls = media.tag.has_attr("controls") and media.tag.name in {"audio", "video"}
 
         element = media_identifier(media.tag, media.index)
 
@@ -260,15 +237,9 @@ class Test4112(_Criterion411Test):
             status = TestStatus.NOT_APPLICABLE
             message = "Aucune fonctionnalité de contrôle détectée pour ce média."
 
-        elif any(
-            not _is_keyboard_reachable(control)
-            for control in controls
-        ):
+        elif any(not _is_keyboard_reachable(control) for control in controls):
             status = TestStatus.FAIL
-            message = (
-                "Au moins une commande personnalisée "
-                "n'est pas atteignable au clavier."
-            )
+            message = "Au moins une commande personnalisée n'est pas atteignable au clavier."
 
         else:
             status = TestStatus.NEEDS_REVIEW
@@ -284,7 +255,8 @@ class Test4112(_Criterion411Test):
             recommendation=(
                 "Vérifier que chaque fonctionnalité de contrôle est "
                 "atteignable au clavier et avec un dispositif de pointage."
-                if status in {
+                if status
+                in {
                     TestStatus.FAIL,
                     TestStatus.NEEDS_REVIEW,
                 }
@@ -293,10 +265,7 @@ class Test4112(_Criterion411Test):
             evidence={
                 "native_controls": native_controls,
                 "custom_control_count": len(controls),
-                "keyboard_reachable": all(
-                    _is_keyboard_reachable(control)
-                    for control in controls
-                ),
+                "keyboard_reachable": all(_is_keyboard_reachable(control) for control in controls),
             },
         )
 
@@ -314,10 +283,7 @@ class Test4113(_Criterion411Test):
     ) -> tuple[TestStatus, Finding]:
         controls = _associated_controls(media, dom)
 
-        native_controls = (
-            media.tag.has_attr("controls")
-            and media.tag.name in {"audio", "video"}
-        )
+        native_controls = media.tag.has_attr("controls") and media.tag.name in {"audio", "video"}
 
         element = media_identifier(media.tag, media.index)
 
@@ -329,15 +295,9 @@ class Test4113(_Criterion411Test):
             status = TestStatus.NOT_APPLICABLE
             message = "Aucune fonctionnalité de contrôle détectée pour ce média."
 
-        elif any(
-            not _is_keyboard_activatable(control)
-            for control in controls
-        ):
+        elif any(not _is_keyboard_activatable(control) for control in controls):
             status = TestStatus.FAIL
-            message = (
-                "Au moins une commande personnalisée "
-                "n'est pas activable au clavier."
-            )
+            message = "Au moins une commande personnalisée n'est pas activable au clavier."
 
         else:
             status = TestStatus.NEEDS_REVIEW
@@ -351,9 +311,9 @@ class Test4113(_Criterion411Test):
             element=element,
             message=message,
             recommendation=(
-                "Tester l'activation de chaque fonctionnalité au clavier "
-                "et avec un dispositif de pointage."
-                if status in {
+                "Tester l'activation de chaque fonctionnalité au clavier et avec un dispositif de pointage."
+                if status
+                in {
                     TestStatus.FAIL,
                     TestStatus.NEEDS_REVIEW,
                 }
@@ -362,10 +322,7 @@ class Test4113(_Criterion411Test):
             evidence={
                 "native_controls": native_controls,
                 "custom_control_count": len(controls),
-                "keyboard_activatable": all(
-                    _is_keyboard_activatable(control)
-                    for control in controls
-                ),
+                "keyboard_activatable": all(_is_keyboard_activatable(control) for control in controls),
             },
         )
 
@@ -384,9 +341,7 @@ def _associated_controls(
 
     if isinstance(media_id, str) and media_id.strip():
         for element in dom.find_all(True):
-            aria_controls = str(
-                element.get("aria-controls", "")
-            ).split()
+            aria_controls = str(element.get("aria-controls", "")).split()
 
             if media_id in aria_controls and element != tag:
                 candidates.append(element)
@@ -427,9 +382,7 @@ def _associated_controls(
             if element == tag:
                 continue
 
-            role = str(
-                element.get("role", "")
-            ).lower()
+            role = str(element.get("role", "")).lower()
 
             if role in {"button", "slider", "switch"}:
                 candidates.append(element)
@@ -437,11 +390,7 @@ def _associated_controls(
     # Suppression des doublons.
     candidates = list(dict.fromkeys(candidates))
 
-    return [
-        control
-        for control in candidates
-        if _is_media_control(control)
-    ]
+    return [control for control in candidates if _is_media_control(control)]
 
 
 def _is_possible_control(tag: Tag) -> bool:
@@ -458,9 +407,7 @@ def _is_possible_control(tag: Tag) -> bool:
     if tag.name == "a":
         return tag.has_attr("href")
 
-    role = str(
-        tag.get("role", "")
-    ).lower()
+    role = str(tag.get("role", "")).lower()
 
     return role in {
         "button",
@@ -487,9 +434,7 @@ def _is_media_control(tag: Tag) -> bool:
 
     # Un input range peut notamment correspondre à un contrôle de volume.
     if tag.name == "input":
-        input_type = str(
-            tag.get("type", "")
-        ).lower()
+        input_type = str(tag.get("type", "")).lower()
 
         if input_type == "range":
             return True
@@ -519,10 +464,7 @@ def _is_media_control(tag: Tag) -> bool:
         "audio-description",
     )
 
-    return any(
-        keyword in label
-        for keyword in media_keywords
-    )
+    return any(keyword in label for keyword in media_keywords)
 
 
 def _recognized_actions(controls: list[Tag]) -> set[str]:
@@ -554,10 +496,7 @@ def _recognized_actions(controls: list[Tag]) -> set[str]:
 def _track_kinds(media_tag: Tag) -> set[str]:
     """Retourne les types de pistes <track> associés au média."""
 
-    return {
-        str(track.get("kind", "")).strip().lower()
-        for track in media_tag.find_all("track")
-    }
+    return {str(track.get("kind", "")).strip().lower() for track in media_tag.find_all("track")}
 
 
 def _is_keyboard_reachable(control: Tag) -> bool:
@@ -586,13 +525,9 @@ def _is_keyboard_reachable(control: Tag) -> bool:
         return control.has_attr("href")
 
     if control.name == "input":
-        return str(
-            control.get("type", "")
-        ).lower() != "hidden"
+        return str(control.get("type", "")).lower() != "hidden"
 
-    role = str(
-        control.get("role", "")
-    ).lower()
+    role = str(control.get("role", "")).lower()
 
     return role in {
         "button",
@@ -623,15 +558,11 @@ def _is_keyboard_activatable(control: Tag) -> bool:
     }:
         return True
 
-    return str(
-        control.get("role", "")
-    ).lower() in {
+    return str(control.get("role", "")).lower() in {
         "button",
         "link",
         "menuitem",
     }
-
-
 
 
 def _aggregate_statuses(

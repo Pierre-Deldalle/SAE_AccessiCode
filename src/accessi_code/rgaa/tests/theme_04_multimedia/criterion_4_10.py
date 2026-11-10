@@ -3,13 +3,13 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from bs4 import BeautifulSoup, NavigableString, Tag
+from bs4 import BeautifulSoup, Tag
 
+from accessi_code.analysis.media import is_media_exempt, media_identifier
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
 from accessi_code.models.result import Finding, TestResult, TestStatus
 from accessi_code.rgaa.base import RGAATest
-from accessi_code.analysis.media import is_media_exempt, media_identifier
 
 
 class Test4101(RGAATest):
@@ -63,10 +63,7 @@ class Test4101(RGAATest):
                 findings.append(
                     Finding(
                         element=element_id,
-                        message=(
-                            "Un code JavaScript susceptible de déclencher "
-                            "automatiquement un son a été détecté."
-                        ),
+                        message=("Un code JavaScript susceptible de déclencher automatiquement un son a été détecté."),
                         recommendation=(
                             "Vérifier au chargement de la page que la "
                             "séquence sonore dure au maximum 3 secondes, "
@@ -96,13 +93,9 @@ class Test4101(RGAATest):
                 findings.append(
                     Finding(
                         element=element_id,
-                        message=(
-                            "Un média avec lecture automatique a été détecté, "
-                            "mais il est explicitement muet."
-                        ),
+                        message=("Un média avec lecture automatique a été détecté, mais il est explicitement muet."),
                         recommendation=(
-                            "Vérifier que le média ne déclenche effectivement "
-                            "aucun son au chargement de la page."
+                            "Vérifier que le média ne déclenche effectivement aucun son au chargement de la page."
                         ),
                         evidence={
                             "source_type": tag.name,
@@ -124,8 +117,7 @@ class Test4101(RGAATest):
                     Finding(
                         element=element_id,
                         message=(
-                            "Une séquence sonore déclenchée automatiquement "
-                            "dispose d'un contrôle utilisateur détecté."
+                            "Une séquence sonore déclenchée automatiquement dispose d'un contrôle utilisateur détecté."
                         ),
                         recommendation=(
                             "Vérifier manuellement que ce contrôle permet "
@@ -175,21 +167,14 @@ class Test4101(RGAATest):
                 )
             )
 
-        audible_candidates = [
-            finding
-            for finding in findings
-            if finding.evidence.get("automatic_sound") is True
-        ]
+        audible_candidates = [finding for finding in findings if finding.evidence.get("automatic_sound") is True]
 
         if not audible_candidates:
             return TestResult(
                 self.test_id,
                 self.criterion_id,
                 TestStatus.NOT_APPLICABLE,
-                (
-                    "Aucun son effectivement déclenché automatiquement "
-                    "n'a été identifié."
-                ),
+                ("Aucun son effectivement déclenché automatiquement n'a été identifié."),
                 findings=findings,
                 tested_elements=len(candidates),
                 metadata={
@@ -200,10 +185,7 @@ class Test4101(RGAATest):
                 },
             )
 
-        requires_review = any(
-            finding.evidence.get("manual_review_required") is True
-            for finding in audible_candidates
-        )
+        requires_review = any(finding.evidence.get("manual_review_required") is True for finding in audible_candidates)
 
         if requires_review:
             status = TestStatus.NEEDS_REVIEW
@@ -230,23 +212,12 @@ class Test4101(RGAATest):
             metadata={
                 "candidate_sequences": len(candidates),
                 "audible_sequences": len(audible_candidates),
-                "muted_sequences": sum(
-                    1
-                    for candidate in candidates
-                    if candidate.get("muted") is True
-                ),
+                "muted_sequences": sum(1 for candidate in candidates if candidate.get("muted") is True),
                 "sequences_with_stop_control": sum(
-                    1
-                    for finding in findings
-                    if finding.evidence.get("stop_control_detected") is True
+                    1 for finding in findings if finding.evidence.get("stop_control_detected") is True
                 ),
                 "sequences_with_volume_control": sum(
-                    1
-                    for finding in findings
-                    if finding.evidence.get(
-                        "independent_volume_control_detected"
-                    )
-                    is True
+                    1 for finding in findings if finding.evidence.get("independent_volume_control_detected") is True
                 ),
                 "manual_review_required": requires_review,
             },
@@ -271,9 +242,7 @@ def _find_automatic_sound_candidates(
 
     candidates: list[dict[str, Any]] = []
 
-    for index, tag in enumerate(
-        dom.find_all(["audio", "video", "object", "embed", "bgsound"])
-    ):
+    for index, tag in enumerate(dom.find_all(["audio", "video", "object", "embed", "bgsound"])):
         if is_media_exempt(tag):
             continue
 
@@ -329,20 +298,13 @@ def _has_automatic_playback(tag: Tag) -> bool:
             if isinstance(value, str):
                 lowered = value.lower()
 
-                if (
-                    "autoplay=true" in lowered
-                    or "autostart=true" in lowered
-                    or "auto_start=true" in lowered
-                ):
+                if "autoplay=true" in lowered or "autostart=true" in lowered or "auto_start=true" in lowered:
                     return True
 
         return False
 
     if tag.name == "bgsound":
-        return (
-            tag.has_attr("autostart")
-            or tag.has_attr("autoplay")
-        )
+        return tag.has_attr("autostart") or tag.has_attr("autoplay")
 
     return False
 
@@ -380,6 +342,10 @@ def _has_stop_control(tag: Tag) -> bool:
     Recherche un dispositif adjacent ou associé permettant
     potentiellement d'arrêter la séquence.
     """
+
+    # Les contrôles natifs du lecteur proposent toujours un bouton pause.
+    if tag.has_attr("controls"):
+        return True
 
     parent = tag.parent
 
@@ -435,11 +401,7 @@ def _is_stop_control(tag: Tag) -> bool:
         tag.get("id"),
     ]
 
-    text = " ".join(
-        str(value).lower()
-        for value in values
-        if value
-    )
+    text = " ".join(str(value).lower() for value in values if value)
 
     stop_keywords = (
         "stop",
@@ -467,11 +429,7 @@ def _is_volume_control(tag: Tag) -> bool:
         tag.get("id"),
     ]
 
-    text = " ".join(
-        str(value).lower()
-        for value in values
-        if value
-    )
+    text = " ".join(str(value).lower() for value in values if value)
 
     if any(
         keyword in text
@@ -547,9 +505,4 @@ def _contains_automatic_audio_code(script: str) -> bool:
         r"createMediaElementSource",
     )
 
-    return any(
-        re.search(pattern, script, flags=re.IGNORECASE)
-        for pattern in patterns
-    )
-
-
+    return any(re.search(pattern, script, flags=re.IGNORECASE) for pattern in patterns)

@@ -32,8 +32,7 @@ class Test441(RGAATest):
 
         # On recherche tous les médias vidéo non exemptés/décoratifs
         media_items = [
-            item for item in find_temporal_media(context.dom)
-            if item.kind == "video" and not is_media_exempt(item.tag)
+            item for item in find_temporal_media(context.dom) if item.kind == "video" and not is_media_exempt(item.tag)
         ]
 
         # On ne retient pour le 4.4.1 que les médias possédant des sous-titres (track ou alternative)
@@ -56,7 +55,7 @@ class Test441(RGAATest):
         for item, tracks in checked_items:
             element_id = media_identifier(item.tag, item.index)
             alternatives = find_adjacent_media_alternatives(item.tag)
-            
+
             findings.append(
                 Finding(
                     element=element_id,
@@ -91,9 +90,7 @@ class Test441(RGAATest):
 
 def _caption_tracks(tag: Tag) -> list[Tag]:
     return [
-        track for track in tag.find_all("track", recursive=False)
-        if str(track.get("kind", "")).strip().lower() in {"captions", "subtitles"}
-        and str(track.get("src", "")).strip()
+        track
+        for track in tag.find_all("track", recursive=False)
+        if str(track.get("kind", "")).strip().lower() in {"captions", "subtitles"} and str(track.get("src", "")).strip()
     ]
-
-

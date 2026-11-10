@@ -29,10 +29,7 @@ class _Criterion46Test(RGAATest):
             raise ValueError(f"Le test {self.test_id} nécessite un DOM.")
 
         videos = [
-            item
-            for item in find_temporal_media(context.dom)
-            if item.kind == "video"
-            and not is_media_exempt(item.tag)
+            item for item in find_temporal_media(context.dom) if item.kind == "video" and not is_media_exempt(item.tag)
         ]
 
         if not videos:
@@ -51,16 +48,12 @@ class _Criterion46Test(RGAATest):
             alternatives = find_adjacent_media_alternatives(item.tag)
 
             description_links = [
-                element
-                for element in alternatives.links_or_buttons
-                if _is_audio_description_alternative(element)
+                element for element in alternatives.links_or_buttons if _is_audio_description_alternative(element)
             ]
 
             element_id = media_identifier(item.tag, item.index)
 
-            has_audio_description = bool(
-                tracks or description_links
-            )
+            has_audio_description = bool(tracks or description_links)
 
             if has_audio_description:
                 message = (
@@ -102,16 +95,9 @@ class _Criterion46Test(RGAATest):
                         "test_scope": self.media_description,
                         "audio_description_requires_review": True,
                         "description_tracks_count": len(tracks),
-                        "track_sources": [
-                            str(track.get("src", ""))
-                            for track in tracks
-                        ],
-                        "adjacent_audio_description_alternatives": len(
-                            description_links
-                        ),
-                        "has_audio_description_candidate": (
-                            has_audio_description
-                        ),
+                        "track_sources": [str(track.get("src", "")) for track in tracks],
+                        "adjacent_audio_description_alternatives": len(description_links),
+                        "has_audio_description_candidate": (has_audio_description),
                     },
                 )
             )
@@ -159,8 +145,7 @@ def _description_tracks(tag: Tag) -> list[Tag]:
     return [
         track
         for track in tag.find_all("track", recursive=False)
-        if str(track.get("kind", "")).strip().lower() == "descriptions"
-        and str(track.get("src", "")).strip()
+        if str(track.get("kind", "")).strip().lower() == "descriptions" and str(track.get("src", "")).strip()
     ]
 
 
@@ -179,11 +164,7 @@ def _is_audio_description_alternative(element: Tag) -> bool:
 
     text = " ".join(values).casefold()
 
-    text = (
-        text
-        .replace("-", " ")
-        .replace("_", " ")
-    )
+    text = text.replace("-", " ").replace("_", " ")
 
     return any(
         phrase in text
@@ -194,5 +175,3 @@ def _is_audio_description_alternative(element: Tag) -> bool:
             "version audio",
         )
     )
-
-

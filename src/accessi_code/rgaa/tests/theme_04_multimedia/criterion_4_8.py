@@ -4,11 +4,11 @@ from typing import Any
 
 from bs4 import BeautifulSoup, Tag
 
+from accessi_code.analysis.media import is_media_exempt, media_identifier
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
 from accessi_code.models.result import Finding, TestResult, TestStatus
 from accessi_code.rgaa.base import RGAATest
-from accessi_code.analysis.media import is_media_exempt, media_identifier
 
 
 class Test481(RGAATest):
@@ -32,11 +32,7 @@ class Test481(RGAATest):
         if not isinstance(context.dom, BeautifulSoup):
             raise ValueError(f"Le test {self.test_id} nécessite un DOM.")
 
-        media = [
-            tag
-            for tag in _find_non_temporal_media(context.dom)
-            if not is_media_exempt(tag)
-        ]
+        media = [tag for tag in _find_non_temporal_media(context.dom) if not is_media_exempt(tag)]
 
         if not media:
             return TestResult(
@@ -54,17 +50,9 @@ class Test481(RGAATest):
 
             controls = _find_adjacent_links_or_buttons(tag)
 
-            identifiable_controls = [
-                control
-                for control in controls
-                if _is_clearly_identifiable(control)
-            ]
+            identifiable_controls = [control for control in controls if _is_clearly_identifiable(control)]
 
-            valid_controls = [
-                control
-                for control in identifiable_controls
-                if _has_alternative_destination(control)
-            ]
+            valid_controls = [control for control in identifiable_controls if _has_alternative_destination(control)]
 
             has_alternative = bool(valid_controls)
 
@@ -78,32 +66,25 @@ class Test481(RGAATest):
                         "Un lien ou bouton adjacent clairement identifiable "
                         "permettant d'accéder à une alternative a été détecté."
                         if has_alternative
-                        else
-                        "Aucun lien ou bouton adjacent clairement "
+                        else "Aucun lien ou bouton adjacent clairement "
                         "identifiable permettant d'accéder à une "
                         "alternative n'a été détecté."
                     ),
                     recommendation=(
-                        "Vérifier que le lien ou bouton permet bien "
-                        "d'accéder à l'alternative du média."
+                        "Vérifier que le lien ou bouton permet bien d'accéder à l'alternative du média."
                         if has_alternative
-                        else
-                        "Ajouter immédiatement avant ou après le média "
+                        else "Ajouter immédiatement avant ou après le média "
                         "un lien ou un bouton clairement identifiable "
                         "permettant d'accéder à une alternative."
                     ),
                     evidence={
                         "media_type": tag.name,
                         "adjacent_controls": len(controls),
-                        "identifiable_controls": len(
-                            identifiable_controls
-                        ),
+                        "identifiable_controls": len(identifiable_controls),
                         "valid_controls": len(valid_controls),
                         "has_alternative": has_alternative,
-                        "controls": [
-                            _control_information(control)
-                            for control in identifiable_controls
-                        ],
+                        "has_alternative_destination": has_alternative,
+                        "controls": [_control_information(control) for control in identifiable_controls],
                     },
                 )
             )
@@ -133,14 +114,10 @@ class Test481(RGAATest):
             metadata={
                 "candidate_media": len(media),
                 "media_with_alternative": sum(
-                    1
-                    for finding in findings
-                    if finding.evidence.get("has_alternative") is True
+                    1 for finding in findings if finding.evidence.get("has_alternative") is True
                 ),
                 "media_without_alternative": sum(
-                    1
-                    for finding in findings
-                    if finding.evidence.get("has_alternative") is False
+                    1 for finding in findings if finding.evidence.get("has_alternative") is False
                 ),
             },
         )
@@ -167,11 +144,7 @@ class Test482(RGAATest):
         if not isinstance(context.dom, BeautifulSoup):
             raise ValueError(f"Le test {self.test_id} nécessite un DOM.")
 
-        media = [
-            tag
-            for tag in _find_non_temporal_media(context.dom)
-            if not is_media_exempt(tag)
-        ]
+        media = [tag for tag in _find_non_temporal_media(context.dom) if not is_media_exempt(tag)]
 
         if not media:
             return TestResult(
@@ -189,16 +162,10 @@ class Test482(RGAATest):
 
             controls = _find_adjacent_links_or_buttons(tag)
 
-            identifiable_controls = [
-                control
-                for control in controls
-                if _is_clearly_identifiable(control)
-            ]
+            identifiable_controls = [control for control in controls if _is_clearly_identifiable(control)]
 
             alternative_controls = [
-                control
-                for control in identifiable_controls
-                if _has_alternative_destination(control)
+                control for control in identifiable_controls if _has_alternative_destination(control)
             ]
 
             has_destination = bool(alternative_controls)
@@ -210,41 +177,28 @@ class Test482(RGAATest):
                 Finding(
                     element=element_id,
                     message=(
-                        "Une destination d'alternative exploitable "
-                        "a été identifiée."
+                        "Une destination d'alternative exploitable a été identifiée."
                         if has_destination
-                        else
-                        "Aucune destination d'alternative exploitable "
-                        "n'a été identifiée."
+                        else "Aucune destination d'alternative exploitable n'a été identifiée."
                     ),
                     recommendation=(
-                        "Vérifier que la destination permet réellement "
-                        "d'accéder à l'alternative du média."
+                        "Vérifier que la destination permet réellement d'accéder à l'alternative du média."
                     ),
                     evidence={
                         "media_type": tag.name,
                         "adjacent_controls": len(controls),
-                        "identifiable_controls": len(
-                            identifiable_controls
-                        ),
-                        "alternative_controls": len(
-                            alternative_controls
-                        ),
+                        "identifiable_controls": len(identifiable_controls),
+                        "alternative_controls": len(alternative_controls),
+                        "has_alternative": has_destination,
                         "has_alternative_destination": has_destination,
-                        "controls": [
-                            _control_information(control)
-                            for control in identifiable_controls
-                        ],
+                        "controls": [_control_information(control) for control in identifiable_controls],
                     },
                 )
             )
 
         if all_valid:
             status = TestStatus.PASS
-            message = (
-                f"{len(media)} média(s) non temporel(s) associé(s) "
-                "à une destination d'alternative exploitable."
-            )
+            message = f"{len(media)} média(s) non temporel(s) associé(s) à une destination d'alternative exploitable."
         else:
             status = TestStatus.FAIL
             message = (
@@ -262,18 +216,10 @@ class Test482(RGAATest):
             metadata={
                 "candidate_media": len(media),
                 "media_with_destination": sum(
-                    1
-                    for finding in findings
-                    if finding.evidence.get(
-                        "has_alternative_destination"
-                    ) is True
+                    1 for finding in findings if finding.evidence.get("has_alternative_destination") is True
                 ),
                 "media_without_destination": sum(
-                    1
-                    for finding in findings
-                    if finding.evidence.get(
-                        "has_alternative_destination"
-                    ) is False
+                    1 for finding in findings if finding.evidence.get("has_alternative_destination") is False
                 ),
             },
         )
@@ -362,11 +308,7 @@ def _has_alternative_destination(tag: Tag) -> bool:
     if tag.name == "a":
         href = tag.get("href")
 
-        return (
-            isinstance(href, str)
-            and bool(href.strip())
-            and href.strip() != "#"
-        )
+        return isinstance(href, str) and bool(href.strip()) and href.strip() != "#"
 
     if tag.name == "button":
         for attribute in (
@@ -417,5 +359,3 @@ def _control_information(tag: Tag) -> dict[str, Any]:
             information[attribute] = str(value)
 
     return information
-
-

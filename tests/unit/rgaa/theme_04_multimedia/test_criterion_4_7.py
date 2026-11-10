@@ -49,24 +49,15 @@ def test_criterion_471_media_without_adjacent_text_is_non_compliant(
         context_factory(html),
     )
 
-    assert result.status == Status.NON_CONFORME
+    assert result.status == Status.FAIL
     assert result.tested_elements == 1
     assert len(result.findings) == 1
 
-    assert (
-        result.findings[0].evidence["media_identified"]
-        is False
-    )
+    assert result.findings[0].evidence["media_identified"] is False
 
-    assert (
-        result.findings[0].evidence["has_preceding_text"]
-        is False
-    )
+    assert result.findings[0].evidence["has_preceding_text"] is False
 
-    assert (
-        result.findings[0].evidence["has_following_text"]
-        is False
-    )
+    assert result.findings[0].evidence["has_following_text"] is False
 
 
 @pytest.mark.parametrize(
@@ -93,7 +84,7 @@ def test_criterion_471_text_before_media_is_detected(
         context_factory(html),
     )
 
-    assert result.status == Status.CONFORME
+    assert result.status == Status.PASS
     assert result.tested_elements == 1
     assert len(result.findings) == 1
 
@@ -103,10 +94,7 @@ def test_criterion_471_text_before_media_is_detected(
     assert finding.evidence["has_preceding_text"] is True
     assert finding.evidence["has_following_text"] is False
 
-    assert (
-        finding.evidence["preceding_text"]
-        == "Présentation du projet"
-    )
+    assert finding.evidence["preceding_text"] == "Présentation du projet"
 
 
 @pytest.mark.parametrize(
@@ -133,7 +121,7 @@ def test_criterion_471_text_after_media_is_detected(
         context_factory(html),
     )
 
-    assert result.status == Status.CONFORME
+    assert result.status == Status.PASS
     assert result.tested_elements == 1
     assert len(result.findings) == 1
 
@@ -143,10 +131,7 @@ def test_criterion_471_text_after_media_is_detected(
     assert finding.evidence["has_preceding_text"] is False
     assert finding.evidence["has_following_text"] is True
 
-    assert (
-        finding.evidence["following_text"]
-        == "Description de la vidéo."
-    )
+    assert finding.evidence["following_text"] == "Description de la vidéo."
 
 
 def test_criterion_471_ignores_whitespace_before_media(
@@ -169,16 +154,13 @@ def test_criterion_471_ignores_whitespace_before_media(
         context_factory(html),
     )
 
-    assert result.status == Status.CONFORME
+    assert result.status == Status.PASS
     assert result.tested_elements == 1
 
     finding = result.findings[0]
 
     assert finding.evidence["has_preceding_text"] is True
-    assert (
-        finding.evidence["preceding_text"]
-        == "Titre du média"
-    )
+    assert finding.evidence["preceding_text"] == "Titre du média"
 
 
 def test_criterion_471_ignores_whitespace_after_media(
@@ -203,16 +185,13 @@ def test_criterion_471_ignores_whitespace_after_media(
         context_factory(html),
     )
 
-    assert result.status == Status.CONFORME
+    assert result.status == Status.PASS
     assert result.tested_elements == 1
 
     finding = result.findings[0]
 
     assert finding.evidence["has_following_text"] is True
-    assert (
-        finding.evidence["following_text"]
-        == "Description du média."
-    )
+    assert finding.evidence["following_text"] == "Description du média."
 
 
 def test_criterion_471_title_before_video_is_detected(
@@ -235,13 +214,10 @@ def test_criterion_471_title_before_video_is_detected(
         context_factory(html),
     )
 
-    assert result.status == Status.CONFORME
+    assert result.status == Status.PASS
     assert result.tested_elements == 1
 
-    assert (
-        result.findings[0].evidence["preceding_text"]
-        == "Interview de présentation"
-    )
+    assert result.findings[0].evidence["preceding_text"] == "Interview de présentation"
 
 
 def test_criterion_471_paragraph_before_audio_is_detected(
@@ -264,13 +240,10 @@ def test_criterion_471_paragraph_before_audio_is_detected(
         context_factory(html),
     )
 
-    assert result.status == Status.CONFORME
+    assert result.status == Status.PASS
     assert result.tested_elements == 1
 
-    assert (
-        result.findings[0].evidence["preceding_text"]
-        == "Écoutez le témoignage du directeur."
-    )
+    assert result.findings[0].evidence["preceding_text"] == "Écoutez le témoignage du directeur."
 
 
 def test_criterion_471_only_immediate_text_is_used(
@@ -295,7 +268,7 @@ def test_criterion_471_only_immediate_text_is_used(
         context_factory(html),
     )
 
-    assert result.status == Status.NON_CONFORME
+    assert result.status == Status.FAIL
     assert result.tested_elements == 1
 
     finding = result.findings[0]
@@ -326,16 +299,13 @@ def test_criterion_471_text_inside_media_container_is_not_used(
         context_factory(html),
     )
 
-    assert result.status == Status.CONFORME
+    assert result.status == Status.PASS
     assert result.tested_elements == 1
 
     finding = result.findings[0]
 
     assert finding.evidence["media_identified"] is True
-    assert (
-        finding.evidence["preceding_text"]
-        == "Titre de la vidéo"
-    )
+    assert finding.evidence["preceding_text"] == "Titre de la vidéo"
 
 
 def test_criterion_471_decorative_video_is_ignored(
@@ -409,29 +379,17 @@ def test_criterion_471_multiple_media_all_identified(
         context_factory(html),
     )
 
-    assert result.status == Status.CONFORME
+    assert result.status == Status.PASS
     assert result.tested_elements == 2
     assert len(result.findings) == 2
 
-    assert (
-        result.findings[0].element
-        == "video#video-1"
-    )
+    assert result.findings[0].element == "video#video-1"
 
-    assert (
-        result.findings[1].element
-        == "audio#audio-1"
-    )
+    assert result.findings[1].element == "audio#audio-1"
 
-    assert (
-        result.findings[0].evidence["media_identified"]
-        is True
-    )
+    assert result.findings[0].evidence["media_identified"] is True
 
-    assert (
-        result.findings[1].evidence["media_identified"]
-        is True
-    )
+    assert result.findings[1].evidence["media_identified"] is True
 
 
 def test_criterion_471_mixed_media_returns_non_compliant(
@@ -458,16 +416,10 @@ def test_criterion_471_mixed_media_returns_non_compliant(
         context_factory(html),
     )
 
-    assert result.status == Status.NON_CONFORME
+    assert result.status == Status.FAIL
     assert result.tested_elements == 2
     assert len(result.findings) == 2
 
-    assert (
-        result.findings[0].evidence["media_identified"]
-        is True
-    )
+    assert result.findings[0].evidence["media_identified"] is True
 
-    assert (
-        result.findings[1].evidence["media_identified"]
-        is False
-    )
+    assert result.findings[1].evidence["media_identified"] is False
