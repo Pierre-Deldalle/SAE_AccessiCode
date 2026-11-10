@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
+import re
 from typing import Any
+
+from bs4 import BeautifulSoup, Tag
 
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
-from accessi_code.models.result import TestResult, TestStatus, Finding
+from accessi_code.models.result import Finding, TestResult, TestStatus
 from accessi_code.rgaa.base import RGAATest
-from bs4 import BeautifulSoup, Tag
-import re
 
 
 class Test751(RGAATest):
@@ -32,7 +33,7 @@ class Test751(RGAATest):
 
         all_elements = soup.find_all(True)
         for element in all_elements:
-            if element.name in ['script', 'style']:
+            if element.name in ["script", "style"]:
                 continue
 
             text = element.get_text(strip=True)
@@ -85,7 +86,9 @@ class Test751(RGAATest):
                     Finding(
                         element=element_id,
                         message="Le message de statut n'utilise pas le rôle WAI-ARIA approprié ou les attributs aria-live/aria-atomic requis.",
-                        recommendation=("Utiliser role='status' ou les attributs aria-live='polite' et aria-atomic='true' pour les messages de statut."),
+                        recommendation=(
+                            "Utiliser role='status' ou les attributs aria-live='polite' et aria-atomic='true' pour les messages de statut."
+                        ),
                     )
                 )
 
@@ -110,30 +113,30 @@ class Test751(RGAATest):
         text_lower = text.lower().strip()
 
         state_indicators = [
-            r'\bterminé\b',
-            r'\bcompleted\b',
-            r'\bfinished\b',
-            r'\bsauvegarde?\s*réussie?\b',
-            r'\bsave\s*successful\b',
-            r'\bchargement\s*terminé\b',
-            r'\bloading\s*completed\b',
-            r'\btéléchargement\s*terminé\b',
-            r'\bdownload\s*completed\b',
-            r'\bopération\s*réussie\b',
-            r'\boperation\s*successful\b',
-            r'\bmise\s*à\s*jour\s*effectuée\b',
-            r'\bupdate\s*completed\b',
-            r'\b enregistrée?\b',
-            r'\bsaved\b',
-            r'\b valide\b',
-            r'\bvalid\b',
-            r'\bcorrect\b',
-            r'\bconforme\b',
-            r'\bnon\s*conforme\b',
-            r'\bétat\b',
-            r'\bstate\b',
-            r'\bstatus\b',
-            r'\bcondition\b',
+            r"\bterminé\b",
+            r"\bcompleted\b",
+            r"\bfinished\b",
+            r"\bsauvegarde?\s*réussie?\b",
+            r"\bsave\s*successful\b",
+            r"\bchargement\s*terminé\b",
+            r"\bloading\s*completed\b",
+            r"\btéléchargement\s*terminé\b",
+            r"\bdownload\s*completed\b",
+            r"\bopération\s*réussie\b",
+            r"\boperation\s*successful\b",
+            r"\bmise\s*à\s*jour\s*effectuée\b",
+            r"\bupdate\s*completed\b",
+            r"\b enregistrée?\b",
+            r"\bsaved\b",
+            r"\b valide\b",
+            r"\bvalid\b",
+            r"\bcorrect\b",
+            r"\bconforme\b",
+            r"\bnon\s*conforme\b",
+            r"\bétat\b",
+            r"\bstate\b",
+            r"\bstatus\b",
+            r"\bcondition\b",
         ]
 
         for pattern in state_indicators:
@@ -173,8 +176,7 @@ class Test751(RGAATest):
 
             if not direct_text.strip():
                 text_children = [
-                    child for child in element.children
-                    if isinstance(child, Tag) and child.get_text(strip=True)
+                    child for child in element.children if isinstance(child, Tag) and child.get_text(strip=True)
                 ]
 
                 if text_children and all(child in candidate_set for child in text_children):
@@ -189,7 +191,7 @@ class Test751(RGAATest):
         for content in element.contents:
             if isinstance(content, str):
                 direct_text_parts.append(content)
-        return ''.join(direct_text_parts)
+        return "".join(direct_text_parts)
 
 
 class Test752(RGAATest):
@@ -213,7 +215,7 @@ class Test752(RGAATest):
 
         all_elements = soup.find_all(True)
         for element in all_elements:
-            if element.name in ['script', 'style']:
+            if element.name in ["script", "style"]:
                 continue
 
             text = element.get_text(strip=True)
@@ -266,7 +268,9 @@ class Test752(RGAATest):
                     Finding(
                         element=element_id,
                         message="Le message de suggestion ou d'erreur n'utilise pas le rôle WAI-ARIA approprié ou les attributs aria-live/aria-atomic requis.",
-                        recommendation=("Utiliser role='alert' ou les attributs aria-live='assertive' et aria-atomic='true' pour les messages de suggestion ou d'erreur."),
+                        recommendation=(
+                            "Utiliser role='alert' ou les attributs aria-live='assertive' et aria-atomic='true' pour les messages de suggestion ou d'erreur."
+                        ),
                     )
                 )
 
@@ -291,36 +295,36 @@ class Test752(RGAATest):
         text_lower = text.lower().strip()
 
         error_indicators = [
-            r'\berreur\b',
-            r'\berror\b',
-            r'\bavertissement\b',
-            r'\bwarning\b',
-            r'\battention\b',
-            r'\b caution\b',
-            r'\bproblème\b',
-            r'\bproblem\b',
-            r'\bdifficulté\b',
-            r'\bdifficulty\b',
-            r'\bechoue?\b',
-            r'\bfailed\b',
-            r'\b échoué\b',
-            r'\b inattendu\b',
-            r'\b unexpected\b',
-            r'\b invalide\b',
-            r'\b invalid\b',
-            r'\b incorrect\b',
-            r'\b suggestion\b',
-            r'\b conseille?\b',
-            r'\b recommande?\b',
-            r'\b recommend\b',
+            r"\berreur\b",
+            r"\berror\b",
+            r"\bavertissement\b",
+            r"\bwarning\b",
+            r"\battention\b",
+            r"\b caution\b",
+            r"\bproblème\b",
+            r"\bproblem\b",
+            r"\bdifficulté\b",
+            r"\bdifficulty\b",
+            r"\bechoue?\b",
+            r"\bfailed\b",
+            r"\b échoué\b",
+            r"\b inattendu\b",
+            r"\b unexpected\b",
+            r"\b invalide\b",
+            r"\b invalid\b",
+            r"\b incorrect\b",
+            r"\b suggestion\b",
+            r"\b conseille?\b",
+            r"\b recommande?\b",
+            r"\b recommend\b",
         ]
 
         absence_indicators = [
-            r'\baucu?n?\s+message\s+d\'?erreur\b',
-            r'\bno\s+error\s+message\b',
-            r'\bpas\s+d\'?erreur\b',
-            r'\bsans\s+erreur\b',
-            r'\bwithout\s+error\b',
+            r"\baucu?n?\s+message\s+d\'?erreur\b",
+            r"\bno\s+error\s+message\b",
+            r"\bpas\s+d\'?erreur\b",
+            r"\bsans\s+erreur\b",
+            r"\bwithout\s+error\b",
         ]
 
         for pattern in absence_indicators:
@@ -372,8 +376,7 @@ class Test752(RGAATest):
             if not direct_text.strip():
                 # Check if all text-containing children are already status candidates
                 text_children = [
-                    child for child in element.children
-                    if isinstance(child, Tag) and child.get_text(strip=True)
+                    child for child in element.children if isinstance(child, Tag) and child.get_text(strip=True)
                 ]
 
                 if text_children and all(child in candidate_set for child in text_children):
@@ -391,7 +394,7 @@ class Test752(RGAATest):
             if isinstance(content, str):
                 direct_text_parts.append(content)
             # Skip Tag objects - we only want direct text
-        return ''.join(direct_text_parts)
+        return "".join(direct_text_parts)
 
 
 class Test753(RGAATest):
@@ -415,7 +418,7 @@ class Test753(RGAATest):
 
         all_elements = soup.find_all(True)
         for element in all_elements:
-            if element.name in ['script', 'style']:
+            if element.name in ["script", "style"]:
                 continue
 
             text = element.get_text(strip=True)
@@ -470,7 +473,9 @@ class Test753(RGAATest):
                     Finding(
                         element=element_id,
                         message="Le message indiquant la progression d'un processus n'utilise pas le rôle WAI-ARIA approprié ou les attributs aria-live/aria-atomic requis.",
-                        recommendation=("Utiliser role='log', role='progressbar', ou role='status' ; ou les attributs aria-live='polite' (pour log) ou aria-live='polite' et aria-atomic='true' (pour status)."),
+                        recommendation=(
+                            "Utiliser role='log', role='progressbar', ou role='status' ; ou les attributs aria-live='polite' (pour log) ou aria-live='polite' et aria-atomic='true' (pour status)."
+                        ),
                     )
                 )
 
@@ -495,33 +500,33 @@ class Test753(RGAATest):
         text_lower = text.lower().strip()
 
         progression_indicators = [
-            r'\b(en\s+cours?|in\s+progress)\b',
-            r'\bchargement\b',
-            r'\bloading\b',
-            r'\btéléchargement\b',
-            r'\bdownload\b',
-            r'\btraitement\b',
-            r'\bprocessing\b',
-            r'\betape\s*\d+\b',
-            r'\bstep\s*\d+\b',
-            r'\bprogression\b',
-            r'\bprogress\b',
-            r'\battente?\b',
-            r'\bwait(ing)?\b',
-            r'\bpause?\b',
-            r'\binitialisation\b',
-            r'\binitialization\b',
-            r'\bfinalisation\b',
-            r'\bfinalization\b',
-            r'\bsynchronisation\b',
-            r'\bsynchronization\b',
-            r'\b mise\s*en\s*mémoire\s*tampon\b',
-            r'\b buffering\b',
-            r'\betape\b',
-            r'\bstep\b',
-            r'\bterminé\b',
-            r'\bcompleted\b',
-            r'\bfinished\b',
+            r"\b(en\s+cours?|in\s+progress)\b",
+            r"\bchargement\b",
+            r"\bloading\b",
+            r"\btéléchargement\b",
+            r"\bdownload\b",
+            r"\btraitement\b",
+            r"\bprocessing\b",
+            r"\b[ée]tape\s*\d+\b",
+            r"\bstep\s*\d+\b",
+            r"\bprogression\b",
+            r"\bprogress\b",
+            r"\battente?\b",
+            r"\bwait(ing)?\b",
+            r"\bpause?\b",
+            r"\binitialisation\b",
+            r"\binitialization\b",
+            r"\bfinalisation\b",
+            r"\bfinalization\b",
+            r"\bsynchronisation\b",
+            r"\bsynchronization\b",
+            r"\b mise\s*en\s*mémoire\s*tampon\b",
+            r"\b buffering\b",
+            r"\b[ée]tape\b",
+            r"\bstep\b",
+            r"\btermin[ée]e?s?\b",
+            r"\bcompleted\b",
+            r"\bfinished\b",
         ]
 
         for pattern in progression_indicators:
@@ -561,8 +566,7 @@ class Test753(RGAATest):
 
             if not direct_text.strip():
                 text_children = [
-                    child for child in element.children
-                    if isinstance(child, Tag) and child.get_text(strip=True)
+                    child for child in element.children if isinstance(child, Tag) and child.get_text(strip=True)
                 ]
 
                 if text_children and all(child in candidate_set for child in text_children):
@@ -577,4 +581,4 @@ class Test753(RGAATest):
         for content in element.contents:
             if isinstance(content, str):
                 direct_text_parts.append(content)
-        return ''.join(direct_text_parts)
+        return "".join(direct_text_parts)

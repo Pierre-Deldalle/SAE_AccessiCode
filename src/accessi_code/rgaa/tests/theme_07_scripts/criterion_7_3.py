@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from typing import Any, Set
+
 from bs4 import BeautifulSoup, Tag
-from typing import Any, Set, List
 
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
@@ -93,13 +94,35 @@ class Test731(RGAATest):
         script_elements: set[Tag] = set()
 
         event_handlers: Set[str] = {
-            "onclick", "ondblclick", "onmousedown", "onmouseup", "onmouseover",
-            "onmousemove", "onmouseout", "onkeypress", "onkeydown", "onkeyup",
-            "onchange", "onsubmit", "onreset", "onselect", "onblur", "onfocus",
-            "ontouchstart", "ontouchend", "ontouchmove", "ontouchcancel",
-            "onpointerdown", "onpointerup", "onpointerover", "onpointerout",
-            "onpointermove", "onpointerenter", "onpointerleave", "ongotpointercapture",
-            "onlostpointercapture"
+            "onclick",
+            "ondblclick",
+            "onmousedown",
+            "onmouseup",
+            "onmouseover",
+            "onmousemove",
+            "onmouseout",
+            "onkeypress",
+            "onkeydown",
+            "onkeyup",
+            "onchange",
+            "onsubmit",
+            "onreset",
+            "onselect",
+            "onblur",
+            "onfocus",
+            "ontouchstart",
+            "ontouchend",
+            "ontouchmove",
+            "ontouchcancel",
+            "onpointerdown",
+            "onpointerup",
+            "onpointerover",
+            "onpointerout",
+            "onpointermove",
+            "onpointerenter",
+            "onpointerleave",
+            "ongotpointercapture",
+            "onlostpointercapture",
         }
 
         for handler in event_handlers:
@@ -157,9 +180,25 @@ class Test731(RGAATest):
 
         role = element.get("role")
         focusable_roles = {
-            "button", "link", "checkbox", "radio", "textbox", "combobox", "listbox",
-            "menuitem", "menuitemcheckbox", "menuitemradio", "option", "progressbar",
-            "scrollbar", "slider", "spinbutton", "switch", "tab", "textbox", "treeitem"
+            "button",
+            "link",
+            "checkbox",
+            "radio",
+            "textbox",
+            "combobox",
+            "listbox",
+            "menuitem",
+            "menuitemcheckbox",
+            "menuitemradio",
+            "option",
+            "progressbar",
+            "scrollbar",
+            "slider",
+            "spinbutton",
+            "switch",
+            "tab",
+            "textbox",
+            "treeitem",
         }
         if role and role in focusable_roles:
             return True
@@ -193,8 +232,14 @@ class Test731(RGAATest):
 
         role = element.get("role")
         activable_roles = {
-            "button", "link", "checkbox", "radio", "menuitem", "menuitemcheckbox",
-            "menuitemradio", "switch"
+            "button",
+            "link",
+            "checkbox",
+            "radio",
+            "menuitem",
+            "menuitemcheckbox",
+            "menuitemradio",
+            "switch",
         }
         if role in activable_roles:
             return True
@@ -209,8 +254,18 @@ class Test731(RGAATest):
     def _is_usable_with_arrow_keys(self, element: Tag) -> bool:
         role = element.get("role")
         arrow_key_roles = {
-            "menu", "menubar", "menuitem", "tablist", "tab", "treegrid", "grid",
-            "listbox", "combobox", "slider", "spinbutton", "scrollbar"
+            "menu",
+            "menubar",
+            "menuitem",
+            "tablist",
+            "tab",
+            "treegrid",
+            "grid",
+            "listbox",
+            "combobox",
+            "slider",
+            "spinbutton",
+            "scrollbar",
         }
         if role in arrow_key_roles:
             return True
@@ -368,9 +423,25 @@ class Test732(RGAATest):
                     pass
 
         focusable_roles = {
-            "button", "link", "checkbox", "radio", "textbox", "combobox", "listbox",
-            "menuitem", "menuitemcheckbox", "menuitemradio", "option", "progressbar",
-            "scrollbar", "slider", "spinbutton", "switch", "tab", "textbox", "treeitem"
+            "button",
+            "link",
+            "checkbox",
+            "radio",
+            "textbox",
+            "combobox",
+            "listbox",
+            "menuitem",
+            "menuitemcheckbox",
+            "menuitemradio",
+            "option",
+            "progressbar",
+            "scrollbar",
+            "slider",
+            "spinbutton",
+            "switch",
+            "tab",
+            "textbox",
+            "treeitem",
         }
         for role in focusable_roles:
             role_elements = soup.find_all(attrs={"role": role})
@@ -384,13 +455,14 @@ class Test732(RGAATest):
             handler_value = element.get(handler)
             if handler_value and isinstance(handler_value, str):
                 focus_removal_patterns = [
-                    "blur()", "focusout()",
+                    "blur()",
+                    "focusout()",
                     "document.activeElement.blur()",
                     "$(document.activeElement).blur()",
                     "element.blur()",
                     "this.blur()",
                     "setTimeout.*blur",
-                    "requestAnimationFrame.*blur"
+                    "requestAnimationFrame.*blur",
                 ]
                 for pattern in focus_removal_patterns:
                     if pattern in handler_value.lower():
@@ -409,10 +481,11 @@ class Test732(RGAATest):
                 r"\.focusout\s*\(",
                 r"activeElement\s*\.\s*blur\s*\(",
                 r"setTimeout\s*\([^)]*blur",
-                r"requestAnimationFrame\s*\([^)]*blur"
+                r"requestAnimationFrame\s*\([^)]*blur",
             ]
 
             import re
+
             for pattern in focus_removal_patterns:
                 if re.search(pattern, script_content, re.IGNORECASE):
                     if self._might_be_associated_with_element(script, element):

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from bs4 import BeautifulSoup, Tag
 from typing import Any, Set
+
+from bs4 import BeautifulSoup, Tag
 
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
@@ -93,9 +94,22 @@ class Test711(RGAATest):
         script_elements: set[Tag] = set()
 
         event_handlers: Set[str] = {
-            "onclick", "ondblclick", "onmousedown", "onmouseup", "onmouseover",
-            "onmousemove", "onmouseout", "onkeypress", "onkeydown", "onkeyup",
-            "onchange", "onsubmit", "onreset", "onselect", "onblur", "onfocus"
+            "onclick",
+            "ondblclick",
+            "onmousedown",
+            "onmouseup",
+            "onmouseover",
+            "onmousemove",
+            "onmouseout",
+            "onkeypress",
+            "onkeydown",
+            "onkeyup",
+            "onchange",
+            "onsubmit",
+            "onreset",
+            "onselect",
+            "onblur",
+            "onfocus",
         }
 
         for handler in event_handlers:
@@ -224,9 +238,22 @@ class Test712(RGAATest):
         script_elements: set[Tag] = set()
 
         event_handlers: Set[str] = {
-            "onclick", "ondblclick", "onmousedown", "onmouseup", "onmouseover",
-            "onmousemove", "onmouseout", "onkeypress", "onkeydown", "onkeyup",
-            "onchange", "onsubmit", "onreset", "onselect", "onblur", "onfocus"
+            "onclick",
+            "ondblclick",
+            "onmousedown",
+            "onmouseup",
+            "onmouseover",
+            "onmousemove",
+            "onmouseout",
+            "onkeypress",
+            "onkeydown",
+            "onkeyup",
+            "onchange",
+            "onsubmit",
+            "onreset",
+            "onselect",
+            "onblur",
+            "onfocus",
         }
 
         for handler in event_handlers:
@@ -359,9 +386,22 @@ class Test713(RGAATest):
         script_elements: set[Tag] = set()
 
         event_handlers: Set[str] = {
-            "onclick", "ondblclick", "onmousedown", "onmouseup", "onmouseover",
-            "onmousemove", "onmouseout", "onkeypress", "onkeydown", "onkeyup",
-            "onchange", "onsubmit", "onreset", "onselect", "onblur", "onfocus"
+            "onclick",
+            "ondblclick",
+            "onmousedown",
+            "onmouseup",
+            "onmouseover",
+            "onmousemove",
+            "onmouseout",
+            "onkeypress",
+            "onkeydown",
+            "onkeyup",
+            "onchange",
+            "onsubmit",
+            "onreset",
+            "onselect",
+            "onblur",
+            "onfocus",
         }
 
         for handler in event_handlers:
@@ -378,7 +418,6 @@ class Test713(RGAATest):
         if not (role and isinstance(role, str) and role.strip()):
             if element.name not in ("button", "a", "input", "select", "textarea"):
                 return False
-
 
         accessible_name = self._get_accessible_name(element, soup)
         if not accessible_name:

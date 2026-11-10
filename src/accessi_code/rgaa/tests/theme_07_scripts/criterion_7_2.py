@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from typing import Any
+
 from bs4 import BeautifulSoup, Tag
-from typing import Any, Set, List
 
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
@@ -35,9 +36,7 @@ class Test721(RGAATest):
 
         script_tags = soup.find_all("script")
 
-        scripts_with_alternatives = [
-            s for s in script_tags if self._script_has_alternative(s, soup)
-        ]
+        scripts_with_alternatives = [s for s in script_tags if self._script_has_alternative(s, soup)]
 
         if not scripts_with_alternatives:
             return TestResult(

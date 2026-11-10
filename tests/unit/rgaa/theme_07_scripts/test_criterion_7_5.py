@@ -27,7 +27,8 @@ def test_751_status_message_with_role_status_passes(context_factory, run_rgaa):
 
 
 def test_751_status_message_with_aria_live_polite_and_atomic_true_passes(
-    context_factory, run_rgaa,
+    context_factory,
+    run_rgaa,
 ):
     """Test that a status message with aria-live='polite' and aria-atomic='true' passes."""
     html = '<div aria-live="polite" aria-atomic="true">Sauvegarde réussie</div>'
@@ -39,10 +40,11 @@ def test_751_status_message_with_aria_live_polite_and_atomic_true_passes(
 
 
 def test_751_status_message_without_required_attributes_fails(
-    context_factory, run_rgaa,
+    context_factory,
+    run_rgaa,
 ):
     """Test that a status message without required attributes fails."""
-    html = '<div>Chargement terminé</div>'
+    html = "<div>Chargement terminé</div>"
     result = run_rgaa(Test751(), context_factory(html))
 
     assert result.status == Status.FAIL
@@ -52,15 +54,16 @@ def test_751_status_message_without_required_attributes_fails(
 
 
 def test_751_mixed_compliant_and_non_compliant_messages(
-    context_factory, run_rgaa,
+    context_factory,
+    run_rgaa,
 ):
     """Test mixed compliant and non-compliant status messages."""
-    html = '''
+    html = """
     <div>
         <div role="status">Chargement terminé</div>
         <div>Sauvegarde réussie</div>
     </div>
-    '''
+    """
     result = run_rgaa(Test751(), context_factory(html))
 
     assert result.status == Status.FAIL
@@ -79,7 +82,8 @@ def test_752_alert_message_with_role_alert_passes(context_factory, run_rgaa):
 
 
 def test_752_alert_message_with_aria_live_assertive_and_atomic_true_passes(
-    context_factory, run_rgaa,
+    context_factory,
+    run_rgaa,
 ):
     """Test that an alert message with aria-live='assertive' and aria-atomic='true' passes."""
     html = '<div aria-live="assertive" aria-atomic="true">Attention : session expirée</div>'
@@ -91,10 +95,11 @@ def test_752_alert_message_with_aria_live_assertive_and_atomic_true_passes(
 
 
 def test_752_alert_message_without_required_attributes_fails(
-    context_factory, run_rgaa,
+    context_factory,
+    run_rgaa,
 ):
     """Test that an alert message without required attributes fails."""
-    html = '<div>Erreur de validation</div>'
+    html = "<div>Erreur de validation</div>"
     result = run_rgaa(Test752(), context_factory(html))
 
     assert result.status == Status.FAIL
@@ -104,15 +109,16 @@ def test_752_alert_message_without_required_attributes_fails(
 
 
 def test_752_mixed_compliant_and_non_compliant_messages(
-    context_factory, run_rgaa,
+    context_factory,
+    run_rgaa,
 ):
     """Test mixed compliant and non-compliant alert messages."""
-    html = '''
+    html = """
     <div>
         <div role="alert">Erreur critique</div>
         <div>Problème détecté</div>
     </div>
-    '''
+    """
     result = run_rgaa(Test752(), context_factory(html))
 
     assert result.status == Status.FAIL
@@ -131,7 +137,8 @@ def test_753_process_message_with_role_log_passes(context_factory, run_rgaa):
 
 
 def test_753_process_message_with_role_progressbar_passes(
-    context_factory, run_rgaa,
+    context_factory,
+    run_rgaa,
 ):
     """Test that a process message with role='progressbar' passes."""
     html = '<div role="progressbar">Traitement en cours</div>'
@@ -143,7 +150,8 @@ def test_753_process_message_with_role_progressbar_passes(
 
 
 def test_753_process_message_with_role_status_passes(
-    context_factory, run_rgaa,
+    context_factory,
+    run_rgaa,
 ):
     """Test that a process message with role='status' passes."""
     html = '<div role="status">Étape 3 terminée</div>'
@@ -155,7 +163,8 @@ def test_753_process_message_with_role_status_passes(
 
 
 def test_753_process_message_with_aria_live_polite_passes(
-    context_factory, run_rgaa,
+    context_factory,
+    run_rgaa,
 ):
     """Test that a process message with aria-live='polite' passes."""
     html = '<div aria-live="polite">Chargement des données</div>'
@@ -167,7 +176,8 @@ def test_753_process_message_with_aria_live_polite_passes(
 
 
 def test_753_process_message_with_aria_live_polite_and_atomic_true_passes(
-    context_factory, run_rgaa,
+    context_factory,
+    run_rgaa,
 ):
     """Test that a process message with aria-live='polite' and aria-atomic='true' passes."""
     html = '<div aria-live="polite" aria-atomic="true">Sauvegarde en cours</div>'
@@ -183,7 +193,7 @@ def test_753_process_message_without_required_attributes_fails(
     run_rgaa,
 ):
     """Test that a process message without required attributes fails."""
-    html = '<div>Étape 3 terminée</div>'
+    html = "<div>Étape 3 terminée</div>"
     result = run_rgaa(Test753(), context_factory(html))
 
     assert result.status == Status.FAIL
@@ -193,15 +203,16 @@ def test_753_process_message_without_required_attributes_fails(
 
 
 def test_753_mixed_compliant_and_non_compliant_messages(
-    context_factory, run_rgaa,
+    context_factory,
+    run_rgaa,
 ):
     """Test mixed compliant and non-compliant process messages."""
-    html = '''
+    html = """
     <div>
         <div role="log">Étape 3 terminée</div>
         <div>Traitement en cours</div>
     </div>
-    '''
+    """
     result = run_rgaa(Test753(), context_factory(html))
 
     assert result.status == Status.FAIL

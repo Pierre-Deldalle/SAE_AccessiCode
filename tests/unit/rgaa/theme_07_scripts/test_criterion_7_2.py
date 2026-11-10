@@ -1,5 +1,3 @@
-from types import SimpleNamespace
-from unittest.mock import AsyncMock
 
 import pytest
 
@@ -11,10 +9,9 @@ from accessi_code.rgaa.tests.theme_07_scripts.criterion_7_2 import (
 from accessi_code.service.audit_services import AuditServices
 
 
-
 def test_721_script_with_noscript_alternative_passes(context_factory, run_rgaa):
     """Test that a script with noscript alternative passes 7.2.1."""
-    html = '''
+    html = """
     <script>
         // Some JavaScript functionality
         function showMessage() {
@@ -24,7 +21,7 @@ def test_721_script_with_noscript_alternative_passes(context_factory, run_rgaa):
     <noscript>
         <p>JavaScript is disabled. Please enable it to see the full content.</p>
     </noscript>
-    '''
+    """
     context = context_factory(html)
     result = run_rgaa(Test721(), context, AuditServices())
 
@@ -35,13 +32,13 @@ def test_721_script_with_noscript_alternative_passes(context_factory, run_rgaa):
 
 def test_721_script_without_alternative_not_counted(context_factory, run_rgaa):
     """Test that a script without alternative is not counted in 7.2.1."""
-    html = '''
+    html = """
     <script>
         // Some JavaScript functionality
         console.log("Script running");
     </script>
     <p>Some content</p>
-    '''
+    """
     context = context_factory(html)
     result = run_rgaa(Test721(), context, AuditServices())
 
@@ -52,7 +49,7 @@ def test_721_script_without_alternative_not_counted(context_factory, run_rgaa):
 
 def test_721_multiple_scripts_mixed(context_factory, run_rgaa):
     """Test multiple scripts with mixed alternative presence."""
-    html = '''
+    html = """
     <!-- Script with noscript alternative -->
     <script>
         function updateClock() {
@@ -80,7 +77,7 @@ def test_721_multiple_scripts_mixed(context_factory, run_rgaa):
     <noscript>
         <p>Please enable JavaScript for form validation.</p>
     </noscript>
-    '''
+    """
     context = context_factory(html)
     result = run_rgaa(Test721(), context, AuditServices())
 
@@ -91,7 +88,7 @@ def test_721_multiple_scripts_mixed(context_factory, run_rgaa):
 
 def test_721_script_with_empty_noscript_fails(context_factory, run_rgaa):
     """Test that a script with empty noscript fails 7.2.1."""
-    html = '''
+    html = """
     <script>
         function importantFunction() {
             // Critical functionality
@@ -100,7 +97,7 @@ def test_721_script_with_empty_noscript_fails(context_factory, run_rgaa):
     <noscript>
         <!-- Empty noscript -->
     </noscript>
-    '''
+    """
     context = context_factory(html)
     result = run_rgaa(Test721(), context, AuditServices())
 
@@ -112,7 +109,7 @@ def test_721_script_with_empty_noscript_fails(context_factory, run_rgaa):
 
 def test_721_no_scripts_is_not_applicable(context_factory, run_rgaa):
     """Test that absence of scripts results in NOT_APPLICABLE."""
-    context = context_factory('<h1>Title</h1><p>Just HTML content</p>')
+    context = context_factory("<h1>Title</h1><p>Just HTML content</p>")
     result = run_rgaa(Test721(), context, AuditServices())
 
     assert result.status == Status.NOT_APPLICABLE
@@ -127,7 +124,7 @@ def test_721_no_scripts_is_not_applicable(context_factory, run_rgaa):
 
 def test_722_not_implemented_yet(context_factory, run_rgaa):
     """Test that 7.2.2 returns NOT_APPLICABLE as it's not yet fully implemented."""
-    html = '''
+    html = """
     <img id="dynamic-image" src="default.jpg" alt="Default image">
     <script>
         // Script that updates the image source
@@ -138,16 +135,13 @@ def test_722_not_implemented_yet(context_factory, run_rgaa):
         // Call the function after a delay
         setTimeout(changeImage, 1000);
     </script>
-    '''
+    """
     context = context_factory(html)
     result = run_rgaa(Test722(), context, AuditServices())
 
     assert result.status == Status.NOT_APPLICABLE
     assert result.tested_elements == 0
     assert "nécessite un suivi des changements DOM en temps réel" in result.summary
-
-
-
 
 
 def test_721_missing_html_source_raises_error(context_factory):
@@ -157,6 +151,7 @@ def test_721_missing_html_source_raises_error(context_factory):
 
     with pytest.raises(ValueError, match="Le test 7.2.1 nécessite la source HTML"):
         import asyncio
+
         asyncio.run(Test721().run(context, AuditServices()))
 
 
@@ -167,4 +162,5 @@ def test_722_missing_dom_raises_error(context_factory):
 
     with pytest.raises(ValueError, match="Le test 7.2.2 nécessite un DOM"):
         import asyncio
+
         asyncio.run(Test722().run(context, AuditServices()))
