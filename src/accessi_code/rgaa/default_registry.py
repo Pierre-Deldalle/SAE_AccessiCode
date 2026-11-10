@@ -1,3 +1,4 @@
+
 """Registre par défaut des tests RGAA AccessiCode."""
 
 from __future__ import annotations
@@ -31,6 +32,14 @@ from accessi_code.rgaa.tests.theme_03_colors.criterion_3_3 import (
     Test334,
 )
 from accessi_code.rgaa.tests.theme_05_tables.criterion_5_1 import Test511
+from accessi_code.rgaa.tests.theme_06_links.criterion_6_1 import (
+    Test611,
+    Test612,
+    Test613,
+    Test614,
+    Test615,
+)
+from accessi_code.rgaa.tests.theme_06_links.criterion_6_2 import Test621
 from accessi_code.rgaa.tests.theme_08_mandatory.criterion_8_1 import (
     Test811,
     Test812,
@@ -47,12 +56,13 @@ def build_default_registry() -> TestRegistry:
 
     return TestRegistry(
         [
-            # Thématique 1 — Images
+            # Thème 1 — Images
             Test111(),
             Test112(),
             Test113(),
             Test171(),
-            # Thématique 3 — Couleurs
+
+            # Thème 3 — Couleurs
             Test311(),
             Test312(),
             Test313(),
@@ -68,16 +78,27 @@ def build_default_registry() -> TestRegistry:
             Test332(),
             Test333(),
             Test334(),
-            # Thématique 5 — Tableaux
+
+            # Thème 5 — Tableaux
             Test511(),
-            # Thématique 8 — Éléments obligatoires
+
+            # Thème 6 — Liens
+            Test611(),
+            Test612(),
+            Test613(),
+            Test614(),
+            Test615(),
+            Test621(),
+
+            # Thème 8 — Éléments obligatoires
             Test811(),
             Test812(),
             Test813(),
             Test841(),
             Test851(),
             Test861(),
-            # Thématique 11 — Formulaires
+
+            # Thème 11 — Formulaires
             Test1111(),
         ]
     )
