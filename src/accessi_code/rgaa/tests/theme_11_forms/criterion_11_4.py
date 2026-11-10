@@ -23,7 +23,6 @@ from accessi_code.models.capabilities import Capability
 from accessi_code.models.result import Finding, TestResult, TestStatus
 from accessi_code.rgaa.base import RGAATest
 
-
 _CHOICE_ROLES = frozenset({"checkbox", "radio", "switch"})
 _POSITIONS = frozenset({"above", "below", "left", "right"})
 _EXCEPTIONS = frozenset({

@@ -1,7 +1,14 @@
 import pytest
+
 from accessi_code.models.result import TestStatus
 from accessi_code.rgaa.tests.theme_11_forms.criterion_11_10 import (
-    Test11101, Test11102, Test11103, Test11104, Test11105, Test11106, Test11107,
+    Test11101,
+    Test11102,
+    Test11103,
+    Test11104,
+    Test11105,
+    Test11106,
+    Test11107,
 )
 
 

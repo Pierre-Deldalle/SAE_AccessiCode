@@ -1,6 +1,8 @@
 from types import SimpleNamespace
+
 import pytest
 from bs4 import BeautifulSoup
+
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_02_frames.criterion_2_2 import Test221 as RGAA221
 

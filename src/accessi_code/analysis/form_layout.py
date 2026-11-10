@@ -12,9 +12,9 @@ from typing import Any
 
 from bs4 import BeautifulSoup
 
+from accessi_code.analysis.browser import launch_local_browser
 from accessi_code.analysis.dom import find_form_fields, get_element_identifier
 from accessi_code.models.audit_context import AuditContext
-from accessi_code.analysis.browser import launch_local_browser
 
 MAX_OBVIOUS_GAP_PX = 16
 

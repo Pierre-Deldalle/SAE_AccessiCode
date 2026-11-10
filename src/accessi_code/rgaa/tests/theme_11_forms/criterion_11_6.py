@@ -1,8 +1,16 @@
 """RGAA 11.6.1 — présence d'une légende de groupe."""
 from __future__ import annotations
 
-from accessi_code.analysis.forms import (associated_text, common_group, fields, finding, group_candidates,
-                                         group_legend, group_tags, result)
+from accessi_code.analysis.forms import (
+    associated_text,
+    common_group,
+    fields,
+    finding,
+    group_candidates,
+    group_legend,
+    group_tags,
+    result,
+)
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
 from accessi_code.rgaa.base import RGAATest

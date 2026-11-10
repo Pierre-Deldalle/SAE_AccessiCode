@@ -5,9 +5,10 @@ import pytest
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_11_forms.criterion_11_4 import (
-    Test1141, Test1142, Test1143,
+    Test1141,
+    Test1142,
+    Test1143,
 )
-
 
 HTML_TEXT = '<label for="email">Courriel</label><input id="email" type="email">'
 HTML_CHOICE = '<label for="agree">Accepter</label><input id="agree" type="checkbox">'

@@ -1,6 +1,13 @@
 from bs4 import BeautifulSoup
-from accessi_code.analysis.forms import (button_name, common_group, group_candidates,
-                                         group_legend, normalize, referenced_text)
+
+from accessi_code.analysis.forms import (
+    button_name,
+    common_group,
+    group_candidates,
+    group_legend,
+    normalize,
+    referenced_text,
+)
 
 
 def test_reference():

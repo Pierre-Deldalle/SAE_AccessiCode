@@ -3,7 +3,12 @@ import pytest
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_11_forms.criterion_11_2 import (
-    Test1121, Test1122, Test1123, Test1124, Test1125, Test1126,
+    Test1121,
+    Test1122,
+    Test1123,
+    Test1124,
+    Test1125,
+    Test1126,
 )
 
 

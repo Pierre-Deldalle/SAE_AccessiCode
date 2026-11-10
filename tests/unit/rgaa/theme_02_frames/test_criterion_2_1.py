@@ -1,13 +1,10 @@
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
 
 import pytest
-
 from bs4 import BeautifulSoup
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_02_frames.criterion_2_1 import Test211 as RGAA211
-from accessi_code.service.audit_services import AuditServices
 
 
 def make_context(html: str) -> SimpleNamespace:
