@@ -1,9 +1,9 @@
 """12.3 — représentativité, fonctionnement et pertinence des liens du plan du site."""
-from accessi_code.analysis.navigation import (evidence, finding, is_sitemap,
-                                             local_target, pages, result)
-from accessi_code.models.capabilities import Capability
-from urllib.parse import urlsplit, unquote
+from urllib.parse import unquote, urlsplit
+
 from accessi_code.analysis.forms import normalize
+from accessi_code.analysis.navigation import evidence, finding, is_sitemap, local_target, pages, result
+from accessi_code.models.capabilities import Capability
 from accessi_code.rgaa.base import RGAATest
 
 

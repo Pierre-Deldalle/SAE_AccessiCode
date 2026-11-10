@@ -1,6 +1,14 @@
 """12.1.1 — deux moyens de navigation dans un ensemble de pages."""
-from accessi_code.analysis.navigation import (evidence, finding, is_sitemap, navs, pages,
-                                             result, search_access, sitemap_access)
+from accessi_code.analysis.navigation import (
+    evidence,
+    finding,
+    is_sitemap,
+    navs,
+    pages,
+    result,
+    search_access,
+    sitemap_access,
+)
 from accessi_code.models.capabilities import Capability
 from accessi_code.rgaa.base import RGAATest
 

@@ -1,6 +1,5 @@
 """12.5 — constance de la fonctionnalité de recherche."""
-from accessi_code.analysis.navigation import (finding, kind, pages, proof_check,
-                                             relative_order, result, search_access)
+from accessi_code.analysis.navigation import finding, kind, pages, proof_check, relative_order, result, search_access
 from accessi_code.models.capabilities import Capability
 from accessi_code.rgaa.base import RGAATest
 

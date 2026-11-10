@@ -1,6 +1,5 @@
 """12.4 — fonctionnalité d'accès au plan du site, identique entre pages."""
-from accessi_code.analysis.navigation import (finding, kind, pages, proof_check,
-                                             relative_order, result, sitemap_access)
+from accessi_code.analysis.navigation import finding, kind, pages, proof_check, relative_order, result, sitemap_access
 from accessi_code.models.capabilities import Capability
 from accessi_code.rgaa.base import RGAATest
 

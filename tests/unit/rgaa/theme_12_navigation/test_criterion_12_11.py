@@ -1,4 +1,5 @@
 import pytest
+
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_12_navigation.criterion_12_10 import Test12101
 

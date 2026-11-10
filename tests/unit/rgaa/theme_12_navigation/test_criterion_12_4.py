@@ -1,4 +1,5 @@
 from bs4 import BeautifulSoup
+
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_12_navigation.criterion_12_3 import Test1231, Test1232, Test1233
 

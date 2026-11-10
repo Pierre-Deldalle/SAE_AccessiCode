@@ -1,6 +1,5 @@
 """12.2.1 — constance du menu : ordre DOM et position visuelle."""
-from accessi_code.analysis.navigation import (evidence, finding, navs, pages, proof_check,
-                                             relative_order, result)
+from accessi_code.analysis.navigation import evidence, finding, navs, pages, proof_check, relative_order, result
 from accessi_code.models.capabilities import Capability
 from accessi_code.rgaa.base import RGAATest
 

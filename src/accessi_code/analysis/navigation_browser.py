@@ -9,8 +9,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from accessi_code.models.audit_context import AuditContext
 from accessi_code.analysis.browser import launch_local_browser
+from accessi_code.models.audit_context import AuditContext
 
 # Observation du DOM rendu : on ne modifie pas le document audité.
 _SNAPSHOT = r"""() => {
