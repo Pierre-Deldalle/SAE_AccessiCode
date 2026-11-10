@@ -1,16 +1,25 @@
 from __future__ import annotations
 
 from typing import Any
-from dataclasses import asdict
 
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
 from accessi_code.models.result import (
-    Finding,
     TestResult,
     TestStatus,
 )
 from accessi_code.rgaa.base import RGAATest
+from accessi_code.rgaa.tests.theme_08_mandatory._ai_findings import (
+    convert_findings,
+    fail_summary,
+    is_precise,
+    with_default_recommendation,
+)
+
+# Recommandation utilisée si l'analyseur n'en fournit pas.
+DEFAULT_RECOMMENDATION = (
+    "Ne pas utiliser de balise sémantique uniquement à des fins de présentation : utiliser CSS à la place."
+)
 
 
 class Test891(RGAATest):
@@ -71,7 +80,7 @@ class Test891(RGAATest):
                     )
 
                 # S'il y a des violations (balises sémantiques utilisées pour présentation sans justification)
-                
+
                 if getattr(analysis_result, "has_violations", False):
                     findings = self._convert_findings(
                         getattr(analysis_result, "findings", [])
@@ -79,17 +88,8 @@ class Test891(RGAATest):
 
                     # Un FAIL exige des anomalies identifiables
                     # et des recommandations exploitables.
-                    valid_findings = [
-                        finding
-                        for finding in findings
-                        if isinstance(finding.element, str)
-                        and finding.element.strip()
-                        and finding.element.strip().lower() != "unknown"
-                        and isinstance(finding.message, str)
-                        and finding.message.strip()
-                        and isinstance(finding.recommendation, str)
-                        and finding.recommendation.strip()
-                    ]
+                    findings = with_default_recommendation(findings, DEFAULT_RECOMMENDATION)
+                    valid_findings = [finding for finding in findings if is_precise(finding)]
 
                     if not findings or len(valid_findings) != len(findings):
                         return TestResult(
@@ -113,20 +113,14 @@ class Test891(RGAATest):
                             ),
                         )
 
-                    details = " ".join(
-                        f"{finding.element} : {finding.message} "
-                        f"Correction : {finding.recommendation}"
-                        for finding in valid_findings
-                    )
-
                     return TestResult(
                         test_id=self.test_id,
                         criterion_id=self.criterion_id,
                         status=TestStatus.FAIL,
-                        summary=(
-                            f"{len(valid_findings)} utilisation(s) "
-                            f"sémantique(s) incorrecte(s) détectée(s). "
-                            f"{details}"
+                        summary=fail_summary(
+                            analysis_result,
+                            f"{len(valid_findings)} utilisation(s) sémantique(s) incorrecte(s) détectée(s).",
+                            valid_findings,
                         ),
                         tested_elements=getattr(
                             analysis_result,
@@ -159,7 +153,7 @@ class Test891(RGAATest):
                             analysis_result, "metadata", {}
                         ),
                     )
-            
+
             except ValueError as error:
                 return TestResult(
                     test_id=self.test_id,
@@ -194,22 +188,5 @@ class Test891(RGAATest):
             )
 
     def _convert_findings(self, findings):
-        """
-        Convertit les findings de l'analyseur en objets Finding du projet.
-        Cette méthode doit être adaptée selon le format réel retourné par l'analyseur.
-        """
-        converted_findings = []
-        for finding in findings:
-            if isinstance(finding, dict):
-                converted_findings.append(
-                    Finding(
-                        element=finding.get('element', 'unknown'),
-                        message=finding.get('message', ''),
-                        recommendation=finding.get('recommendation'),
-                        evidence=finding.get('evidence', {})
-                    )
-                )
-            else:
-                # Si c'est déjà un objet Finding ou un format similaire
-                converted_findings.append(finding)
-        return converted_findings
+        """Convertit les observations de l'analyseur en objets Finding du projet."""
+        return convert_findings(findings)

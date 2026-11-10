@@ -5,6 +5,7 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, Mock
 
 import pytest
+from bs4 import BeautifulSoup
 
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
@@ -14,12 +15,16 @@ from accessi_code.rgaa.tests.theme_08_mandatory.criterion_8_10 import (
     Test8102,
 )
 
+# Passage RTL déjà marqué avec dir : la vérification DOM ne conclut pas seule
+# et laisse l'analyseur (simulé) décider, ce que ces tests vérifient.
+HTML_WITH_RTL = '<html lang="fr"><body><p>Bonjour</p><p lang="ar" dir="rtl">مرحبا</p></body></html>'
+
 
 def _context(*, dom_available: bool = True) -> Mock:
     """Construit un AuditContext simulé sans lancer le moteur d'audit."""
     context = Mock(spec=AuditContext)
-    context.dom = Mock() if dom_available else None
-    context.html_source = "<html><body>Contenu</body></html>"
+    context.dom = BeautifulSoup(HTML_WITH_RTL, "html.parser") if dom_available else None
+    context.html_source = HTML_WITH_RTL
     return context
 
 

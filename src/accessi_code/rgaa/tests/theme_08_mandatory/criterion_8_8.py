@@ -1,17 +1,25 @@
 from __future__ import annotations
 
 from typing import Any
-from dataclasses import asdict
 
-from accessi_code.analysis.page import is_valid_language_code
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
 from accessi_code.models.result import (
-    Finding,
     TestResult,
     TestStatus,
 )
 from accessi_code.rgaa.base import RGAATest
+from accessi_code.rgaa.tests.theme_08_mandatory._ai_findings import (
+    convert_findings,
+    fail_summary,
+    is_precise,
+    with_default_recommendation,
+)
+
+# Recommandation utilisée si l'analyseur n'en fournit pas.
+DEFAULT_RECOMMENDATION = (
+    "Utiliser un code de langue valide (ISO 639) et pertinent pour le contenu du passage."
+)
 
 
 class Test881(RGAATest):
@@ -79,7 +87,7 @@ class Test881(RGAATest):
                 summary="Aucune déclaration de changement de langue à vérifier.",
                 tested_elements=0,
             )
-        
+
         # Vérifier si un service d'analyse de langue pour les changements est disponible
         if services and getattr(services, 'language_validity_analyzer', None) is not None:
             analyzer = services.language_validity_analyzer
@@ -112,13 +120,8 @@ class Test881(RGAATest):
                     )
 
                     # Ne pas déclarer FAIL sans anomalie précise.
-                    if not findings or any(
-                        not finding.element
-                        or finding.element == "unknown"
-                        or not finding.message
-                        or not finding.recommendation
-                        for finding in findings
-                    ):
+                    findings = with_default_recommendation(findings, DEFAULT_RECOMMENDATION)
+                    if not findings or not all(is_precise(finding) for finding in findings):
                         return TestResult(
                             test_id=self.test_id,
                             criterion_id=self.criterion_id,
@@ -139,13 +142,10 @@ class Test881(RGAATest):
                         test_id=self.test_id,
                         criterion_id=self.criterion_id,
                         status=TestStatus.FAIL,
-                        summary=(
-                            f"{len(findings)} anomalie(s) de code de langue détectée(s). "
-                            + " ".join(
-                                f"{finding.element} : {finding.message} "
-                                f"Correction : {finding.recommendation}"
-                                for finding in findings
-                            )
+                        summary=fail_summary(
+                            analysis_result,
+                            f"{len(findings)} anomalie(s) de code de langue détectée(s).",
+                            findings,
                         ),
                         tested_elements=getattr(
                             analysis_result, "total_changes_checked", 0
@@ -186,22 +186,5 @@ class Test881(RGAATest):
             )
 
     def _convert_findings(self, findings):
-        """
-        Convertit les findings de l'analyseur en objets Finding du projet.
-        Cette méthode doit être adaptée selon le format réel retourné par l'analyseur.
-        """
-        converted_findings = []
-        for finding in findings:
-            if isinstance(finding, dict):
-                converted_findings.append(
-                    Finding(
-                        element=finding.get('element', 'unknown'),
-                        message=finding.get('message', ''),
-                        recommendation=finding.get('recommendation'),
-                        evidence=finding.get('evidence', {})
-                    )
-                )
-            else:
-                # Si c'est déjà un objet Finding ou un format similaire
-                converted_findings.append(finding)
-        return converted_findings
+        """Convertit les observations de l'analyseur en objets Finding du projet."""
+        return convert_findings(findings)

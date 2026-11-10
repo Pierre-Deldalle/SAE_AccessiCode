@@ -1,12 +1,17 @@
 from __future__ import annotations
 
-from typing import Any
 import re
+from typing import Any
 
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
 from accessi_code.models.result import Finding, TestResult, TestStatus
 from accessi_code.rgaa.base import RGAATest
+from accessi_code.rgaa.tests.theme_08_mandatory._ai_findings import (
+    fail_summary,
+    is_precise,
+    with_default_recommendation,
+)
 
 
 def _field(value: Any, name: str, default: Any = None) -> Any:
@@ -73,6 +78,8 @@ class _TextDirectionTest(RGAATest):
     success_summary: str
     failure_summary: str
     error_summary: str
+    # Recommandation utilisée si l'analyseur n'en fournit pas.
+    default_recommendation: str
 
     async def run(
         self,
@@ -82,7 +89,7 @@ class _TextDirectionTest(RGAATest):
         if getattr(context, "dom", None) is None:
             return self._result(TestStatus.ERROR, "Le DOM n'est pas disponible.")
 
-        
+
         if self.test_id == "8.10.1":
             rtl_languages = {"ar", "he", "fa", "ur", "ps"}
             rtl_pattern = re.compile(
@@ -236,7 +243,7 @@ class _TextDirectionTest(RGAATest):
                     metadata=_metadata(analysis),
                 )
 
-            
+
             has_failure = (
                 failure if isinstance(failure, bool) else failure > 0
             )
@@ -246,17 +253,8 @@ class _TextDirectionTest(RGAATest):
                     _field(analysis, "findings", [])
                 )
 
-                valid_findings = [
-                    finding
-                    for finding in findings
-                    if isinstance(finding.element, str)
-                    and finding.element.strip()
-                    and finding.element.strip().lower() != "unknown"
-                    and isinstance(finding.message, str)
-                    and finding.message.strip()
-                    and isinstance(finding.recommendation, str)
-                    and finding.recommendation.strip()
-                ]
+                findings = with_default_recommendation(findings, self.default_recommendation)
+                valid_findings = [finding for finding in findings if is_precise(finding)]
 
                 if not findings or len(valid_findings) != len(findings):
                     return self._result(
@@ -264,25 +262,19 @@ class _TextDirectionTest(RGAATest):
                         (
                             "Une anomalie de direction du texte a été "
                             "signalée, mais les éléments concernés "
-                            "et les corrections ne sont pas "
-                            "suffisamment détaillés."
+                            "ne sont pas suffisamment détaillés."
                         ),
                         tested_elements=count,
                         findings=valid_findings,
                         metadata=_metadata(analysis),
                     )
 
-                details = " ".join(
-                    f"{finding.element} : {finding.message} "
-                    f"Correction : {finding.recommendation}"
-                    for finding in valid_findings
-                )
-
                 return self._result(
                     TestStatus.FAIL,
-                    (
-                        f"{len(valid_findings)} anomalie(s) "
-                        f"de direction détectée(s). {details}"
+                    fail_summary(
+                        analysis,
+                        f"{len(valid_findings)} anomalie(s) de direction détectée(s).",
+                        valid_findings,
                     ),
                     tested_elements=count,
                     findings=valid_findings,
@@ -303,7 +295,7 @@ class _TextDirectionTest(RGAATest):
                 metadata=_metadata(analysis),
             )
 
-        
+
         except ValueError as error:
             return self._result(
                 TestStatus.NEEDS_REVIEW,
@@ -351,6 +343,7 @@ class Test8101(_TextDirectionTest):
     success_summary = "Tous les segments RTL concernés possèdent un attribut dir."
     failure_summary = "Des segments RTL concernés n'ont pas d'attribut dir."
     error_summary = "L'analyse de la présence de l'attribut dir a échoué"
+    default_recommendation = 'Ajouter dir="rtl" (ou dir="ltr") sur le passage dont le sens de lecture change.'
 
 
 class Test8102(_TextDirectionTest):
@@ -365,3 +358,4 @@ class Test8102(_TextDirectionTest):
     success_summary = "Tous les attributs dir concernés sont valides et pertinents."
     failure_summary = "Certains attributs dir sont invalides ou non pertinents."
     error_summary = "L'analyse de la validité de l'attribut dir a échoué"
+    default_recommendation = 'Utiliser dir="rtl" ou dir="ltr" selon le sens de lecture réel du passage.'

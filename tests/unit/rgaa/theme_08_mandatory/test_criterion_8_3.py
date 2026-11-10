@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-from typing import Any
 from unittest.mock import Mock
 
 import pytest
-
 from bs4 import BeautifulSoup
 
 from accessi_code.models.audit_context import AuditContext
@@ -55,7 +53,7 @@ class TestTest831:
 
         # Créer un contexte avec un DOM contenant xml:lang sur html
         html_content = '<html xml:lang="fr"><head><title>Test</title></head><body><p>Bonjour</p></body></html>'
-        soup = BeautifulSoup(html_content, 'xml')  # Using xml parser for xml:lang
+        soup = BeautifulSoup(html_content, 'html.parser')  # Même analyseur que l'application (garde xml:lang)
 
         context = Mock(spec=AuditContext)
         context.dom = soup

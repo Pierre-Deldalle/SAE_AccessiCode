@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from typing import Any
 import re
+from typing import Any
 
 from accessi_code.ai.clients.llm import OllamaLLM
 from accessi_code.ai.json_utils import parse_ai_json
@@ -186,7 +186,7 @@ Réponds avec {"missing_dir_count": number, "confidence": "low|medium|high",
         )
         return _TextDirectionPresenceResult.from_data(data)
 
-    
+
     async def analyze_text_direction_validity(
         self,
         dom: Any,

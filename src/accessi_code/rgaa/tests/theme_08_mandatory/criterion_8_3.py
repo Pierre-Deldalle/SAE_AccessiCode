@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
+
 from bs4 import BeautifulSoup
 
 from accessi_code.models.audit_context import AuditContext

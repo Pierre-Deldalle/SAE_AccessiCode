@@ -1,16 +1,25 @@
 from __future__ import annotations
 
 from typing import Any
-from dataclasses import asdict
 
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
 from accessi_code.models.result import (
-    Finding,
     TestResult,
     TestStatus,
 )
 from accessi_code.rgaa.base import RGAATest
+from accessi_code.rgaa.tests.theme_08_mandatory._ai_findings import (
+    convert_findings,
+    fail_summary,
+    is_precise,
+    with_default_recommendation,
+)
+
+# Recommandation utilisée si l'analyseur n'en fournit pas.
+DEFAULT_RECOMMENDATION = (
+    "Ajouter un attribut lang avec le code de langue approprié sur le passage concerné."
+)
 
 
 class Test871(RGAATest):
@@ -72,20 +81,15 @@ class Test871(RGAATest):
                     )
 
                 # Retourner le résultat basé sur l'analyse
-                
+
                 if getattr(analysis_result, "has_violations", False):
                     findings = self._convert_findings(
                         getattr(analysis_result, "findings", [])
                     )
 
                     # Un FAIL doit être justifié par des anomalies précises.
-                    if not findings or any(
-                        not finding.element
-                        or finding.element == "unknown"
-                        or not finding.message
-                        or not finding.recommendation
-                        for finding in findings
-                    ):
+                    findings = with_default_recommendation(findings, DEFAULT_RECOMMENDATION)
+                    if not findings or not all(is_precise(finding) for finding in findings):
                         return TestResult(
                             test_id=self.test_id,
                             criterion_id=self.criterion_id,
@@ -106,14 +110,10 @@ class Test871(RGAATest):
                         test_id=self.test_id,
                         criterion_id=self.criterion_id,
                         status=TestStatus.FAIL,
-                        summary=(
-                            f"{len(findings)} passage(s) avec une indication "
-                            "de langue manquante ou inappropriée. "
-                            + " ".join(
-                                f"{finding.element} : {finding.message} "
-                                f"Correction : {finding.recommendation}"
-                                for finding in findings
-                            )
+                        summary=fail_summary(
+                            analysis_result,
+                            f"{len(findings)} passage(s) avec une indication de langue manquante ou inappropriée.",
+                            findings,
                         ),
                         tested_elements=getattr(
                             analysis_result, "total_elements_checked", 0
@@ -153,22 +153,5 @@ class Test871(RGAATest):
             )
 
     def _convert_findings(self, findings):
-        """
-        Convertit les findings de l'analyseur en objets Finding du projet.
-        Cette méthode doit être adaptée selon le format réel retourné par l'analyseur.
-        """
-        converted_findings = []
-        for finding in findings:
-            if isinstance(finding, dict):
-                converted_findings.append(
-                    Finding(
-                        element=finding.get('element', 'unknown'),
-                        message=finding.get('message', ''),
-                        recommendation=finding.get('recommendation'),
-                        evidence=finding.get('evidence', {})
-                    )
-                )
-            else:
-                # Si c'est déjà un objet Finding ou un format similaire
-                converted_findings.append(finding)
-        return converted_findings
+        """Convertit les observations de l'analyseur en objets Finding du projet."""
+        return convert_findings(findings)

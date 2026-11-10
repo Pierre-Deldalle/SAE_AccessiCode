@@ -1,14 +1,21 @@
 from __future__ import annotations
 
-from typing import Any
 from unittest.mock import AsyncMock, Mock
 
 import pytest
+from bs4 import BeautifulSoup
 
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
 from accessi_code.models.result import TestStatus
 from accessi_code.rgaa.tests.theme_08_mandatory.criterion_8_8 import Test881
+
+# Page contenant un changement de langue : le test 8.8.1 est applicable.
+HTML_WITH_LANGUAGE_CHANGE = '<html lang="fr"><body><p>Bonjour</p><p lang="en">Hello world</p></body></html>'
+
+
+def _dom() -> BeautifulSoup:
+    return BeautifulSoup(HTML_WITH_LANGUAGE_CHANGE, "html.parser")
 
 
 @pytest.mark.unit
@@ -33,8 +40,8 @@ class TestTest881:
 
         # Mock du contexte
         context = Mock(spec=AuditContext)
-        context.dom = Mock()
-        context.html_source = "<html><body>Contenu</body></html>"
+        context.dom = _dom()
+        context.html_source = HTML_WITH_LANGUAGE_CHANGE
 
         # Mock du service d'analyse de langue retournant aucun erreur
         services = Mock()
@@ -68,8 +75,8 @@ class TestTest881:
 
         # Mock du contexte
         context = Mock(spec=AuditContext)
-        context.dom = Mock()
-        context.html_source = "<html><body>Contenu</body></html>"
+        context.dom = _dom()
+        context.html_source = HTML_WITH_LANGUAGE_CHANGE
 
         # Mock du service d'analyse de langue retournant des erreurs
         services = Mock()
@@ -116,8 +123,8 @@ class TestTest881:
 
         # Mock du contexte
         context = Mock(spec=AuditContext)
-        context.dom = Mock()
-        context.html_source = "<html><body>Contenu</body></html>"
+        context.dom = _dom()
+        context.html_source = HTML_WITH_LANGUAGE_CHANGE
 
         # Mock du service d'analyse de langue retournant faible confiance
         services = Mock()
@@ -150,8 +157,8 @@ class TestTest881:
 
         # Mock du contexte
         context = Mock(spec=AuditContext)
-        context.dom = Mock()
-        context.html_source = "<html><body>Contenu</body></html>"
+        context.dom = _dom()
+        context.html_source = HTML_WITH_LANGUAGE_CHANGE
 
         # Mock du service d'analyse de langue qui lève une exception
         services = Mock()
@@ -179,8 +186,8 @@ class TestTest881:
 
         # Mock du contexte
         context = Mock(spec=AuditContext)
-        context.dom = Mock()
-        context.html_source = "<html><body>Contenu</body></html>"
+        context.dom = _dom()
+        context.html_source = HTML_WITH_LANGUAGE_CHANGE
 
         # Services sans analyseur de validité de langue
         services = Mock()
@@ -203,8 +210,8 @@ class TestTest881:
 
         # Mock du contexte
         context = Mock(spec=AuditContext)
-        context.dom = Mock()
-        context.html_source = "<html><body>Contenu</body></html>"
+        context.dom = _dom()
+        context.html_source = HTML_WITH_LANGUAGE_CHANGE
 
         result = await test.run(context, None)
 
