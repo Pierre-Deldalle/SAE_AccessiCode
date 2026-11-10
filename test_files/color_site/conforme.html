@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cas conformes — couleurs RGAA</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <div class="inner">
+    <h1>Cas conformes — Couleurs</h1>
+    <nav aria-label="Navigation">
+      <a href="index.html">Accueil</a>
+      <a href="non-conforme.html">Voir les cas non conformes</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="ok" data-rgaa="3.1.1">
+    <span class="test-id">3.1.1</span>
+    <h2>Information textuelle non transmise uniquement par la couleur</h2>
+    <div class="example status-with-text">
+      <p class="good">✓ Paiement accepté</p>
+      <p class="bad">✗ Paiement refusé</p>
+    </div>
+  </section>
+
+  <section class="ok" data-rgaa="3.1.2">
+    <span class="test-id">3.1.2</span>
+    <h2>Indication de couleur accompagnée d'une information explicite</h2>
+    <div class="example required-good">
+      <label class="required" for="name-ok">Nom</label><br>
+      <input id="name-ok" type="text">
+    </div>
+  </section>
+
+  <section class="ok" data-rgaa="3.2.1">
+    <span class="test-id">3.2.1</span>
+    <h2>Petit texte normal : contraste suffisant</h2>
+    <p class="example text-small-pass">Ce texte de 16 px est volontairement suffisamment contrasté.</p>
+  </section>
+
+  <section class="ok" data-rgaa="3.2.2">
+    <span class="test-id">3.2.2</span>
+    <h2>Petit texte gras : contraste suffisant</h2>
+    <p class="example text-bold-small-pass">Ce texte gras de 17 px est suffisamment contrasté.</p>
+  </section>
+
+  <section class="ok" data-rgaa="3.2.3">
+    <span class="test-id">3.2.3</span>
+    <h2>Grand texte normal : contraste suffisant</h2>
+    <p class="example text-large-pass">Grand texte normal de 26 px.</p>
+  </section>
+
+  <section class="ok" data-rgaa="3.2.4">
+    <span class="test-id">3.2.4</span>
+    <h2>Grand texte gras : contraste suffisant</h2>
+    <p class="example text-bold-large-pass">Grand texte gras de 20 px.</p>
+  </section>
+
+  <section class="ok" data-rgaa="3.3.1">
+    <span class="test-id">3.3.1</span>
+    <h2>Composants d'interface suffisamment contrastés</h2>
+    <div class="example controls">
+      <button class="button-pass">Valider</button>
+      <label for="email-ok">E-mail</label>
+      <input class="input-pass" id="email-ok" type="email">
+    </div>
+  </section>
+
+  <section class="ok" data-rgaa="3.3.2">
+    <span class="test-id">3.3.2</span>
+    <h2>Élément graphique suffisamment contrasté avec son arrière-plan</h2>
+    <div class="example">
+      <div class="chart chart-pass" aria-label="Graphique CSS : catégorie A 55 %, catégorie B 85 %">
+        <div class="bar bar-a"></div>
+        <div class="bar bar-b"></div>
+      </div>
+      <div class="chart-labels"><span>A</span><span>B</span></div>
+    </div>
+  </section>
+</main>
+
+<footer>Cette page doit produire des résultats conformes pour les exemples présents.</footer>
+</body>
+</html>

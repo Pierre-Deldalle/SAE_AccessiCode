@@ -1,3 +1,5 @@
+"""Registre par défaut des tests RGAA AccessiCode."""
+
 from __future__ import annotations
 
 from accessi_code.rgaa.registry import TestRegistry
@@ -6,8 +8,27 @@ from accessi_code.rgaa.tests.theme_01_images.criterion_1_1 import (
     Test112,
     Test113,
 )
-from accessi_code.rgaa.tests.theme_01_images.criterion_1_7 import (
-    Test171,
+from accessi_code.rgaa.tests.theme_01_images.criterion_1_7 import Test171
+from accessi_code.rgaa.tests.theme_03_colors.criterion_3_1 import (
+    Test311,
+    Test312,
+    Test313,
+    Test314,
+    Test315,
+    Test316,
+)
+from accessi_code.rgaa.tests.theme_03_colors.criterion_3_2 import (
+    Test321,
+    Test322,
+    Test323,
+    Test324,
+    Test325,
+)
+from accessi_code.rgaa.tests.theme_03_colors.criterion_3_3 import (
+    Test331,
+    Test332,
+    Test333,
+    Test334,
 )
 from accessi_code.rgaa.tests.theme_04_multimedia.criterion_4_1 import (
     Test411,
@@ -23,9 +44,7 @@ from accessi_code.rgaa.tests.theme_04_multimedia.criterion_4_3 import (
     Test431,
     Test432,
 )
-from accessi_code.rgaa.tests.theme_04_multimedia.criterion_4_4 import (
-    Test441,
-)
+from accessi_code.rgaa.tests.theme_04_multimedia.criterion_4_4 import Test441
 from accessi_code.rgaa.tests.theme_04_multimedia.criterion_4_5 import (
     Test451,
     Test452,
@@ -34,19 +53,13 @@ from accessi_code.rgaa.tests.theme_04_multimedia.criterion_4_6 import (
     Test461,
     Test462,
 )
-from accessi_code.rgaa.tests.theme_04_multimedia.criterion_4_7 import (
-    Test471,
-)
+from accessi_code.rgaa.tests.theme_04_multimedia.criterion_4_7 import Test471
 from accessi_code.rgaa.tests.theme_04_multimedia.criterion_4_8 import (
     Test481,
     Test482,
 )
-from accessi_code.rgaa.tests.theme_04_multimedia.criterion_4_9 import (
-    Test491,
-)
-from accessi_code.rgaa.tests.theme_04_multimedia.criterion_4_10 import (
-    Test4101,
-)
+from accessi_code.rgaa.tests.theme_04_multimedia.criterion_4_9 import Test491
+from accessi_code.rgaa.tests.theme_04_multimedia.criterion_4_10 import Test4101
 from accessi_code.rgaa.tests.theme_04_multimedia.criterion_4_11 import (
     Test4111,
     Test4112,
@@ -60,21 +73,11 @@ from accessi_code.rgaa.tests.theme_04_multimedia.criterion_4_13 import (
     Test4131,
     Test4132,
 )
-from accessi_code.rgaa.tests.theme_05_tables.criterion_5_1 import (
-    Test511,
-)
-from accessi_code.rgaa.tests.theme_05_tables.criterion_5_2 import (
-    Test521,
-)
-from accessi_code.rgaa.tests.theme_05_tables.criterion_5_3 import (
-    Test531,
-)
-from accessi_code.rgaa.tests.theme_05_tables.criterion_5_4 import (
-    Test541,
-)
-from accessi_code.rgaa.tests.theme_05_tables.criterion_5_5 import (
-    Test551,
-)
+from accessi_code.rgaa.tests.theme_05_tables.criterion_5_1 import Test511
+from accessi_code.rgaa.tests.theme_05_tables.criterion_5_2 import Test521
+from accessi_code.rgaa.tests.theme_05_tables.criterion_5_3 import Test531
+from accessi_code.rgaa.tests.theme_05_tables.criterion_5_4 import Test541
+from accessi_code.rgaa.tests.theme_05_tables.criterion_5_5 import Test551
 from accessi_code.rgaa.tests.theme_05_tables.criterion_5_6 import (
     Test561,
     Test562,
@@ -88,9 +91,15 @@ from accessi_code.rgaa.tests.theme_05_tables.criterion_5_7 import (
     Test574,
     Test575,
 )
-from accessi_code.rgaa.tests.theme_05_tables.criterion_5_8 import (
-    Test581,
+from accessi_code.rgaa.tests.theme_05_tables.criterion_5_8 import Test581
+from accessi_code.rgaa.tests.theme_06_links.criterion_6_1 import (
+    Test611,
+    Test612,
+    Test613,
+    Test614,
+    Test615,
 )
+from accessi_code.rgaa.tests.theme_06_links.criterion_6_2 import Test621
 from accessi_code.rgaa.tests.theme_07_scripts.criterion_7_1 import (
     Test711,
     Test712,
@@ -104,9 +113,7 @@ from accessi_code.rgaa.tests.theme_07_scripts.criterion_7_3 import (
     Test731,
     Test732,
 )
-from accessi_code.rgaa.tests.theme_07_scripts.criterion_7_4 import (
-    Test741,
-)
+from accessi_code.rgaa.tests.theme_07_scripts.criterion_7_4 import Test741
 from accessi_code.rgaa.tests.theme_07_scripts.criterion_7_5 import (
     Test751,
     Test752,
@@ -117,23 +124,15 @@ from accessi_code.rgaa.tests.theme_08_mandatory.criterion_8_1 import (
     Test812,
     Test813,
 )
-from accessi_code.rgaa.tests.theme_08_mandatory.criterion_8_4 import (
-    Test841,
-)
-from accessi_code.rgaa.tests.theme_08_mandatory.criterion_8_5 import (
-    Test851,
-)
-from accessi_code.rgaa.tests.theme_08_mandatory.criterion_8_6 import (
-    Test861,
-)
+from accessi_code.rgaa.tests.theme_08_mandatory.criterion_8_4 import Test841
+from accessi_code.rgaa.tests.theme_08_mandatory.criterion_8_5 import Test851
+from accessi_code.rgaa.tests.theme_08_mandatory.criterion_8_6 import Test861
 from accessi_code.rgaa.tests.theme_09_structuration_information.criterion_9_1 import (
     Test911,
     Test912,
     Test913,
 )
-from accessi_code.rgaa.tests.theme_09_structuration_information.criterion_9_2 import (
-    Test921,
-)
+from accessi_code.rgaa.tests.theme_09_structuration_information.criterion_9_2 import Test921
 from accessi_code.rgaa.tests.theme_09_structuration_information.criterion_9_3 import (
     Test931,
     Test932,
@@ -153,9 +152,7 @@ from accessi_code.rgaa.tests.theme_10_presentation_information.criterion_10_2 im
     Test1022,
     Test1023,
 )
-from accessi_code.rgaa.tests.theme_10_presentation_information.criterion_10_3 import (
-    Test1031,
-)
+from accessi_code.rgaa.tests.theme_10_presentation_information.criterion_10_3 import Test1031
 from accessi_code.rgaa.tests.theme_10_presentation_information.criterion_10_4 import (
     Test1041,
     Test1042,
@@ -165,15 +162,9 @@ from accessi_code.rgaa.tests.theme_10_presentation_information.criterion_10_5 im
     Test1052,
     Test1053,
 )
-from accessi_code.rgaa.tests.theme_10_presentation_information.criterion_10_6 import (
-    Test1061,
-)
-from accessi_code.rgaa.tests.theme_10_presentation_information.criterion_10_7 import (
-    Test1071,
-)
-from accessi_code.rgaa.tests.theme_10_presentation_information.criterion_10_8 import (
-    Test1081,
-)
+from accessi_code.rgaa.tests.theme_10_presentation_information.criterion_10_6 import Test1061
+from accessi_code.rgaa.tests.theme_10_presentation_information.criterion_10_7 import Test1071
+from accessi_code.rgaa.tests.theme_10_presentation_information.criterion_10_8 import Test1081
 from accessi_code.rgaa.tests.theme_10_presentation_information.criterion_10_9 import (
     Test1091,
     Test1092,
@@ -190,9 +181,7 @@ from accessi_code.rgaa.tests.theme_10_presentation_information.criterion_10_11 i
     Test10111,
     Test10112,
 )
-from accessi_code.rgaa.tests.theme_10_presentation_information.criterion_10_12 import (
-    Test10121,
-)
+from accessi_code.rgaa.tests.theme_10_presentation_information.criterion_10_12 import Test10121
 from accessi_code.rgaa.tests.theme_10_presentation_information.criterion_10_13 import (
     Test10131,
     Test10132,
@@ -202,21 +191,38 @@ from accessi_code.rgaa.tests.theme_10_presentation_information.criterion_10_14 i
     Test10141,
     Test10142,
 )
-from accessi_code.rgaa.tests.theme_11_forms.criterion_11_1 import (
-    Test1111,
-)
+from accessi_code.rgaa.tests.theme_11_forms.criterion_11_1 import Test1111
 
 
 def build_default_registry() -> TestRegistry:
-    """
-    Construit le registre des tests RGAA actuellement implémentés.
-    """
+    """Construit le registre des tests RGAA actuellement implémentés."""
+
     return TestRegistry(
         [
+            # Thème 1 — Images
             Test111(),
             Test112(),
             Test113(),
             Test171(),
+
+            # Thème 3 — Couleurs
+            Test311(),
+            Test312(),
+            Test313(),
+            Test314(),
+            Test315(),
+            Test316(),
+            Test321(),
+            Test322(),
+            Test323(),
+            Test324(),
+            Test325(),
+            Test331(),
+            Test332(),
+            Test333(),
+            Test334(),
+
+            # Thème 4 — Multimédia
             Test411(),
             Test412(),
             Test413(),
@@ -242,6 +248,8 @@ def build_default_registry() -> TestRegistry:
             Test4122(),
             Test4131(),
             Test4132(),
+
+            # Thème 5 — Tableaux
             Test511(),
             Test521(),
             Test531(),
@@ -257,6 +265,16 @@ def build_default_registry() -> TestRegistry:
             Test574(),
             Test575(),
             Test581(),
+
+            # Thème 6 — Liens
+            Test611(),
+            Test612(),
+            Test613(),
+            Test614(),
+            Test615(),
+            Test621(),
+
+            # Thème 7 — Scripts
             Test711(),
             Test712(),
             Test713(),
@@ -268,12 +286,16 @@ def build_default_registry() -> TestRegistry:
             Test751(),
             Test752(),
             Test753(),
+
+            # Thème 8 — Éléments obligatoires
             Test811(),
             Test812(),
             Test813(),
             Test841(),
             Test851(),
             Test861(),
+
+            # Thème 9 — Structuration de l’information
             Test911(),
             Test912(),
             Test913(),
@@ -283,6 +305,8 @@ def build_default_registry() -> TestRegistry:
             Test933(),
             Test941(),
             Test942(),
+
+            # Thème 10 — Présentation de l’information
             Test1011(),
             Test1012(),
             Test1013(),
@@ -314,6 +338,9 @@ def build_default_registry() -> TestRegistry:
             Test10133(),
             Test10141(),
             Test10142(),
+
+            # Thème 11 — Formulaires
             Test1111(),
+
         ]
     )

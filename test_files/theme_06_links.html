@@ -1,0 +1,79 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Page de validation — RGAA thème 6</title>
+</head>
+<body>
+    <main>
+        <h1>Validation des liens — AccessiCode</h1>
+
+        <h2>1. Liens textuels</h2>
+
+        <p>
+            <a href="/contact">Nous contacter</a>
+        </p>
+
+        <p>
+            Consultez notre documentation :
+            <a href="/documentation">cliquez ici</a>.
+        </p>
+
+        <h2>2. Liens images</h2>
+
+        <p>
+            <a href="/accueil">
+                <img src="accueil.png" alt="Retour à l'accueil">
+            </a>
+        </p>
+
+        <h2>3. Liens composites</h2>
+
+        <p>
+            <a href="/rapport">
+                <img src="pdf.png" alt="PDF">
+                Télécharger le rapport d'accessibilité
+            </a>
+        </p>
+
+        <h2>4. Liens SVG</h2>
+
+        <svg xmlns="http://www.w3.org/2000/svg"
+             width="200"
+             height="50">
+            <a href="/aide">
+                <text x="10" y="30">Consulter l'aide</text>
+            </a>
+        </svg>
+
+        <h2>5. Nom accessible et intitulé visible</h2>
+
+        <p>
+            <a href="/services"
+               aria-label="Découvrir nos services">
+                Services
+            </a>
+        </p>
+
+        <p>
+            <a href="/contact"
+               aria-label="Envoyer un message">
+                Contact
+            </a>
+        </p>
+
+        <h2>6. Liens sans intitulé</h2>
+
+        <p>
+            <a href="/lien-vide"></a>
+        </p>
+
+        <p>
+            <a href="/image-sans-alternative">
+                <img src="icone.png" alt="">
+            </a>
+        </p>
+    </main>
+</body>
+</html>
