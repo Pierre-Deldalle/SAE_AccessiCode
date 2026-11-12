@@ -1,0 +1,32 @@
+site_name: AccessiCode
+site_description: Documentation utilisateur d'AccessiCode
+site_author: Équipe AccessiCode
+
+site_url: https://Pierre-Deldalle.github.io/SAE_AccessiCode/
+
+repo_url: https://github.com/Pierre-Deldalle/SAE_AccessiCode
+repo_name: SAE_AccessiCode
+
+docs_dir: src\accessi_code\docs\user-guide
+site_dir: site
+
+theme:
+  name: readthedocs
+
+nav:
+  - Accueil: index.md
+  - Utiliser AccessiCode:
+      - Prise en main: prise-en-main.md
+      - Comprendre les résultats: comprendre-resultats.md
+  - Accessibilité:
+      - Contrôles RGAA disponibles: controles-rgaa.md
+      - Vérification humaine: verification-humaine.md
+      - Limites d'AccessiCode: limites.md
+  - Aide:
+      - Dépannage: depannage.md
+      - Glossaire: glossaire.md
+
+markdown_extensions:
+  - tables
+  - toc:
+      permalink: true

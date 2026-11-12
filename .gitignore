@@ -35,3 +35,8 @@ workspace/audits/*
 
 #Dossier build de la documentation utilisateur
 src/accessi_code/docs/user-guide/build/
+
+# MkDocs build
+site/
+
+evals/prompts
