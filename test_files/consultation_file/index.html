@@ -1324,5 +1324,462 @@
         Le test ci-dessus montre la pattern ; pour un vrai test, modifiez le head de ce fichier HTML.</p>
     </section>
 
+<!-- =========================================================================
+     TESTS CRITÈRE 13.10 : Fonctionnalités tactiles accessibles au contact simple
+     ========================================================================= -->
+<!-- RGAA 13.10 : Dans chaque page web, chaque fonctionnalité utilisable ou disponible
+     suite à un contact multipoint (13.10.1) ou un geste par trajectoire (13.10.2)
+     doit être également utilisable suite à un contact en un point unique (hors cas particuliers).
+
+     13.10.1 : Gestes multipoints (2+ doigts) - pincer-zoomer, rotation à deux doigts, etc.
+     13.10.2 : Gestes par trajectoire - pattern lock, swipe, dessin, signature, clavier virtuel
+
+     Cas particuliers (NOT_APPLICABLE si geste essentiel ET seul moyen d'accès) :
+     - Signature manuscrite, dessin libre, pattern lock essentiel
+     - MAIS si alternative détectée -> PASS/NEEDS_REVIEW selon contexte
+
+     FAIL si : geste multipoint/trajectoire détecté SANS alternative au contact simple
+     NEEDS_REVIEW si : cas particulier détecté sans alternative, ou détection bibliothèque
+     PASS si : aucune geste détecté, ou geste détecté AVEC alternative (boutons, inputs, etc.)
+     NOT_APPLICABLE si : cas particulier sans gestionnaire de geste détecté -->
+
+<!-- -------------------------------------------------------------------------
+     13.10.1 : Fonctionnalités multipoint accessibles au contact simple
+     ------------------------------------------------------------------------- -->
+<section class="test-section">
+    <h2>Test 13.10.1 - Pinch-zoom avec boutons +/- (PASS)</h2>
+    <p>Carte avec zoom pincer (multipoint) ET boutons de zoom au clic simple :</p>
+    <div id="map" style="width: 100%; height: 300px; background: #e8f4fd; border: 1px solid #ccc; display: flex; align-items: center; justify-content: center; touch-action: pinch-zoom;">
+        Zone de carte (pinch-zoom activé)
+    </div>
+    <div class="controls" style="margin-top: 1rem;">
+        <button id="zoomIn" onclick="zoomIn()" style="padding: 0.5rem 1rem; font-size: 1.2rem;">+ Zoom</button>
+        <button id="zoomOut" onclick="zoomOut()" style="padding: 0.5rem 1rem; font-size: 1.2rem;">- Zoom</button>
+    </div>
+    <script>
+        // Gestionnaire pinch-zoom (multipoint - 2 doigts)
+        const map = document.getElementById('map');
+        let initialDist = 0;
+        let scale = 1;
+
+        map?.addEventListener('touchmove', function(e) {
+            if (e.touches.length >= 2) {
+                var dist = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                if (initialDist === 0) initialDist = dist;
+                scale = dist / initialDist;
+                map.style.transform = `scale(${Math.max(0.5, Math.min(3, scale))})`;
+            }
+        }, { passive: true });
+
+        map?.addEventListener('touchend', function(e) {
+            if (e.touches.length < 2) initialDist = 0;
+        });
+
+        // Alternative au contact simple : boutons +/-
+        function zoomIn() { scale = Math.min(3, scale + 0.2); map.style.transform = `scale(${scale})`; }
+        function zoomOut() { scale = Math.max(0.5, scale - 0.2); map.style.transform = `scale(${scale})`; }
+    </script>
+    <p><em>Attendu : PASS - pinch-zoom détecté MAIS alternative (boutons +/-) détectée.</em></p>
+</section>
+
+<section class="test-section">
+    <h2>Test 13.10.1 - Pinch-zoom SANS alternative (FAIL)</h2>
+    <p>Carte avec zoom pincer seulement, pas de boutons de zoom :</p>
+    <div id="mapNoAlt" style="width: 100%; height: 200px; background: #ffe8e8; border: 1px solid #fcc; display: flex; align-items: center; justify-content: center; touch-action: pinch-zoom;">
+        Carte sans alternative de zoom
+    </div>
+    <script>
+        const mapNoAlt = document.getElementById('mapNoAlt');
+        let initialDist2 = 0;
+        mapNoAlt?.addEventListener('touchmove', function(e) {
+            if (e.touches.length >= 2) {
+                var dist = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                if (initialDist2 === 0) initialDist2 = dist;
+                mapNoAlt.style.transform = `scale(${dist / initialDist2})`;
+            }
+        });
+        mapNoAlt?.addEventListener('touchend', () => { initialDist2 = 0; });
+    </script>
+    <p><em>Attendu : FAIL - pinch-zoom détecté SANS alternative au contact simple.</em></p>
+</section>
+
+<section class="test-section">
+    <h2>Test 13.10.1 - Rotation à deux doigts avec boutons rotation (PASS)</h2>
+    <p>Image rotatable à deux doigts avec boutons de rotation au clic :</p>
+    <div id="imageRotate" style="width: 200px; height: 200px; background: #e0e0e0; border: 2px dashed #999; margin: 1rem auto; display: flex; align-items: center; justify-content: center; touch-action: pinch-zoom; position: relative;">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150' viewBox='0 0 100 100'%3E%3Cpolygon points='50,10 90,90 10,90' fill='%23333'/%3E%3C/svg%3E" alt="Triangle" id="rotatableImg" style="transition: transform 0.2s;">
+    </div>
+    <div class="controls" style="text-align: center; margin: 1rem 0;">
+        <button onclick="rotateLeft()" style="padding: 0.5rem 1rem; margin-right: 0.5rem;">↺ Gauche</button>
+        <button onclick="rotateRight()" style="padding: 0.5rem 1rem;">↻ Droite</button>
+    </div>
+    <script>
+        let rotation = 0;
+        let initialAngle = 0;
+
+        const img = document.getElementById('rotatableImg');
+        img?.addEventListener('touchmove', function(e) {
+            if (e.touches.length >= 2) {
+                var angle = Math.atan2(
+                    e.touches[1].clientY - e.touches[0].clientY,
+                    e.touches[1].clientX - e.touches[0].clientX
+                ) * 180 / Math.PI;
+                if (initialAngle === 0) initialAngle = angle;
+                rotation = angle - initialAngle;
+                img.style.transform = `rotate(${rotation}deg)`;
+            }
+        });
+        img?.addEventListener('touchend', () => { initialAngle = 0; });
+
+        function rotateLeft() { rotation -= 45; img.style.transform = `rotate(${rotation}deg)`; }
+        function rotateRight() { rotation += 45; img.style.transform = `rotate(${rotation}deg)`; }
+    </script>
+    <p><em>Attendu : PASS - rotation 2 doigts détectée MAIS boutons rotation détectés.</em></p>
+</section>
+
+<section class="test-section">
+    <h2>Test 13.10.1 - Hammer.js pinch/rotate (NEEDS_REVIEW - bibliothèque)</h2>
+    <p>Utilisation de Hammer.js pour gestes multipoints :</p>
+    <div id="hammerElement" style="width: 100%; height: 200px; background: #fff3cd; border: 1px solid #ffc107; display: flex; align-items: center; justify-content: center;">
+        Zone Hammer.js (pinch/rotate)
+    </div>
+    <script>
+        // Simulation Hammer.js (la bibliothèque n'est pas chargée, mais le pattern est détecté)
+        // var hammer = new Hammer(document.getElementById('hammerElement'));
+        // hammer.on('pinch rotate', function(e) { console.log('gesture', e.type); });
+        console.log('Test 13.10.1: Pattern Hammer.js détecté dans le code - NEEDS_REVIEW');
+    </script>
+    <p><em>Attendu : NEEDS_REVIEW - détection de bibliothèque de gestes (Hammer.js).</em></p>
+</section>
+
+<!-- -------------------------------------------------------------------------
+     Cas particuliers 13.10.1 : Applications de dessin / signature
+     ------------------------------------------------------------------------- -->
+<section class="test-section">
+    <h2>Test 13.10.1 - Cas particulier : Application dessin SANS gestionnaire multipoint (NOT_APPLICABLE)</h2>
+    <p>Canvas de dessin simple sans gestionnaire de geste multipoint :</p>
+    <canvas id="drawingCanvasSimple" width="600" height="300" style="border: 2px solid #333; background: white; cursor: crosshair;"></canvas>
+    <script>
+        const drawCanvas = document.getElementById('drawingCanvasSimple');
+        const dctx = drawCanvas?.getContext('2d');
+        let drawing = false;
+        if (drawCanvas && dctx) {
+            dctx.lineWidth = 2; dctx.lineCap = 'round'; dctx.strokeStyle = '#000';
+            function getPos(e) { const r = drawCanvas.getBoundingClientRect(); return e.touches ? {x: e.touches[0].clientX - r.left, y: e.touches[0].clientY - r.top} : {x: e.clientX - r.left, y: e.clientY - r.top}; }
+            drawCanvas.addEventListener('mousedown', e => { drawing = true; const p = getPos(e); dctx.moveTo(p.x, p.y); });
+            drawCanvas.addEventListener('mousemove', e => { if (!drawing) return; const p = getPos(e); dctx.lineTo(p.x, p.y); dctx.stroke(); });
+            drawCanvas.addEventListener('mouseup', () => drawing = false);
+            drawCanvas.addEventListener('touchstart', e => { drawing = true; const p = getPos(e); dctx.moveTo(p.x, p.y); }, { passive: false });
+            drawCanvas.addEventListener('touchmove', e => { if (!drawing) return; e.preventDefault(); const p = getPos(e); dctx.lineTo(p.x, p.y); dctx.stroke(); }, { passive: false });
+            drawCanvas.addEventListener('touchend', () => drawing = false);
+        }
+    </script>
+    <p><em>Attendu : NOT_APPLICABLE - application dessin détectée (canvas + titre/contexte) MAIS pas de gestionnaire multipoint (touches.length >= 2).</em></p>
+</section>
+
+<section class="test-section">
+    <h2>Test 13.10.1 - Cas particulier : Application dessin AVEC multipoint SANS alternative (NEEDS_REVIEW)</h2>
+    <p>Canvas de dessin avec gestionnaire pinch-zoom MAIS sans alternative :</p>
+    <canvas id="drawingCanvasMulti" width="600" height="300" style="border: 2px solid #333; background: white; cursor: crosshair;"></canvas>
+    <script>
+        const drawCanvas2 = document.getElementById('drawingCanvasMulti');
+        const dctx2 = drawCanvas2?.getContext('2d');
+        let drawing2 = false;
+        if (drawCanvas2 && dctx2) {
+            dctx2.lineWidth = 2; dctx2.lineCap = 'round'; dctx2.strokeStyle = '#000';
+            function getPos2(e) { const r = drawCanvas2.getBoundingClientRect(); return e.touches ? {x: e.touches[0].clientX - r.left, y: e.touches[0].clientY - r.top} : {x: e.clientX - r.left, y: e.clientY - r.top}; }
+            drawCanvas2.addEventListener('mousedown', e => { drawing2 = true; const p = getPos2(e); dctx2.moveTo(p.x, p.y); });
+            drawCanvas2.addEventListener('mousemove', e => { if (!drawing2) return; const p = getPos2(e); dctx2.lineTo(p.x, p.y); dctx2.stroke(); });
+            drawCanvas2.addEventListener('mouseup', () => drawing2 = false);
+            // Gestionnaire multipoint (pinch-zoom sur le canvas)
+            drawCanvas2.addEventListener('touchmove', function(e) {
+                if (e.touches.length >= 2) {
+                    var dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                    console.log('Pinch on drawing canvas:', dist);
+                }
+            });
+            drawCanvas2.addEventListener('touchstart', e => { drawing2 = true; const p = getPos2(e); dctx2.moveTo(p.x, p.y); }, { passive: false });
+            drawCanvas2.addEventListener('touchmove', e => { if (!drawing2) return; e.preventDefault(); const p = getPos2(e); dctx2.lineTo(p.x, p.y); dctx2.stroke(); }, { passive: false });
+            drawCanvas2.addEventListener('touchend', () => drawing2 = false);
+        }
+    </script>
+    <p><em>Attendu : NEEDS_REVIEW - cas particulier dessin détecté + gestionnaire multipoint SANS alternative au contact simple.</em></p>
+</section>
+
+<section class="test-section">
+    <h2>Test 13.10.1 - Cas particulier : Application dessin AVEC alternative (PASS)</h2>
+    <p>Canvas de dessin avec import d'image comme alternative :</p>
+    <canvas id="drawingCanvasAlt" width="600" height="300" style="border: 2px solid #333; background: white; cursor: crosshair;"></canvas>
+    <form style="margin-top: 1rem;">
+        <input type="file" accept="image/*" id="imageUpload">
+        <label for="imageUpload">Importer une image au lieu de dessiner</label>
+    </form>
+    <script>
+        // Même code que ci-dessus avec gestionnaire multipoint
+        console.log('Test 13.10.1: Dessin avec alternative import image - PASS');
+    </script>
+    <p><em>Attendu : PASS - cas particulier dessin + multipoint MAIS alternative (input file) détectée.</em></p>
+</section>
+
+<!-- -------------------------------------------------------------------------
+     13.10.2 : Fonctionnalités par trajectoire accessibles au point unique
+     ------------------------------------------------------------------------- -->
+<section class="test-section">
+    <h2>Test 13.10.2 - Pattern lock avec clavier numérique (PASS)</h2>
+    <p>Déverrouillage par motif avec alternative saisie PIN :</p>
+    <div id="patternLock" style="width: 300px; height: 300px; background: #f0f0f0; border: 2px solid #999; margin: 1rem auto; display: flex; align-items: center; justify-content: center; position: relative; touch-action: none;">
+        <svg width="240" height="240" viewBox="0 0 3 3">
+            <circle cx="1" cy="1" r="0.3" fill="#999"/><circle cx="2" cy="1" r="0.3" fill="#999"/><circle cx="3" cy="1" r="0.3" fill="#999"/>
+            <circle cx="1" cy="2" r="0.3" fill="#999"/><circle cx="2" cy="2" r="0.3" fill="#999"/><circle cx="3" cy="2" r="0.3" fill="#999"/>
+            <circle cx="1" cy="3" r="0.3" fill="#999"/><circle cx="2" cy="3" r="0.3" fill="#999"/><circle cx="3" cy="3" r="0.3" fill="#999"/>
+        </svg>
+    </div>
+    <div style="text-align: center; margin: 1rem 0;">
+        <label for="pinInput" style="font-weight: bold; margin-right: 0.5rem;">PIN :</label>
+        <input type="password" id="pinInput" placeholder="Entrez votre PIN" style="padding: 0.5rem; width: 150px;">
+    </div>
+    <script>
+        var points = [];
+        const patternEl = document.getElementById('patternLock');
+        patternEl?.addEventListener('touchmove', function(e) {
+            points.push({x: e.touches[0].clientX, y: e.touches[0].clientY});
+        });
+    </script>
+    <p><em>Attendu : PASS - pattern lock détecté MAIS alternative input password/PIN détectée.</em></p>
+</section>
+
+<section class="test-section">
+    <h2>Test 13.10.2 - Pattern lock SANS alternative (FAIL)</h2>
+    <p>Déverrouillage par motif seulement :</p>
+    <div id="patternLockNoAlt" style="width: 300px; height: 300px; background: #ffe8e8; border: 2px solid #fcc; margin: 1rem auto; display: flex; align-items: center; justify-content: center; position: relative; touch-action: none;">
+        <svg width="240" height="240" viewBox="0 0 3 3">
+            <circle cx="1" cy="1" r="0.3" fill="#ccc"/><circle cx="2" cy="1" r="0.3" fill="#ccc"/><circle cx="3" cy="1" r="0.3" fill="#ccc"/>
+            <circle cx="1" cy="2" r="0.3" fill="#ccc"/><circle cx="2" cy="2" r="0.3" fill="#ccc"/><circle cx="3" cy="2" r="0.3" fill="#ccc"/>
+            <circle cx="1" cy="3" r="0.3" fill="#ccc"/><circle cx="2" cy="3" r="0.3" fill="#ccc"/><circle cx="3" cy="3" r="0.3" fill="#ccc"/>
+        </svg>
+    </div>
+    <script>
+        var points2 = [];
+        const patternEl2 = document.getElementById('patternLockNoAlt');
+        patternEl2?.addEventListener('touchmove', function(e) {
+            points2.push({x: e.touches[0].clientX, y: e.touches[0].clientY});
+        });
+    </script>
+    <p><em>Attendu : FAIL - pattern lock détecté SANS alternative au point unique.</em></p>
+</section>
+
+<section class="test-section">
+    <h2>Test 13.10.2 - Carousel swipe avec pagination (PASS)</h2>
+    <p>Carousel navigable par swipe avec points de pagination cliquables :</p>
+    <div class="carousel" id="carousel" style="width: 100%; height: 200px; background: linear-gradient(90deg, #e0e0e0, #f0f0f0, #e8e8e8); border: 1px solid #ccc; margin: 1rem 0; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: #666; touch-action: pan-x;">
+        Slide 1 / 3 (swipe pour naviguer)
+    </div>
+    <nav class="pagination" style="display: flex; justify-content: center; gap: 0.5rem; margin: 1rem 0;" aria-label="Navigation carousel">
+        <button onclick="goToSlide(0)" aria-label="Slide 1">●</button>
+        <button onclick="goToSlide(1)" aria-label="Slide 2">○</button>
+        <button onclick="goToSlide(2)" aria-label="Slide 3">○</button>
+    </nav>
+    <script>
+        var startX, path = [];
+        const carousel = document.getElementById('carousel');
+        carousel?.addEventListener('touchstart', function(e) { startX = e.touches[0].clientX; path = []; });
+        carousel?.addEventListener('touchmove', function(e) { path.push(e.touches[0].clientX); });
+        carousel?.addEventListener('touchend', function(e) { analyzeSwipePath(path); });
+        function analyzeSwipePath(path) { if (path.length > 10) { const delta = path[path.length-1] - path[0]; console.log('Swipe:', delta > 0 ? 'right' : 'left'); } }
+        function goToSlide(i) { console.log('Go to slide', i); }
+    </script>
+    <p><em>Attendu : PASS - swipe carousel détecté MAIS pagination (nav.pagination avec boutons) détectée.</em></p>
+</section>
+
+<section class="test-section">
+    <h2>Test 13.10.2 - Carousel swipe SANS alternative (FAIL)</h2>
+    <p>Carousel navigable seulement par swipe :</p>
+    <div class="carousel" id="carouselNoAlt" style="width: 100%; height: 150px; background: linear-gradient(90deg, #ffe8e8, #ffe0e0); border: 1px solid #fcc; margin: 1rem 0; display: flex; align-items: center; justify-content: center; color: #900; touch-action: pan-x;">
+        Slide seulement par swipe (pas de pagination)
+    </div>
+    <script>
+        var startX2, path2 = [];
+        const carousel2 = document.getElementById('carouselNoAlt');
+        carousel2?.addEventListener('touchstart', function(e) { startX2 = e.touches[0].clientX; path2 = []; });
+        carousel2?.addEventListener('touchmove', function(e) { path2.push(e.touches[0].clientX); });
+        carousel2?.addEventListener('touchend', function(e) { console.log('Swipe sans alternative'); });
+    </script>
+    <p><em>Attendu : FAIL - swipe carousel détecté SANS alternative de navigation.</em></p>
+</section>
+
+<section class="test-section">
+    <h2>Test 13.10.2 - Signature sur canvas SANS alternative (FAIL)</h2>
+    <p>Pad de signature par trajectoire :</p>
+    <canvas id="signaturePad1310" width="500" height="200" style="border: 2px solid #333; background: white; cursor: crosshair; touch-action: none;"></canvas>
+    <script>
+        const sigCanvas1310 = document.getElementById('signaturePad1310');
+        const sctx1310 = sigCanvas1310?.getContext('2d');
+        let sigDrawing1310 = false;
+        if (sigCanvas1310 && sctx1310) {
+            sctx1310.lineWidth = 2; sctx1310.lineCap = 'round'; sctx1310.strokeStyle = '#000';
+            function getSigPos1310(e) { const r = sigCanvas1310.getBoundingClientRect(); return e.touches ? {x: e.touches[0].clientX - r.left, y: e.touches[0].clientY - r.top} : {x: e.clientX - r.left, y: e.clientY - r.top}; }
+            sigCanvas1310.addEventListener('touchmove', function(e) {
+                const p = getSigPos1310(e);
+                sctx1310.lineTo(p.x, p.y);
+                sctx1310.stroke();
+            });
+        }
+    </script>
+    <p><em>Attendu : FAIL - signature/dessin par trajectoire détecté SANS alternative.</em></p>
+</section>
+
+<!-- -------------------------------------------------------------------------
+     Cas particuliers 13.10.2 : Signature, dessin libre, pattern lock essentiel
+     ------------------------------------------------------------------------- -->
+<section class="test-section">
+    <h2>Test 13.10.2 - Cas particulier : Pad signature SANS gestionnaire (NOT_APPLICABLE)</h2>
+    <p>Canvas signature statique (affichage seulement) :</p>
+    <canvas id="sigStatic" width="400" height="150" style="border: 2px solid #ccc; background: #f9f9f9;"></canvas>
+    <script>
+        const s = document.getElementById('sigStatic');
+        const sctxStatic = s?.getContext('2d');
+        if (sctxStatic) { sctxStatic.font = '20px cursive'; sctxStatic.fillStyle = '#999'; sctxStatic.textAlign = 'center'; sctxStatic.fillText('Signature enregistrée', 200, 80); }
+    </script>
+    <p><em>Attendu : NOT_APPLICABLE - pad signature détecté MAIS pas de gestionnaire de trajectoire (touchmove avec lineTo).</em></p>
+</section>
+
+<section class="test-section">
+    <h2>Test 13.10.2 - Cas particulier : Pad signature AVEC gestionnaire (NEEDS_REVIEW)</h2>
+    <p>Pad de signature actif sans alternative :</p>
+    <canvas id="sigActive" width="400" height="150" style="border: 2px solid #333; background: white; cursor: crosshair; touch-action: none;"></canvas>
+    <script>
+        const sa = document.getElementById('sigActive');
+        const sactx = sa?.getContext('2d');
+        if (sactx) { sactx.lineWidth = 2; sactx.lineCap = 'round'; sactx.strokeStyle = '#000'; }
+        sa?.addEventListener('touchmove', function(e) {
+            const r = sa.getBoundingClientRect();
+            sactx.lineTo(e.touches[0].clientX - r.left, e.touches[0].clientY - r.top);
+            sactx.stroke();
+        });
+    </script>
+    <p><em>Attendu : NEEDS_REVIEW - cas particulier signature détecté + gestionnaire trajectoire SANS alternative.</em></p>
+</section>
+
+<section class="test-section">
+    <h2>Test 13.10.2 - Cas particulier : Application dessin libre (NEEDS_REVIEW)</h2>
+    <p>Application de dessin / croquis :</p>
+    <canvas id="sketchPad" width="600" height="400" style="border: 2px solid #333; background: white; cursor: crosshair; touch-action: none;"></canvas>
+    <script>
+        const sk = document.getElementById('sketchPad');
+        const skctx = sk?.getContext('2d');
+        if (skctx) { skctx.lineWidth = 2; skctx.lineCap = 'round'; skctx.strokeStyle = '#000'; }
+        sk?.addEventListener('touchmove', function(e) {
+            const r = sk.getBoundingClientRect();
+            skctx.lineTo(e.touches[0].clientX - r.left, e.touches[0].clientY - r.top);
+            skctx.stroke();
+        });
+    </script>
+    <p><em>Attendu : NEEDS_REVIEW - cas particulier dessin libre détecté + gestionnaire trajectoire.</em></p>
+</section>
+
+<section class="test-section">
+    <h2>Test 13.10.2 - Cas particulier signature AVEC alternative texte (PASS)</h2>
+    <p>Pad signature avec formulaire saisie nom en alternative :</p>
+    <canvas id="sigWithAlt" width="400" height="150" style="border: 2px solid #333; background: white; cursor: crosshair; touch-action: none;"></canvas>
+    <form style="margin-top: 1rem;">
+        <label for="nameInput" style="font-weight: bold; margin-right: 0.5rem;">Votre nom :</label>
+        <input type="text" id="nameInput" placeholder="Saisissez votre nom au clavier" style="padding: 0.5rem; width: 250px;">
+    </form>
+    <script>
+        const swa = document.getElementById('sigWithAlt');
+        const swactx = swa?.getContext('2d');
+        if (swactx) { swactx.lineWidth = 2; swactx.lineCap = 'round'; swactx.strokeStyle = '#000'; }
+        swa?.addEventListener('touchmove', function(e) {
+            const r = swa.getBoundingClientRect();
+            swactx.lineTo(e.touches[0].clientX - r.left, e.touches[0].clientY - r.top);
+            swactx.stroke();
+        });
+    </script>
+    <p><em>Attendu : PASS - cas particulier signature + trajectoire MAIS alternative input text détectée.</em></p>
+</section>
+
+<section class="test-section">
+    <h2>Test 13.10.2 - Drag & drop par trajectoire (FAIL)</h2>
+    <p>Glisser-déposer avec suivi de trajectoire tactile :</p>
+    <div id="draggable" draggable="true" style="width: 150px; height: 100px; background: #007bff; color: white; display: flex; align-items: center; justify-content: center; margin: 1rem auto; cursor: grab; border-radius: 8px; touch-action: none;">Glissez-moi</div>
+    <div id="dropzone" style="width: 300px; height: 150px; border: 3px dashed #ccc; margin: 1rem auto; display: flex; align-items: center; justify-content: center; color: #999;">Zone de dépôt</div>
+    <script>
+        var dragPath = [];
+        const dragEl = document.getElementById('draggable');
+        dragEl?.addEventListener('touchmove', function(e) {
+            dragPath.push({x: e.touches[0].clientX, y: e.touches[0].clientY});
+        });
+    </script>
+    <p><em>Attendu : FAIL - drag & drop trajectoire détecté SANS alternative (boutons, inputs).</em></p>
+</section>
+
+<!-- Test 13.10.2 : Clavier virtuel gestuel -->
+<section class="test-section">
+    <h2>Test 13.10.2 - Clavier virtuel gestuel AVEC input texte (PASS)</h2>
+    <p>Clavier à tracé de trajectoire avec champ texte classique :</p>
+    <div id="virtualKeyboard" style="width: 100%; height: 200px; background: #f0f0f0; border: 1px solid #ccc; margin: 1rem 0; display: flex; align-items: center; justify-content: center; color: #666; touch-action: none;">
+        Clavier virtuel (glisser sur les touches)
+    </div>
+    <div style="text-align: center; margin: 1rem 0;">
+        <label for="textInput" style="font-weight: bold; margin-right: 0.5rem;">Saisie :</label>
+        <input type="text" id="textInput" placeholder="Ou saisissez au clavier ici" style="padding: 0.5rem; width: 300px;">
+    </div>
+    <script>
+        const vk = document.getElementById('virtualKeyboard');
+        vk?.addEventListener('touchmove', function(e) {
+            trackKeyTrajectory(e.touches[0].clientX, e.touches[0].clientY);
+        });
+        function trackKeyTrajectory(x, y) { console.log('Key trajectory:', x, y); }
+    </script>
+    <p><em>Attendu : PASS - clavier virtuel trajectoire détecté MAIS input text alternative détecté.</em></p>
+</section>
+
+<!-- -------------------------------------------------------------------------
+     Tests de priorité / résultats mixtes
+     ------------------------------------------------------------------------- -->
+<section class="test-section">
+    <h2>Test 13.10.1 - Multiples gestes : un avec alt (PASS), un sans (FAIL) -> FAIL</h2>
+    <p>Carte avec pinch-zoom + boutons (PASS) ET image avec rotation 2 doigts sans boutons (FAIL) :</p>
+    <div id="mapMixed" style="width: 100%; height: 150px; background: #e8f4fd; border: 1px solid #ccc; margin-bottom: 1rem; display: flex; align-items: center; justify-content: center;">Carte (pinch + boutons)</div>
+    <button onclick="zoomInMixed()">+</button>
+    <button onclick="zoomOutMixed()">-</button>
+    <div id="imageMixed" style="width: 200px; height: 200px; background: #ffe8e8; border: 1px solid #fcc; margin: 1rem auto; display: flex; align-items: center; justify-content: center; touch-action: pinch-zoom;">Image (rotation seulement)</div>
+    <script>
+        let s1 = 1, s2 = 0, ia = 0;
+        const mm = document.getElementById('mapMixed');
+        mm?.addEventListener('touchmove', e => { if (e.touches.length >= 2) { const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); if (!s2) s2 = d; mm.style.transform = `scale(${d/s2})`; } });
+        mm?.addEventListener('touchend', () => s2 = 0);
+        const im = document.getElementById('imageMixed');
+        im?.addEventListener('touchmove', e => { if (e.touches.length >= 2) { const a = Math.atan2(e.touches[1].clientY - e.touches[0].clientY, e.touches[1].clientX - e.touches[0].clientX) * 180/Math.PI; if (!ia) ia = a; im.style.transform = `rotate(${a-ia}deg)`; } });
+        im?.addEventListener('touchend', () => ia = 0);
+        function zoomInMixed() { s1 = Math.min(3, s1+0.2); mm.style.transform = `scale(${s1})`; }
+        function zoomOutMixed() { s1 = Math.max(0.5, s1-0.2); mm.style.transform = `scale(${s1})`; }
+    </script>
+    <p><em>Attendu : FAIL - priorité FAIL > PASS (rotation sans alternative détectée).</em></p>
+</section>
+
+<section class="test-section">
+    <h2>Test 13.10.2 - Multiples trajectoires : pattern avec PIN (PASS) + dessin sans alt (FAIL) -> FAIL</h2>
+    <p>Pattern lock avec alternative PIN + Canvas dessin sans alternative :</p>
+    <div id="patternMixed" style="width: 200px; height: 200px; background: #f0f0f0; border: 2px solid #999; margin: 1rem auto; display: flex; align-items: center; justify-content: center; touch-action: none;">Pattern</div>
+    <input type="password" id="pinMixed" placeholder="PIN" style="display: block; margin: 0.5rem auto; padding: 0.5rem; width: 150px;">
+    <canvas id="drawMixed" width="300" height="200" style="border: 2px solid #fcc; background: #fff8f8; display: block; margin: 1rem auto; touch-action: none;"></canvas>
+    <script>
+        const pm = document.getElementById('patternMixed');
+        pm?.addEventListener('touchmove', e => { console.log('Pattern trajectory'); });
+        const dm = document.getElementById('drawMixed');
+        const dmctx = dm?.getContext('2d');
+        if (dmctx) { dmctx.lineWidth = 2; dmctx.lineCap = 'round'; dmctx.strokeStyle = '#000'; }
+        dm?.addEventListener('touchmove', e => { const r = dm.getBoundingClientRect(); dmctx.lineTo(e.touches[0].clientX - r.left, e.touches[0].clientY - r.top); dmctx.stroke(); });
+    </script>
+    <p><em>Attendu : FAIL - priorité FAIL > PASS (dessin sans alternative détecté).</em></p>
+</section>
+
 </body>
 </html>
