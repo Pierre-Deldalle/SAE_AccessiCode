@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="author" content="Équipe AccessiCode" /><link rel="canonical" href="https://Pierre-Deldalle.github.io/SAE_AccessiCode/guide_utilisateur/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Guide utilisateur - AccessiCode - AccessiCode</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Guide utilisateur - AccessiCode";
+        var mkdocs_page_input_path = "guide_utilisateur.md";
+        var mkdocs_page_url = "/SAE_AccessiCode/guide_utilisateur/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> AccessiCode
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Accueil</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Utiliser AccessiCode</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../prise-en-main/">Prise en main</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../comprendre-resultats/">Comprendre les résultats</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Accessibilité</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../controles-rgaa/">Contrôles RGAA disponibles</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../verification-humaine/">Vérification humaine</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../limites/">Limites d'AccessiCode</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Aide</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../depannage/">Dépannage</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../glossaire/">Glossaire</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">AccessiCode</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Guide utilisateur - AccessiCode</li>
+    <li class="wy-breadcrumbs-aside">
+          <a href="https://github.com/Pierre-Deldalle/SAE_AccessiCode/edit/master/docs/guide_utilisateur.md">Edit on SAE_AccessiCode</a>
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="guide-utilisateur">Guide utilisateur<a class="headerlink" href="#guide-utilisateur" title="Permanent link">&para;</a></h1>
+<h2 id="1-a-quoi-sert-accessicode">1. À quoi sert AccessiCode ?<a class="headerlink" href="#1-a-quoi-sert-accessicode" title="Permanent link">&para;</a></h2>
+<p>AccessiCode aide à repérer des problèmes d’accessibilité dans une page Web.
+L’accessibilité désigne la possibilité, pour toutes les personnes, y compris
+celles qui utilisent un lecteur d’écran ou une autre aide technique, de
+consulter et d’utiliser un site.</p>
+<p>L’application analyse le code HTML et des captures du site fourni et présente les résultats de
+contrôles du RGAA (Référentiel général d’amélioration de
+l’accessibilité). Elle utilise des règles automatiques et, pour certaines
+observations, une analyse par intelligence artificielle.</p>
+<p>AccessiCode est un outil d’aide au diagnostic. Il ne délivre pas de
+certification et ne remplace pas un audit humain complet.</p>
+<h2 id="2-avant-de-commencer">2. Avant de commencer<a class="headerlink" href="#2-avant-de-commencer" title="Permanent link">&para;</a></h2>
+<p>L’application est destinée en priorité aux développeurs, mais aussi aux personnes qui souhaitent obtenir
+un premier état des lieux d’une page HTML. Il est utile de disposer de :</p>
+<ul>
+<li>la page HTML à analyser, ou de son contenu à copier-coller ;</li>
+<li>ses images et les fichiers associés si l’analyse est faite à partir d’un
+  fichier HTML ;</li>
+</ul>
+<p>Le service d’intelligence artificielle doit également être disponible pour les analyses qui en dépendent. Si ce service n’est pas accessible, l’analyse peut échouer ou demander une vérification manuelle.</p>
+<h2 id="3-demarrer-une-analyse-html">3. Démarrer une analyse HTML<a class="headerlink" href="#3-demarrer-une-analyse-html" title="Permanent link">&para;</a></h2>
+<ol>
+<li>Ouvrez AccessiCode.</li>
+<li>Dans l’onglet <strong>LLM - Audit HTML</strong>, collez le code HTML dans le champ
+   <strong>Code HTML à analyser</strong>, ou chargez un fichier <code>.html</code>.</li>
+<li>Si vous utilisez un fichier, joignez aussi les fichiers nécessaires à son
+   affichage lorsque l’interface le permet, notamment les images.</li>
+<li>Cliquez sur <strong>Lancer l’audit LLM</strong>.</li>
+<li>Attendez l’affichage du tableau des résultats et du rapport détaillé.</li>
+</ol>
+<p>Un seul des deux modes d’entrée est nécessaire : le fichier HTML est utilisé en priorité lorsqu’il est fourni ; sinon, le contenu collé est analysé.</p>
+<h3 id="conseils-pour-obtenir-un-resultat-exploitable">Conseils pour obtenir un résultat exploitable<a class="headerlink" href="#conseils-pour-obtenir-un-resultat-exploitable" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Utilisez le HTML réellement livré au navigateur, plutôt qu’un extrait très court qui ne contient pas les éléments à contrôler.</li>
+<li>Vérifiez que le fichier possède bien l’extension <code>.html</code>.</li>
+<li>Analysez une page à la fois lorsque vous cherchez à comprendre une
+  anomalie précise.</li>
+</ul>
+<h2 id="4-analyser-une-image-seule">4. Analyser une image seule<a class="headerlink" href="#4-analyser-une-image-seule" title="Permanent link">&para;</a></h2>
+<p>L’onglet <strong>VLM - Audit d’image</strong> permet d’obtenir une première analyse d’une
+image sans fournir toute une page HTML.</p>
+<ol>
+<li>Ouvrez l’onglet <strong>VLM - Audit d’image</strong>.</li>
+<li>Chargez une image dans le champ <strong>Image à analyser</strong>.</li>
+<li>Cliquez sur <strong>Lancer l’audit VLM</strong>.</li>
+<li>Consultez le tableau et la réponse détaillée.</li>
+</ol>
+<h2 id="5-comprendre-les-resultats">5. Comprendre les résultats<a class="headerlink" href="#5-comprendre-les-resultats" title="Permanent link">&para;</a></h2>
+<p>Le tableau présente une ligne par contrôle exécuté :</p>
+<table>
+<thead>
+<tr>
+<th>Colonne</th>
+<th>Signification</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Critère</td>
+<td>Identifiant du contrôle RGAA concerné.</td>
+</tr>
+<tr>
+<td>Statut</td>
+<td>Conclusion automatique du contrôle.</td>
+</tr>
+<tr>
+<td>Éléments testés</td>
+<td>Nombre d’éléments examinés.</td>
+</tr>
+<tr>
+<td>Résumé</td>
+<td>Explication courte du résultat.</td>
+</tr>
+<tr>
+<td>Anomalies</td>
+<td>Nombre d’observations à examiner.</td>
+</tr>
+</tbody>
+</table>
+<p>Le rapport détaillé complète le tableau avec les éléments concernés, les
+preuves disponibles et, lorsque c’est possible, une recommandation.</p>
+<h3 id="les-statuts">Les statuts<a class="headerlink" href="#les-statuts" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong><code>pass</code></strong> : aucune anomalie n’a été détectée par ce contrôle.</li>
+<li><strong><code>fail</code></strong> : une ou plusieurs anomalies ont été détectées ; elles doivent
+  être corrigées ou confirmées.</li>
+<li><strong><code>needs_review</code></strong> : l’outil ne peut pas conclure de façon fiable ; une
+  personne doit vérifier le résultat.</li>
+<li><strong><code>not_applicable</code></strong> : aucun élément correspondant au contrôle n’a été
+  trouvé dans la page analysée.</li>
+<li><strong><code>not_tested</code></strong> : le contrôle n’a pas été exécuté.</li>
+<li><strong><code>error</code></strong> : une erreur a empêché le contrôle d’aboutir.</li>
+</ul>
+<p>Un résultat <code>pass</code> signifie seulement que le contrôle automatique n’a pas
+trouvé de problème dans les éléments examinés. Il ne signifie pas que la page est entièrement accessible.</p>
+<h2 id="6-perimetre-des-controles-actuels">6. Périmètre des contrôles actuels<a class="headerlink" href="#6-perimetre-des-controles-actuels" title="Permanent link">&para;</a></h2>
+<p>L’audit HTML utilise actuellement les contrôles suivants :</p>
+<table>
+<thead>
+<tr>
+<th>Critère</th>
+<th>Sujet contrôlé</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1.1</td>
+<td>Alternatives textuelles des images.</td>
+</tr>
+<tr>
+<td>1.7</td>
+<td>Présence et pertinence des descriptions détaillées lorsque nécessaire.</td>
+</tr>
+<tr>
+<td>5.1</td>
+<td>Informations associées aux tableaux.</td>
+</tr>
+<tr>
+<td>8.1</td>
+<td>Conformité générale du type de document HTML.</td>
+</tr>
+<tr>
+<td>8.4</td>
+<td>Cohérence de la langue déclarée dans le document.</td>
+</tr>
+<tr>
+<td>8.5</td>
+<td>Présence d’une langue par défaut.</td>
+</tr>
+<tr>
+<td>8.6</td>
+<td>Pertinence du titre de la page.</td>
+</tr>
+<tr>
+<td>11.1</td>
+<td>Présence d’une étiquette pour les champs de formulaire.</td>
+</tr>
+</tbody>
+</table>
+<p>Ces critères regroupent actuellement 12 contrôles internes. La couverture
+est partielle : les autres critères RGAA ne sont pas nécessairement analysés.
+La liste peut évoluer avec les versions de l’application.</p>
+<h2 id="7-verification-humaine-indispensable">7. Vérification humaine indispensable<a class="headerlink" href="#7-verification-humaine-indispensable" title="Permanent link">&para;</a></h2>
+<p>L’intelligence artificielle peut se tromper, manquer un élément ou interpréter incorrectement son contexte. Toute anomalie importante doit être vérifiée dans la page réelle, avec ses interactions et ses contenus.</p>
+<p>Pour chaque résultat <code>fail</code> ou <code>needs_review</code> :</p>
+<ol>
+<li>repérez l’élément signalé dans le code ou dans la page affichée ;</li>
+<li>vérifiez que l’observation correspond bien au contenu visible et au contexte de l’utilisateur ;</li>
+<li>contrôlez le résultat au clavier et si possible, avec un lecteur d’écran ;</li>
+<li>appliquez la correction adaptée ;</li>
+<li>relancez l’analyse, puis validez manuellement la correction.</li>
+</ol>
+<p>Une revue humaine doit notamment vérifier :</p>
+<ul>
+<li>la pertinence réelle des textes alternatifs, et pas seulement leur
+  présence ;</li>
+<li>la compréhension des intitulés, des consignes et des messages d’erreur ;</li>
+<li>l’ordre de navigation au clavier et la visibilité du focus ;</li>
+<li>les changements de contenu, les menus, les fenêtres et les formulaires ;</li>
+<li>les contrastes, les tailles de texte et les informations transmises par la couleur ;</li>
+<li>le comportement sur différents navigateurs, tailles d’écran et appareils d’assistance.</li>
+</ul>
+<h2 id="8-limites-de-loutil">8. Limites de l’outil<a class="headerlink" href="#8-limites-de-loutil" title="Permanent link">&para;</a></h2>
+<p>AccessiCode présente plusieurs limites à garder à l’esprit :</p>
+<ul>
+<li>il analyse principalement le HTML fourni et ne reproduit pas toutes les interactions d’un site complet ;</li>
+<li>les conclusions produites par l’IA sont probabilistes et peuvent être incomplètes ou incorrectes ;</li>
+<li>une image seule ne fournit pas le contexte éditorial de la page ;</li>
+<li>une ressource absente, un fichier invalide ou un service IA indisponible peut produire une erreur ou un résultat incomplet.</li>
+</ul>
+<p>Les résultats doivent donc être utilisés comme une aide pour prioriser les vérifications et les corrections, jamais comme une preuve suffisante de conformité.</p>
+<h2 id="9-resoudre-les-problemes-courants">9. Résoudre les problèmes courants<a class="headerlink" href="#9-resoudre-les-problemes-courants" title="Permanent link">&para;</a></h2>
+<h3 id="veuillez-coller-du-html-ou-charger-un-fichier-html">« Veuillez coller du HTML ou charger un fichier .html. »<a class="headerlink" href="#veuillez-coller-du-html-ou-charger-un-fichier-html" title="Permanent link">&para;</a></h3>
+<p>Ajoutez du contenu dans le champ HTML ou chargez un fichier dont le nom se termine par <code>.html</code>.</p>
+<h3 id="lanalyse-renvoie-error">L’analyse renvoie <code>error</code><a class="headerlink" href="#lanalyse-renvoie-error" title="Permanent link">&para;</a></h3>
+<p>Vérifiez que le fichier est lisible, que ses ressources sont disponibles et que le service d’intelligence artificielle est démarré. Relancez ensuite l’analyse avec une page plus simple pour isoler le problème.</p>
+<h3 id="le-tableau-est-vide">Le tableau est vide<a class="headerlink" href="#le-tableau-est-vide" title="Permanent link">&para;</a></h3>
+<p>Consultez le rapport détaillé et vérifiez le message affiché. Aucun résultat ne peut être produit si l’entrée est vide, si le fichier n’est pas reconnu ou si l’analyse a échoué avant l’exécution des contrôles.</p>
+<h3 id="le-resultat-parait-incorrect">Le résultat paraît incorrect<a class="headerlink" href="#le-resultat-parait-incorrect" title="Permanent link">&para;</a></h3>
+<p>Comparez l’observation avec la page réellement affichée. Notez le contexte, effectuez la vérification humaine décrite au chapitre 7 et ne corrigez pas le code uniquement sur la base d’une suggestion de l’IA.</p>
+<h2 id="10-glossaire">10. Glossaire<a class="headerlink" href="#10-glossaire" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Accessibilité</strong> : capacité d’un service à être utilisé par des personnes
+  ayant des besoins et des moyens d’accès différents.</li>
+<li><strong>HTML</strong> : langage utilisé pour structurer le contenu d’une page Web.</li>
+<li><strong>RGAA</strong> : référentiel français proposant des critères et des tests pour évaluer l’accessibilité d’un site.</li>
+<li><strong>Critère</strong> : règle générale du RGAA, pouvant regrouper plusieurs tests.</li>
+<li><strong>Audit</strong> : examen structuré destiné à repérer des écarts et à guider les corrections.</li>
+<li><strong>IA</strong> : intelligence artificielle utilisée ici pour compléter certains contrôles et formuler des observations.</li>
+</ul>
+<h2 id="11-resume-du-parcours-recommande">11. Résumé du parcours recommandé<a class="headerlink" href="#11-resume-du-parcours-recommande" title="Permanent link">&para;</a></h2>
+<ol>
+<li>Préparez le HTML et ses ressources.</li>
+<li>Lancez l’audit HTML.</li>
+<li>Traitez d’abord les résultats <code>fail</code> et <code>error</code>.</li>
+<li>Vérifiez manuellement les résultats <code>needs_review</code>.</li>
+<li>Corrigez la page et relancez l’analyse.</li>
+<li>Complétez avec une revue humaine de l’ensemble des parcours et des critères non couverts.</li>
+</ol>
+              
+            </div>
+          </div><footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/Pierre-Deldalle/SAE_AccessiCode" class="fa fa-code-fork" style="color: #fcfcfc"> SAE_AccessiCode</a>
+        </span>
+    
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

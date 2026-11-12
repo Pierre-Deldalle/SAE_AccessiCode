@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="author" content="Équipe AccessiCode" /><link rel="canonical" href="https://Pierre-Deldalle.github.io/SAE_AccessiCode/comprendre-resultats/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Comprendre les résultats - AccessiCode</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Comprendre les r\u00e9sultats";
+        var mkdocs_page_input_path = "comprendre-resultats.md";
+        var mkdocs_page_url = "/SAE_AccessiCode/comprendre-resultats/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> AccessiCode
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Accueil</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Utiliser AccessiCode</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../prise-en-main/">Prise en main</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Comprendre les résultats</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#tableau-des-resultats">Tableau des résultats</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#signification-des-statuts">Signification des statuts</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#pass">pass</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#fail">fail</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#needs_review">needs_review</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#not_applicable">not_applicable</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#not_tested">not_tested</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#error">error</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#verifier-les-resultats">Vérifier les résultats</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#pourquoi-une-verification-humaine-reste-necessaire">Pourquoi une vérification humaine reste nécessaire</a>
+    </li>
+    </ul>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Accessibilité</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../controles-rgaa/">Contrôles RGAA disponibles</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../verification-humaine/">Vérification humaine</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../limites/">Limites d'AccessiCode</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Aide</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../depannage/">Dépannage</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../glossaire/">Glossaire</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">AccessiCode</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">Utiliser AccessiCode</li>
+      <li class="breadcrumb-item active">Comprendre les résultats</li>
+    <li class="wy-breadcrumbs-aside">
+          <a href="https://github.com/Pierre-Deldalle/SAE_AccessiCode/edit/master/docs/comprendre-resultats.md">Edit on SAE_AccessiCode</a>
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="comprendre-les-resultats">Comprendre les résultats<a class="headerlink" href="#comprendre-les-resultats" title="Permanent link">&para;</a></h1>
+<p>Après une analyse, AccessiCode affiche un tableau récapitulatif contenant les contrôles exécutés et leurs résultats.</p>
+<h2 id="tableau-des-resultats">Tableau des résultats<a class="headerlink" href="#tableau-des-resultats" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Colonne</th>
+<th>Signification</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Critère</strong></td>
+<td>Identifiant du contrôle RGAA concerné.</td>
+</tr>
+<tr>
+<td><strong>Statut</strong></td>
+<td>Conclusion obtenue pour le contrôle.</td>
+</tr>
+<tr>
+<td><strong>Éléments testés</strong></td>
+<td>Nombre d'éléments examinés.</td>
+</tr>
+<tr>
+<td><strong>Résumé</strong></td>
+<td>Explication courte du résultat.</td>
+</tr>
+<tr>
+<td><strong>Anomalies</strong></td>
+<td>Nombre d'observations nécessitant une attention particulière.</td>
+</tr>
+</tbody>
+</table>
+<p>Un rapport détaillé peut compléter ce tableau avec les éléments concernés, les preuves disponibles et, lorsque cela est possible, une recommandation.</p>
+<h2 id="signification-des-statuts">Signification des statuts<a class="headerlink" href="#signification-des-statuts" title="Permanent link">&para;</a></h2>
+<h3 id="pass"><code>pass</code><a class="headerlink" href="#pass" title="Permanent link">&para;</a></h3>
+<p>Le contrôle exécuté n'a détecté aucune anomalie dans les éléments examinés.</p>
+<p>Cela ne signifie pas que la page entière est conforme au RGAA.</p>
+<h3 id="fail"><code>fail</code><a class="headerlink" href="#fail" title="Permanent link">&para;</a></h3>
+<p>Une ou plusieurs anomalies ont été détectées.</p>
+<p>Les éléments concernés doivent être examinés afin de confirmer le problème et d'appliquer, si nécessaire, une correction.</p>
+<h3 id="needs_review"><code>needs_review</code><a class="headerlink" href="#needs_review" title="Permanent link">&para;</a></h3>
+<p>AccessiCode ne dispose pas de suffisamment d'informations ou de certitude pour conclure automatiquement.</p>
+<p>Une vérification humaine est nécessaire.</p>
+<h3 id="not_applicable"><code>not_applicable</code><a class="headerlink" href="#not_applicable" title="Permanent link">&para;</a></h3>
+<p>Aucun élément correspondant au contrôle n'a été trouvé dans la page.</p>
+<p>Le contrôle ne s'applique donc pas au contenu analysé.</p>
+<h3 id="not_tested"><code>not_tested</code><a class="headerlink" href="#not_tested" title="Permanent link">&para;</a></h3>
+<p>Le contrôle n'a pas été exécuté.</p>
+<p>Cela peut notamment arriver lorsqu'une information ou un service nécessaire à l'analyse n'est pas disponible.</p>
+<h3 id="error"><code>error</code><a class="headerlink" href="#error" title="Permanent link">&para;</a></h3>
+<p>Une erreur technique a empêché le contrôle d'aboutir.</p>
+<p>Il est alors nécessaire de consulter les informations associées au résultat afin d'identifier la cause du problème.</p>
+<h2 id="verifier-les-resultats">Vérifier les résultats<a class="headerlink" href="#verifier-les-resultats" title="Permanent link">&para;</a></h2>
+<p>Une attention particulière doit être portée aux résultats <code>fail</code>, <code>needs_review</code> et <code>error</code>.</p>
+<p>Pour un résultat <code>fail</code> ou <code>needs_review</code> :</p>
+<ol>
+<li>repérez l'élément concerné dans la page ou dans son code ;</li>
+<li>vérifiez l'observation dans son contexte réel ;</li>
+<li>effectuez si nécessaire une vérification au clavier ou avec une technologie d'assistance ;</li>
+<li>appliquez la correction appropriée ;</li>
+<li>relancez AccessiCode ;</li>
+<li>vérifiez manuellement que le problème est réellement résolu.</li>
+</ol>
+<h2 id="pourquoi-une-verification-humaine-reste-necessaire">Pourquoi une vérification humaine reste nécessaire<a class="headerlink" href="#pourquoi-une-verification-humaine-reste-necessaire" title="Permanent link">&para;</a></h2>
+<p>Certaines questions d'accessibilité ne peuvent pas être déterminées uniquement à partir du code source.</p>
+<p>Une vérification humaine peut notamment être nécessaire pour évaluer :</p>
+<ul>
+<li>la pertinence réelle d'un texte alternatif ;</li>
+<li>la compréhension d'un intitulé ou d'une consigne ;</li>
+<li>la cohérence d'un message d'erreur ;</li>
+<li>l'ordre de navigation au clavier ;</li>
+<li>la visibilité du focus ;</li>
+<li>le comportement des menus ou fenêtres interactives ;</li>
+<li>les changements dynamiques de contenu ;</li>
+<li>les informations transmises uniquement par la couleur ;</li>
+<li>le comportement avec différentes technologies d'assistance.</li>
+</ul>
+<p>Les résultats d'AccessiCode doivent donc être considérés comme une aide à l'analyse et non comme une preuve suffisante de conformité.</p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../prise-en-main/" class="btn btn-neutral float-left" title="Prise en main"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../controles-rgaa/" class="btn btn-neutral float-right" title="Contrôles RGAA disponibles">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/Pierre-Deldalle/SAE_AccessiCode" class="fa fa-code-fork" style="color: #fcfcfc"> SAE_AccessiCode</a>
+        </span>
+    
+    
+      <span><a href="../prise-en-main/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../controles-rgaa/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="author" content="Équipe AccessiCode" /><link rel="canonical" href="https://Pierre-Deldalle.github.io/SAE_AccessiCode/limites/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Limites d'AccessiCode - AccessiCode</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Limites d\u0027AccessiCode";
+        var mkdocs_page_input_path = "limites.md";
+        var mkdocs_page_url = "/SAE_AccessiCode/limites/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> AccessiCode
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Accueil</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Utiliser AccessiCode</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../prise-en-main/">Prise en main</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../comprendre-resultats/">Comprendre les résultats</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Accessibilité</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../controles-rgaa/">Contrôles RGAA disponibles</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../verification-humaine/">Vérification humaine</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Limites d'AccessiCode</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#couverture-partielle-du-rgaa">Couverture partielle du RGAA</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#analyse-principalement-basee-sur-les-donnees-fournies">Analyse principalement basée sur les données fournies</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#interactions-complexes">Interactions complexes</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#analyse-par-intelligence-artificielle">Analyse par intelligence artificielle</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#analyse-dune-image-seule">Analyse d'une image seule</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#ressources-externes">Ressources externes</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#accessicode-nest-pas-un-outil-de-certification">AccessiCode n'est pas un outil de certification</a>
+    </li>
+    </ul>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Aide</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../depannage/">Dépannage</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../glossaire/">Glossaire</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">AccessiCode</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">Accessibilité</li>
+      <li class="breadcrumb-item active">Limites d'AccessiCode</li>
+    <li class="wy-breadcrumbs-aside">
+          <a href="https://github.com/Pierre-Deldalle/SAE_AccessiCode/edit/master/docs/limites.md">Edit on SAE_AccessiCode</a>
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="limites-daccessicode">Limites d'AccessiCode<a class="headerlink" href="#limites-daccessicode" title="Permanent link">&para;</a></h1>
+<p>AccessiCode est conçu comme un outil d'assistance à l'analyse de l'accessibilité.</p>
+<p>Il possède volontairement plusieurs limites qu'il est important de connaître avant d'interpréter ses résultats.</p>
+<h2 id="couverture-partielle-du-rgaa">Couverture partielle du RGAA<a class="headerlink" href="#couverture-partielle-du-rgaa" title="Permanent link">&para;</a></h2>
+<p>AccessiCode ne couvre actuellement qu'une partie des critères et tests du RGAA.</p>
+<p>Un contrôle non implémenté n'est pas vérifié automatiquement.</p>
+<p>L'absence d'anomalie dans AccessiCode ne signifie donc pas qu'une page est conforme à l'ensemble du référentiel.</p>
+<h2 id="analyse-principalement-basee-sur-les-donnees-fournies">Analyse principalement basée sur les données fournies<a class="headerlink" href="#analyse-principalement-basee-sur-les-donnees-fournies" title="Permanent link">&para;</a></h2>
+<p>La qualité d'une analyse dépend directement des informations transmises à l'application.</p>
+<p>Un fichier HTML incomplet, un extrait très court ou une ressource manquante peut rendre certains contrôles impossibles ou moins fiables.</p>
+<h2 id="interactions-complexes">Interactions complexes<a class="headerlink" href="#interactions-complexes" title="Permanent link">&para;</a></h2>
+<p>L'analyse d'un document HTML ne permet pas toujours de reproduire toutes les interactions possibles d'un site réel.</p>
+<p>Certaines fonctionnalités peuvent dépendre :</p>
+<ul>
+<li>de JavaScript ;</li>
+<li>d'un état de l'application ;</li>
+<li>d'une action de l'utilisateur ;</li>
+<li>de données chargées dynamiquement ;</li>
+<li>d'une authentification ;</li>
+<li>d'un changement de page ou de contexte.</li>
+</ul>
+<p>Ces situations peuvent nécessiter une analyse manuelle supplémentaire.</p>
+<h2 id="analyse-par-intelligence-artificielle">Analyse par intelligence artificielle<a class="headerlink" href="#analyse-par-intelligence-artificielle" title="Permanent link">&para;</a></h2>
+<p>Certaines décisions peuvent être confiées à une intelligence artificielle lorsque le contrôle nécessite une interprétation sémantique ou visuelle.</p>
+<p>Ces analyses sont probabilistes.</p>
+<p>Une intelligence artificielle peut notamment :</p>
+<ul>
+<li>se tromper ;</li>
+<li>mal interpréter un contexte ;</li>
+<li>produire une réponse trop prudente ;</li>
+<li>produire au contraire une conclusion trop catégorique ;</li>
+<li>manquer une information importante.</li>
+</ul>
+<p>Les conclusions importantes doivent donc être vérifiées par une personne.</p>
+<h2 id="analyse-dune-image-seule">Analyse d'une image seule<a class="headerlink" href="#analyse-dune-image-seule" title="Permanent link">&para;</a></h2>
+<p>Une image analysée indépendamment d'une page ne fournit pas son contexte complet.</p>
+<p>Une même image peut avoir des usages différents selon :</p>
+<ul>
+<li>le texte qui l'entoure ;</li>
+<li>sa fonction ;</li>
+<li>la présence d'une légende ;</li>
+<li>la présence d'une alternative textuelle ;</li>
+<li>l'action proposée à l'utilisateur.</li>
+</ul>
+<p>Une analyse isolée doit donc être interprétée avec prudence.</p>
+<h2 id="ressources-externes">Ressources externes<a class="headerlink" href="#ressources-externes" title="Permanent link">&para;</a></h2>
+<p>Une ressource absente ou inaccessible peut empêcher certains contrôles d'aboutir.</p>
+<p>Cela peut produire :</p>
+<ul>
+<li>un résultat incomplet ;</li>
+<li><code>not_tested</code> ;</li>
+<li><code>needs_review</code> ;</li>
+<li><code>error</code>.</li>
+</ul>
+<h2 id="accessicode-nest-pas-un-outil-de-certification">AccessiCode n'est pas un outil de certification<a class="headerlink" href="#accessicode-nest-pas-un-outil-de-certification" title="Permanent link">&para;</a></h2>
+<p>AccessiCode ne délivre aucune certification de conformité.</p>
+<p>Les résultats doivent être utilisés pour :</p>
+<ul>
+<li>repérer des anomalies potentielles ;</li>
+<li>accélérer certaines vérifications ;</li>
+<li>aider à prioriser les corrections ;</li>
+<li>compléter le travail d'un développeur ou d'un auditeur.</li>
+</ul>
+<p>Ils ne constituent pas, à eux seuls, une preuve de conformité au RGAA.</p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../verification-humaine/" class="btn btn-neutral float-left" title="Vérification humaine"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../depannage/" class="btn btn-neutral float-right" title="Dépannage">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/Pierre-Deldalle/SAE_AccessiCode" class="fa fa-code-fork" style="color: #fcfcfc"> SAE_AccessiCode</a>
+        </span>
+    
+    
+      <span><a href="../verification-humaine/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../depannage/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>
