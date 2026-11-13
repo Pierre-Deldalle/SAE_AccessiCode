@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from ai_fakes import relevance, text_services
+
 from accessi_code.input.context_builder import AuditContextBuilder
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_11_forms.criterion_11_3 import Test1132
@@ -13,6 +15,7 @@ def test_builder_populates_page_doms_and_1132(tmp_path: Path, run_rgaa):
     context = AuditContextBuilder(tmp_path / "workspace").build([first, second])
     assert set(context.page_doms) == {"index.html", "contact.html"}
     assert context.dom is context.page_doms["index.html"]
-    result = run_rgaa(Test1132(), context)
+    # Libellés différents (« Courriel » / « E-mail ») : cohérence jugée par l'IA.
+    result = run_rgaa(Test1132(), context, text_services(relevance_answer=relevance(True)))
     assert result.status == Status.PASS
     assert result.metadata["pages_analyzed"] == 2

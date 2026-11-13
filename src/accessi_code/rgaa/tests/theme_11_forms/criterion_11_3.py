@@ -1,8 +1,13 @@
-"""RGAA 4.1.2 — critère 11.3 : cohérence des étiquettes répétées.
-
-11.3.1 : même page ; 11.3.2 : ensemble de pages.
-Une différence de libellé n'est pas nécessairement une non-conformité.
 """
+RGAA 4.1.2 — critère 11.3 : dans chaque formulaire, chaque étiquette associée
+à un champ ayant la même fonction et répété plusieurs fois dans une même page
+(11.3.1) ou dans un ensemble de pages (11.3.2) est-elle cohérente ?
+
+Les champs sont regroupés par fonction (autocomplete, name, type). Des
+étiquettes identiques (majuscules, accents et ponctuation ignorés) sont
+cohérentes ; des étiquettes différentes sont jugées par l'IA.
+"""
+
 from __future__ import annotations
 
 import re
@@ -13,6 +18,7 @@ from typing import Any
 
 from bs4 import BeautifulSoup, Tag
 
+from accessi_code.ai.schemas import RelevanceItem
 from accessi_code.analysis.dom import (
     find_form_fields,
     get_element_identifier,
@@ -21,8 +27,10 @@ from accessi_code.analysis.dom import (
 )
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
-from accessi_code.models.result import Finding, TestResult, TestStatus
+from accessi_code.models.result import TestResult, TestStatus
+from accessi_code.rgaa.ai_decision import judge_relevance
 from accessi_code.rgaa.base import RGAATest
+from accessi_code.rgaa.outcomes import build_result, make_outcome, not_applicable
 
 
 @dataclass(frozen=True)
@@ -40,34 +48,8 @@ def _clean(value: Any) -> str:
 
 def _normalize(value: str) -> str:
     decomposed = unicodedata.normalize("NFKD", value.casefold())
-    without_accents = "".join(
-        char for char in decomposed if not unicodedata.combining(char)
-    )
+    without_accents = "".join(char for char in decomposed if not unicodedata.combining(char))
     return " ".join(re.sub(r"[^\w]+", " ", without_accents).split())
-
-
-# Equivalences explicites et restreintes : ne pas confondre synonymes et fonctions.
-_EQUIVALENCES = {
-    "email": {"email", "e mail", "courriel", "adresse email", "adresse e mail", "adresse electronique", "votre email", "votre adresse email", "votre courriel"},
-    "phone": {"telephone", "numero de telephone", "tel", "votre telephone", "numero de tel"},
-    "search": {"recherche", "rechercher", "chercher", "search", "recherche sur le site"},
-    "first_name": {"prenom", "votre prenom", "first name"},
-    "last_name": {"nom de famille", "votre nom de famille", "last name"},
-    "name": {"nom", "votre nom", "name"},
-    "postal_code": {"code postal", "votre code postal", "zip code"},
-    "city": {"ville", "votre ville", "city"},
-    "address": {"adresse postale", "adresse", "votre adresse", "postal address"},
-    "url": {"url", "adresse web", "site web", "website"},
-}
-_EQUIVALENCE_LOOKUP = {
-    _normalize(term): group
-    for group, terms in _EQUIVALENCES.items()
-    for term in terms
-}
-
-
-def _meaning(label: str) -> str | None:
-    return _EQUIVALENCE_LOOKUP.get(_normalize(label))
 
 
 def _function_key(field: Tag) -> str | None:
@@ -136,117 +118,68 @@ def _extract(page: str, soup: BeautifulSoup) -> list[_FieldLabel]:
     return result
 
 
-def _compare(
-    test_id: str,
-    criterion_id: str,
+async def _compare(
+    test: RGAATest,
     entries: list[_FieldLabel],
+    services: Any | None,
     *,
     cross_page: bool,
     pages_count: int,
 ) -> TestResult:
     groups: dict[str, list[_FieldLabel]] = defaultdict(list)
     for entry in entries:
-        groups[entry.function].append(entry)
+        # Une étiquette absente relève du critère 11.1, pas de la cohérence.
+        if entry.label:
+            groups[entry.function].append(entry)
 
     repeated = [
-        group for group in groups.values()
-        if len(group) >= 2
-        and (not cross_page or len({item.page for item in group}) >= 2)
+        group
+        for group in groups.values()
+        if len(group) >= 2 and (not cross_page or len({item.page for item in group}) >= 2)
     ]
-    checked = sum(len(group) for group in repeated)
-    failed: list[Finding] = []
-    uncertain: list[Finding] = []
-    confirmed_groups = 0
+    empty_summary = "Aucun groupe de champs ayant la même fonction n'a été identifié."
+    if not repeated:
+        return not_applicable(test, empty_summary)
 
+    outcomes = []
+    differing = []
     for group in repeated:
-        labels = [item.label for item in group]
-        normalized = {_normalize(label) for label in labels}
-        meanings = [_meaning(label) for label in labels]
-        if all(labels) and len(normalized) == 1:
-            confirmed_groups += 1
-            continue
-        if all(labels) and all(meaning is not None for meaning in meanings):
-            if len(set(meanings)) == 1:
-                confirmed_groups += 1
-                continue
-            # Un même name ne prouve pas la même fonction : rester prudent.
-            if not group[0].function.startswith("name:"):
-                target = group[0]
-                failed.append(
-                    Finding(
-                        element=f"{target.page} : {target.identifier}",
-                        message=(
-                            "Des champs identifiés comme ayant la même fonction "
-                            "présentent des étiquettes décrivant des fonctions "
-                            "différentes : "
-                            + " / ".join(f"« {label} »" for label in labels) + "."
-                        ),
-                        recommendation=(
-                            "Vérifier la fonction réelle de ces champs et harmoniser "
-                            "les étiquettes des champs ayant la même fonction."
-                        ),
-                        evidence={
-                            "function_key": target.function,
-                            "labels": [
-                                {"page": item.page, "element": item.identifier, "label": item.label}
-                                for item in group
-                            ],
-                        },
-                    )
-                )
-                continue
+        if len({_normalize(item.label) for item in group}) == 1:
+            outcomes.append(make_outcome(TestStatus.PASS))
+        else:
+            differing.append(group)
 
+    items = [
+        RelevanceItem(
+            text=" / ".join(f"« {item.label} »" for item in group),
+            context=" ; ".join(f"{item.page} : {item.identifier}" for item in group),
+            details={"fonction": group[0].function},
+        )
+        for group in differing
+    ]
+    verdicts = await judge_relevance(services, "label_consistency", items)
+    for group, item, verdict in zip(differing, items, verdicts, strict=True):
         target = group[0]
-        uncertain.append(
-            Finding(
-                element=f"{target.page} : {target.identifier}",
-                message=(
-                    "La cohérence des étiquettes de champs potentiellement "
-                    "équivalents ne peut pas être confirmée automatiquement : "
-                    + " / ".join(f"« {label or '(vide)'} »" for label in labels) + "."
+        outcomes.append(
+            make_outcome(
+                verdict.status,
+                f"{target.page} : {target.identifier}",
+                verdict.message(
+                    f"Les étiquettes des champs de même fonction ne sont pas cohérentes : {item.text}.",
+                    f"La cohérence des étiquettes {item.text} reste à vérifier.",
                 ),
-                recommendation=(
-                    "Vérifier que ces champs remplissent la même fonction "
-                    "et que leurs étiquettes sont cohérentes."
-                ),
-                evidence={
-                    "function_key": target.function,
-                    "labels": [
-                        {"page": item.page, "element": item.identifier, "label": item.label}
-                        for item in group
-                    ],
-                },
+                "Harmoniser les étiquettes des champs qui ont la même fonction.",
+                function_key=target.function,
+                labels=[{"page": entry.page, "element": entry.identifier, "label": entry.label} for entry in group],
+                **verdict.evidence,
             )
         )
-
-    status = (
-        TestStatus.FAIL if failed else
-        TestStatus.NEEDS_REVIEW if uncertain else
-        TestStatus.PASS if repeated else TestStatus.NOT_APPLICABLE
-    )
-    summary = (
-        f"{len(repeated)} groupe(s) de champs répétés, {checked} champ(s) concernés : "
-        f"{len(failed)} incohérence(s) explicite(s), "
-        f"{len(uncertain)} groupe(s) à vérifier, "
-        f"{confirmed_groups} groupe(s) cohérent(s)."
-        if repeated else
-        "Aucun groupe de champs ayant une même fonction répétée n'a pu être identifié."
-    )
-    return TestResult(
-        test_id=test_id,
-        criterion_id=criterion_id,
-        status=status,
-        summary=summary,
-        findings=failed + uncertain,
-        tested_elements=checked,
-        metadata={
-            "pages_analyzed": pages_count,
-            "repeated_groups": len(repeated),
-            "confirmed_groups": confirmed_groups,
-            "failed_groups": len(failed),
-            "review_groups": len(uncertain),
-            "grouping": "autocomplete, name/type, selected input types",
-        },
+    return build_result(
+        test,
+        outcomes,
+        empty_summary=empty_summary,
+        noun="groupe(s) de champs",
+        metadata={"pages_analyzed": pages_count, "repeated_groups": len(repeated)},
     )
 
 
@@ -257,18 +190,11 @@ class Test1131(RGAATest):
     criterion_id = "11.3"
     required_capabilities = frozenset({Capability.DOM})
 
-    async def run(
-        self, context: AuditContext, services: Any | None = None
-    ) -> TestResult:
+    async def run(self, context: AuditContext, services: Any | None = None) -> TestResult:
         soup = context.dom
         if not isinstance(soup, BeautifulSoup):
             raise ValueError("Le test 11.3.1 nécessite un DOM BeautifulSoup.")
-        return _compare(
-            self.test_id, self.criterion_id,
-            _extract("page courante", soup),
-            cross_page=False,
-            pages_count=1,
-        )
+        return await _compare(self, _extract("page courante", soup), services, cross_page=False, pages_count=1)
 
 
 class Test1132(RGAATest):
@@ -283,31 +209,30 @@ class Test1132(RGAATest):
     criterion_id = "11.3"
     required_capabilities = frozenset({Capability.DOM})
 
-    async def run(
-        self, context: AuditContext, services: Any | None = None
-    ) -> TestResult:
+    async def run(self, context: AuditContext, services: Any | None = None) -> TestResult:
         soup = context.dom
         if not isinstance(soup, BeautifulSoup):
             raise ValueError("Le test 11.3.2 nécessite un DOM BeautifulSoup.")
 
         page_doms = getattr(context, "page_doms", None)
         if not isinstance(page_doms, dict) or len(page_doms) < 2:
+            available = len(page_doms) if isinstance(page_doms, dict) else 0
+            if context.site_inventory_complete and available == 1:
+                return not_applicable(self, "Le site ne comporte qu'une seule page.")
             return TestResult(
                 test_id=self.test_id,
                 criterion_id=self.criterion_id,
-                status=TestStatus.NEEDS_REVIEW,
+                status=TestStatus.NOT_TESTED,
                 summary=(
-                    "Le contexte ne contient pas au moins deux DOM identifiés "
-                    "appartenant à un même ensemble de pages : la cohérence "
-                    "inter-pages ne peut pas être vérifiée."
+                    "Une seule page a été fournie : importer les autres pages du site pour "
+                    "vérifier la cohérence des étiquettes entre les pages."
                 ),
                 tested_elements=0,
-                metadata={"pages_available": 0 if not isinstance(page_doms, dict) else len(page_doms)},
+                metadata={"pages_available": available},
             )
 
         if not all(
-            isinstance(page, str) and page.strip() and isinstance(dom, BeautifulSoup)
-            for page, dom in page_doms.items()
+            isinstance(page, str) and page.strip() and isinstance(dom, BeautifulSoup) for page, dom in page_doms.items()
         ):
             return TestResult(
                 test_id=self.test_id,
@@ -317,13 +242,5 @@ class Test1132(RGAATest):
                 tested_elements=0,
             )
 
-        entries = [
-            entry
-            for page, dom in page_doms.items()
-            for entry in _extract(page, dom)
-        ]
-        return _compare(
-            self.test_id, self.criterion_id, entries,
-            cross_page=True,
-            pages_count=len(page_doms),
-        )
+        entries = [entry for page, dom in page_doms.items() for entry in _extract(page, dom)]
+        return await _compare(self, entries, services, cross_page=True, pages_count=len(page_doms))

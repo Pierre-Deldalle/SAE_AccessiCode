@@ -273,7 +273,11 @@ from accessi_code.rgaa.tests.theme_10_presentation_information.criterion_10_14 i
     Test10141,
     Test10142,
 )
-from accessi_code.rgaa.tests.theme_11_forms.criterion_11_1 import Test1111
+from accessi_code.rgaa.tests.theme_11_forms.criterion_11_1 import (
+    Test1111,
+    Test1112,
+    Test1113,
+)
 from accessi_code.rgaa.tests.theme_11_forms.criterion_11_2 import (
     Test1121,
     Test1122,
@@ -417,11 +421,9 @@ def build_default_registry() -> TestRegistry:
             Test193(),
             Test194(),
             Test195(),
-
             # Thème 2 — Cadres
             Test211(),
             Test221(),
-
             # Thème 3 — Couleurs
             Test311(),
             Test312(),
@@ -438,7 +440,6 @@ def build_default_registry() -> TestRegistry:
             Test332(),
             Test333(),
             Test334(),
-
             # Thème 4 — Multimédia
             Test411(),
             Test412(),
@@ -465,7 +466,6 @@ def build_default_registry() -> TestRegistry:
             Test4122(),
             Test4131(),
             Test4132(),
-
             # Thème 5 — Tableaux
             Test511(),
             Test521(),
@@ -482,7 +482,6 @@ def build_default_registry() -> TestRegistry:
             Test574(),
             Test575(),
             Test581(),
-
             # Thème 6 — Liens
             Test611(),
             Test612(),
@@ -490,7 +489,6 @@ def build_default_registry() -> TestRegistry:
             Test614(),
             Test615(),
             Test621(),
-
             # Thème 7 — Scripts
             Test711(),
             Test712(),
@@ -503,7 +501,6 @@ def build_default_registry() -> TestRegistry:
             Test751(),
             Test752(),
             Test753(),
-
             # Thème 8 — Éléments obligatoires
             Test811(),
             Test812(),
@@ -518,7 +515,6 @@ def build_default_registry() -> TestRegistry:
             Test891(),
             Test8101(),
             Test8102(),
-
             # Thème 9 — Structuration de l’information
             Test911(),
             Test912(),
@@ -529,7 +525,6 @@ def build_default_registry() -> TestRegistry:
             Test933(),
             Test941(),
             Test942(),
-
             # Thème 10 — Présentation de l’information
             Test1011(),
             Test1012(),
@@ -562,9 +557,10 @@ def build_default_registry() -> TestRegistry:
             Test10133(),
             Test10141(),
             Test10142(),
-
             # Thème 11 — Formulaires
             Test1111(),
+            Test1112(),
+            Test1113(),
             Test1121(),
             Test1122(),
             Test1123(),
@@ -596,7 +592,6 @@ def build_default_registry() -> TestRegistry:
             Test11121(),
             Test11122(),
             Test11131(),
-
             # Thème 12 — Navigation
             Test1211(),
             Test1221(),

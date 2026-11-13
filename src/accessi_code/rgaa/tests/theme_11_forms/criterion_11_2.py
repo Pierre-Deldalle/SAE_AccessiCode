@@ -1,8 +1,15 @@
-"""RGAA 4.1.2 — critère 11.2 : pertinence des étiquettes de formulaires.
-
-La pertinence sémantique n'est pas déduite d'un simple texte non vide.
-Les cas impossibles à établir depuis le DOM sont laissés à vérifier.
 """
+RGAA 4.1.2 — critère 11.2 : chaque étiquette associée à un champ de formulaire
+est-elle pertinente (hors cas particuliers) ?
+
+- 11.2.1 à 11.2.4 : une étiquette vide est non conforme sans IA ; sinon l'IA
+  juge si elle indique la fonction exacte du champ (type, name, autocomplete
+  et contexte du formulaire fournis).
+- 11.2.5 : l'intitulé visible est contenu dans chaque étiquette (comparaison
+  déterministe ; majuscules et ponctuation ignorées, symboles à vérifier).
+- 11.2.6 : pertinence du bouton adjacent servant d'étiquette visible (IA).
+"""
+
 from __future__ import annotations
 
 import re
@@ -11,16 +18,21 @@ from typing import Any
 
 from bs4 import BeautifulSoup, Tag
 
+from accessi_code.ai.schemas import RelevanceItem
 from accessi_code.analysis.dom import (
     find_form_fields,
     get_element_identifier,
     get_labelledby_text,
     get_wrapping_label,
 )
+from accessi_code.analysis.forms import button_name, button_visible, field_description, form_context
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
 from accessi_code.models.result import Finding, TestResult, TestStatus
+from accessi_code.rgaa.ai_decision import judge_relevance
 from accessi_code.rgaa.base import RGAATest
+from accessi_code.rgaa.outcomes import build_result, make_outcome, not_applicable
+from accessi_code.rgaa.tests.theme_11_forms.criterion_11_1 import adjacent_button
 
 
 def _text(value: Any) -> str:
@@ -44,59 +56,11 @@ def _labels(field: Tag, soup: BeautifulSoup) -> list[Tag]:
 def _normalized(text: str) -> str:
     # RGAA 11.2.5 : majuscules et ponctuation peuvent être ignorées.
     return " ".join(
-        "".join(
-            " " if unicodedata.category(char).startswith("P") else char
-            for char in text.casefold()
-        ).split()
+        "".join(" " if unicodedata.category(char).startswith("P") else char for char in text.casefold()).split()
     )
 
 
-def _relevance(field: Tag, label: str) -> bool | None:
-    """Certitude limitée : vide -> faux ; type/nom explicites -> vrai ; sinon inconnu."""
-    if not _text(label):
-        return False
-    field_type = _text(field.get("type", "")).lower()
-    known = {
-        "email": ("e-mail", "email", "courriel", "adresse e-mail", "adresse email", "adresse électronique"),
-        "tel": ("téléphone", "telephone", "numéro de téléphone"),
-        "password": ("mot de passe", "password"),
-        "search": ("recherche", "rechercher", "search"),
-        "url": ("url", "adresse web", "site web", "lien web"),
-    }
-    if field.name == "input" and field_type in known:
-        normalized = _normalized(label)
-        # Un simple mot-clé contenu dans une phrase peut être trompeur :
-        # n'accepter que des formulations canoniques complètes.
-        accepted = {
-            _normalized(term) for term in known[field_type]
-        } | {
-            _normalized(f"votre {term}") for term in known[field_type]
-        }
-        if normalized in accepted:
-            return True
-    normalized = _normalized(label)
-    # Confirmations DOM à portée limitée : libellés canoniques, cohérents
-    # avec les métadonnées du champ ou la nature explicite du formulaire.
-    field_key = _normalized(field.get("name") or field.get("id") or "")
-    canonical = {
-        "nom": {"nom", "votre nom"},
-        "prenom": {"prenom", "prénom", "votre prénom"},
-        "message": {"message", "votre message"},
-        "demande": {"demande", "demande rapide", "votre demande"},
-        "email": {"email", "adresse email", "adresse e-mail", "courriel"},
-        "q": {"rechercher sur le site", "recherche sur le site"},
-    }
-    if field_key in canonical and normalized in {_normalized(v) for v in canonical[field_key]}:
-        if field_key != "q" or field.find_parent(attrs={"role": "search"}) is not None:
-            return True
-    if normalized in {"rechercher sur le site", "recherche sur le site"}:
-        if field.find_parent(attrs={"role": "search"}) is not None:
-            return True
-    return None
-
-
-def _finding(field: Tag, index: int, message: str, recommendation: str,
-             **evidence: Any) -> Finding:
+def _finding(field: Tag, index: int, message: str, recommendation: str, **evidence: Any) -> Finding:
     return Finding(
         element=get_element_identifier(field, index),
         message=message,
@@ -119,107 +83,110 @@ def _visible(label: Tag) -> bool | None:
 
 
 class _LabelRelevanceTest(RGAATest):
+    """Pertinence des étiquettes fournies par un mécanisme donné (11.2.1 à 11.2.4)."""
+
+    criterion_id = "11.2"
     required_capabilities = frozenset({Capability.DOM})
     mechanism: str = ""
 
-    def _candidates(self, field: Tag, soup: BeautifulSoup) -> list[tuple[str, str]]:
+    def _candidates(self, field: Tag, soup: BeautifulSoup) -> list[str]:
+        """Textes d'étiquette fournis par le mécanisme du test (chaque occurrence est jugée)."""
         if self.mechanism == "label":
-            return [("label", _text(label.get_text(" ", strip=True)))
-                    for label in _labels(field, soup)]
-        if self.mechanism == "title":
-            # title ne fournit normalement le nom qu'en absence de mécanisme prioritaire.
-            if not field.has_attr("title"):
-                return []
-            if field.has_attr("aria-labelledby") or field.has_attr("aria-label"):
-                return []
-            if _labels(field, soup):
-                return []
-            return [("title", _text(field.get("title")))]
-        if self.mechanism == "aria-label":
-            if not field.has_attr("aria-label") or field.has_attr("aria-labelledby"):
-                return []
-            return [("aria-label", _text(field.get("aria-label")))]
+            return [_text(label.get_text(" ", strip=True)) for label in _labels(field, soup)]
+        if self.mechanism in {"title", "aria-label"}:
+            return [_text(field.get(self.mechanism))] if field.has_attr(self.mechanism) else []
         if self.mechanism == "aria-labelledby":
             if not field.has_attr("aria-labelledby"):
                 return []
             valid, value = get_labelledby_text(field, soup)
-            return [("aria-labelledby", value if valid else "")]
+            return [value if valid else ""]
         return []
 
     async def run(self, context: AuditContext, services: Any | None = None) -> TestResult:
         soup = context.dom
         if not isinstance(soup, BeautifulSoup):
-            raise ValueError("Le critère 11.2 nécessite un DOM BeautifulSoup.")
+            raise ValueError(f"Le test {self.test_id} nécessite un DOM.")
 
-        failed: list[Finding] = []
-        uncertain: list[Finding] = []
-        checked = 0
-        passed = 0
+        recommendation = "Rédiger une étiquette qui indique précisément la donnée attendue dans le champ."
+        outcomes = []
+        pending: list[tuple[Tag, int, str]] = []
         for index, field in enumerate(find_form_fields(soup)):
-            candidates = self._candidates(field, soup)
-            if not candidates:
-                continue
-            checked += 1
-            for mechanism, label in candidates:
-                relevance = _relevance(field, label)
-                if relevance is False:
-                    failed.append(_finding(
-                        field, index,
-                        f"L'étiquette {mechanism} est vide et n'indique pas la fonction du champ.",
-                        "Fournir une étiquette décrivant précisément la fonction du champ.",
-                        mechanism=mechanism, label=label,
-                    ))
-                elif relevance is None:
-                    uncertain.append(_finding(
-                        field, index,
-                        f"La pertinence de l'étiquette {mechanism} « {label[:120]} » ne peut pas être établie depuis le DOM.",
-                        "Vérifier que le libellé indique exactement la fonction du champ.",
-                        mechanism=mechanism, label=label,
-                    ))
+            for label in self._candidates(field, soup):
+                if not label:
+                    outcomes.append(
+                        make_outcome(
+                            TestStatus.FAIL,
+                            get_element_identifier(field, index),
+                            f"L'étiquette {self.mechanism} est vide ou référence un passage absent.",
+                            recommendation,
+                        )
+                    )
                 else:
-                    passed += 1
+                    pending.append((field, index, label))
 
-        status = (TestStatus.FAIL if failed else TestStatus.NEEDS_REVIEW if uncertain
-                  else TestStatus.PASS if checked else TestStatus.NOT_APPLICABLE)
-        return TestResult(
-            test_id=self.test_id, criterion_id=self.criterion_id, status=status,
-            summary=(f"{checked} champ(s) concerné(s) : {len(failed)} anomalie(s) certaine(s), "
-                     f"{len(uncertain)} vérification(s) manuelle(s), "
-                     f"{passed} libellé(s) confirmé(s)." if checked
-                     else f"Aucune étiquette {self.mechanism} concernée."),
-            findings=failed + uncertain,
-            tested_elements=checked,
-            metadata={"mechanism": self.mechanism, "failed": len(failed),
-                      "needs_review": len(uncertain), "confirmed_labels": passed},
+        if not outcomes and not pending:
+            return not_applicable(self, f"Aucune étiquette {self.mechanism} dans la page.")
+
+        items = [
+            RelevanceItem(
+                text=label,
+                element_html=str(field)[:300],
+                context=form_context(field, soup),
+                details={"mécanisme": self.mechanism, **field_description(field, soup)},
+            )
+            for field, _, label in pending
+        ]
+        verdicts = await judge_relevance(services, "form_label", items)
+        for (field, index, label), verdict in zip(pending, verdicts, strict=True):
+            outcomes.append(
+                make_outcome(
+                    verdict.status,
+                    get_element_identifier(field, index),
+                    verdict.message(
+                        f"L'étiquette {self.mechanism} « {label[:100]} » n'indique pas la fonction du champ.",
+                        f"La pertinence de l'étiquette {self.mechanism} « {label[:100]} » reste à vérifier.",
+                    ),
+                    recommendation,
+                    label=label,
+                    **verdict.evidence,
+                )
+            )
+        return build_result(
+            self, outcomes, empty_summary=f"Aucune étiquette {self.mechanism} dans la page.", noun="étiquette(s)"
         )
 
 
 class Test1121(_LabelRelevanceTest):
+    """11.2.1 : contenu de chaque <label> associé à un champ."""
+
     test_id = "11.2.1"
-    criterion_id = "11.2"
     mechanism = "label"
 
 
 class Test1122(_LabelRelevanceTest):
+    """11.2.2 : contenu de chaque attribut title associé à un champ."""
+
     test_id = "11.2.2"
-    criterion_id = "11.2"
     mechanism = "title"
 
 
 class Test1123(_LabelRelevanceTest):
+    """11.2.3 : contenu de chaque attribut aria-label associé à un champ."""
+
     test_id = "11.2.3"
-    criterion_id = "11.2"
     mechanism = "aria-label"
 
 
 class Test1124(_LabelRelevanceTest):
+    """11.2.4 : passage de texte référencé par aria-labelledby."""
+
     test_id = "11.2.4"
-    criterion_id = "11.2"
     mechanism = "aria-labelledby"
 
 
 class Test1125(RGAATest):
     """Vérifie l'inclusion de l'intitulé visible dans les étiquettes présentes."""
+
     test_id = "11.2.5"
     criterion_id = "11.2"
     required_capabilities = frozenset({Capability.DOM})
@@ -237,21 +204,27 @@ class Test1125(RGAATest):
             if not visible_labels:
                 # Une étiquette non détectable dans le HTML peut être visible via CSS/JS.
                 if field.has_attr("aria-label") or field.has_attr("aria-labelledby"):
-                    uncertain.append(_finding(
-                        field, index,
-                        "La présence d'un intitulé visible ne peut pas être établie depuis le DOM seul.",
-                        "Comparer l'intitulé réellement affiché avec le nom accessible dans le navigateur.",
-                    ))
+                    uncertain.append(
+                        _finding(
+                            field,
+                            index,
+                            "La présence d'un intitulé visible ne peut pas être établie depuis le DOM seul.",
+                            "Comparer l'intitulé réellement affiché avec le nom accessible dans le navigateur.",
+                        )
+                    )
                     checked += 1
                 continue
             checked += 1
-            visible_text = " ".join(_text(label.get_text(" ", strip=True))
-                                    for label in visible_labels).strip()
+            visible_text = " ".join(_text(label.get_text(" ", strip=True)) for label in visible_labels).strip()
             if not visible_text:
-                uncertain.append(_finding(
-                    field, index, "Intitulé visible vide ou impossible à déterminer.",
-                    "Vérifier visuellement l'intitulé et son nom accessible.",
-                ))
+                uncertain.append(
+                    _finding(
+                        field,
+                        index,
+                        "Intitulé visible vide ou impossible à déterminer.",
+                        "Vérifier visuellement l'intitulé et son nom accessible.",
+                    )
+                )
                 continue
             candidates: list[tuple[str, str]] = []
             if field.has_attr("aria-label"):
@@ -259,49 +232,79 @@ class Test1125(RGAATest):
             if field.has_attr("aria-labelledby"):
                 valid, value = get_labelledby_text(field, soup)
                 if not valid:
-                    uncertain.append(_finding(
-                        field, index, "Référence aria-labelledby absente, vide ou ambiguë.",
-                        "Corriger les références puis comparer l'intitulé visible.",
-                        reference=field.get("aria-labelledby"),
-                    ))
+                    uncertain.append(
+                        _finding(
+                            field,
+                            index,
+                            "Référence aria-labelledby absente, vide ou ambiguë.",
+                            "Corriger les références puis comparer l'intitulé visible.",
+                            reference=field.get("aria-labelledby"),
+                        )
+                    )
                 else:
                     candidates.append(("aria-labelledby", value))
             if field.has_attr("title"):
                 candidates.append(("title", _text(field.get("title"))))
-            candidates.extend(("label", _text(label.get_text(" ", strip=True)))
-                              for label in labels)
+            candidates.extend(("label", _text(label.get_text(" ", strip=True))) for label in labels)
             for mechanism, text in candidates:
                 source = _normalized(visible_text)
                 target = _normalized(text)
                 if not source or not target or source not in target:
                     # Les symboles isolés peuvent avoir un nom exprimant leur fonction.
                     if len(visible_text) <= 3 and not any(char.isalnum() for char in visible_text):
-                        uncertain.append(_finding(
-                            field, index,
-                            f"Intitulé symbolique « {visible_text} » : exception RGAA à examiner.",
-                            "Vérifier que le nom accessible exprime la fonction du symbole.",
-                            mechanism=mechanism, visible_label=visible_text, accessible_label=text,
-                        ))
+                        uncertain.append(
+                            _finding(
+                                field,
+                                index,
+                                f"Intitulé symbolique « {visible_text} » : exception RGAA à examiner.",
+                                "Vérifier que le nom accessible exprime la fonction du symbole.",
+                                mechanism=mechanism,
+                                visible_label=visible_text,
+                                accessible_label=text,
+                            )
+                        )
                     else:
-                        failed.append(_finding(
-                            field, index,
-                            f"L'étiquette {mechanism} « {text} » ne contient pas l'intitulé visible « {visible_text} ».",
-                            "Inclure l'intitulé visible dans le nom accessible, dans le même ordre.",
-                            mechanism=mechanism, visible_label=visible_text, accessible_label=text,
-                        ))
-        status = (TestStatus.FAIL if failed else TestStatus.NEEDS_REVIEW if uncertain
-                  else TestStatus.PASS if checked else TestStatus.NOT_APPLICABLE)
+                        failed.append(
+                            _finding(
+                                field,
+                                index,
+                                (
+                                    f"L'étiquette {mechanism} « {text} » ne contient pas "
+                                    f"l'intitulé visible « {visible_text} »."
+                                ),
+                                "Inclure l'intitulé visible dans le nom accessible, dans le même ordre.",
+                                mechanism=mechanism,
+                                visible_label=visible_text,
+                                accessible_label=text,
+                            )
+                        )
+        status = (
+            TestStatus.FAIL
+            if failed
+            else TestStatus.NEEDS_REVIEW
+            if uncertain
+            else TestStatus.PASS
+            if checked
+            else TestStatus.NOT_APPLICABLE
+        )
         return TestResult(
-            self.test_id, self.criterion_id, status,
-            f"{checked} champ(s) vérifié(s), {len(failed)} non-conformité(s), "
-            f"{len(uncertain)} point(s) à vérifier.",
-            findings=failed + uncertain, tested_elements=checked,
+            self.test_id,
+            self.criterion_id,
+            status,
+            f"{checked} champ(s) vérifié(s), {len(failed)} non-conformité(s), {len(uncertain)} point(s) à vérifier.",
+            findings=failed + uncertain,
+            tested_elements=checked,
             metadata={"failed": len(failed), "needs_review": len(uncertain)},
         )
 
 
 class Test1126(RGAATest):
-    """Pertinence du bouton adjacent qui sert d'étiquette visible."""
+    """
+    11.2.6 : le texte du bouton adjacent qui sert d'étiquette visible au champ
+    est-il pertinent ? Concerne les champs sans <label> visible dont un bouton
+    voisin tient lieu d'étiquette (par exemple un champ de recherche).
+    """
+
     test_id = "11.2.6"
     criterion_id = "11.2"
     required_capabilities = frozenset({Capability.DOM})
@@ -310,31 +313,54 @@ class Test1126(RGAATest):
         soup = context.dom
         if not isinstance(soup, BeautifulSoup):
             raise ValueError("Le critère 11.2 nécessite un DOM BeautifulSoup.")
-        findings: list[Finding] = []
-        checked = 0
+
+        candidates: list[tuple[Tag, int, str]] = []
         for index, field in enumerate(find_form_fields(soup)):
-            neighbors = [field.find_previous_sibling(), field.find_next_sibling()]
-            buttons = [node for node in neighbors if isinstance(node, Tag)
-                       and (node.name == "button" or
-                            (node.name == "input" and node.get("type") in {"submit", "button", "image"}))]
-            if not buttons:
+            if any(_visible(label) is True and label.get_text(strip=True) for label in _labels(field, soup)):
                 continue
-            checked += 1
-            for button in buttons:
-                text = _text(button.get_text(" ", strip=True)) if button.name == "button" else _text(
-                    button.get("value") or button.get("alt")
+            button = adjacent_button(field)
+            if button is None:
+                continue
+            text = button_visible(button) or button_name(button, soup)
+            candidates.append((field, index, text))
+
+        if not candidates:
+            return not_applicable(self, "Aucun bouton adjacent servant d'étiquette visible.")
+
+        recommendation = "Rédiger un intitulé de bouton qui indique aussi la fonction du champ (ex. « Rechercher »)."
+        outcomes = [
+            make_outcome(
+                TestStatus.FAIL,
+                get_element_identifier(field, index),
+                "Le bouton adjacent qui sert d'étiquette n'a aucun intitulé.",
+                recommendation,
+            )
+            for field, index, text in candidates
+            if not text
+        ]
+        pending = [(field, index, text) for field, index, text in candidates if text]
+        items = [
+            RelevanceItem(
+                text=text,
+                element_html=str(field)[:300],
+                context=form_context(field, soup),
+                details={"rôle": "bouton adjacent servant d'étiquette visible", **field_description(field, soup)},
+            )
+            for field, _, text in pending
+        ]
+        verdicts = await judge_relevance(services, "form_label", items)
+        for (field, index, text), verdict in zip(pending, verdicts, strict=True):
+            outcomes.append(
+                make_outcome(
+                    verdict.status,
+                    get_element_identifier(field, index),
+                    verdict.message(
+                        f"Le bouton adjacent « {text[:100]} » n'indique pas la fonction du champ.",
+                        f"La pertinence du bouton adjacent « {text[:100]} » comme étiquette reste à vérifier.",
+                    ),
+                    recommendation,
+                    button_text=text,
+                    **verdict.evidence,
                 )
-                findings.append(_finding(
-                    field, index,
-                    f"Bouton adjacent « {text} » : son rôle d'étiquette et sa pertinence nécessitent une vérification visuelle.",
-                    "Vérifier si le bouton sert d'étiquette visible et si son contenu indique la fonction exacte du champ.",
-                    button=str(button)[:250], button_text=text,
-                ))
-        status = TestStatus.NEEDS_REVIEW if checked else TestStatus.NOT_APPLICABLE
-        return TestResult(
-            self.test_id, self.criterion_id, status,
-            (f"{checked} champ(s) avec bouton adjacent potentiel : vérification visuelle nécessaire."
-             if checked else "Aucun bouton adjacent susceptible de servir d'étiquette détecté."),
-            findings=findings, tested_elements=checked,
-            metadata={"candidate_fields": checked},
-        )
+            )
+        return build_result(self, outcomes, empty_summary="Aucun bouton adjacent servant d'étiquette.", noun="champ(s)")

@@ -108,6 +108,113 @@ RELEVANCE_KINDS: dict[str, RelevanceKind] = {
         relevant_when="le texte adjacent identifie clairement le contenu du média (titre, sujet).",
         not_relevant_examples="« Vidéo », « Lecteur », un texte sans rapport avec le média.",
     ),
+    # ---- Formulaires (thème 11) : questions de classement ----
+    "label_consistency": RelevanceKind(
+        subject="ensemble d'étiquettes de champs ayant la même fonction (même page ou ensemble de pages)",
+        rule="RGAA 11.3 : chaque étiquette associée à un champ ayant la même fonction doit être cohérente.",
+        relevant_when=(
+            "les étiquettes fournies désignent clairement la même donnée de manière cohérente "
+            "(« Courriel » et « Adresse e-mail » sont cohérentes ; « Nom » et « Identifiant » ne le sont pas)."
+        ),
+        not_relevant_examples="deux étiquettes qui laissent croire à des données différentes pour la même fonction.",
+    ),
+    "field_grouping": RelevanceKind(
+        subject="liste des champs d'un formulaire qui ne sont dans aucun regroupement (fieldset ou role=group)",
+        rule=(
+            "RGAA 11.5 : les champs de même nature (adresse, identité, date en plusieurs champs, choix "
+            "multiples d'une même question) doivent être regroupés avec fieldset ou role=group."
+        ),
+        relevant_when=(
+            "aucun ensemble de champs de même nature n'a besoin d'être regroupé (champs indépendants). "
+            "Indique dans problems les groupes de champs qui devraient être regroupés."
+        ),
+        not_relevant_examples="« Jour », « Mois », « Année » d'une même date non regroupés ; rue, code postal, ville.",
+    ),
+    "option_grouping": RelevanceKind(
+        subject="options d'une liste de choix (select) sans optgroup",
+        rule=(
+            "RGAA 11.8 : les items de même nature d'une liste de choix doivent être "
+            "regroupés avec optgroup, si nécessaire."
+        ),
+        relevant_when="les options ne forment pas plusieurs catégories distinctes (aucun regroupement nécessaire).",
+        not_relevant_examples="des villes de plusieurs pays mélangées, des produits de plusieurs gammes.",
+    ),
+    "optgroup_label": RelevanceKind(
+        subject="attribut label d'un groupe d'options (optgroup)",
+        rule="RGAA 11.8 : le label de chaque optgroup doit être pertinent.",
+        relevant_when="il décrit la catégorie commune des options du groupe (fournies en contexte).",
+        not_relevant_examples="« Groupe 1 », « Options », un label sans rapport avec les options.",
+    ),
+    "error_identification": RelevanceKind(
+        subject="message d'erreur affiché pour un champ de formulaire",
+        rule="RGAA 11.10 : le message d'erreur doit identifier nommément le champ concerné.",
+        relevant_when=(
+            "le message permet de savoir sans ambiguïté quel champ est en erreur (étiquette fournie en contexte)."
+        ),
+        not_relevant_examples="« Erreur », « Champ invalide », « Veuillez corriger le formulaire ».",
+    ),
+    "format_instruction": RelevanceKind(
+        subject="texte associé à un champ dont la saisie impose un type ou un format",
+        rule=(
+            "RGAA 11.10 : pour un champ dont le type ou le format est imposé, une instruction visible "
+            "dans l'étiquette ou le texte associé indique ce type ou ce format."
+        ),
+        relevant_when=(
+            "le texte indique clairement le type ou le format attendu pour ce champ (type, pattern et étiquette "
+            "fournis en contexte), ou le format est évident pour un champ courant (e-mail clairement étiqueté)."
+        ),
+        not_relevant_examples=(
+            "« Date » sans format alors que jj/mm/aaaa est exigé ; « Code » pour un pattern de 5 chiffres."
+        ),
+    ),
+    "error_suggestion_format": RelevanceKind(
+        subject="message d'erreur de saisie",
+        rule="RGAA 11.11 : le message d'erreur suggère, si nécessaire, le type et le format de données attendus.",
+        relevant_when="le message indique le type ou le format attendu, ou aucune suggestion n'est nécessaire.",
+        not_relevant_examples="« Date invalide » sans indiquer le format attendu.",
+    ),
+    "error_suggestion_example": RelevanceKind(
+        subject="message d'erreur de saisie",
+        rule="RGAA 11.11 : le message d'erreur suggère, si nécessaire, des exemples de valeurs attendues.",
+        relevant_when="le message propose un exemple de valeur attendue, ou aucun exemple n'est nécessaire.",
+        not_relevant_examples="« Numéro invalide » pour un format complexe sans exemple.",
+    ),
+    "transaction_scope": RelevanceKind(
+        subject="formulaire (intitulé, champs et boutons fournis)",
+        rule=(
+            "RGAA 11.12 : sont concernés les formulaires qui ont des conséquences financières ou juridiques, "
+            "qui modifient ou suppriment des données de l'utilisateur, ou qui transmettent des réponses à un test."
+        ),
+        relevant_when=(
+            "le formulaire entre dans ce périmètre (paiement, commande, contrat, suppression de compte, examen…). "
+            "Un formulaire de contact ou de recherche n'y entre pas."
+        ),
+        not_relevant_examples="formulaire de recherche, d'inscription à une lettre d'information, de contact.",
+    ),
+    "sensitive_data_modification": RelevanceKind(
+        subject="formulaire (intitulé, champs et boutons fournis)",
+        rule=(
+            "RGAA 11.12.2 : sont concernés les formulaires qui modifient ou suppriment des données "
+            "financières, juridiques ou personnelles."
+        ),
+        relevant_when="le formulaire modifie ou supprime des données financières, juridiques ou personnelles.",
+        not_relevant_examples="paiement ponctuel sans modification de données enregistrées, recherche, contact.",
+    ),
+    "user_data_field": RelevanceKind(
+        subject="champ de formulaire",
+        rule=(
+            "RGAA 11.13 : les champs qui recueillent une information concernant l'utilisateur lui-même "
+            "(nom, e-mail, adresse, téléphone, date de naissance…) doivent identifier leur finalité (autocomplete)."
+        ),
+        relevant_when="le champ demande une information concernant l'utilisateur lui-même.",
+        not_relevant_examples="champ de recherche, message libre, nom d'un tiers, quantité commandée.",
+    ),
+    "autocomplete_value": RelevanceKind(
+        subject="valeur de l'attribut autocomplete d'un champ",
+        rule="RGAA 11.13 : la valeur autocomplete doit correspondre à l'information attendue dans le champ.",
+        relevant_when="la valeur (fournie dans autocomplete) correspond à la donnée demandée par l'étiquette.",
+        not_relevant_examples='autocomplete="email" sur un champ « Téléphone », « given-name » sur « Nom de famille ».',
+    ),
     "captcha_alternative": RelevanceKind(
         subject="moyen proposé à la place d'un CAPTCHA graphique (lien, bouton, CAPTCHA audio…)",
         rule=(
