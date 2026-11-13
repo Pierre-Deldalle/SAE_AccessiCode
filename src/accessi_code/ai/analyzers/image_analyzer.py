@@ -366,6 +366,7 @@ class OllamaImageAnalyzer:
                 "is_captcha",
                 "contains_text",
                 "needs_detailed_description",
+                "text_replaceable",
             )
         }
 

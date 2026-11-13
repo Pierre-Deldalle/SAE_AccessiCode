@@ -3,6 +3,7 @@
 Les preuves de navigateur / revue fonctionnelle sont explicitement injectées
 par l'appelant. Aucune position CSS ni interaction clavier n'est inférée du DOM.
 """
+
 from __future__ import annotations
 
 from collections.abc import Mapping
@@ -41,9 +42,13 @@ def navs(soup):
 
 
 def sitemap_links(soup):
-    return [tag for tag in soup.find_all("a", href=True) if
-            "plan du site" in text(tag) or "sitemap" in tag.get("href", "").casefold() or
-            "plan-du-site" in tag.get("href", "").casefold()]
+    return [
+        tag
+        for tag in soup.find_all("a", href=True)
+        if "plan du site" in text(tag)
+        or "sitemap" in tag.get("href", "").casefold()
+        or "plan-du-site" in tag.get("href", "").casefold()
+    ]
 
 
 def is_sitemap(soup, key=""):
@@ -52,10 +57,13 @@ def is_sitemap(soup, key=""):
 
 
 def searches(soup):
-    return [tag for tag in soup.find_all(True) if
-            (tag.name == "form" and tag.get("role") == "search") or
-            (tag.get("role") == "search" and tag.name != "form") or
-            (tag.name == "input" and tag.get("type", "").lower() == "search")]
+    return [
+        tag
+        for tag in soup.find_all(True)
+        if (tag.name == "form" and tag.get("role") == "search")
+        or (tag.get("role") == "search" and tag.name != "form")
+        or (tag.name == "input" and tag.get("type", "").lower() == "search")
+    ]
 
 
 def search_access(soup):
@@ -98,13 +106,27 @@ def relative_order(soup, target):
     """Ordre relatif aux grands repères (DOM, non visuel)."""
     if target is None:
         return None
-    landmarks = [t for t in soup.find_all(True) if t.name in {"header", "main", "footer", "nav"} or
-                 t.get("role") in {"banner", "main", "contentinfo", "navigation"}]
+    landmarks = [
+        t
+        for t in soup.find_all(True)
+        if t.name in {"header", "main", "footer", "nav"}
+        or t.get("role") in {"banner", "main", "contentinfo", "navigation"}
+    ]
     all_tags = soup.find_all(True)
     target_idx = all_tags.index(target)
-    return tuple((t.name, t.get("role"), "before" if all_tags.index(t) < target_idx else
-                  "contains" if t is target or target in t.descendants else "after")
-                 for t in landmarks if t is not target)
+    return tuple(
+        (
+            t.name,
+            t.get("role"),
+            "before"
+            if all_tags.index(t) < target_idx
+            else "contains"
+            if t is target or target in t.descendants
+            else "after",
+        )
+        for t in landmarks
+        if t is not target
+    )
 
 
 def local_target(href, source_key, known_pages, source_soup):
@@ -137,7 +159,7 @@ def local_target(href, source_key, known_pages, source_soup):
 def finding(tag, soup, message, recommendation, **extra):
     try:
         element = get_element_identifier(tag, list(soup.find_all(True)).index(tag))
-    except (ValueError, AttributeError):
+    except ValueError, AttributeError:
         element = "document"
     return Finding(element, message, recommendation, evidence=extra)
 
@@ -145,12 +167,29 @@ def finding(tag, soup, message, recommendation, **extra):
 def result(test, count, failures=None, reviews=None, *, empty="Aucun élément concerné.", metadata=None):
     failures = failures or []
     reviews = reviews or []
-    status = (TestStatus.FAIL if failures else TestStatus.NEEDS_REVIEW if reviews else
-              TestStatus.PASS if count else TestStatus.NOT_APPLICABLE)
-    summary = (f"{count} élément(s) examinés ; {len(failures)} échec(s) démontré(s), "
-               f"{len(reviews)} point(s) à vérifier." if count else empty)
-    return TestResult(test.test_id, test.criterion_id, status, summary,
-                      findings=[*failures, *reviews], tested_elements=count, metadata=metadata or {})
+    status = (
+        TestStatus.FAIL
+        if failures
+        else TestStatus.NEEDS_REVIEW
+        if reviews
+        else TestStatus.PASS
+        if count
+        else TestStatus.NOT_APPLICABLE
+    )
+    summary = (
+        f"{count} élément(s) examinés ; {len(failures)} échec(s) démontré(s), {len(reviews)} point(s) à vérifier."
+        if count
+        else empty
+    )
+    return TestResult(
+        test.test_id,
+        test.criterion_id,
+        status,
+        summary,
+        findings=[*failures, *reviews],
+        tested_elements=count,
+        metadata=metadata or {},
+    )
 
 
 def proof_check(context, test, key, tag, soup, label):
@@ -162,8 +201,10 @@ def proof_check(context, test, key, tag, soup, label):
     value = evidence(context, test.test_id).get(key)
     if value is True:
         return [], []
-    message = f"{label} : " + ("non conforme selon la preuve fournie." if value is False else
-                               "preuve de vérification absente.")
-    item = finding(tag, soup, message,
-                   "Effectuer la vérification réelle et renseigner navigation_evidence.", proof_key=key)
+    message = f"{label} : " + (
+        "non conforme selon la preuve fournie." if value is False else "preuve de vérification absente."
+    )
+    item = finding(
+        tag, soup, message, "Effectuer la vérification réelle et renseigner navigation_evidence.", proof_key=key
+    )
     return ([item], []) if value is False else ([], [item])

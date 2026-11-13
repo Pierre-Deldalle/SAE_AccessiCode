@@ -160,6 +160,9 @@ class ImageProfile:
 
     explanation: str
 
+    # Le texte de l'image pourrait être rendu en texte stylé (CSS) sans perte (RGAA 1.8).
+    text_replaceable: bool | None = None
+
     text_content: str = ""
 
     uncertainties: list[str] = field(default_factory=list)
@@ -238,6 +241,7 @@ StructureKind = Literal[
     "heading",
     "list",
     "quote",
+    "caption",
 ]
 
 

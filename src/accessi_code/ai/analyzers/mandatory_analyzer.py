@@ -25,13 +25,13 @@ def _is_likely_hallucinated_explanation(explanation: str) -> bool:
 
     # Check for known hallucination patterns
     hallucination_patterns = [
-        r'l\'art de l\'auditeur[-]?sp[ée]cialis[ée]',
-        r'visible text/amps;? text nodes?',
-        r'main de la page.*titres?.*paragraphs?-in-violation',
+        r"l\'art de l\'auditeur[-]?sp[ée]cialis[ée]",
+        r"visible text/amps;? text nodes?",
+        r"main de la page.*titres?.*paragraphs?-in-violation",
         r"missing[' ’]document language mismatch",
-        r'\(en/fr\) mismatch-document lang=\'en\'',
-        r'docs-lang-\d+.*docs-lang-\d+.*docs-lang-\d+',  # Repeated docs-lang patterns
-        r'single-language.*document\.\w+',  # strange single-language patterns
+        r"\(en/fr\) mismatch-document lang=\'en\'",
+        r"docs-lang-\d+.*docs-lang-\d+.*docs-lang-\d+",  # Repeated docs-lang patterns
+        r"single-language.*document\.\w+",  # strange single-language patterns
     ]
 
     for pattern in hallucination_patterns:
@@ -40,10 +40,41 @@ def _is_likely_hallucinated_explanation(explanation: str) -> bool:
 
     # Check for excessive language mixing without structure
     # Count French vs English indicators (very rough heuristic)
-    french_indicators = ['le', 'la', 'les', 'de', 'des', 'du', 'et', 'est', 'une', 'un', 'pour', 'dans', 'qui', 'que', 'quoi']
-    english_indicators = ['the', 'a', 'an', 'of', 'and', 'is', 'are', 'was', 'were', 'for', 'in', 'that', 'this', 'what']
+    french_indicators = [
+        "le",
+        "la",
+        "les",
+        "de",
+        "des",
+        "du",
+        "et",
+        "est",
+        "une",
+        "un",
+        "pour",
+        "dans",
+        "qui",
+        "que",
+        "quoi",
+    ]
+    english_indicators = [
+        "the",
+        "a",
+        "an",
+        "of",
+        "and",
+        "is",
+        "are",
+        "was",
+        "were",
+        "for",
+        "in",
+        "that",
+        "this",
+        "what",
+    ]
 
-    words = re.findall(r'\b[a-zÀ-ÿ]+\b', explanation_lower)
+    words = re.findall(r"\b[a-zÀ-ÿ]+\b", explanation_lower)
     if len(words) > 10:  # Only check for substantial explanations
         french_count = sum(1 for word in words if word in french_indicators)
         english_count = sum(1 for word in words if word in english_indicators)
@@ -53,10 +84,26 @@ def _is_likely_hallucinated_explanation(explanation: str) -> bool:
         # it might be hallucinated mixing
         if total_indicators > 5 and len(words) > 0 and (french_count > 0 and english_count > 0):
             # Check if the ratio is suspicious (could indicate random mixing)
-            ratio = min(french_count, english_count) / max(french_count, english_count) if max(french_count, english_count) > 0 else 0
+            ratio = (
+                min(french_count, english_count) / max(french_count, english_count)
+                if max(french_count, english_count) > 0
+                else 0
+            )
             if ratio > 0.3:  # Both languages present in significant amounts
                 # Additional check: if there are many technical terms mixed in strangely
-                technical_terms = ['amps', 'nodes', 'elements', 'attributes', 'tags', 'html', 'dom', 'svg', 'docs', 'language', 'single']
+                technical_terms = [
+                    "amps",
+                    "nodes",
+                    "elements",
+                    "attributes",
+                    "tags",
+                    "html",
+                    "dom",
+                    "svg",
+                    "docs",
+                    "language",
+                    "single",
+                ]
                 technical_count = sum(1 for word in words if any(term in word for term in technical_terms))
                 if technical_count > len(words) * 0.15:  # More than 15% technical terms
                     return True
@@ -186,7 +233,6 @@ Réponds avec {"missing_dir_count": number, "confidence": "low|medium|high",
         )
         return _TextDirectionPresenceResult.from_data(data)
 
-
     async def analyze_text_direction_validity(
         self,
         dom: Any,
@@ -194,12 +240,7 @@ Réponds avec {"missing_dir_count": number, "confidence": "low|medium|high",
     ) -> Any:
         # Vérification déterministe des valeurs de dir.
         # On examine les attributs internes, comme dans Test8102.
-        elements = [
-            element
-            for element in dom.find_all(True)
-            if element.name != "html"
-            and element.has_attr("dir")
-        ]
+        elements = [element for element in dom.find_all(True) if element.name != "html" and element.has_attr("dir")]
 
         allowed_values = {"ltr", "rtl", "auto"}
         findings = []
@@ -208,38 +249,33 @@ Réponds avec {"missing_dir_count": number, "confidence": "low|medium|high",
             direction = str(element.get("dir", "")).strip()
 
             if direction not in allowed_values:
-                findings.append({
-                    "element": f'{element.name}[dir="{direction}"]',
-                    "message": (
-                        f'La valeur dir="{direction}" est invalide. '
-                        "Les valeurs autorisées sont ltr, rtl et auto."
-                    ),
-                    "recommendation": (
-                        "Remplacer la valeur par une direction "
-                        "valide et adaptée au contenu."
-                    ),
-                    "evidence": {
-                        "dir": direction,
-                        "text": element.get_text(
-                            " ", strip=True
-                        )[:150],
-                    },
-                })
+                findings.append(
+                    {
+                        "element": f'{element.name}[dir="{direction}"]',
+                        "message": (
+                            f'La valeur dir="{direction}" est invalide. Les valeurs autorisées sont ltr, rtl et auto.'
+                        ),
+                        "recommendation": ("Remplacer la valeur par une direction valide et adaptée au contenu."),
+                        "evidence": {
+                            "dir": direction,
+                            "text": element.get_text(" ", strip=True)[:150],
+                        },
+                    }
+                )
 
         if findings:
-            return _TextDirectionValidityResult.from_data({
-                "has_errors": True,
-                "confidence": "high",
-                "total_dir_attributes_checked": len(elements),
-                "explanation": (
-                    f"{len(findings)} attribut(s) dir "
-                    "avec une valeur invalide."
-                ),
-                "findings": findings,
-                "metadata": {
-                    "validation": "dom",
-                },
-            })
+            return _TextDirectionValidityResult.from_data(
+                {
+                    "has_errors": True,
+                    "confidence": "high",
+                    "total_dir_attributes_checked": len(elements),
+                    "explanation": (f"{len(findings)} attribut(s) dir avec une valeur invalide."),
+                    "findings": findings,
+                    "metadata": {
+                        "validation": "dom",
+                    },
+                }
+            )
 
         # Les valeurs sont syntaxiquement valides.
         # Gemma vérifie encore leur pertinence
@@ -296,8 +332,13 @@ class _LanguageChangesResult(_Result):
 
     @classmethod
     def from_data(cls, data: dict[str, Any]) -> "_LanguageChangesResult":
-        return cls({**cls._common(data), "has_violations": _bool(data, "has_violations"),
-                    "total_elements_checked": _count(data, "total_elements_checked")})
+        return cls(
+            {
+                **cls._common(data),
+                "has_violations": _bool(data, "has_violations"),
+                "total_elements_checked": _count(data, "total_elements_checked"),
+            }
+        )
 
 
 class _LanguageValidityResult(_Result):
@@ -306,8 +347,13 @@ class _LanguageValidityResult(_Result):
 
     @classmethod
     def from_data(cls, data: dict[str, Any]) -> "_LanguageValidityResult":
-        return cls({**cls._common(data), "has_errors": _bool(data, "has_errors"),
-                    "total_changes_checked": _count(data, "total_changes_checked")})
+        return cls(
+            {
+                **cls._common(data),
+                "has_errors": _bool(data, "has_errors"),
+                "total_changes_checked": _count(data, "total_changes_checked"),
+            }
+        )
 
 
 class _SemanticResult(_LanguageChangesResult):
@@ -320,8 +366,13 @@ class _TextDirectionPresenceResult(_Result):
 
     @classmethod
     def from_data(cls, data: dict[str, Any]) -> "_TextDirectionPresenceResult":
-        return cls({**cls._common(data), "missing_dir_count": _count(data, "missing_dir_count"),
-                    "total_rtl_segments_checked": _count(data, "total_rtl_segments_checked")})
+        return cls(
+            {
+                **cls._common(data),
+                "missing_dir_count": _count(data, "missing_dir_count"),
+                "total_rtl_segments_checked": _count(data, "total_rtl_segments_checked"),
+            }
+        )
 
 
 class _TextDirectionValidityResult(_Result):
@@ -330,8 +381,13 @@ class _TextDirectionValidityResult(_Result):
 
     @classmethod
     def from_data(cls, data: dict[str, Any]) -> "_TextDirectionValidityResult":
-        return cls({**cls._common(data), "has_errors": _bool(data, "has_errors"),
-                    "total_dir_attributes_checked": _count(data, "total_dir_attributes_checked")})
+        return cls(
+            {
+                **cls._common(data),
+                "has_errors": _bool(data, "has_errors"),
+                "total_dir_attributes_checked": _count(data, "total_dir_attributes_checked"),
+            }
+        )
 
 
 class _ValidationResult:

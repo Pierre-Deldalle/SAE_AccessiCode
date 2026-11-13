@@ -190,6 +190,10 @@ Définitions :
 - is_captcha : l'image sert à distinguer un humain d'un robot (CAPTCHA, image-test) ;
 - contains_text : l'image contient du texte lisible qui transmet une information ;
 - text_content : ce texte, recopié tel quel (chaîne vide sinon) ;
+- text_replaceable : le même rendu pourrait être obtenu avec du texte mis en forme
+  en CSS (false pour un logo, une marque, un texte faisant partie d'une photo,
+  d'un CAPTCHA ou d'un effet graphique impossible à reproduire en CSS ; null si
+  l'image ne contient pas de texte) ;
 - needs_detailed_description : l'image est complexe (graphique, schéma, carte,
   infographie, tableau en image) et son information ne peut pas tenir dans
   une alternative courte.
@@ -215,6 +219,7 @@ Retourne uniquement :
     "is_captcha": false,
     "contains_text": false,
     "text_content": "",
+    "text_replaceable": null,
     "needs_detailed_description": false,
     "explanation": "explication courte",
     "uncertainties": [],

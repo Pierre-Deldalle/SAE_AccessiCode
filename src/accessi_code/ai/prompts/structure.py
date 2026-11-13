@@ -3,7 +3,8 @@ Prompts d'analyse de la structuration de l'information (thème 9).
 
 - "heading" : RGAA 9.1.3, passage de texte qui a l'apparence ou le rôle d'un titre ;
 - "list" : RGAA 9.3, suite d'éléments présentée comme une liste ;
-- "quote" : RGAA 9.4, citation.
+- "quote" : RGAA 9.4, citation ;
+- "caption" : RGAA 1.9, légende d'image.
 
 La hiérarchie des titres (RGAA 9.1.1) a son propre prompt.
 """
@@ -11,6 +12,11 @@ La hiérarchie des titres (RGAA 9.1.1) a son propre prompt.
 from __future__ import annotations
 
 STRUCTURE_RULES: dict[str, str] = {
+    "caption": (
+        "RGAA 1.9 : une légende d'image est un texte adjacent à l'image qui la présente, la décrit "
+        "brièvement ou la crédite (par exemple « Figure 2 : évolution des ventes », « Photo : J. Martin »). "
+        "Une image légendée doit être reliée à sa légende avec figure et figcaption."
+    ),
     "heading": (
         "RGAA 9.1 : chaque passage de texte constituant un titre doit être structuré avec une balise "
         'h1 à h6 ou role="heading". Un passage constitue un titre s\'il introduit une section de '

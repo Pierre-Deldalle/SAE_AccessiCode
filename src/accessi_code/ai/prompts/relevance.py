@@ -108,6 +108,18 @@ RELEVANCE_KINDS: dict[str, RelevanceKind] = {
         relevant_when="le texte adjacent identifie clairement le contenu du média (titre, sujet).",
         not_relevant_examples="« Vidéo », « Lecteur », un texte sans rapport avec le média.",
     ),
+    "captcha_alternative": RelevanceKind(
+        subject="moyen proposé à la place d'un CAPTCHA graphique (lien, bouton, CAPTCHA audio…)",
+        rule=(
+            "RGAA 1.5 : pour chaque CAPTCHA, il existe une autre forme de CAPTCHA non graphique, ou une "
+            "autre solution d'accès à la fonctionnalité protégée par le CAPTCHA."
+        ),
+        relevant_when=(
+            "il permet réellement d'accéder à la fonctionnalité sans voir l'image (CAPTCHA audio, "
+            "contact par un autre canal, validation humaine…)."
+        ),
+        not_relevant_examples="« Recharger l'image », « Nouvelle image », un lien sans rapport avec le CAPTCHA.",
+    ),
     "script_alternative": RelevanceKind(
         subject="alternative à un contenu ou une fonctionnalité de script",
         rule="RGAA 7.2 : chaque alternative à un script doit être pertinente.",
