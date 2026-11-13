@@ -55,7 +55,7 @@ class OllamaTextRelevanceAnalyzer(JsonAnalyzer):
         if not items:
             return []
 
-        payloads = [_payload(item) for item in items]
+        payloads = [_payload(item, spec.text_limit) for item in items]
 
         def build_prompt(items_json: str) -> str:
             return RELEVANCE_BATCH_PROMPT.format(
@@ -77,8 +77,8 @@ class OllamaTextRelevanceAnalyzer(JsonAnalyzer):
         )
 
 
-def _payload(item: RelevanceItem) -> dict[str, Any]:
-    payload: dict[str, Any] = {"text": truncate(item.text, TEXT_LIMIT)}
+def _payload(item: RelevanceItem, text_limit: int = TEXT_LIMIT) -> dict[str, Any]:
+    payload: dict[str, Any] = {"text": truncate(item.text, text_limit)}
     if item.element_html:
         payload["html"] = truncate(item.element_html, HTML_LIMIT)
     if item.context:

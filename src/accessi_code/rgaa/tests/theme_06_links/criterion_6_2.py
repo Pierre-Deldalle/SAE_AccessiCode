@@ -226,11 +226,10 @@ class Test621(RGAATest):
         if cls._has_complex_content(link):
             return "", "complex_content", True
 
-        # Priorité 4 : title HTML.
-        title = cls._normalize(str(link.get("title", "")))
-
-        if title:
-            return title, "title", False
+        # Un attribut title seul n'est pas un intitulé : le RGAA 6.2.1 exige
+        # un intitulé entre <a> et </a> (texte ou alternative d'image).
+        if cls._normalize(str(link.get("title", ""))):
+            return "", "title_only", False
 
         # Les mécanismes dynamiques ne peuvent pas être
         # correctement évalués depuis le seul HTML fourni.

@@ -25,6 +25,8 @@ class RelevanceKind:
     relevant_when: str
     # Exemples de textes non pertinents.
     not_relevant_examples: str
+    # Longueur maximale du texte jugé (les contenus longs, comme un tableau linéarisé, en ont besoin).
+    text_limit: int = 300
 
 
 RELEVANCE_KINDS: dict[str, RelevanceKind] = {
@@ -101,6 +103,22 @@ RELEVANCE_KINDS: dict[str, RelevanceKind] = {
         rule="RGAA 5.2 : chaque résumé de tableau complexe doit être pertinent.",
         relevant_when="il explique l'organisation du tableau (structure des en-têtes, sens de lecture, contenu).",
         not_relevant_examples="« Tableau », « Résumé », la simple répétition du titre sans expliquer la structure.",
+    ),
+    "layout_table_linearized": RelevanceKind(
+        subject=(
+            "contenu d'un tableau de mise en forme, lu dans l'ordre du code source "
+            "(une cellule par ligne, de gauche à droite puis de haut en bas)"
+        ),
+        rule="RGAA 5.3 : pour chaque tableau de mise en forme, le contenu linéarisé doit rester compréhensible.",
+        relevant_when=(
+            "lu dans cet ordre, le contenu garde un sens et un ordre logiques : les phrases ne sont pas coupées "
+            "entre plusieurs cellules et chaque étiquette reste à côté de la valeur qu'elle décrit."
+        ),
+        not_relevant_examples=(
+            "des étiquettes toutes lues avant leurs valeurs, une phrase répartie sur plusieurs colonnes lue "
+            "dans le désordre, des colonnes qui n'ont de sens que lues de haut en bas."
+        ),
+        text_limit=1500,
     ),
     "media_title": RelevanceKind(
         subject="texte identifiant un média temporel (vidéo ou son)",

@@ -404,10 +404,11 @@ def test_571_table_with_role_header_passes(
     assert result.tested_elements == 2  # Two headers with role
 
 
-def test_571_table_with_missing_identification_fails(
+def test_571_single_header_row_without_scope_passes(
     context_factory,
     run_rgaa,
 ):
+    """Cas particulier RGAA 5.7 : en-têtes sur une seule ligne, th sans scope admis."""
     html = """
     <table>
         <thead>
@@ -424,13 +425,34 @@ def test_571_table_with_missing_identification_fails(
         </tbody>
     </table>
     """
-    context = context_factory(html)
+    result = run_rgaa(RGAA571(), context_factory(html))
 
-    result = run_rgaa(RGAA571(), context)
+    assert result.status == Status.PASS
+    assert result.findings == []
+
+
+def test_571_single_header_column_without_scope_passes(
+    context_factory,
+    run_rgaa,
+):
+    html = "<table><tr><th>Nom</th><td>Dupont</td></tr><tr><th>Prénom</th><td>Jean</td></tr></table>"
+    assert run_rgaa(RGAA571(), context_factory(html)).status == Status.PASS
+
+
+def test_571_table_with_missing_identification_fails(
+    context_factory,
+    run_rgaa,
+):
+    html = """
+    <table>
+        <tr><td></td><th>2023</th><th>2024</th></tr>
+        <tr><th>Nord</th><td>10</td><td>12</td></tr>
+    </table>
+    """
+    result = run_rgaa(RGAA571(), context_factory(html))
 
     assert result.status == Status.FAIL
-    assert len(result.findings) == 2  # Two headers missing identification
-    assert result.tested_elements == 2
+    assert len(result.findings) == 3
     assert all(
         "L'en-tête de ligne ou de colonne doit avoir un identifiant unique (id), un attribut scope ou un rôle role='rowheader' ou role='columnheader'."
         in f.message

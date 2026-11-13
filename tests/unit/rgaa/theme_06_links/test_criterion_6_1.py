@@ -1,6 +1,7 @@
-"""Tests unitaires du RGAA 6.1.1 — Liens textuels explicites."""
+"""Critère RGAA 6.1 : liens explicites (6.1.1 à 6.1.4 jugés par l'IA, 6.1.5 déterministe)."""
 
 import pytest
+from ai_fakes import relevance, text_services
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_06_links.criterion_6_1 import (
@@ -19,847 +20,223 @@ from accessi_code.rgaa.tests.theme_06_links.criterion_6_1 import (
     Test615 as RGAA615,
 )
 
+TEXT_LINK = '<p>Nos tarifs 2024 : <a id="tarifs" href="/tarifs.pdf">télécharger la grille</a>.</p>'
+IMAGE_LINK = '<a href="/"><img src="logo.png" alt="Accueil de la médiathèque"></a>'
+COMPOSITE_LINK = '<a href="/panier"><img src="cart.svg" alt="Panier"> (3 articles)</a>'
+SVG_LINK = '<svg><desc>Carte des agences</desc><a href="/lille"><text>Agence de Lille</text></a></svg>'
 
-def test_611_no_links_is_not_applicable(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory("<main><p>Aucun lien.</p></main>")
+CASES = [
+    (RGAA611, TEXT_LINK, "télécharger la grille"),
+    (RGAA612, IMAGE_LINK, "Accueil de la médiathèque"),
+    (RGAA613, COMPOSITE_LINK, "Panier (3 articles)"),
+    (RGAA614, SVG_LINK, "Agence de Lille"),
+]
 
-    result = run_rgaa(RGAA611(), context)
 
+def submitted(ai):
+    kind, items = ai.text_relevance_analyzer.analyze_relevance.call_args.args
+    assert kind == "link"
+    return items
+
+
+# ---------------------------------------------------------------------------
+# Répartition des liens entre les tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("test_class", [RGAA611, RGAA612, RGAA613, RGAA614])
+def test_no_link_is_not_applicable(test_class, context_factory, run_rgaa):
+    result = run_rgaa(test_class(), context_factory("<p>Aucun lien</p><a name='ancre'>x</a>"), text_services())
     assert result.status == Status.NOT_APPLICABLE
-    assert result.tested_elements == 0
+
+
+@pytest.mark.parametrize(("test_class", "html", "label"), CASES)
+def test_each_link_type_goes_to_its_own_test(test_class, html, label, context_factory, run_rgaa):
+    for other, other_html, _ in CASES:
+        result = run_rgaa(other(), context_factory(html), text_services())
+        expected = Status.PASS if other is test_class else Status.NOT_APPLICABLE
+        assert result.status == expected, (other.test_id, html)
+
+
+@pytest.mark.parametrize(("test_class", "html", "label"), CASES)
+def test_label_is_submitted_to_ai(test_class, html, label, context_factory, run_rgaa):
+    ai = text_services()
+    run_rgaa(test_class(), context_factory(html), ai)
+    assert submitted(ai)[0].text == label
+
+
+def test_hidden_links_are_ignored(context_factory, run_rgaa):
+    html = '<div hidden><a href="/a">Lien caché</a></div><a href="/b" aria-hidden="true">Masqué</a>'
+    assert run_rgaa(RGAA611(), context_factory(html), text_services()).status == Status.NOT_APPLICABLE
+
+
+def test_button_role_is_not_a_link(context_factory, run_rgaa):
+    html = '<a href="#" role="button">Ouvrir</a>'
+    assert run_rgaa(RGAA611(), context_factory(html), text_services()).status == Status.NOT_APPLICABLE
+
+
+# ---------------------------------------------------------------------------
+# Intitulé et contexte transmis à l'IA
+# ---------------------------------------------------------------------------
+
+
+def test_text_link_context_and_href(context_factory, run_rgaa):
+    ai = text_services()
+    run_rgaa(RGAA611(), context_factory("<h2>Tarifs</h2>" + TEXT_LINK), ai)
+    item = submitted(ai)[0]
+    assert item.details["href"] == "/tarifs.pdf"
+    assert item.details["label_source"] == "content"
+    assert "Paragraphe : Nos tarifs 2024" in item.context
+    assert "Titre de la section : Tarifs" in item.context
+
+
+def test_list_and_table_context(context_factory, run_rgaa):
+    html = """
+    <ul><li>Rapport annuel <a href="/r.pdf">PDF</a></li></ul>
+    <table><tr><th>Document</th></tr><tr><td><a href="/c.pdf">Lire</a></td></tr></table>
+    """
+    ai = text_services()
+    run_rgaa(RGAA611(), context_factory(html), ai)
+    first, second = submitted(ai)
+    assert "Élément de liste : Rapport annuel PDF" in first.context
+    assert "Cellule : Lire (en-têtes : Document)" in second.context
+
+
+def test_aria_labelledby_then_aria_label_then_content(context_factory, run_rgaa):
+    html = """
+    <span id="d">Programme du festival</span>
+    <a href="/a" aria-labelledby="d" aria-label="ignoré">Lire</a>
+    <a href="/b" aria-label="Programme complet">Lire</a>
+    <a href="/c" aria-labelledby="absent">Programme jeunesse</a>
+    """
+    ai = text_services()
+    run_rgaa(RGAA611(), context_factory(html), ai)
+    assert [(item.text, item.details["label_source"]) for item in submitted(ai)] == [
+        ("Programme du festival", "aria-labelledby"),
+        ("Programme complet", "aria-label"),
+        ("Programme jeunesse", "content"),
+    ]
+
+
+def test_same_label_to_different_destinations_is_reported(context_factory, run_rgaa):
+    html = '<a href="/actu/1">Lire la suite</a><a href="/actu/2">Lire la suite</a>'
+    ai = text_services()
+    run_rgaa(RGAA611(), context_factory(html), ai)
+    first, second = submitted(ai)
+    assert first.details["same_label_other_destinations"] == "/actu/2"
+    assert second.details["same_label_other_destinations"] == "/actu/1"
+
+
+def test_image_link_alternatives_are_described(context_factory, run_rgaa):
+    ai = text_services()
+    run_rgaa(RGAA612(), context_factory(IMAGE_LINK), ai)
+    assert submitted(ai)[0].details["images"] == "img : « Accueil de la médiathèque »"
+
+
+def test_image_map_area_is_an_image_link(context_factory, run_rgaa):
+    html = '<map name="m"><area href="/nord" alt="Région Nord" shape="rect" coords="0,0,1,1"></map>'
+    ai = text_services()
+    run_rgaa(RGAA612(), context_factory(html), ai)
+    assert submitted(ai)[0].text == "Région Nord"
+
+
+def test_link_aria_label_takes_priority_over_image_alt(context_factory, run_rgaa):
+    html = '<a href="/" aria-label="Retour à l\'accueil"><img src="l.png" alt="Logo"></a>'
+    ai = text_services()
+    run_rgaa(RGAA612(), context_factory(html), ai)
+    assert submitted(ai)[0].text == "Retour à l'accueil"
+
+
+def test_composite_link_keeps_dom_order(context_factory, run_rgaa):
+    html = '<a href="/p">Voir <img src="a.png" alt="le plan"> du site</a>'
+    ai = text_services()
+    run_rgaa(RGAA613(), context_factory(html), ai)
+    assert submitted(ai)[0].text == "Voir le plan du site"
+
+
+def test_svg_link_description_is_sent(context_factory, run_rgaa):
+    ai = text_services()
+    run_rgaa(RGAA614(), context_factory(SVG_LINK), ai)
+    assert submitted(ai)[0].details["svg_description"] == "Carte des agences"
+
+
+# ---------------------------------------------------------------------------
+# Décision
+# ---------------------------------------------------------------------------
 
 
 @pytest.mark.parametrize(
-    "html",
+    ("test_class", "html"),
     [
-        '<a href="/contact">Contact</a>',
-        '<a href="/guide">Consulter le guide</a>',
-        '<a href="/rapport">Cliquez ici</a>',
-        '<a href="/rapport">En savoir plus</a>',
+        (RGAA611, '<a href="/x"><span aria-hidden="true">→</span></a>'),
+        (RGAA612, '<a href="/x"><img src="a.png" alt=""></a>'),
+        (RGAA614, '<svg><a href="/x"><circle r="4"/></a></svg>'),
     ],
 )
-def test_611_text_links_require_semantic_review(
-    context_factory,
-    run_rgaa,
-    html,
-):
-    context = context_factory(html)
+def test_link_without_label_fails_without_ai(test_class, html, context_factory, run_rgaa):
+    ai = text_services()
+    result = run_rgaa(test_class(), context_factory(html), ai)
+    assert result.status == Status.FAIL
+    assert "n'a pas d'intitulé" in result.findings[0].message
+    ai.text_relevance_analyzer.analyze_relevance.assert_not_called()
 
-    result = run_rgaa(RGAA611(), context)
 
+def test_explicit_link_passes(context_factory, run_rgaa):
+    result = run_rgaa(RGAA611(), context_factory(TEXT_LINK), text_services(relevance_answer=relevance(True)))
+    assert result.status == Status.PASS
+    assert result.findings == []
+
+
+def test_non_explicit_link_fails(context_factory, run_rgaa):
+    html = '<a id="ici" href="/x">cliquez ici</a>'
+    result = run_rgaa(RGAA611(), context_factory(html), text_services(relevance_answer=relevance(False)))
+    assert result.status == Status.FAIL
+    assert result.findings[0].element == "a#ici"
+    assert "« cliquez ici » n'est pas explicite" in result.findings[0].message
+
+
+def test_low_confidence_needs_review(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=relevance(False, confidence="low"))
+    assert run_rgaa(RGAA611(), context_factory(TEXT_LINK), ai).status == Status.NEEDS_REVIEW
+
+
+def test_unknown_answer_needs_review(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=relevance(None))
+    assert run_rgaa(RGAA611(), context_factory(TEXT_LINK), ai).status == Status.NEEDS_REVIEW
+
+
+def test_without_ai_needs_review(context_factory, run_rgaa):
+    result = run_rgaa(RGAA611(), context_factory(TEXT_LINK))
     assert result.status == Status.NEEDS_REVIEW
-    assert result.tested_elements == 1
-    assert len(result.findings) == 1
+    assert "IA n'est pas disponible" in result.findings[0].message
 
 
-def test_611_extracts_link_text(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<a href="/rapport">Télécharger le rapport PDF</a>')
-
-    result = run_rgaa(RGAA611(), context)
-
-    evidence = result.findings[0].evidence
-
-    assert evidence["label"] == "Télécharger le rapport PDF"
-    assert evidence["visible_text"] == "Télécharger le rapport PDF"
-    assert evidence["label_source"] == "content"
+def test_ai_exception_gives_error(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=RuntimeError("panne"))
+    assert run_rgaa(RGAA611(), context_factory(TEXT_LINK), ai).status == Status.ERROR
 
 
-def test_611_extracts_paragraph_context(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<p>Pour consulter les résultats, <a href="/rapport">cliquez ici</a>.</p>')
-
-    result = run_rgaa(RGAA611(), context)
-
-    evidence = result.findings[0].evidence
-
-    assert evidence["label"] == "cliquez ici"
-    assert "consulter les résultats" in (evidence["context"]["paragraph"])
+def test_mixed_results_in_one_batch(context_factory, run_rgaa):
+    html = TEXT_LINK + '<a href="/b">ici</a><a href="/c">Plan du site</a><a href="/d"></a>'
+    ai = text_services(relevance_answer=[relevance(True), relevance(False), relevance(None)])
+    result = run_rgaa(RGAA611(), context_factory(html), ai)
+    assert result.status == Status.FAIL
+    assert ai.text_relevance_analyzer.analyze_relevance.call_count == 1
+    assert result.metadata["statuses"]["pass"] == 1
+    assert result.metadata["statuses"]["fail"] == 2
+    assert result.metadata["statuses"]["needs_review"] == 1
 
 
-def test_611_extracts_list_context(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<ul><li>Rapport d\'accessibilité : <a href="/rapport">Télécharger</a></li></ul>')
-
-    result = run_rgaa(RGAA611(), context)
-
-    assert "Rapport d'accessibilité" in result.findings[0].evidence["context"]["list_item"]
-
-
-def test_611_extracts_table_cell_context(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<table><tr><td>Rapport annuel : <a href="/rapport">Consulter</a></td></tr></table>')
-
-    result = run_rgaa(RGAA611(), context)
-
-    assert "Rapport annuel" in result.findings[0].evidence["context"]["table_cell"]
-
-
-def test_611_extracts_previous_sibling_heading(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<section><h2>Documentation RGAA</h2><a href="/guide">En savoir plus</a></section>')
-
-    result = run_rgaa(RGAA611(), context)
-
-    assert result.findings[0].evidence["context"]["preceding_heading"] == "Documentation RGAA"
-
-
-def test_611_aria_label_has_priority(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<a href="/contact" aria-label="Nous contacter">Contact</a>')
-
-    result = run_rgaa(RGAA611(), context)
-
-    evidence = result.findings[0].evidence
-
-    assert evidence["label"] == "Nous contacter"
-    assert evidence["label_source"] == "aria-label"
-    assert evidence["visible_text"] == "Contact"
-
-
-def test_611_aria_labelledby_has_priority(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory(
-        '<span id="link-label">Consulter le rapport</span><a href="/rapport" aria-labelledby="link-label">Rapport</a>'
-    )
-
-    result = run_rgaa(RGAA611(), context)
-
-    evidence = result.findings[0].evidence
-
-    assert evidence["label"] == "Consulter le rapport"
-    assert evidence["label_source"] == "aria-labelledby"
-
-
-def test_611_missing_labelledby_reference_is_uncertain(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<a href="/rapport" aria-labelledby="missing">Rapport</a>')
-
-    result = run_rgaa(RGAA611(), context)
-
+def test_item_limit(context_factory, run_rgaa, monkeypatch):
+    monkeypatch.setenv("ACCESSICODE_AI_MAX_ITEMS", "1")
+    html = '<a href="/a">Accueil</a><a href="/b">Contact</a>'
+    result = run_rgaa(RGAA611(), context_factory(html), text_services())
     assert result.status == Status.NEEDS_REVIEW
-    assert result.findings[0].evidence["label_source"] == "aria-labelledby_incomplete"
-
-
-def test_611_image_link_is_excluded(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<a href="/home"><img src="home.png" alt="Accueil"></a>')
-
-    result = run_rgaa(RGAA611(), context)
-
-    assert result.status == Status.NOT_APPLICABLE
-
-
-def test_611_composite_link_is_excluded(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<a href="/home"><img src="home.png" alt="">Accueil</a>')
-
-    result = run_rgaa(RGAA611(), context)
-
-    assert result.status == Status.NOT_APPLICABLE
-
-
-def test_611_svg_link_content_is_excluded(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<a href="/home"><svg><title>Accueil</title></svg></a>')
-
-    result = run_rgaa(RGAA611(), context)
-
-    assert result.status == Status.NOT_APPLICABLE
-
-
-def test_611_role_link_is_included(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<span role="link" aria-label="Consulter le rapport">Rapport</span>')
-
-    result = run_rgaa(RGAA611(), context)
-
-    assert result.status == Status.NEEDS_REVIEW
-    assert result.tested_elements == 1
-
-
-def test_611_position_anchor_is_excluded(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<a id="section">Point de repère</a>')
-
-    result = run_rgaa(RGAA611(), context)
-
-    assert result.status == Status.NOT_APPLICABLE
-
-
-def test_611_multiple_links_are_reported(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory(
-        '<a href="/contact">Contact</a><a href="/guide">En savoir plus</a><a href="/rapport">Télécharger</a>'
-    )
-
-    result = run_rgaa(RGAA611(), context)
-
-    assert result.status == Status.NEEDS_REVIEW
-    assert result.tested_elements == 3
-    assert len(result.findings) == 3
-    assert result.metadata["candidate_text_links"] == 3
-
-
-def test_611_finding_contains_identifier(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<a id="report-link" href="/rapport">Rapport</a>')
-
-    result = run_rgaa(RGAA611(), context)
-
-    assert result.findings[0].element == "a#report-link"
-
-
-def test_611_no_false_semantic_pass(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<a href="/contact">Contact</a>')
-
-    result = run_rgaa(RGAA611(), context)
-
-    assert result.status != Status.PASS
-    assert result.metadata["semantic_analysis_performed"] is False
+    assert "Limite" in result.findings[0].message
 
 
 # ---------------------------------------------------------------------------
-# RGAA 6.1.2 — Liens images explicites
-# ---------------------------------------------------------------------------
-
-
-def test_612_no_image_links_is_not_applicable(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<a href="/contact">Contact</a>')
-
-    result = run_rgaa(RGAA612(), context)
-
-    assert result.status == Status.NOT_APPLICABLE
-    assert result.tested_elements == 0
-
-
-def test_612_img_link_requires_review(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<a href="/accueil"><img src="home.png" alt="Accueil"></a>')
-
-    result = run_rgaa(RGAA612(), context)
-
-    assert result.status == Status.NEEDS_REVIEW
-    assert result.tested_elements == 1
-
-    evidence = result.findings[0].evidence
-
-    assert evidence["label"] == "Accueil"
-    assert evidence["images"][0]["source"] == "alt"
-
-
-def test_612_img_without_alt_requires_review(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<a href="/accueil"><img src="home.png"></a>')
-
-    result = run_rgaa(RGAA612(), context)
-
-    assert result.status == Status.NEEDS_REVIEW
-    assert result.metadata["without_label_candidate"] == 1
-
-
-def test_612_empty_alt_is_not_a_label(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<a href="/accueil"><img src="home.png" alt=""></a>')
-
-    result = run_rgaa(RGAA612(), context)
-
-    assert result.metadata["without_label_candidate"] == 1
-
-
-def test_612_img_aria_label_is_extracted(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<a href="/accueil"><img src="home.png" aria-label="Accueil"></a>')
-
-    result = run_rgaa(RGAA612(), context)
-
-    assert result.findings[0].evidence["label"] == "Accueil"
-
-
-def test_612_link_aria_label_has_priority(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory(
-        '<a href="/accueil" aria-label="Retour à l’accueil"><img src="home.png" alt="Maison"></a>'
-    )
-
-    result = run_rgaa(RGAA612(), context)
-
-    evidence = result.findings[0].evidence
-
-    assert evidence["label"] == "Retour à l’accueil"
-    assert evidence["label_source"] == "link_aria-label"
-
-
-def test_612_link_aria_labelledby_is_extracted(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory(
-        '<span id="home-label">Retour à l’accueil</span>'
-        '<a href="/accueil" aria-labelledby="home-label">'
-        '<img src="home.png" alt="">'
-        "</a>"
-    )
-
-    result = run_rgaa(RGAA612(), context)
-
-    assert result.findings[0].evidence["label"] == "Retour à l’accueil"
-
-
-def test_612_img_link_has_paragraph_context(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory(
-        '<p>Retourner à la page principale : <a href="/accueil"><img src="home.png" alt="Accueil"></a></p>'
-    )
-
-    result = run_rgaa(RGAA612(), context)
-
-    evidence = result.findings[0].evidence
-
-    assert "page principale" in evidence["context"]["paragraph"]
-
-
-def test_612_area_with_href_is_included(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<map name="navigation"><area href="/accueil" alt="Accueil"></map>')
-
-    result = run_rgaa(RGAA612(), context)
-
-    assert result.status == Status.NEEDS_REVIEW
-    assert result.tested_elements == 1
-    assert result.findings[0].evidence["label"] == "Accueil"
-
-
-def test_612_area_without_href_is_excluded(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<map name="navigation"><area alt="Accueil"></map>')
-
-    result = run_rgaa(RGAA612(), context)
-
-    assert result.status == Status.NOT_APPLICABLE
-
-
-def test_612_role_img_link_is_included(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<a href="/accueil"><span role="img" aria-label="Accueil"></span></a>')
-
-    result = run_rgaa(RGAA612(), context)
-
-    assert result.status == Status.NEEDS_REVIEW
-    assert result.findings[0].evidence["label"] == "Accueil"
-
-
-def test_612_svg_image_link_is_included(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<a href="/accueil"><svg><title>Accueil</title></svg></a>')
-
-    result = run_rgaa(RGAA612(), context)
-
-    assert result.status == Status.NEEDS_REVIEW
-    assert result.findings[0].evidence["label"] == "Accueil"
-
-
-def test_612_object_image_link_is_included(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory(
-        '<a href="/rapport"><object type="image/svg+xml" data="report.svg" title="Consulter le rapport"></object></a>'
-    )
-
-    result = run_rgaa(RGAA612(), context)
-
-    assert result.status == Status.NEEDS_REVIEW
-    assert result.tested_elements == 1
-
-
-def test_612_canvas_image_link_is_included(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<a href="/graphique"><canvas aria-label="Consulter le graphique"></canvas></a>')
-
-    result = run_rgaa(RGAA612(), context)
-
-    assert result.status == Status.NEEDS_REVIEW
-    assert result.tested_elements == 1
-
-
-def test_612_composite_link_is_excluded(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<a href="/accueil"><img src="home.png" alt="">Accueil</a>')
-
-    result = run_rgaa(RGAA612(), context)
-
-    assert result.status == Status.NOT_APPLICABLE
-
-
-def test_612_svg_internal_link_is_excluded(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<svg><a href="/accueil"><text>Accueil</text></a></svg>')
-
-    result = run_rgaa(RGAA612(), context)
-
-    assert result.status == Status.NOT_APPLICABLE
-
-
-def test_612_multiple_image_links(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory(
-        '<a href="/accueil"><img src="home.png" alt="Accueil"></a><a href="/aide"><img src="help.png" alt="Aide"></a>'
-    )
-
-    result = run_rgaa(RGAA612(), context)
-
-    assert result.status == Status.NEEDS_REVIEW
-    assert result.tested_elements == 2
-    assert len(result.findings) == 2
-    assert result.metadata["candidate_image_links"] == 2
-
-
-def test_612_never_returns_false_semantic_pass(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<a href="/accueil"><img src="home.png" alt="Accueil"></a>')
-
-    result = run_rgaa(RGAA612(), context)
-
-    assert result.status != Status.PASS
-    assert result.metadata["semantic_analysis_performed"] is False
-
-
-# ---------------------------------------------------------------------------
-# RGAA 6.1.3 — Liens composites
-# ---------------------------------------------------------------------------
-
-
-def test_613_no_composite_link_is_not_applicable(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<a href="/contact">Contact</a>')
-
-    result = run_rgaa(RGAA613(), context)
-
-    assert result.status == Status.NOT_APPLICABLE
-    assert result.tested_elements == 0
-
-
-def test_613_image_and_text_requires_review(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<a href="/rapport"><img src="pdf.png" alt="Document PDF">Télécharger le rapport</a>')
-
-    result = run_rgaa(RGAA613(), context)
-
-    assert result.status == Status.NEEDS_REVIEW
-    assert result.tested_elements == 1
-
-
-def test_613_combines_text_and_image_alt(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<a href="/rapport"><img src="pdf.png" alt="Document PDF">Télécharger le rapport</a>')
-
-    result = run_rgaa(RGAA613(), context)
-    evidence = result.findings[0].evidence
-
-    assert evidence["combined_content"] == ("Document PDF Télécharger le rapport")
-    assert evidence["label_source"] == "combined_content"
-
-
-def test_613_preserves_dom_order(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<a href="/rapport">Télécharger<img src="pdf.png" alt="PDF">maintenant</a>')
-
-    result = run_rgaa(RGAA613(), context)
-
-    assert result.findings[0].evidence["combined_content"] == ("Télécharger PDF maintenant")
-
-
-def test_613_empty_image_alt_is_ignored(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<a href="/rapport"><img src="pdf.png" alt="">Télécharger le rapport</a>')
-
-    result = run_rgaa(RGAA613(), context)
-    evidence = result.findings[0].evidence
-
-    assert evidence["combined_content"] == ("Télécharger le rapport")
-    assert evidence["images"][0]["alternative"] == ""
-
-
-def test_613_multiple_images_are_combined(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory(
-        '<a href="/rapport"><img src="pdf.png" alt="PDF">Télécharger<img src="download.png" alt="le document"></a>'
-    )
-
-    result = run_rgaa(RGAA613(), context)
-    evidence = result.findings[0].evidence
-
-    assert evidence["combined_content"] == ("PDF Télécharger le document")
-    assert len(evidence["images"]) == 2
-
-
-def test_613_link_aria_label_has_priority(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory(
-        '<a href="/rapport" aria-label="Télécharger le rapport annuel"><img src="pdf.png" alt="PDF">Télécharger</a>'
-    )
-
-    result = run_rgaa(RGAA613(), context)
-    evidence = result.findings[0].evidence
-
-    assert evidence["label"] == ("Télécharger le rapport annuel")
-    assert evidence["label_source"] == "aria-label"
-
-
-def test_613_aria_labelledby_has_priority(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory(
-        '<span id="label">Consulter le rapport</span>'
-        '<a href="/rapport" aria-labelledby="label">'
-        '<img src="pdf.png" alt="PDF">'
-        "Rapport"
-        "</a>"
-    )
-
-    result = run_rgaa(RGAA613(), context)
-
-    assert result.findings[0].evidence["label"] == ("Consulter le rapport")
-
-
-def test_613_invalid_labelledby_requires_review(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory(
-        '<a href="/rapport" aria-labelledby="missing"><img src="pdf.png" alt="PDF">Télécharger</a>'
-    )
-
-    result = run_rgaa(RGAA613(), context)
-    evidence = result.findings[0].evidence
-
-    assert result.status == Status.NEEDS_REVIEW
-    assert evidence["label_source"] == ("aria-labelledby_incomplete")
-
-
-def test_613_extracts_paragraph_context(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory(
-        '<p>Rapport d\'accessibilité : <a href="/rapport"><img src="pdf.png" alt="PDF">Télécharger</a></p>'
-    )
-
-    result = run_rgaa(RGAA613(), context)
-    evidence = result.findings[0].evidence
-
-    assert "Rapport d'accessibilité" in (evidence["context"]["paragraph"])
-
-
-def test_613_image_only_link_is_excluded(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<a href="/accueil"><img src="home.png" alt="Accueil"></a>')
-
-    result = run_rgaa(RGAA613(), context)
-
-    assert result.status == Status.NOT_APPLICABLE
-
-
-def test_613_text_only_link_is_excluded(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<a href="/contact">Contact</a>')
-
-    result = run_rgaa(RGAA613(), context)
-
-    assert result.status == Status.NOT_APPLICABLE
-
-
-def test_613_hidden_text_is_not_counted(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<a href="/rapport"><img src="pdf.png" alt="PDF"><span hidden>Télécharger</span></a>')
-
-    result = run_rgaa(RGAA613(), context)
-
-    assert result.status == Status.NOT_APPLICABLE
-
-
-def test_613_svg_internal_link_is_excluded(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory(
-        '<svg><a href="/rapport"><image href="pdf.png"></image><text>Télécharger</text></a></svg>'
-    )
-
-    result = run_rgaa(RGAA613(), context)
-
-    assert result.status == Status.NOT_APPLICABLE
-
-
-def test_613_multiple_composite_links(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory(
-        '<a href="/rapport">'
-        '<img src="pdf.png" alt="PDF">'
-        "Télécharger"
-        "</a>"
-        '<a href="/aide">'
-        '<img src="help.png" alt="Aide">'
-        "Consulter l'aide"
-        "</a>"
-    )
-
-    result = run_rgaa(RGAA613(), context)
-
-    assert result.status == Status.NEEDS_REVIEW
-    assert result.tested_elements == 2
-    assert len(result.findings) == 2
-    assert result.metadata["candidate_composite_links"] == 2
-    assert result.metadata["semantic_analysis_performed"] is False
-
-
-# ---------------------------------------------------------------------------
-# RGAA 6.1.4 — Liens SVG
-# ---------------------------------------------------------------------------
-
-
-def test_614_no_svg_links_is_not_applicable(context_factory, run_rgaa):
-    context = context_factory('<a href="/contact">Contact</a>')
-    result = run_rgaa(RGAA614(), context)
-
-    assert result.status == Status.NOT_APPLICABLE
-    assert result.tested_elements == 0
-
-
-def test_614_svg2_href_requires_review(context_factory, run_rgaa):
-    context = context_factory('<svg><a href="/contact"><text>Contact</text></a></svg>')
-    result = run_rgaa(RGAA614(), context)
-
-    assert result.status == Status.NEEDS_REVIEW
-    assert result.tested_elements == 1
-    assert result.findings[0].evidence["label"] == "Contact"
-    assert result.findings[0].evidence["label_source"] == "svg_text"
-
-
-def test_614_svg11_xlink_href(context_factory, run_rgaa):
-    context = context_factory(
-        '<svg xmlns:xlink="http://www.w3.org/1999/xlink"><a xlink:href="/contact"><text>Contact</text></a></svg>'
-    )
-    result = run_rgaa(RGAA614(), context)
-
-    assert result.status == Status.NEEDS_REVIEW
-    assert result.tested_elements == 1
-    assert result.findings[0].evidence["href"] == "/contact"
-
-
-def test_614_svg_without_link_is_excluded(context_factory, run_rgaa):
-    context = context_factory("<svg><text>Contact</text></svg>")
-    result = run_rgaa(RGAA614(), context)
-
-    assert result.status == Status.NOT_APPLICABLE
-
-
-def test_614_svg_anchor_without_href_is_excluded(context_factory, run_rgaa):
-    context = context_factory("<svg><a><text>Contact</text></a></svg>")
-    result = run_rgaa(RGAA614(), context)
-
-    assert result.status == Status.NOT_APPLICABLE
-
-
-def test_614_html_link_containing_svg_is_excluded(context_factory, run_rgaa):
-    context = context_factory('<a href="/contact"><svg><title>Contact</title></svg></a>')
-    result = run_rgaa(RGAA614(), context)
-
-    assert result.status == Status.NOT_APPLICABLE
-
-
-def test_614_aria_label_takes_priority(context_factory, run_rgaa):
-    context = context_factory('<svg><a href="/contact" aria-label="Nous contacter"><text>Contact</text></a></svg>')
-    result = run_rgaa(RGAA614(), context)
-    evidence = result.findings[0].evidence
-
-    assert evidence["label"] == "Nous contacter"
-    assert evidence["label_source"] == "aria-label"
-    assert evidence["label_evidence"]["visible_svg_text"] == "Contact"
-
-
-def test_614_aria_labelledby(context_factory, run_rgaa):
-    context = context_factory(
-        "<svg>"
-        '<text id="label">Consulter le rapport</text>'
-        '<a href="/rapport" aria-labelledby="label">'
-        "<text>Rapport</text>"
-        "</a>"
-        "</svg>"
-    )
-    result = run_rgaa(RGAA614(), context)
-
-    assert result.findings[0].evidence["label"] == ("Consulter le rapport")
-    assert result.findings[0].evidence["label_source"] == ("aria-labelledby")
-
-
-def test_614_missing_labelledby_reference(context_factory, run_rgaa):
-    context = context_factory('<svg><a href="/rapport" aria-labelledby="missing"><text>Rapport</text></a></svg>')
-    result = run_rgaa(RGAA614(), context)
-    evidence = result.findings[0].evidence
-
-    assert result.status == Status.NEEDS_REVIEW
-    assert evidence["label_source"] == ("aria-labelledby_incomplete")
-
-
-def test_614_nested_tspan_text(context_factory, run_rgaa):
-    context = context_factory(
-        '<svg><a href="/rapport"><text><tspan>Consulter</tspan><tspan>le rapport</tspan></text></a></svg>'
-    )
-    result = run_rgaa(RGAA614(), context)
-
-    assert result.findings[0].evidence["label"] == ("Consulter le rapport")
-
-
-def test_614_link_title(context_factory, run_rgaa):
-    context = context_factory(
-        "<svg><a href=\"/rapport\"><title>Consulter le rapport</title><path d='M0 0 L10 10'/></a></svg>"
-    )
-    result = run_rgaa(RGAA614(), context)
-
-    assert result.findings[0].evidence["label"] == ("Consulter le rapport")
-    assert result.findings[0].evidence["label_source"] == ("link_svg_title")
-
-
-def test_614_empty_link_requires_review(context_factory, run_rgaa):
-    context = context_factory("<svg><a href=\"/rapport\"><path d='M0 0 L10 10'/></a></svg>")
-    result = run_rgaa(RGAA614(), context)
-
-    assert result.status == Status.NEEDS_REVIEW
-    assert result.metadata["without_label_candidate"] == 1
-
-
-def test_614_svg_description_context(context_factory, run_rgaa):
-    context = context_factory(
-        '<svg><desc>Navigation vers les rapports</desc><a href="/rapport"><text>Rapport</text></a></svg>'
-    )
-    result = run_rgaa(RGAA614(), context)
-
-    assert result.findings[0].evidence["context"]["svg_description"] == "Navigation vers les rapports"
-
-
-def test_614_multiple_svg_links(context_factory, run_rgaa):
-    context = context_factory(
-        '<svg><a href="/contact"><text>Contact</text></a><a href="/aide"><text>Aide</text></a></svg>'
-    )
-    result = run_rgaa(RGAA614(), context)
-
-    assert result.status == Status.NEEDS_REVIEW
-    assert result.tested_elements == 2
-    assert len(result.findings) == 2
-    assert result.metadata["candidate_svg_links"] == 2
-
-
-def test_614_identifies_link_by_id(context_factory, run_rgaa):
-    context = context_factory('<svg><a id="svg-contact" href="/contact"><text>Contact</text></a></svg>')
-    result = run_rgaa(RGAA614(), context)
-
-    assert result.findings[0].element == "a#svg-contact"
-
-
-def test_614_does_not_claim_semantic_conformity(context_factory, run_rgaa):
-    context = context_factory('<svg><a href="/contact"><text>Contact</text></a></svg>')
-    result = run_rgaa(RGAA614(), context)
-
-    assert result.status != Status.PASS
-    assert result.metadata["semantic_analysis_performed"] is False
-
-
-# ---------------------------------------------------------------------------
-# RGAA 6.1.5 — Intitulé visible contenu dans le nom accessible
+# 6.1.5 — intitulé visible contenu dans le nom accessible (déterministe)
 # ---------------------------------------------------------------------------
 
 

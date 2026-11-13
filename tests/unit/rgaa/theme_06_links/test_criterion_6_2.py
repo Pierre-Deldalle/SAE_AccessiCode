@@ -49,7 +49,6 @@ def test_621_empty_link_fails(
     "html",
     [
         '<a href="/contact" aria-label="Contact"></a>',
-        '<a href="/contact" title="Contact"></a>',
         '<a href="/contact"><span>Contact</span></a>',
         '<a href="/contact"><img src="contact.png" alt="Contact"></a>',
     ],
@@ -65,6 +64,14 @@ def test_621_link_with_label_passes(
 
     assert result.status == Status.PASS
     assert result.findings == []
+
+
+def test_621_title_only_is_not_a_label(context_factory, run_rgaa):
+    """RGAA 6.2.1 : l'intitulé doit se trouver entre <a> et </a> ; un title seul ne suffit pas."""
+    result = run_rgaa(RGAA621(), context_factory('<a href="/contact" title="Contact"></a>'))
+
+    assert result.status == Status.FAIL
+    assert result.findings[0].evidence["label_source"] == "title_only"
 
 
 def test_621_valid_aria_labelledby_passes(

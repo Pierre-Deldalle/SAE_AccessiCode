@@ -398,3 +398,111 @@ def associated_headers(table: Tag, cell: Tag) -> list[Tag]:
         elif kind == ROW_HEADER and other_col + other_colspan <= col and same_rows:
             headers.append(other)
     return headers
+
+
+# Textes soumis à l'IA (critères 5.2, 5.3 et 5.5).
+
+_PREVIEW_ROWS = 4
+_LINEARIZED_LIMIT = 1500
+
+
+def table_identifier(table: Tag, index: int) -> str:
+    """Identifiant lisible d'un tableau dans les observations."""
+    table_id = table.get("id")
+    if isinstance(table_id, str) and table_id.strip():
+        return f"table#{table_id.strip()}"
+    return f"table[index={index}]"
+
+
+def has_header_cells(table: Tag) -> bool:
+    """Tableau contenant au moins une cellule d'en-tête (th, columnheader, rowheader)."""
+    return any(is_header_cell(cell) for row in get_table_rows(table) for cell in get_row_cells(row))
+
+
+def _text(element: Tag) -> str:
+    return " ".join(element.get_text(" ", strip=True).split())
+
+
+def table_titles(table: Tag, soup: BeautifulSoup) -> list[tuple[str, str]]:
+    """
+    Titres associés au tableau (RGAA 5.4) : liste de (mécanisme, texte) non vides.
+
+    Mécanismes : caption, title, aria-label, aria-labelledby.
+    """
+    titles: list[tuple[str, str]] = []
+    caption = table.find("caption", recursive=False)
+    if isinstance(caption, Tag) and _text(caption):
+        titles.append(("caption", _text(caption)))
+    for attribute in ("title", "aria-label"):
+        value = " ".join(str(table.get(attribute) or "").split())
+        if value:
+            titles.append((attribute, value))
+    valid, text = get_referenced_text(table, soup, "aria-labelledby")
+    if valid:
+        titles.append(("aria-labelledby", " ".join(text.split())))
+    return titles
+
+
+def table_summaries(table: Tag, soup: BeautifulSoup, *, allow_legacy_summary: bool) -> list[tuple[str, str]]:
+    """
+    Résumés disponibles pour un tableau complexe (RGAA 5.1) : liste de (mécanisme, texte).
+
+    Mécanismes : caption, aria-describedby et, hors HTML5, l'attribut summary.
+    """
+    summaries: list[tuple[str, str]] = []
+    caption = table.find("caption", recursive=False)
+    if isinstance(caption, Tag) and _text(caption):
+        summaries.append(("caption", _text(caption)))
+    valid, text = get_referenced_text(table, soup, "aria-describedby")
+    if valid:
+        summaries.append(("aria-describedby", " ".join(text.split())))
+    if allow_legacy_summary:
+        summary = " ".join(str(table.get("summary") or "").split())
+        if summary:
+            summaries.append(("summary", summary))
+    return summaries
+
+
+def table_preview(table: Tag, rows: int = _PREVIEW_ROWS) -> str:
+    """En-têtes et premières lignes du tableau, une ligne par rangée (« | » entre cellules)."""
+    lines = []
+    for row in get_table_rows(table)[:rows]:
+        cells = [_text(cell) for cell in get_row_cells(row)]
+        if any(cells):
+            lines.append(" | ".join(cells))
+    return "\n".join(lines)
+
+
+def linearized_table_text(table: Tag, limit: int = _LINEARIZED_LIMIT) -> str:
+    """
+    Contenu d'un tableau lu dans l'ordre du code, cellule par cellule
+    (ce que restitue un lecteur d'écran pour un tableau de mise en forme).
+    """
+    parts: list[str] = []
+    for row in get_table_rows(table):
+        for cell in get_row_cells(row):
+            text = _text(cell)
+            if text:
+                parts.append(text)
+    if not parts:
+        parts = [_text(table)] if _text(table) else []
+    return "\n".join(parts)[:limit]
+
+
+def has_single_header_axis(table: Tag) -> bool:
+    """
+    Tous les en-têtes sont sur une seule ligne ou dans une seule colonne
+    (cas particulier du RGAA 5.7 : th sans scope admis).
+    """
+    rows_with_headers: set[int] = set()
+    columns_with_headers: set[int] = set()
+    for row_index, row in enumerate(get_table_rows(table)):
+        col_index = 0
+        for cell in get_row_cells(row):
+            if is_header_cell(cell):
+                rows_with_headers.add(row_index)
+                columns_with_headers.add(col_index)
+            col_index += get_int_attribute(cell, "colspan")
+    if not rows_with_headers:
+        return False
+    return len(rows_with_headers) == 1 or len(columns_with_headers) == 1

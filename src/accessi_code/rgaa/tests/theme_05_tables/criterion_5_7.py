@@ -11,6 +11,7 @@ from accessi_code.analysis.tables import (
     get_int_attribute,
     get_row_cells,
     get_table_rows,
+    has_single_header_axis,
     is_header_cell,
 )
 from accessi_code.models.audit_context import AuditContext
@@ -77,6 +78,9 @@ class Test571(RGAATest):
 
         for table_index, table in enumerate(data_tables):
             rows = get_table_rows(table)
+            # Cas particulier RGAA 5.7 : en-têtes sur une seule ligne ou une seule colonne,
+            # un th sans scope suffit.
+            single_axis = has_single_header_axis(table)
 
             for row_index, row in enumerate(rows):
                 cells = get_row_cells(row)
@@ -88,7 +92,7 @@ class Test571(RGAATest):
                         ) or self._applies_to_entire_row(cell, table, row_index, col_index):
                             total_headers_entire += 1
 
-                            if not self._has_proper_header_identification(cell):
+                            if not single_axis and not self._has_proper_header_identification(cell):
                                 table_id = table.get("id")
                                 row_id = row.get("id")
                                 cell_id = cell.get("id")
@@ -1251,4 +1255,3 @@ def _is_partial_header(slot: TableSlot) -> bool:
     if slot.kind == ROW_HEADER:
         return get_int_attribute(slot.item, "rowspan") > 1
     return False
-

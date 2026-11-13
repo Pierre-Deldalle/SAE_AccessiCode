@@ -1,210 +1,108 @@
+"""
+RGAA 4.1.2 — critère 5.3 : pour chaque tableau de mise en forme, le contenu
+linéarisé reste-t-il compréhensible ?
+
+Test 5.3.1, deux conditions :
+- l'élément table possède role="presentation" : vérifié sans IA, son absence
+  est non conforme ;
+- le contenu linéarisé reste compréhensible : l'IA lit les cellules dans
+  l'ordre du code, comme un lecteur d'écran.
+
+Un tableau sans aucune cellule d'en-tête ni titre est considéré comme un
+tableau de mise en forme.
+"""
+
 from __future__ import annotations
+
+from typing import Any
 
 from bs4 import BeautifulSoup, Tag
 
+from accessi_code.ai.schemas import RelevanceItem
 from accessi_code.analysis.tables import (
     find_tables,
-    is_header_cell,
+    has_header_cells,
+    is_presentation_table,
+    linearized_table_text,
+    table_identifier,
 )
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
-from accessi_code.models.result import (
-    Finding,
-    TestResult,
-    TestStatus,
-)
+from accessi_code.models.result import TestResult, TestStatus
+from accessi_code.rgaa.ai_decision import judge_relevance
 from accessi_code.rgaa.base import RGAATest
+from accessi_code.rgaa.outcomes import Outcome, build_result, make_outcome, not_applicable
+
+EMPTY_SUMMARY = "Aucun tableau de mise en forme."
+ROLE_RECOMMENDATION = 'Ajouter role="presentation" sur l\'élément table utilisé pour la mise en forme.'
+ORDER_RECOMMENDATION = "Réorganiser le tableau pour que le contenu, lu cellule par cellule, garde son sens."
+
+
+def is_layout_table(table: Tag) -> bool:
+    """Tableau de mise en forme : déclaré comme tel, ou sans en-tête ni titre."""
+    if is_presentation_table(table):
+        return True
+    if table.name != "table" or has_header_cells(table):
+        return False
+    caption = table.find("caption", recursive=False)
+    has_caption = isinstance(caption, Tag) and bool(caption.get_text(strip=True))
+    return not has_caption and not any(table.get(name) for name in ("aria-label", "aria-labelledby", "summary"))
 
 
 class Test531(RGAATest):
+    """5.3.1 : role="presentation" présent et contenu linéarisé compréhensible."""
+
     test_id = "5.3.1"
     criterion_id = "5.3"
+    required_capabilities = frozenset({Capability.DOM})
 
-    required_capabilities = frozenset(
-        {
-            Capability.DOM,
-        }
-    )
-
-    async def run(
-        self,
-        context: AuditContext,
-        services=None,
-    ) -> TestResult:
-        if not isinstance(
-            context.dom,
-            BeautifulSoup,
-        ):
+    async def run(self, context: AuditContext, services: Any | None = None) -> TestResult:
+        if not isinstance(context.dom, BeautifulSoup):
             raise ValueError("Le test 5.3.1 nécessite un DOM.")
 
-        soup = context.dom
-
-        tables = find_tables(soup)
-
+        tables = [(index, table) for index, table in enumerate(find_tables(context.dom)) if is_layout_table(table)]
         if not tables:
-            return TestResult(
-                self.test_id,
-                self.criterion_id,
-                TestStatus.NOT_APPLICABLE,
-                "Aucun tableau détecté.",
-            )
+            return not_applicable(self, EMPTY_SUMMARY)
 
-        layout_tables: list[Tag] = []
-        findings: list[Finding] = []
-
-        for index, table in enumerate(tables):
-            if self._is_data_table(table):
+        outcomes: list[Outcome | None] = [None] * len(tables)
+        to_judge: list[tuple[int, str]] = []
+        for position, (index, table) in enumerate(tables):
+            identifier = table_identifier(table, index)
+            if not is_presentation_table(table):
+                outcomes[position] = make_outcome(
+                    TestStatus.FAIL,
+                    identifier,
+                    "Le tableau de mise en forme n'a pas d'attribut role=\"presentation\".",
+                    ROLE_RECOMMENDATION,
+                )
                 continue
+            text = linearized_table_text(table)
+            if not text:
+                # Aucun contenu textuel : rien qui puisse devenir incompréhensible.
+                outcomes[position] = make_outcome(TestStatus.PASS)
+                continue
+            to_judge.append((position, text))
 
-            layout_tables.append(table)
+        items = [RelevanceItem(text=text, element_html=str(tables[position][1])[:400]) for position, text in to_judge]
+        verdicts = await judge_relevance(services, "layout_table_linearized", items)
 
-            role = table.get("role")
-            has_presentation_role = isinstance(role, str) and role.strip().lower() == "presentation"
-
-            content_comprehensible = self._is_linearized_content_comprehensible(table, soup)
-
-            if not has_presentation_role or not content_comprehensible:
-                table_id = table.get("id")
-                element = (
-                    f"table#{table_id}" if (isinstance(table_id, str) and table_id.strip()) else f"table[index={index}]"
-                )
-
-                issues = []
-                if not has_presentation_role:
-                    issues.append("l'attribut role='presentation' est manquant")
-                if not content_comprehensible:
-                    issues.append("le contenu linéarisé n'est pas compréhensible")
-
-                findings.append(
-                    Finding(
-                        element=element,
-                        message=("Et non : " + " ; ".join(issues)),
-                        recommendation=(
-                            "Pour un tableau de mise en forme, ajouter l'attribut role='presentation' et s'assurer que le contenu reste compréhensible lorsqu'il est linéarisé."
-                        ),
-                    )
-                )
-
-        if not layout_tables:
-            return TestResult(
-                self.test_id,
-                self.criterion_id,
-                TestStatus.NOT_APPLICABLE,
-                "Aucun tableau de mise en forme détecté.",
-                metadata={
-                    "total_tables": len(tables),
-                },
+        for (position, text), verdict in zip(to_judge, verdicts, strict=True):
+            index, table = tables[position]
+            outcomes[position] = make_outcome(
+                verdict.status,
+                table_identifier(table, index),
+                verdict.message(
+                    "Le contenu linéarisé du tableau de mise en forme n'est pas compréhensible.",
+                    "La compréhension du contenu linéarisé du tableau de mise en forme reste à vérifier.",
+                ),
+                ORDER_RECOMMENDATION,
+                linearized=text[:500],
+                **verdict.evidence,
             )
 
-        status = TestStatus.FAIL if findings else TestStatus.PASS
-
-        return TestResult(
-            self.test_id,
-            self.criterion_id,
-            status,
-            (f"{len(layout_tables)} tableau(x) de mise en forme, {len(findings)} non conforme(s)."),
-            findings=findings,
-            tested_elements=len(layout_tables),
-            metadata={
-                "total_tables": len(tables),
-                "layout_tables": len(layout_tables),
-            },
+        return build_result(
+            self,
+            [item for item in outcomes if item is not None],
+            empty_summary=EMPTY_SUMMARY,
+            noun="tableau(x) de mise en forme",
         )
-
-    def _is_data_table(self, table: Tag) -> bool:
-        """
-        Détermine si un tableau est un tableau de données (au sens large).
-        Un tableau de données contient au moins une cellule d'en-tête.
-        """
-        for element in table.find_all(recursive=False):
-            if isinstance(element, Tag) and is_header_cell(element):
-                return True
-            if self._contains_header_cell(element):
-                return True
-        return False
-
-    def _contains_header_cell(self, element: Tag) -> bool:
-        """Vérifie récursivement si un élément contient une cellule d'en-tête."""
-        for child in element.find_all(recursive=False):
-            if isinstance(child, Tag):
-                if is_header_cell(child):
-                    return True
-                if self._contains_header_cell(child):
-                    return True
-        return False
-
-    def _is_linearized_content_comprehensible(self, table: Tag, soup: BeautifulSoup) -> bool:
-        """
-        Vérifie si le contenu du tableau reste compréhensible lorsqu'il est linéarisé.
-        Lis le contenu dans l'ordre DOM (de gauche à droite, de haut en bas).
-        """
-        texts = []
-
-        def extract_text_from_element(element):
-            if isinstance(element, Tag):
-                if element.name in ["td", "th"] or element.get("role") in ["cell", "columnheader", "rowheader"]:
-                    text = element.get_text(" ", strip=True)
-                    if text:
-                        texts.append(text)
-                for child in element.children:
-                    extract_text_from_element(child)
-            elif hasattr(element, "strip") and str(element).strip():
-                text = str(element).strip()
-                if text:
-                    texts.append(text)
-
-        extract_text_from_element(table)
-
-        linearized_content = " ".join(texts)
-
-        if not linearized_content or len(linearized_content.strip()) < 3:
-            return False
-
-        content_lower = linearized_content.lower()
-        words = content_lower.split()
-
-        if len(words) < 2:
-            return False
-
-        filler_indicators = {
-            "cellule",
-            "cell",
-            "column",
-            "colonne",
-            "row",
-            "ligne",
-            "item",
-            "element",
-            "data",
-            "texte",
-            "text",
-            "lorem",
-            "ipsum",
-            "dummy",
-            "placeholder",
-            "bloc",
-            "zone",
-            "section",
-            "div",
-            "span",
-        }
-
-        filler_word_count = sum(1 for word in words if word in filler_indicators)
-
-        if len(words) > 0 and (filler_word_count / len(words)) > 0.5:
-            return False
-
-        if len(words) >= 4:
-            pattern_count = 0
-            for i in range(0, len(words) - 2, 2):  # Check pairs of words
-                if i + 1 < len(words) and words[i].isalpha() and words[i + 1].isdigit():
-                    pattern_count += 1
-
-            if len(words) >= 2 and (pattern_count * 2) / len(words) > 0.4:
-                return False
-
-        meaningful_words = [word for word in words if word not in filler_indicators and len(word) > 2]
-        if len(meaningful_words) == 0:
-            return False  # Aucun mot significatif
-
-        return True
