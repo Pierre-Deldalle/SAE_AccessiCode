@@ -1,256 +1,150 @@
+"""Critère RGAA 9.1 : titres."""
 
+import pytest
+from ai_fakes import relevance, structure, text_services
 
 from accessi_code.models.result import TestStatus as Status
-from accessi_code.rgaa.tests.theme_09_structuration_information.criterion_9_1 import (
-    Test911 as RGAA911,
-)
-from accessi_code.rgaa.tests.theme_09_structuration_information.criterion_9_1 import (
-    Test912 as RGAA912,
-)
-from accessi_code.rgaa.tests.theme_09_structuration_information.criterion_9_1 import (
-    Test913 as RGAA913,
-)
+from accessi_code.rgaa.tests.theme_09_structuration_information.criterion_9_1 import Test911, Test912, Test913
+
+GOOD = "<h1>Accueil</h1><h2>Services</h2><p>Texte</p><h3>Audit</h3><h2>Contact</h2>"
+JUMP = "<h1>Accueil</h1><h2>Offres</h2><h4>Tarifs</h4><p>10 €</p>"
 
 
-def test_911_correct_hierarchy_passes(context_factory, run_rgaa):
-    """Test 9.1.1: Hiérarchie correcte (h1 -> h2 -> h3) doit passer."""
-    html = """
-    <h1>Titre principal</h1>
-    <h2>Sous-titre</h2>
-    <h3>Sous-sous-titre</h3>
-    <p>Contenu</p>
-    """
-    context = context_factory(html)
-    result = run_rgaa(RGAA911(), context)
-
-    assert result.status == Status.PASS
-    assert result.findings == []
-    assert result.tested_elements == 3
+@pytest.mark.parametrize("cls", [Test911, Test912, Test913])
+def test_no_heading_is_not_applicable(cls, context_factory, run_rgaa):
+    assert run_rgaa(cls(), context_factory("<p>Texte</p>"), text_services()).status == Status.NOT_APPLICABLE
 
 
-def test_911_incorrect_hierarchy_skipping_level_fails(context_factory, run_rgaa):
-    """Test 9.1.1: Hiérarchie incorrecte (saut de niveau h1 -> h3) doit échouer."""
-    html = """
-    <h1>Titre principal</h1>
-    <h3>Sous-sous-titre (manque h2)</h3>
-    """
-    context = context_factory(html)
-    result = run_rgaa(RGAA911(), context)
+# ---- 9.1.1 -----------------------------------------------------------
 
+
+def test_911_hierarchy_without_jump_passes_without_ai(context_factory, run_rgaa):
+    ai = text_services()
+    assert run_rgaa(Test911(), context_factory(GOOD), ai).status == Status.PASS
+    ai.structure_analyzer.analyze_heading_hierarchy.assert_not_called()
+
+
+def test_911_jump_judged_relevant_passes(context_factory, run_rgaa):
+    ai = text_services(hierarchy_answer=relevance(True))
+    assert run_rgaa(Test911(), context_factory(JUMP), ai).status == Status.PASS
+    outline, remarks = ai.structure_analyzer.analyze_heading_hierarchy.call_args.args
+    assert outline == [(1, "Accueil"), (2, "Offres"), (4, "Tarifs")]
+    assert remarks == ["h2 → h4 : « Tarifs »"]
+
+
+def test_911_jump_judged_irrelevant_fails(context_factory, run_rgaa):
+    ai = text_services(hierarchy_answer=relevance(False, problems=["h4 – Tarifs : rattaché à aucun h3"]))
+    result = run_rgaa(Test911(), context_factory(JUMP), ai)
     assert result.status == Status.FAIL
-    assert len(result.findings) == 1
-    assert "Hiérarchie de titres incorrecte" in result.findings[0].message
-    assert result.tested_elements == 2
+    assert "rattaché à aucun h3" in result.findings[0].message
 
 
-def test_911_multiple_sections_with_correct_hierarchy_passes(context_factory, run_rgaa):
-    """Test 9.1.1: Plusieurs sections avec hiérarchie correcte chacune doivent passer."""
-    html = """
-    <h1>Titre principal 1</h1>
-    <h2>Sous-titre 1</h2>
-
-    <h1>Titre principal 2</h1>
-    <h2>Sous-titre 2</h1>
-    <h3>Sous-sous-titre 2</h3>
-    """
-    context = context_factory(html)
-    result = run_rgaa(RGAA911(), context)
-
-    # Note: Le deuxième h1 est en fait un h2 dans le HTML ci-dessus, corrigons-le
-    html = """
-    <h1>Titre principal 1</h1>
-    <h2>Sous-titre 1</h2>
-
-    <h1>Titre principal 2</h1>
-    <h2>Sous-titre 2</h2>
-    <h3>Sous-sous-titre 2</h3>
-    """
-    context = context_factory(html)
-    result = run_rgaa(RGAA911(), context)
-
-    assert result.status == Status.PASS
-    assert result.findings == []
-    assert result.tested_elements == 5
+def test_911_first_heading_not_level_one_is_a_remark(context_factory, run_rgaa):
+    ai = text_services(hierarchy_answer=relevance(True))
+    run_rgaa(Test911(), context_factory("<h2>Actualités</h2><h3>Brève</h3>"), ai)
+    _, remarks = ai.structure_analyzer.analyze_heading_hierarchy.call_args.args
+    assert "le premier titre est de niveau 2" in remarks[0]
 
 
-def test_911_wai_aria_heading_correct_hierarchy_passes(context_factory, run_rgaa):
-    """Test 9.1.1: Hiérarchie correcte avec éléments WAI-ARIA doit passer."""
-    html = """
-    <h1>Titre principal</h1>
-    <div role="heading" aria-level="2">Sous-titre</div>
-    <h3>Sous-sous-titre</h3>
-    """
-    context = context_factory(html)
-    result = run_rgaa(RGAA911(), context)
-
-    assert result.status == Status.PASS
-    assert result.findings == []
-    assert result.tested_elements == 3
+def test_911_low_confidence_needs_review(context_factory, run_rgaa):
+    ai = text_services(hierarchy_answer=relevance(False, confidence="low"))
+    assert run_rgaa(Test911(), context_factory(JUMP), ai).status == Status.NEEDS_REVIEW
 
 
-def test_911_wai_aria_heading_incorrect_hierarchy_fails(context_factory, run_rgaa):
-    """Test 9.1.1: Hiérarchie incorrecte avec éléments WAI-ARIA doit échouer."""
-    html = """
-    <h1>Titre principal</h1>
-    <div role="heading" aria-level="3">Sous-sous-titre (manque niveau 2)</div>
-    """
-    context = context_factory(html)
-    result = run_rgaa(RGAA911(), context)
+def test_911_without_ai_needs_review(context_factory, run_rgaa):
+    assert run_rgaa(Test911(), context_factory(JUMP)).status == Status.NEEDS_REVIEW
 
+
+def test_911_ai_exception_gives_error(context_factory, run_rgaa):
+    ai = text_services(hierarchy_answer=RuntimeError("panne"))
+    assert run_rgaa(Test911(), context_factory(JUMP), ai).status == Status.ERROR
+
+
+def test_911_hidden_and_aria_headings(context_factory, run_rgaa):
+    html = '<h1>A</h1><h3 hidden>Masqué</h3><div role="heading" aria-level="2">B</div>'
+    assert run_rgaa(Test911(), context_factory(html), text_services()).status == Status.PASS
+
+
+# ---- 9.1.2 -----------------------------------------------------------
+
+
+def test_912_relevant_headings_pass(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=relevance(True))
+    assert run_rgaa(Test912(), context_factory(GOOD), ai).status == Status.PASS
+    kind, items = ai.text_relevance_analyzer.analyze_relevance.call_args.args
+    assert kind == "heading"
+    assert [item.text for item in items] == ["Accueil", "Services", "Audit", "Contact"]
+    assert "Texte" in items[1].context
+
+
+def test_912_irrelevant_heading_fails(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=[relevance(True), relevance(False)])
+    result = run_rgaa(Test912(), context_factory("<h1>Accueil</h1><h2>Titre</h2><p>Nos horaires</p>"), ai)
     assert result.status == Status.FAIL
-    assert len(result.findings) == 1
-    assert "Hiérarchie de titres incorrecte" in result.findings[0].message
-    assert result.tested_elements == 2
+    assert "« Titre »" in result.findings[0].message
 
 
-def test_911_no_headings_not_applicable(context_factory, run_rgaa):
-    """Test 9.1.1: Absence de titres doit retourner NOT_APPLICABLE."""
-    html = """
-    <p>Paragraphe sans titre</p>
-    <div>Contenu</div>
-    """
-    context = context_factory(html)
-    result = run_rgaa(RGAA911(), context)
-
-    assert result.status == Status.NOT_APPLICABLE
-    assert result.tested_elements == 0
-    assert "Aucun titre détecté" in result.summary
-
-
-def test_912_descriptive_headings_passes(context_factory, run_rgaa):
-    """Test 9.1.2: Titres avec contenu descriptif doivent passer."""
-    html = """
-    <h1>Introduction générale</h1>
-    <h2>Méthodologie utilisée</h2>
-    <h3>Résultats obtenus</h3>
-    """
-    context = context_factory(html)
-    result = run_rgaa(RGAA912(), context)
-
-    assert result.status == Status.PASS
-    assert result.tested_elements == 3
-    # Vérifier qu'il n'y a pas de findings d'erreur (les findings pour titres courts sont acceptables en NEEDS_REVIEW)
-    error_findings = [f for f in result.findings if "Le titre est vide" in f.message]
-    assert len(error_findings) == 0
-
-
-def test_912_empty_heading_fails(context_factory, run_rgaa):
-    """Test 9.1.2: Titre vide doit échouer."""
-    html = """
-    <h1>Titre valide</h1>
-    <h2></h2>  <!-- Titre vide -->
-    <h3>Autre titre valide</h3>
-    """
-    context = context_factory(html)
-    result = run_rgaa(RGAA912(), context)
-
+def test_912_empty_heading_fails_without_ai(context_factory, run_rgaa):
+    ai = text_services()
+    result = run_rgaa(Test912(), context_factory("<h1></h1>"), ai)
     assert result.status == Status.FAIL
-    assert len(result.findings) >= 1
-    # Au moins un finding devrait indiquer un titre vide
-    empty_findings = [f for f in result.findings if "Le titre est vide" in f.message]
-    assert len(empty_findings) >= 1
-    assert result.tested_elements == 3
+    ai.text_relevance_analyzer.analyze_relevance.assert_not_called()
 
 
-def test_912_very_short_heading_requires_review(context_factory, run_rgaa):
-    """Test 9.1.2: Titre très court devrait nécessiter une vérification manuelle."""
-    html = """
-    <h1>Titre</h1>  <!-- Titre de 5 caractères -->
-    <h2>AB</h2>    <!-- Titre de 2 caractères -->
-    <h3>XYZ</h3>    <!-- Titre de 3 caractères -->
-    """
-    context = context_factory(html)
-    result = run_rgaa(RGAA912(), context)
-
-    # Selon notre implémentation, les titres très courts produisent des findings qui mènent à NEEDS_REVIEW
-    # sauf s'il y a aussi des titres vides qui mèneraient à FAIL
-    assert result.status in [Status.NEEDS_REVIEW, Status.PASS]  # PASS si on ne considère pas "XY" comme trop court
-    short_findings = [f for f in result.findings if "très court" in f.message]
-    # On devrait avoir au moins un finding pour le titre "AB" (2 caractères)
-    assert len(short_findings) >= 1
-    assert result.tested_elements == 3
+def test_912_heading_with_only_an_image_uses_its_alt(context_factory, run_rgaa):
+    ai = text_services()
+    assert (
+        run_rgaa(Test912(), context_factory('<h1><img src="l.png" alt="AccessiCode"></h1>'), ai).status == Status.PASS
+    )
 
 
-def test_912_no_headings_not_applicable(context_factory, run_rgaa):
-    """Test 9.1.2: Absence de titres doit retourner NOT_APPLICABLE."""
-    html = """
-    <p>Paragraphe sans titre</p>
-    <div>Contenu</div>
-    """
-    context = context_factory(html)
-    result = run_rgaa(RGAA912(), context)
-
-    assert result.status == Status.NOT_APPLICABLE
-    assert result.tested_elements == 0
-    assert "Aucun titre détecté" in result.summary
+def test_912_low_confidence_and_no_ai(context_factory, run_rgaa):
+    low = text_services(relevance_answer=relevance(True, confidence="low"))
+    assert run_rgaa(Test912(), context_factory(GOOD), low).status == Status.NEEDS_REVIEW
+    assert run_rgaa(Test912(), context_factory(GOOD)).status == Status.NEEDS_REVIEW
 
 
-def test_913_properly_structured_headings_passes(context_factory, run_rgaa):
-    """Test 9.1.3: Titres correctement structurés doivent passer."""
-    html = """
-    <h1>Titre avec balise h1</h1>
-    <h2>Titre avec balise h2</h2>
-    <div role="heading" aria-level="3">Titre avec WAI-ARIA</div>
-    <h4>Autre titre h4</h4>
-    """
-    context = context_factory(html)
-    result = run_rgaa(RGAA913(), context)
-
-    assert result.status == Status.PASS
-    assert result.findings == []  # Pas d'erreurs de structure
-    assert result.tested_elements == 4
+def test_912_ai_exception_gives_error(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=RuntimeError("panne"))
+    assert run_rgaa(Test912(), context_factory(GOOD), ai).status == Status.ERROR
 
 
-def test_913_mixed_native_and_wai_aria_headings_passes(context_factory, run_rgaa):
-    """Test 9.1.3: Mélange de balises hx naturelles et WAI-ARIA doit passer."""
-    html = """
-    <h1>Titre principal</h1>
-    <section>
-        <h2>Section titre</h2>
-        <div role="heading" aria-level="3">Sous-section titre</div>
-    </section>
-    """
-    context = context_factory(html)
-    result = run_rgaa(RGAA913(), context)
-
-    assert result.status == Status.PASS
-    assert result.findings == []
-    assert result.tested_elements == 3
+# ---- 9.1.3 -----------------------------------------------------------
 
 
-def test_913_no_headings_not_applicable(context_factory, run_rgaa):
-    """Test 9.1.3: Absence de titres doit retourner NOT_APPLICABLE."""
-    html = """
-    <p>Paragraphe sans titre</p>
-    <div>Contenu</div>
-    """
-    context = context_factory(html)
-    result = run_rgaa(RGAA913(), context)
-
-    assert result.status == Status.NOT_APPLICABLE
-    assert result.tested_elements == 0
-    assert "Aucun titre détecté" in result.summary
+def test_913_marked_headings_pass(context_factory, run_rgaa):
+    assert run_rgaa(Test913(), context_factory(GOOD), text_services()).status == Status.PASS
 
 
-# Test pour vérifier que le test 9.1.3 ne détecte pas les titres manquants de manière déterministe
-def test_913_missing_heading_structure_not_detected_deterministically(context_factory, run_rgaa):
-    """Test 9.1.3: Texte qui devrait être un titre mais n'est pas structuré comme tel."""
-    html = """
-    <p>Ce paragraphe ressemble à un titre visuellement mais n'est pas structuré comme tel</p>
-    <h2>Vrai titre</h2>
-    <p>Autre paragraphe qui ressemble à un titre</p>
-    """
-    context = context_factory(html)
-    result = run_rgaa(RGAA913(), context)
+def test_913_aria_heading_without_level_fails(context_factory, run_rgaa):
+    result = run_rgaa(Test913(), context_factory('<div role="heading">Contact</div>'), text_services())
+    assert result.status == Status.FAIL
+    assert "aria-level" in result.findings[0].message
 
-    # Notre implémentation actuelle ne détecte pas de manière déterministe
-    # les titres manquants, donc cela devrait retourner PASS
-    # (seuls les éléments déjà identifiés comme titres sont vérifiés)
-    assert result.status == Status.PASS
-    assert result.tested_elements == 1  # Seul le h2 est compté comme titre
-    # Le résumé devrait mentionner la limitation
-    if result.metadata and "note" in result.metadata:
-        assert (
-            "titres manquants" in result.metadata["note"].lower()
-            or "vérification manuelle" in result.metadata["note"].lower()
-        )
+
+def test_913_bold_paragraph_confirmed_as_heading_fails(context_factory, run_rgaa):
+    html = "<h1>Accueil</h1><p><strong>Nos services</strong></p><p>Nous proposons des audits.</p>"
+    ai = text_services(structure_answer=structure(True))
+    result = run_rgaa(Test913(), context_factory(html), ai)
+    assert result.status == Status.FAIL
+    kind, items = ai.structure_analyzer.classify_candidates.call_args.args
+    assert kind == "heading"
+    assert items[0].text == "Nos services"
+    assert "audits" in items[0].context
+
+
+def test_913_candidate_that_is_not_a_heading(context_factory, run_rgaa):
+    html = "<h1>Accueil</h1><p><strong>Important</strong></p>"
+    ai = text_services(structure_answer=structure(False))
+    assert run_rgaa(Test913(), context_factory(html), ai).status == Status.PASS
+
+
+def test_913_candidates_without_ai_need_review(context_factory, run_rgaa):
+    html = "<p><strong>Nos services</strong></p><p>Texte</p>"
+    assert run_rgaa(Test913(), context_factory(html)).status == Status.NEEDS_REVIEW
+
+
+def test_913_ai_exception_gives_error(context_factory, run_rgaa):
+    html = "<p><strong>Nos services</strong></p>"
+    ai = text_services(structure_answer=RuntimeError("panne"))
+    assert run_rgaa(Test913(), context_factory(html), ai).status == Status.ERROR

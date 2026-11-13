@@ -1,113 +1,83 @@
-from types import SimpleNamespace
+"""Critère RGAA 2.2 : pertinence du titre de cadre."""
 
-import pytest
-from bs4 import BeautifulSoup
+from ai_fakes import relevance, text_services
 
 from accessi_code.models.result import TestStatus as Status
-from accessi_code.rgaa.tests.theme_02_frames.criterion_2_2 import Test221 as RGAA221
+from accessi_code.rgaa.tests.theme_02_frames.criterion_2_2 import Test221
+
+FRAME = '<h2>Nous trouver</h2><iframe src="https://maps.example/agence" title="Plan d\'accès à l\'agence"></iframe>'
 
 
-def make_context(html: str) -> SimpleNamespace:
-    return SimpleNamespace(dom=BeautifulSoup(html, "html.parser"), html_path=None)
-
-
-@pytest.mark.asyncio
-async def test_221_no_frame_with_title_is_not_applicable() -> None:
-    html = """
-    <iframe src="video.html"></iframe>
-    <frame src="menu.html"></frame>
-    """
-    result = await RGAA221().run(make_context(html))
+def test_no_titled_frame_is_not_applicable(context_factory, run_rgaa):
+    result = run_rgaa(Test221(), context_factory('<iframe src="a.html"></iframe>'), text_services())
     assert result.status == Status.NOT_APPLICABLE
-    assert result.tested_elements == 0
-    assert result.findings == []
 
 
-@pytest.mark.asyncio
-async def test_221_all_pertinent_titles_passes() -> None:
-    html = """
-    <iframe src="video.html" title="Vidéo explicative du produit"></iframe>
-    <frame src="menu.html" title="Menu de navigation principal"></frame>
-    <iframe src="pub.html" title="Publicité partenaire"></iframe>
-    """
-    result = await RGAA221().run(make_context(html))
+def test_relevant_title_passes(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=relevance(True))
+    result = run_rgaa(Test221(), context_factory(FRAME), ai)
     assert result.status == Status.PASS
-    assert result.tested_elements == 3
     assert result.findings == []
+    kind, items = ai.text_relevance_analyzer.analyze_relevance.call_args.args
+    assert kind == "frame_title"
+    assert items[0].text == "Plan d'accès à l'agence"
+    assert items[0].details["src"] == "https://maps.example/agence"
+    assert "Nous trouver" in items[0].context
 
 
-@pytest.mark.asyncio
-async def test_221_empty_title_fails() -> None:
-    html = '<iframe src="video.html" title=""></iframe>'
-    result = await RGAA221().run(make_context(html))
+def test_irrelevant_title_fails(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=relevance(False))
+    result = run_rgaa(Test221(), context_factory('<iframe src="m.html" title="iframe"></iframe>'), ai)
     assert result.status == Status.FAIL
-    assert result.tested_elements == 1
-    assert len(result.findings) == 1
-    assert "Le titre du cadre «» n'est pas pertinent." in result.findings[0].message
-    assert "iframe" in result.findings[0].element
+    assert "n'est pas pertinent" in result.findings[0].message
 
 
-@pytest.mark.asyncio
-async def test_221_generic_title_fails() -> None:
-    html = '<iframe src="video.html" title="iframe"></iframe>'
-    result = await RGAA221().run(make_context(html))
+def test_empty_title_fails_without_ai_call(context_factory, run_rgaa):
+    ai = text_services()
+    result = run_rgaa(Test221(), context_factory('<iframe src="m.html" title="  "></iframe>'), ai)
     assert result.status == Status.FAIL
-    assert result.tested_elements == 1
-    assert len(result.findings) == 1
-    assert "Le titre du cadre «iframe» n'est pas pertinent." in result.findings[0].message
+    ai.text_relevance_analyzer.analyze_relevance.assert_not_called()
 
 
-@pytest.mark.asyncio
-async def test_221_whitespace_title_fails() -> None:
-    html = '<iframe src="video.html" title="   "></iframe>'
-    result = await RGAA221().run(make_context(html))
+def test_low_confidence_needs_review(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=relevance(False, confidence="low"))
+    assert run_rgaa(Test221(), context_factory(FRAME), ai).status == Status.NEEDS_REVIEW
+
+
+def test_unknown_relevance_needs_review(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=relevance(None))
+    assert run_rgaa(Test221(), context_factory(FRAME), ai).status == Status.NEEDS_REVIEW
+
+
+def test_without_ai_needs_review(context_factory, run_rgaa):
+    result = run_rgaa(Test221(), context_factory(FRAME))
+    assert result.status == Status.NEEDS_REVIEW
+    assert "IA n'est pas disponible" in result.findings[0].message
+
+
+def test_ai_exception_gives_error(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=RuntimeError("panne"))
+    assert run_rgaa(Test221(), context_factory(FRAME), ai).status == Status.ERROR
+
+
+def test_mixed_results(context_factory, run_rgaa):
+    html = FRAME + '<iframe src="pub.html" title="Publicité"></iframe><iframe src="x.html" title=""></iframe>'
+    ai = text_services(relevance_answer=[relevance(True), relevance(None)])
+    result = run_rgaa(Test221(), context_factory(html), ai)
     assert result.status == Status.FAIL
-    assert result.tested_elements == 1
-    assert len(result.findings) == 1
-    assert "Le titre du cadre «   » n'est pas pertinent." in result.findings[0].message
+    assert result.metadata["statuses"] == {
+        "fail": 1,
+        "error": 0,
+        "needs_review": 1,
+        "not_tested": 0,
+        "pass": 1,
+        "not_applicable": 0,
+    }
 
 
-@pytest.mark.asyncio
-async def test_221_mixed_pertinent_and_non_pertinent_fails() -> None:
-    html = """
-    <iframe src="video.html" title="Vidéo du produit"></iframe>
-    <iframe src="tracker.html" title="pub"></iframe>
-    <frame src="nav.html" title="Menu principal"></frame>
-    """
-    result = await RGAA221().run(make_context(html))
-    assert result.status == Status.FAIL
-    assert result.tested_elements == 3
-    assert len(result.findings) == 1  # only the non-pertinent one
-    assert "tracker.html" in result.findings[0].element or "iframe[index=1]" in result.findings[0].element
-
-
-@pytest.mark.asyncio
-async def test_221_frames_without_title_are_ignored() -> None:
-    html = """
-    <iframe src="video.html" title="Vidéo"></iframe>
-    <iframe src="silent.html"></iframe>
-    <frame src="menu.html" title="Menu"></frame>
-    <frame src="blank"></frame>
-    """
-    result = await RGAA221().run(make_context(html))
-    # Only two frames have title attribute
-    assert result.tested_elements == 2
-    assert result.status == Status.PASS  # both titles are pertinent
-    assert result.findings == []
-
-
-@pytest.mark.asyncio
-async def test_221_case_insensitive_generic_title() -> None:
-    html = '<iframe src="video.html" title="IFRAME"></iframe>'
-    result = await RGAA221().run(make_context(html))
-    assert result.status == Status.FAIL
-    assert result.tested_elements == 1
-    assert len(result.findings) == 1
-    assert "iframe" in result.findings[0].message.lower()
-
-
-@pytest.mark.asyncio
-async def test_221_without_dom_raises_value_error() -> None:
-    context = SimpleNamespace(dom=None, html_path=None)
-    with pytest.raises(ValueError, match="Le test 2.2.1 nécessite un DOM"):
-        await RGAA221().run(context)
+def test_item_limit(context_factory, run_rgaa, monkeypatch):
+    monkeypatch.setenv("ACCESSICODE_AI_MAX_ITEMS", "1")
+    html = '<iframe src="a.html" title="Carte"></iframe><iframe src="b.html" title="Vidéo"></iframe>'
+    result = run_rgaa(Test221(), context_factory(html), text_services())
+    assert result.status == Status.NEEDS_REVIEW
+    assert "Limite" in result.findings[0].message

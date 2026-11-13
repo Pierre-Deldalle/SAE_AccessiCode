@@ -11,9 +11,10 @@ from __future__ import annotations
 
 import os
 from collections.abc import Iterable
-from dataclasses import asdict, is_dataclass
+from dataclasses import asdict, dataclass, is_dataclass
 from typing import Any
 
+from accessi_code.ai.schemas import RelevanceAnalysis, StructureCandidateAnalysis
 from accessi_code.models.result import TestStatus
 
 # Nombre maximal d'éléments qu'un test soumet à l'IA (CONVENTIONS : coût maîtrisé).
@@ -96,3 +97,138 @@ def analysis_evidence(analysis: Any) -> dict[str, Any]:
     if isinstance(analysis, dict):
         return dict(analysis)
     return {"value": repr(analysis)}
+
+
+# ----------------------------------------------------------------------
+# Soumission d'une liste d'éléments à un analyseur
+# ----------------------------------------------------------------------
+
+NO_AI_MESSAGE = "L'analyse IA n'est pas disponible : la vérification doit être faite manuellement."
+LIMIT_MESSAGE = "Limite d'éléments analysés par l'IA atteinte pour ce test."
+AI_ERROR_MESSAGE = "L'analyse IA a échoué."
+
+
+@dataclass
+class Verdict:
+    """
+    Conclusion pour un élément soumis à l'IA.
+
+    reason :
+        "ai" (réponse exploitable ou incertaine), "unavailable" (pas d'IA),
+        "limit" (limite d'éléments atteinte) ou "error".
+    """
+
+    status: TestStatus
+    explanation: str = ""
+    analysis: Any | None = None
+    reason: str = "ai"
+    error: str | None = None
+
+    @property
+    def evidence(self) -> dict[str, Any]:
+        data: dict[str, Any] = {"reason": self.reason}
+        if self.analysis is not None:
+            data["analysis"] = analysis_evidence(self.analysis)
+        if self.error:
+            data["error"] = self.error
+        return data
+
+    def message(self, fail: str, uncertain: str) -> str:
+        """Message de Finding adapté au statut (avec l'explication de l'IA) ; vide si conforme."""
+        if self.status in {TestStatus.PASS, TestStatus.NOT_APPLICABLE}:
+            return ""
+        if self.reason == "unavailable":
+            return f"{uncertain} {NO_AI_MESSAGE}"
+        if self.reason == "limit":
+            return f"{uncertain} {LIMIT_MESSAGE}"
+        if self.reason == "error":
+            return AI_ERROR_MESSAGE
+        head = fail if self.status is TestStatus.FAIL else uncertain
+        return f"{head} {self.explanation}".strip()
+
+
+async def judge_batch(
+    services: Any | None,
+    analyzer_name: str,
+    method: str,
+    kind: str,
+    items: list[Any],
+    *,
+    verdict_field: str,
+    expected_type: type,
+    when_true: TestStatus = TestStatus.PASS,
+    when_false: TestStatus = TestStatus.FAIL,
+) -> list[Verdict]:
+    """
+    Soumet ``items`` à ``services.<analyzer_name>.<method>(kind, items)`` et
+    retourne un Verdict par élément, dans l'ordre.
+
+    - pas d'analyseur → NEEDS_REVIEW ;
+    - au-delà de la limite d'éléments → NEEDS_REVIEW ;
+    - exception ou réponse mal formée → ERROR ;
+    - sinon règle de confiance (``status_from_verdict``).
+    """
+    if not items:
+        return []
+
+    analyzer = get_analyzer(services, analyzer_name)
+    if analyzer is None:
+        return [Verdict(TestStatus.NEEDS_REVIEW, reason="unavailable") for _ in items]
+
+    limit = ai_item_limit()
+    judged, skipped = items[:limit], items[limit:]
+
+    try:
+        analyses = await getattr(analyzer, method)(kind, judged)
+        if len(analyses) != len(judged) or not all(isinstance(item, expected_type) for item in analyses):
+            raise TypeError(f"Une réponse {expected_type.__name__} par élément est attendue.")
+    except Exception as error:
+        failure = f"{type(error).__name__}: {error}"
+        return [Verdict(TestStatus.ERROR, reason="error", error=failure) for _ in items]
+
+    verdicts = [
+        Verdict(
+            status_from_verdict(
+                getattr(analysis, verdict_field),
+                analysis.confidence,
+                when_true=when_true,
+                when_false=when_false,
+            ),
+            explanation=analysis.explanation,
+            analysis=analysis,
+        )
+        for analysis in analyses
+    ]
+    verdicts.extend(Verdict(TestStatus.NEEDS_REVIEW, reason="limit") for _ in skipped)
+    return verdicts
+
+
+async def judge_relevance(services: Any | None, kind: str, items: list[Any]) -> list[Verdict]:
+    """Pertinence de textes (``text_relevance_analyzer``) : true → PASS, false → FAIL."""
+    return await judge_batch(
+        services,
+        "text_relevance_analyzer",
+        "analyze_relevance",
+        kind,
+        items,
+        verdict_field="relevant",
+        expected_type=RelevanceAnalysis,
+    )
+
+
+async def judge_structure(services: Any | None, kind: str, candidates: list[Any]) -> list[Verdict]:
+    """
+    Passages non balisés (``structure_analyzer``) : un passage qui devrait être
+    balisé (titre, liste, citation…) → FAIL ; sinon NOT_APPLICABLE.
+    """
+    return await judge_batch(
+        services,
+        "structure_analyzer",
+        "classify_candidates",
+        kind,
+        candidates,
+        verdict_field="should_be_marked",
+        expected_type=StructureCandidateAnalysis,
+        when_true=TestStatus.FAIL,
+        when_false=TestStatus.NOT_APPLICABLE,
+    )
