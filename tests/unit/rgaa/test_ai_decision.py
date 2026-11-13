@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 import pytest
 
+from accessi_code.ai.schemas import SensoryAnalysis
 from accessi_code.models.result import TestStatus
 from accessi_code.rgaa.ai_decision import (
     AI_MAX_ITEMS_ENV,
@@ -10,6 +11,7 @@ from accessi_code.rgaa.ai_decision import (
     analysis_evidence,
     count_statuses,
     get_analyzer,
+    sensory_status,
     status_from_verdict,
     worst_status,
 )
@@ -79,3 +81,22 @@ def test_analysis_evidence() -> None:
 
     assert analysis_evidence(Analysis(True, "high")) == {"relevant": True, "confidence": "high"}
     assert analysis_evidence({"a": 1}) == {"a": 1}
+
+
+@pytest.mark.parametrize(
+    ("conveys", "relies_only", "alternative", "confidence", "expected", "expected_alternative"),
+    [
+        (False, None, None, "high", TestStatus.NOT_APPLICABLE, TestStatus.NOT_APPLICABLE),
+        (True, True, None, "high", TestStatus.FAIL, TestStatus.NOT_APPLICABLE),
+        (True, False, True, "high", TestStatus.PASS, TestStatus.PASS),
+        (True, False, False, "high", TestStatus.PASS, TestStatus.FAIL),
+        (True, False, None, "high", TestStatus.PASS, TestStatus.NEEDS_REVIEW),
+        (True, None, None, "high", TestStatus.NEEDS_REVIEW, TestStatus.NEEDS_REVIEW),
+        (None, None, None, "high", TestStatus.NEEDS_REVIEW, TestStatus.NEEDS_REVIEW),
+        (True, True, None, "low", TestStatus.NEEDS_REVIEW, TestStatus.NEEDS_REVIEW),
+    ],
+)
+def test_sensory_status(conveys, relies_only, alternative, confidence, expected, expected_alternative):
+    analysis = SensoryAnalysis(conveys, relies_only, alternative, "", confidence=confidence)
+    assert sensory_status(analysis) is expected
+    assert sensory_status(analysis, judge_alternative=True) is expected_alternative

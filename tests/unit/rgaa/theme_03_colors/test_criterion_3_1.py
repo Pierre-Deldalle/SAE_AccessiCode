@@ -1,352 +1,276 @@
+"""Critère RGAA 3.1 : information donnée uniquement par la couleur (jugée par l'IA)."""
+
+from pathlib import Path
+
+import pytest
+from ai_fakes import sensory, text_services
+
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_03_colors.criterion_3_1 import (
-    Test311 as RGAA311,
+    Test311,
+    Test312,
+    Test313,
+    Test314,
+    Test315,
+    Test316,
 )
-from accessi_code.rgaa.tests.theme_03_colors.criterion_3_1 import (
-    Test312 as RGAA312,
-)
-from accessi_code.rgaa.tests.theme_03_colors.criterion_3_1 import (
-    Test313 as RGAA313,
-)
-from accessi_code.rgaa.tests.theme_03_colors.criterion_3_1 import (
-    Test314 as RGAA314,
-)
-from accessi_code.rgaa.tests.theme_03_colors.criterion_3_1 import (
-    Test315 as RGAA315,
-)
-from accessi_code.rgaa.tests.theme_03_colors.criterion_3_1 import (
-    Test316 as RGAA316,
-)
+
+COLORED_WORD = '<p>Statut : <span id="etat" style="color: red">indisponible</span></p>'
+COLOR_TEXT = '<p id="aide">Les champs en rouge sont obligatoires.</p>'
+IMAGE = '<img id="graphe" src="ventes.png" alt="Ventes par région">'
+
+
+def submitted_texts(ai):
+    kind, items = ai.sensory_analyzer.analyze_texts.call_args.args
+    assert kind == "color"
+    return items
+
 
 # ---------------------------------------------------------------------------
-# 3.1.1
+# Aucun candidat → NOT_APPLICABLE (et pas d'appel IA)
 # ---------------------------------------------------------------------------
 
 
-def test_311_inline_colored_text_requires_review(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<p style="color: red;">Attention</p>')
+@pytest.mark.parametrize("test_class", [Test311, Test312, Test313, Test314, Test315, Test316])
+def test_no_candidate_is_not_applicable(test_class, context_factory, run_rgaa):
+    ai = text_services()
+    result = run_rgaa(test_class(), context_factory("<main><p>Bienvenue sur le site.</p></main>"), ai)
+    assert result.status == Status.NOT_APPLICABLE
+    ai.sensory_analyzer.analyze_texts.assert_not_called()
+    ai.sensory_analyzer.analyze_image.assert_not_called()
 
-    result = run_rgaa(RGAA311(), context)
 
-    assert result.status == Status.NEEDS_REVIEW
+# ---------------------------------------------------------------------------
+# 3.1.1 — mots mis en couleur
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "html",
+    [
+        COLORED_WORD,
+        '<p>Statut : <font color="red">indisponible</font></p>',
+        "<p>Statut : <mark>indisponible</mark></p>",
+        '<style>.alerte { color: #c00 }</style><p>Statut : <span class="alerte">indisponible</span></p>',
+    ],
+)
+def test_311_colored_words_are_candidates(html, context_factory, run_rgaa):
+    ai = text_services()
+    run_rgaa(Test311(), context_factory(html), ai)
+    item = submitted_texts(ai)[0]
+    assert item.text == "indisponible"
+    assert "Mise en couleur" in item.context
+
+
+def test_311_external_stylesheet_is_read(context_factory, run_rgaa):
+    context = context_factory('<p>Statut : <span class="alerte">indisponible</span></p>')
+    context.css_sources = {Path("site.css"): "@media screen { .alerte { color: red } }"}
+    ai = text_services()
+    run_rgaa(Test311(), context, ai)
+    assert submitted_texts(ai)[0].text == "indisponible"
+
+
+@pytest.mark.parametrize(
+    "html",
+    [
+        '<p>Texte <span style="color: inherit">normal</span></p>',
+        "<style>* { color: #222 }</style><p>Texte <span>normal</span></p>",
+        "<style>code { background: #eee }</style><p>Tapez <code>ls</code></p>",
+        '<p>Texte <span hidden style="color: red">caché</span></p>',
+        '<p>Texte <span style="font-weight: bold">gras</span></p>',
+    ],
+)
+def test_311_neutral_or_hidden_colors_are_ignored(html, context_factory, run_rgaa):
+    assert run_rgaa(Test311(), context_factory(html), text_services()).status == Status.NOT_APPLICABLE
+
+
+def test_311_color_only_fails(context_factory, run_rgaa):
+    ai = text_services(sensory_answer=sensory(relies_only=True))
+    result = run_rgaa(Test311(), context_factory(COLORED_WORD), ai)
+    assert result.status == Status.FAIL
+    assert result.findings[0].element == "span#etat"
+    assert "n'est donnée que par la couleur" in result.findings[0].message
+
+
+def test_311_other_means_passes(context_factory, run_rgaa):
+    result = run_rgaa(
+        Test311(), context_factory(COLORED_WORD), text_services(sensory_answer=sensory(relies_only=False))
+    )
+    assert result.status == Status.PASS
+    assert result.findings == []
+
+
+def test_311_decorative_color_is_not_applicable(context_factory, run_rgaa):
+    ai = text_services(sensory_answer=sensory(conveys=False))
+    assert run_rgaa(Test311(), context_factory(COLORED_WORD), ai).status == Status.NOT_APPLICABLE
+
+
+# ---------------------------------------------------------------------------
+# 3.1.2 — indication de couleur dans un texte
+# ---------------------------------------------------------------------------
+
+
+def test_312_color_indication_is_submitted(context_factory, run_rgaa):
+    ai = text_services()
+    run_rgaa(Test312(), context_factory("<h2>Inscription</h2>" + COLOR_TEXT), ai)
+    item = submitted_texts(ai)[0]
+    assert item.text == "Les champs en rouge sont obligatoires."
+    assert "Titre de la section : Inscription" in item.context
+
+
+def test_312_each_block_once(context_factory, run_rgaa):
+    html = "<ul><li>Le vert indique un succès, le rouge une erreur.</li></ul><p>Rien à signaler ici.</p>"
+    ai = text_services()
+    result = run_rgaa(Test312(), context_factory(html), ai)
+    assert len(submitted_texts(ai)) == 1
     assert result.tested_elements == 1
-    assert len(result.findings) == 1
 
 
-def test_311_background_color_requires_review(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<span style="background-color: yellow;">Information</span>')
-
-    result = run_rgaa(RGAA311(), context)
-
-    assert result.status == Status.NEEDS_REVIEW
-    assert result.tested_elements == 1
+def test_312_script_and_style_are_ignored(context_factory, run_rgaa):
+    html = "<script>var rouge = 1;</script><style>.vert{}</style><p>Bonjour</p>"
+    assert run_rgaa(Test312(), context_factory(html), text_services()).status == Status.NOT_APPLICABLE
 
 
-def test_311_without_inline_color_still_requires_review(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<p class="warning">Attention</p>')
-
-    result = run_rgaa(RGAA311(), context)
-
-    assert result.status == Status.NEEDS_REVIEW
-    assert result.tested_elements == 0
-    assert result.metadata["computed_styles_available"] is False
+# ---------------------------------------------------------------------------
+# 3.1.3 — images
+# ---------------------------------------------------------------------------
 
 
-def test_311_multiple_colored_elements_are_reported(
-    context_factory,
-    run_rgaa,
-):
+def test_313_image_file_goes_to_vlm(context_factory, run_rgaa):
+    ai = text_services(sensory_image_answer=sensory(relies_only=True))
+    result = run_rgaa(Test313(), context_factory(IMAGE), ai)
+    assert result.status == Status.FAIL
+    kind, image = ai.sensory_analyzer.analyze_image.call_args.args
+    assert kind == "color"
+    assert image.src == "ventes.png"
+    assert result.findings[0].evidence["source"] == "image"
+
+
+def test_313_decorative_images_are_excluded(context_factory, run_rgaa):
+    html = '<img src="deco.png" alt=""><img src="trait.png" aria-hidden="true" alt="trait">'
+    ai = text_services()
+    assert run_rgaa(Test313(), context_factory(html), ai).status == Status.NOT_APPLICABLE
+    ai.sensory_analyzer.analyze_image.assert_not_called()
+
+
+def test_313_inline_svg_is_read_from_code(context_factory, run_rgaa):
+    html = '<svg role="img" aria-label="Légende"><circle fill="red" r="4"/></svg>'
+    ai = text_services()
+    result = run_rgaa(Test313(), context_factory(html), ai)
+    assert result.status == Status.PASS
+    ai.sensory_analyzer.analyze_image.assert_not_called()
+    kind, items = ai.sensory_analyzer.analyze_texts.call_args.args
+    assert "circle" in items[0].element_html
+
+
+def test_313_image_error_only_affects_that_image(context_factory, run_rgaa):
+    ai = text_services(sensory_image_answer=RuntimeError("VLM indisponible"))
+    result = run_rgaa(Test313(), context_factory(IMAGE), ai)
+    assert result.status == Status.ERROR
+    assert result.findings[0].message == "L'analyse IA a échoué."
+
+
+# ---------------------------------------------------------------------------
+# 3.1.4 — propriétés CSS de couleur
+# ---------------------------------------------------------------------------
+
+
+def test_314_link_without_underline_in_text(context_factory, run_rgaa):
+    html = '<style>a { text-decoration: none }</style><p>Consultez <a href="/cgv">nos conditions</a> avant.</p>'
+    ai = text_services()
+    run_rgaa(Test314(), context_factory(html), ai)
+    item = submitted_texts(ai)[0]
+    assert item.text == "nos conditions"
+    assert "sans soulignement" in item.context
+
+
+def test_314_navigation_link_alone_is_not_a_candidate(context_factory, run_rgaa):
+    html = '<style>a { text-decoration: none }</style><nav><a href="/">Accueil</a></nav>'
+    assert run_rgaa(Test314(), context_factory(html), text_services()).status == Status.NOT_APPLICABLE
+
+
+def test_314_state_rule_and_inline_style(context_factory, run_rgaa):
     html = """
-    <p style="color: red;">Erreur</p>
-    <span style="color: green;">Succès</span>
+    <style>.error { border-color: red }</style>
+    <input id="email" class="error">
+    <td style="background-color: green">Livré</td>
     """
-
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA311(), context)
-
-    assert result.status == Status.NEEDS_REVIEW
-    assert result.tested_elements == 2
-    assert len(result.findings) == 2
+    ai = text_services()
+    run_rgaa(Test314(), context_factory(html), ai)
+    texts = [item.text for item in submitted_texts(ai)]
+    assert texts[0] == "(élément input sans texte)"
+    assert "Livré" in texts
 
 
-# ---------------------------------------------------------------------------
-# 3.1.2
-# ---------------------------------------------------------------------------
-
-
-def test_312_page_with_text_requires_review(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory("<p>Les champs en rouge sont obligatoires.</p>")
-
-    result = run_rgaa(RGAA312(), context)
-
-    assert result.status == Status.NEEDS_REVIEW
-    assert result.tested_elements == 1
-    assert len(result.findings) == 1
-
-
-def test_312_empty_page_is_not_applicable(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory("<main></main>")
-
-    result = run_rgaa(RGAA312(), context)
-
-    assert result.status == Status.NOT_APPLICABLE
-    assert result.tested_elements == 0
-
-
-def test_312_whitespace_only_page_is_not_applicable(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory("<main>     </main>")
-
-    result = run_rgaa(RGAA312(), context)
-
-    assert result.status == Status.NOT_APPLICABLE
+def test_314_does_not_repeat_311(context_factory, run_rgaa):
+    assert run_rgaa(Test314(), context_factory(COLORED_WORD), text_services()).status == Status.NOT_APPLICABLE
 
 
 # ---------------------------------------------------------------------------
-# 3.1.3
+# 3.1.5 / 3.1.6 — médias : vérification manuelle, sans IA
 # ---------------------------------------------------------------------------
 
 
-def test_313_image_requires_review(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<img src="chart.png" alt="Résultats">')
-
-    result = run_rgaa(RGAA313(), context)
-
+def test_315_video_needs_review_without_ai(context_factory, run_rgaa):
+    ai = text_services()
+    result = run_rgaa(Test315(), context_factory('<video src="a.mp4"></video>'), ai)
     assert result.status == Status.NEEDS_REVIEW
-    assert result.tested_elements == 1
-    assert len(result.findings) == 1
+    ai.sensory_analyzer.analyze_texts.assert_not_called()
 
 
-def test_313_role_img_requires_review(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<div role="img" aria-label="Graphique"></div>')
-
-    result = run_rgaa(RGAA313(), context)
-
-    assert result.status == Status.NEEDS_REVIEW
-    assert result.tested_elements == 1
-
-
-def test_313_svg_requires_review(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory(
-        """
-        <svg aria-label="Graphique">
-            <circle cx="10" cy="10" r="5"></circle>
-        </svg>
-        """
+def test_315_audio_is_not_concerned(context_factory, run_rgaa):
+    assert run_rgaa(Test315(), context_factory('<audio src="a.mp3"></audio>'), text_services()).status == (
+        Status.NOT_APPLICABLE
     )
 
-    result = run_rgaa(RGAA313(), context)
 
-    assert result.status == Status.NEEDS_REVIEW
-    assert result.tested_elements == 1
-
-
-def test_313_without_image_is_not_applicable(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory("<main><p>Texte seulement.</p></main>")
-
-    result = run_rgaa(RGAA313(), context)
-
-    assert result.status == Status.NOT_APPLICABLE
-    assert result.tested_elements == 0
+def test_316_object_needs_review_but_image_object_is_an_image(context_factory, run_rgaa):
+    html = '<object data="carte.swf" type="application/x-shockwave-flash"></object>'
+    assert run_rgaa(Test316(), context_factory(html), text_services()).status == Status.NEEDS_REVIEW
+    image = '<object data="plan.png" type="image/png"></object>'
+    assert run_rgaa(Test316(), context_factory(image), text_services()).status == Status.NOT_APPLICABLE
 
 
 # ---------------------------------------------------------------------------
-# 3.1.4
+# Règles communes de décision
 # ---------------------------------------------------------------------------
 
 
-def test_314_css_color_property_requires_review(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<p style="color: #ff0000;">Erreur</p>')
-
-    result = run_rgaa(RGAA314(), context)
-
+@pytest.mark.parametrize(
+    "answer",
+    [sensory(relies_only=True, confidence="low"), sensory(conveys=None), sensory(relies_only=None)],
+)
+def test_uncertain_answer_needs_review(answer, context_factory, run_rgaa):
+    result = run_rgaa(Test312(), context_factory(COLOR_TEXT), text_services(sensory_answer=answer))
     assert result.status == Status.NEEDS_REVIEW
-    assert result.tested_elements == 1
 
 
-def test_314_border_color_requires_review(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<input style="border-color: red;">')
-
-    result = run_rgaa(RGAA314(), context)
-
+def test_without_ai_needs_review(context_factory, run_rgaa):
+    result = run_rgaa(Test312(), context_factory(COLOR_TEXT))
     assert result.status == Status.NEEDS_REVIEW
-    assert result.tested_elements == 1
+    assert "IA n'est pas disponible" in result.findings[0].message
 
 
-def test_314_without_inline_color_still_requires_review(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<p class="error">Erreur</p>')
-
-    result = run_rgaa(RGAA314(), context)
-
-    assert result.status == Status.NEEDS_REVIEW
-    assert result.tested_elements == 0
-    assert result.metadata["computed_styles_available"] is False
+def test_ai_exception_gives_error(context_factory, run_rgaa):
+    ai = text_services(sensory_answer=RuntimeError("panne"))
+    assert run_rgaa(Test312(), context_factory(COLOR_TEXT), ai).status == Status.ERROR
 
 
-# ---------------------------------------------------------------------------
-# 3.1.5
-# ---------------------------------------------------------------------------
-
-
-def test_315_video_requires_review(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<video src="tutorial.mp4"></video>')
-
-    result = run_rgaa(RGAA315(), context)
-
-    assert result.status == Status.NEEDS_REVIEW
-    assert result.tested_elements == 1
-
-
-def test_315_audio_requires_review(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<audio src="instructions.mp3"></audio>')
-
-    result = run_rgaa(RGAA315(), context)
-
-    assert result.status == Status.NEEDS_REVIEW
-    assert result.tested_elements == 1
-
-
-def test_315_multiple_temporal_media_are_counted(
-    context_factory,
-    run_rgaa,
-):
-    html = """
-    <video src="video.mp4"></video>
-    <audio src="audio.mp3"></audio>
-    """
-
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA315(), context)
-
-    assert result.status == Status.NEEDS_REVIEW
+def test_mixed_results_in_one_batch(context_factory, run_rgaa):
+    html = COLOR_TEXT + "<p>Le bouton vert valide.</p><p>Un roman noir.</p>"
+    ai = text_services(sensory_answer=[sensory(relies_only=True), sensory(relies_only=False), sensory(conveys=False)])
+    result = run_rgaa(Test312(), context_factory(html), ai)
+    assert result.status == Status.FAIL
+    assert ai.sensory_analyzer.analyze_texts.call_count == 1
+    assert result.metadata["statuses"]["fail"] == 1
+    assert result.metadata["statuses"]["pass"] == 1
+    assert result.metadata["statuses"]["not_applicable"] == 1
     assert result.tested_elements == 2
-    assert len(result.findings) == 2
 
 
-def test_315_without_temporal_media_is_not_applicable(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory("<main><p>Texte.</p></main>")
-
-    result = run_rgaa(RGAA315(), context)
-
-    assert result.status == Status.NOT_APPLICABLE
-    assert result.tested_elements == 0
-
-
-# ---------------------------------------------------------------------------
-# 3.1.6
-# ---------------------------------------------------------------------------
-
-
-def test_316_object_requires_review(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<object data="diagram.pdf"></object>')
-
-    result = run_rgaa(RGAA316(), context)
-
+def test_item_limit(context_factory, run_rgaa, monkeypatch):
+    monkeypatch.setenv("ACCESSICODE_AI_MAX_ITEMS", "1")
+    html = COLOR_TEXT + "<p>Le bouton vert valide.</p>"
+    result = run_rgaa(Test312(), context_factory(html), text_services())
     assert result.status == Status.NEEDS_REVIEW
-    assert result.tested_elements == 1
-
-
-def test_316_embed_requires_review(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<embed src="diagram.svg">')
-
-    result = run_rgaa(RGAA316(), context)
-
-    assert result.status == Status.NEEDS_REVIEW
-    assert result.tested_elements == 1
-
-
-def test_316_canvas_requires_review(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<canvas id="chart"></canvas>')
-
-    result = run_rgaa(RGAA316(), context)
-
-    assert result.status == Status.NEEDS_REVIEW
-    assert result.tested_elements == 1
-
-
-def test_316_svg_requires_review(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory(
-        """
-        <svg>
-            <rect width="100" height="50"></rect>
-        </svg>
-        """
-    )
-
-    result = run_rgaa(RGAA316(), context)
-
-    assert result.status == Status.NEEDS_REVIEW
-    assert result.tested_elements == 1
-
-
-def test_316_without_non_temporal_media_is_not_applicable(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory("<main><p>Texte uniquement.</p></main>")
-
-    result = run_rgaa(RGAA316(), context)
-
-    assert result.status == Status.NOT_APPLICABLE
-    assert result.tested_elements == 0
+    assert "Limite" in result.findings[0].message

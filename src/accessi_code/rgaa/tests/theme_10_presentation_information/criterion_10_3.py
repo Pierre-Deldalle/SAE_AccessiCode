@@ -1,258 +1,139 @@
+"""
+RGAA 4.1.2 — critère 10.3 : dans chaque page web, l'information reste-t-elle
+compréhensible lorsque les feuilles de styles sont désactivées ?
+
+Test 10.3.1. Sans feuille de style, le contenu est restitué dans l'ordre du
+code. Le risque vient donc des propriétés CSS qui affichent le contenu dans un
+autre ordre : ``order``, inversion flex (``*-reverse``), placement explicite dans
+une grille, positionnement absolu ou fixe, flottement à droite.
+
+- aucune de ces propriétés n'est appliquée à un élément du document → PASS ;
+- sinon, chaque règle concernée est signalée → NEEDS_REVIEW : seul un humain
+  peut dire si l'ordre du code reste compréhensible.
+
+Pas d'IA : l'ordre d'affichage réel demande le rendu de la page.
+Les techniques de masquage visuel (``clip``, ``width: 1px``…) ne sont pas
+des changements d'ordre et sont ignorées.
+"""
+
 from __future__ import annotations
 
+import re
 from typing import Any
 
+import soupsieve
+from bs4 import BeautifulSoup, Tag
+
+from accessi_code.analysis.css import inline_style, stylesheet_rules
+from accessi_code.analysis.sensory import identifier
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
-from accessi_code.models.result import (
-    Finding,
-    TestResult,
-    TestStatus,
-)
+from accessi_code.models.result import TestResult, TestStatus
 from accessi_code.rgaa.base import RGAATest
+from accessi_code.rgaa.outcomes import Outcome, build_result, make_outcome
+
+PASS_SUMMARY = "Aucune propriété CSS ne modifie l'ordre d'affichage : le contenu s'affiche dans l'ordre du code."
+RECOMMENDATION = (
+    "Désactiver les feuilles de style et vérifier que le contenu, lu dans l'ordre du code, reste compréhensible ; "
+    "sinon, réorganiser le code dans l'ordre de lecture."
+)
+
+_NEUTRAL = {"", "0", "auto", "initial", "inherit", "unset", "revert", "none", "normal"}
+_GRID_PLACEMENT = ("grid-area", "grid-row", "grid-column", "grid-row-start", "grid-column-start")
+_VISUALLY_HIDDEN = re.compile(r"clip|width\s*:\s*1px|height\s*:\s*1px|-9999|-10000", re.IGNORECASE)
+_PSEUDO_CLASS = re.compile(r":(?:hover|focus|focus-visible|focus-within|active|visited)\b")
+# Le contenu généré (::before, ::after) relève du critère 10.2.
+_PSEUDO_ELEMENT = re.compile(r"::?(?:before|after|first-line|first-letter|marker|placeholder)\b")
+
+
+def reordering(properties: dict[str, str]) -> list[str]:
+    """Déclarations qui peuvent afficher le contenu dans un ordre différent du code."""
+    found: list[str] = []
+    value = properties.get("order", "").strip().lower()
+    if value not in _NEUTRAL:
+        found.append(f"order: {value}")
+    for name in ("flex-direction", "flex-flow"):
+        value = properties.get(name, "").strip().lower()
+        if "reverse" in value:
+            found.append(f"{name}: {value}")
+    for name in _GRID_PLACEMENT:
+        value = properties.get(name, "").strip().lower()
+        if value not in _NEUTRAL:
+            found.append(f"{name}: {value}")
+    if properties.get("grid-template-areas", "").strip().lower() not in _NEUTRAL:
+        found.append("grid-template-areas")
+    value = properties.get("position", "").strip().lower()
+    if value in {"absolute", "fixed"}:
+        serialized = " ".join(f"{key}:{item}" for key, item in properties.items())
+        if not _VISUALLY_HIDDEN.search(serialized):
+            found.append(f"position: {value}")
+    value = properties.get("float", "").strip().lower()
+    if value in {"right", "inline-end"}:
+        found.append(f"float: {value}")
+    return found
 
 
 class Test1031(RGAATest):
+    """10.3.1 : contenu compréhensible dans l'ordre du code."""
+
     test_id = "10.3.1"
     criterion_id = "10.3"
+    required_capabilities = frozenset({Capability.DOM})
 
-    required_capabilities = frozenset(
-        {
-            Capability.DOM,
-        }
-    )
-
-    async def run(
-        self,
-        context: AuditContext,
-        services: Any | None = None,
-    ) -> TestResult:
-        """
-        Test 10.3.1: Vérifie que l'information reste compréhensible lorsque les feuilles de styles sont désactivées.
-        Plus spécifiquement, vérifie que l'ordre dans lequel les contenus sont implémentés dans le HTML
-        ne pose pas de problème de compréhension lorsque le CSS est désactivé.
-        """
-        if not isinstance(
-            context.dom,
-            __import__("bs4").BeautifulSoup,
-        ):
+    async def run(self, context: AuditContext, services: Any | None = None) -> TestResult:
+        if not isinstance(context.dom, BeautifulSoup):
             raise ValueError("Le test 10.3.1 nécessite un DOM.")
-
         soup = context.dom
-        findings = []
 
-        # Get all text nodes in document order to check reading sequence
-        # We'll look for potential issues with reading order that would be problematic when CSS is disabled
-
-        # Check for common issues that affect reading order when CSS is disabled:
-
-        # 1. Check for form labels that are not associated with their fields properly
-        # When CSS is disabled, visual proximity is lost, so explicit associations matter
-        from bs4 import BeautifulSoup
-
-        if not isinstance(soup, BeautifulSoup):
-            # This shouldn't happen given the check above, but just in case
-            soup = BeautifulSoup(str(soup), "html.parser")
-
-        # Find all input, textarea, and select elements
-        form_elements = soup.find_all(["input", "textarea", "select"])
-        for element in form_elements:
-            # Skip hidden inputs and button types that don't need labels
-            # (un bouton image est nommé par son attribut alt).
-            if str(element.get("type", "")).lower() in ["hidden", "submit", "button", "reset", "image"]:
+        outcomes: list[Outcome] = []
+        for rule in stylesheet_rules(context):
+            declarations = reordering(rule.properties)
+            if not declarations:
                 continue
-
-            # Check if element has an associated label
-            has_label = False
-
-            # Check for explicit label association via for/id
-            element_id = element.get("id")
-            if element_id:
-                label = soup.find("label", {"for": element_id})
-                if label:
-                    has_label = True
-
-            # Check for implicit label (label wrapping the element)
-            if not has_label:
-                parent_label = element.find_parent("label")
-                if parent_label:
-                    has_label = True
-
-            if not has_label:
-                # Generate a selector-like string for the element
-                if element.name:
-                    element_selector = f"{element.name}"
-                    # Add index if there are multiple same elements
-                    same_elements = soup.find_all(element.name)
-                    if len(same_elements) > 1:
-                        try:
-                            element_index = same_elements.index(element)
-                            element_selector = f"{element.name}[index={element_index}]"
-                        except ValueError:
-                            pass
-                else:
-                    element_selector = "[unknown]"
-
-                findings.append(
-                    Finding(
-                        element=element_selector,
-                        message=f"L'élément de formulaire <{element.name}> n'a pas de label associé de manière explicite.",
-                        recommendation=(
-                            "Associer chaque champ de formulaire à un label utilisant l'attribut 'for' correspondant à l'id du champ, ou en imbriquant le champ dans l'élément label."
-                        ),
-                        evidence={
-                            "element_name": element.name,
-                            "element_id": element.get("id"),
-                            "element_type": element.get("type", ""),
-                        },
-                    )
+            elements = _matched(soup, rule.selector)
+            if not elements:
+                continue
+            outcomes.append(
+                make_outcome(
+                    TestStatus.NEEDS_REVIEW,
+                    rule.selector,
+                    f"La règle « {rule.selector} {{ {'; '.join(declarations)} }} » peut afficher "
+                    f"{len(elements)} élément(s) dans un ordre différent de celui du code.",
+                    RECOMMENDATION,
+                    declarations=declarations,
+                    source=rule.source,
+                    elements=[identifier(tag, index) for index, tag in enumerate(elements[:5])],
                 )
-
-        # 2. Check for table headers that are not properly associated with data cells
-        # When CSS is disabled, table structure relies on proper TH/TD associations
-        tables = soup.find_all("table")
-        for table_idx, table in enumerate(tables):
-            # Check if table has th elements
-            th_elements = table.find_all("th")
-            td_elements = table.find_all("td")
-
-            if td_elements and not th_elements:
-                # Data cells but no headers - might be problematic for comprehension
-                findings.append(
-                    Finding(
-                        element=f"table[index={table_idx}]",
-                        message="Le tableau ne contient pas d'éléments th (en-têtes de colonne/ligne), ce qui peut rendre la compréhension difficile lorsque les styles sont désactivés.",
-                        recommendation=(
-                            "Utiliser des éléments th pour définir les en-têtes de colonnes et/ou de lignes dans les tableaux de données."
-                        ),
-                        evidence={
-                            "table_index": table_idx,
-                            "th_count": len(th_elements),
-                            "td_count": len(td_elements),
-                        },
-                    )
-                )
-            elif th_elements and td_elements:
-                # Check if we have a reasonable header-to-data ratio
-                # This is a heuristic - very few headers for many data cells might indicate missing headers
-                if len(td_elements) > 0 and len(th_elements) > 0:
-                    ratio = len(td_elements) / len(th_elements)
-                    # If we have more than 10 data cells per header, might be missing some headers
-                    if ratio > 10 and len(th_elements) < 3:  # Arbitrary thresholds
-                        findings.append(
-                            Finding(
-                                element=f"table[index={table_idx}]",
-                                message=f"Le tableau présente un ratio élevé de cellules de données ({len(td_elements)}) par rapport aux en-têtes ({len(th_elements)}), ce qui suggère可能缺少一些列或行标题。",
-                                recommendation=(
-                                    "Vérifier que toutes les colonnes et lignes de données ont des en-têtes appropriés définis avec des éléments th."
-                                ),
-                                evidence={
-                                    "table_index": table_idx,
-                                    "th_count": len(th_elements),
-                                    "td_count": len(td_elements),
-                                    "th_to_td_ratio": round(ratio, 2),
-                                },
-                            )
-                        )
-
-        # 3. Check for lists that might be used for visual formatting only
-        # When CSS is disabled, lists should still make sense semantically
-        lists = soup.find_all(["ul", "ol", "dl"])
-        for list_idx, lst in enumerate(lists):
-            # Check if list items have meaningful content
-            items = lst.find_all(["li", "dt", "dd"]) if lst.name in ["ul", "ol"] else lst.find_all(["dt", "dd"])
-            if lst.name == "dl":
-                # For definition lists, check both dt and dd
-                items = lst.find_all(["dt", "dd"])
-
-            if items:
-                # Check if most items are empty or contain only whitespace
-                empty_items = 0
-                for item in items:
-                    text = item.get_text().strip()
-                    if not text or len(text) < 2:  # Arbitrary threshold for meaningful content
-                        empty_items += 1
-
-                # If most items are empty, the list might be used for visual spacing only
-                if len(items) > 0 and (empty_items / len(items)) > 0.7:
-                    findings.append(
-                        Finding(
-                            element=f"{lst.name}[index={list_idx}]",
-                            message=f"La liste {lst.name} contient principalement des éléments vides ou quasi-vides, ce qui pourrait indiquer une utilisation pour l'espacement visuel plutôt que pour structurer de l'information.",
-                            recommendation=(
-                                "Utiliser des listes uniquement pour regrouper des éléments liés sémantiquement, et utiliser CSS pour l'espacement si nécessaire."
-                            ),
-                            evidence={
-                                "list_type": lst.name,
-                                "total_items": len(items),
-                                "empty_items": empty_items,
-                            },
-                        )
-                    )
-
-        # 4. Check for heading order that skips levels (might indicate visual styling only)
-        headings = soup.find_all(["h1", "h2", "h3", "h4", "h5", "h6"])
-        if headings:
-            # Convert to numbers for easier checking
-            heading_levels = []
-            heading_elements = []
-            for tag in headings:
-                try:
-                    level = int(tag.name[1])  # Get the number from h1, h2, etc.
-                    heading_levels.append(level)
-                    heading_elements.append(tag)
-                except ValueError, IndexError:
-                    pass
-
-            # Check for skipped levels (e.g., h1 followed by h3 without h2)
-            # This might indicate headings are used for visual styling only
-            for i in range(1, len(heading_levels)):
-                if heading_levels[i] > heading_levels[i - 1] + 1:
-                    findings.append(
-                        Finding(
-                            element=f"heading {heading_elements[i].name}",
-                            message=f"Niveau de titre sauté : {heading_elements[i - 1].name} suivi de {heading_elements[i].name}. Cela pourrait indiquer une utilisation des titres uniquement pour la présentation visuelle, rendant la structure difficile à suivre lorsque les styles sont désactivés.",
-                            recommendation=(
-                                "Utiliser une hiérarchie de titres cohérente qui reflète la structure du contenu, indépendamment de la présentation visuelle."
-                            ),
-                            evidence={
-                                "previous_heading": heading_elements[i - 1].name,
-                                "current_heading": heading_elements[i].name,
-                                "heading_text": heading_elements[i].get_text().strip()[:100],
-                            },
-                        )
-                    )
-
-        # Determine the final status based on findings
-        if not findings:
-            return TestResult(
-                test_id=self.test_id,
-                criterion_id=self.criterion_id,
-                status=TestStatus.PASS,
-                summary="L'ordre du contenu reste compréhensible lorsque les feuilles de styles sont désactivés.",
-                tested_elements=0,
             )
 
-        # For reading order issues, we'll be more definite about failures
-        # These are clearer violations of the principle that reading order should make sense without CSS
-        return TestResult(
-            test_id=self.test_id,
-            criterion_id=self.criterion_id,
-            status=TestStatus.FAIL,
-            summary=f"{len(findings)} problème(s) d'ordre de lecture détecté(s) qui pourraient affecter la compréhension lorsque les styles sont désactivés.",
-            findings=findings,
-            tested_elements=len(findings),
-            metadata={
-                "reading_order_issues": len(findings),
-                "form_label_issues": len(
-                    [f for f in findings if "formulaire" in f.message.lower() or "label" in f.message.lower()]
-                ),
-                "table_header_issues": len(
-                    [f for f in findings if "tableau" in f.message.lower() or "en-tête" in f.message.lower()]
-                ),
-                "list_issues": len([f for f in findings if "liste" in f.message.lower()]),
-                "heading_issues": len(
-                    [f for f in findings if "titre" in f.message.lower() or "heading" in f.message.lower()]
-                ),
-            },
-        )
+        for index, tag in enumerate(soup.find_all(style=True)):
+            declarations = reordering(inline_style(tag))
+            if declarations:
+                outcomes.append(
+                    make_outcome(
+                        TestStatus.NEEDS_REVIEW,
+                        identifier(tag, index),
+                        f"Le style en ligne « {'; '.join(declarations)} » peut afficher cet élément "
+                        "dans un ordre différent de celui du code.",
+                        RECOMMENDATION,
+                        declarations=declarations,
+                        source="inline",
+                    )
+                )
+
+        if not outcomes:
+            return TestResult(self.test_id, self.criterion_id, TestStatus.PASS, PASS_SUMMARY)
+        return build_result(self, outcomes, empty_summary=PASS_SUMMARY, noun="règle(s) CSS")
+
+
+def _matched(soup: BeautifulSoup, selector: str) -> list[Tag]:
+    """Éléments du document visés par le sélecteur (pseudo-classes retirées, pseudo-éléments exclus)."""
+    if _PSEUDO_ELEMENT.search(selector):
+        return []
+    cleaned = _PSEUDO_CLASS.sub("", selector).strip()
+    if not cleaned:
+        return []
+    try:
+        return [tag for tag in soupsieve.select(cleaned, soup) if isinstance(tag, Tag)]
+    except Exception:
+        return []

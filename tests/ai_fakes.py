@@ -11,7 +11,7 @@ from __future__ import annotations
 from typing import Any
 from unittest.mock import AsyncMock
 
-from accessi_code.ai.schemas import RelevanceAnalysis, StructureCandidateAnalysis
+from accessi_code.ai.schemas import RelevanceAnalysis, SensoryAnalysis, StructureCandidateAnalysis
 from accessi_code.service.audit_services import AuditServices
 
 
@@ -21,6 +21,15 @@ def relevance(relevant: bool | None = True, confidence: str = "high", problems: 
 
 def structure(marked: bool | None = True, confidence: str = "high"):
     return StructureCandidateAnalysis(marked, "Analyse simulée.", confidence=confidence)
+
+
+def sensory(
+    conveys: bool | None = True,
+    relies_only: bool | None = False,
+    alternative: bool | None = True,
+    confidence: str = "high",
+):
+    return SensoryAnalysis(conveys, relies_only, alternative, "Analyse simulée.", confidence=confidence)
 
 
 def _responder(value: Any):
@@ -37,6 +46,8 @@ def text_services(
     relevance_answer: Any = None,
     structure_answer: Any = None,
     hierarchy_answer: Any = None,
+    sensory_answer: Any = None,
+    sensory_image_answer: Any = None,
 ) -> AuditServices:
     text = AsyncMock()
     answer = relevance_answer if relevance_answer is not None else relevance()
@@ -58,4 +69,16 @@ def text_services(
     else:
         struct.analyze_heading_hierarchy.return_value = hierarchy
 
-    return AuditServices(text_relevance_analyzer=text, structure_analyzer=struct)
+    senses = AsyncMock()
+    answer = sensory_answer if sensory_answer is not None else sensory()
+    if isinstance(answer, Exception):
+        senses.analyze_texts.side_effect = answer
+    else:
+        senses.analyze_texts.side_effect = _responder(answer)
+    answer = sensory_image_answer if sensory_image_answer is not None else sensory()
+    if isinstance(answer, Exception):
+        senses.analyze_image.side_effect = answer
+    else:
+        senses.analyze_image.return_value = answer
+
+    return AuditServices(text_relevance_analyzer=text, structure_analyzer=struct, sensory_analyzer=senses)

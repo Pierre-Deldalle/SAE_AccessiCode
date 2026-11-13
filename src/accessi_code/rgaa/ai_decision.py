@@ -10,11 +10,11 @@ Applique CONVENTIONS.md §9 à §11 en un seul endroit :
 from __future__ import annotations
 
 import os
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import asdict, dataclass, is_dataclass
 from typing import Any
 
-from accessi_code.ai.schemas import RelevanceAnalysis, StructureCandidateAnalysis
+from accessi_code.ai.schemas import RelevanceAnalysis, SensoryAnalysis, StructureCandidateAnalysis
 from accessi_code.models.result import TestStatus
 
 # Nombre maximal d'éléments qu'un test soumet à l'IA (CONVENTIONS : coût maîtrisé).
@@ -158,6 +158,7 @@ async def judge_batch(
     expected_type: type,
     when_true: TestStatus = TestStatus.PASS,
     when_false: TestStatus = TestStatus.FAIL,
+    decide: Callable[[Any], TestStatus] | None = None,
 ) -> list[Verdict]:
     """
     Soumet ``items`` à ``services.<analyzer_name>.<method>(kind, items)`` et
@@ -166,7 +167,8 @@ async def judge_batch(
     - pas d'analyseur → NEEDS_REVIEW ;
     - au-delà de la limite d'éléments → NEEDS_REVIEW ;
     - exception ou réponse mal formée → ERROR ;
-    - sinon règle de confiance (``status_from_verdict``).
+    - sinon ``decide(analysis)`` si fourni, ou la règle de confiance
+      (``status_from_verdict``) appliquée à ``verdict_field``.
     """
     if not items:
         return []
@@ -186,18 +188,18 @@ async def judge_batch(
         failure = f"{type(error).__name__}: {error}"
         return [Verdict(TestStatus.ERROR, reason="error", error=failure) for _ in items]
 
-    verdicts = [
-        Verdict(
-            status_from_verdict(
-                getattr(analysis, verdict_field),
-                analysis.confidence,
-                when_true=when_true,
-                when_false=when_false,
-            ),
-            explanation=analysis.explanation,
-            analysis=analysis,
+    def status_of(analysis: Any) -> TestStatus:
+        if decide is not None:
+            return decide(analysis)
+        return status_from_verdict(
+            getattr(analysis, verdict_field),
+            analysis.confidence,
+            when_true=when_true,
+            when_false=when_false,
         )
-        for analysis in analyses
+
+    verdicts = [
+        Verdict(status_of(analysis), explanation=analysis.explanation, analysis=analysis) for analysis in analyses
     ]
     verdicts.extend(Verdict(TestStatus.NEEDS_REVIEW, reason="limit") for _ in skipped)
     return verdicts
@@ -232,3 +234,93 @@ async def judge_structure(services: Any | None, kind: str, candidates: list[Any]
         when_true=TestStatus.FAIL,
         when_false=TestStatus.NOT_APPLICABLE,
     )
+
+
+# ----------------------------------------------------------------------
+# Caractéristiques sensorielles (RGAA 3.1, 10.9, 10.10)
+# ----------------------------------------------------------------------
+
+
+def sensory_status(analysis: SensoryAnalysis, *, judge_alternative: bool = False) -> TestStatus:
+    """
+    Statut d'un candidat sensoriel.
+
+    - la caractéristique ne transmet pas d'information → NOT_APPLICABLE ;
+    - 3.1 / 10.9 (``judge_alternative`` faux) : information donnée uniquement
+      par la caractéristique → FAIL, sinon PASS ;
+    - 10.10 (``judge_alternative`` vrai) : sans autre moyen, la règle n'est pas
+      appliquée et le défaut relève de 10.9 → NOT_APPLICABLE ; sinon l'autre
+      moyen est-il pertinent → PASS / FAIL ;
+    - confiance "low" ou réponse null → NEEDS_REVIEW.
+    """
+    if analysis.confidence == "low" or analysis.conveys_information is None:
+        return TestStatus.NEEDS_REVIEW
+    if analysis.conveys_information is False:
+        return TestStatus.NOT_APPLICABLE
+    if analysis.relies_only_on_sensory is None:
+        return TestStatus.NEEDS_REVIEW
+    if not judge_alternative:
+        return TestStatus.FAIL if analysis.relies_only_on_sensory else TestStatus.PASS
+    if analysis.relies_only_on_sensory:
+        return TestStatus.NOT_APPLICABLE
+    return status_from_verdict(analysis.alternative_relevant, analysis.confidence)
+
+
+async def judge_sensory(
+    services: Any | None,
+    kind: str,
+    candidates: list[Any],
+    *,
+    judge_alternative: bool = False,
+) -> list[Verdict]:
+    """Passages de texte soumis par lots à ``sensory_analyzer.analyze_texts``."""
+    return await judge_batch(
+        services,
+        "sensory_analyzer",
+        "analyze_texts",
+        kind,
+        candidates,
+        verdict_field="relies_only_on_sensory",
+        expected_type=SensoryAnalysis,
+        decide=lambda analysis: sensory_status(analysis, judge_alternative=judge_alternative),
+    )
+
+
+async def judge_sensory_images(
+    services: Any | None,
+    kind: str,
+    images: list[Any],
+    *,
+    judge_alternative: bool = False,
+) -> list[Verdict]:
+    """
+    Images soumises une par une à ``sensory_analyzer.analyze_image`` (VLM).
+
+    Une erreur sur une image ne concerne que cette image (ERROR).
+    """
+    if not images:
+        return []
+
+    analyzer = get_analyzer(services, "sensory_analyzer")
+    if analyzer is None:
+        return [Verdict(TestStatus.NEEDS_REVIEW, reason="unavailable") for _ in images]
+
+    limit = ai_item_limit()
+    verdicts: list[Verdict] = []
+    for image in images[:limit]:
+        try:
+            analysis = await analyzer.analyze_image(kind, image)
+            if not isinstance(analysis, SensoryAnalysis):
+                raise TypeError("Une réponse SensoryAnalysis est attendue.")
+        except Exception as error:
+            verdicts.append(Verdict(TestStatus.ERROR, reason="error", error=f"{type(error).__name__}: {error}"))
+            continue
+        verdicts.append(
+            Verdict(
+                sensory_status(analysis, judge_alternative=judge_alternative),
+                explanation=analysis.explanation,
+                analysis=analysis,
+            )
+        )
+    verdicts.extend(Verdict(TestStatus.NEEDS_REVIEW, reason="limit") for _ in images[limit:])
+    return verdicts
