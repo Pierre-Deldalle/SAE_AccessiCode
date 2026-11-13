@@ -12,7 +12,7 @@ from accessi_code.rgaa.themes import THEMES_BY_NUMBER
 from accessi_code.service.audit_orchestrator import AuditRequestError
 from accessi_code.service.theme_summary import ThemeState, ThemeSummary
 from accessi_code.ui.audit_bridge import build_audit_request, run_audit_from_ui, uploaded_paths
-from accessi_code.ui.results_view import SCORE_CSS, build_theme_detail, card_classes
+from accessi_code.ui.results_view import SCORE_CSS, build_theme_detail, card_classes, card_label
 
 
 def test_uploaded_paths_accepts_gradio_formats():
@@ -98,3 +98,43 @@ def test_detail_for_not_implemented_theme_says_not_audited():
     detail = build_theme_detail(ThemeSummary(THEMES_BY_NUMBER[2], ThemeState.NOT_IMPLEMENTED))
     assert "pas encore de test automatisé" in detail
     assert "%" not in detail
+
+
+def _summary_with(statuses):
+    criteria = tuple(
+        CriterionResult(criterion_id=f"8.{index}", status=status, summary="", tests=[])
+        for index, status in enumerate(statuses, start=1)
+    )
+    counts = {}
+    for status in statuses:
+        counts[status] = counts.get(status, 0) + 1
+    passed, failed = counts.get(TestStatus.PASS, 0), counts.get(TestStatus.FAIL, 0)
+    return ThemeSummary(
+        THEMES_BY_NUMBER[8],
+        ThemeState.SCORED,
+        score=round(100 * passed / (passed + failed)),
+        criteria=criteria,
+        criteria_counts=counts,
+    )
+
+
+def test_card_shows_the_basis_of_the_score():
+    summary = _summary_with(
+        [TestStatus.PASS, TestStatus.PASS, TestStatus.FAIL, TestStatus.NEEDS_REVIEW, TestStatus.NOT_APPLICABLE]
+    )
+
+    label = card_label(summary)
+
+    assert label.splitlines() == ["8. Éléments obligatoires", "Calculé sur 3 critère(s) sur 4"]
+    assert "theme-incomplete" not in card_classes(summary)
+
+
+def test_card_flags_incomplete_results():
+    # 3 critères conformes, 7 non évalués (IA indisponible) : 100 % mais incomplet.
+    summary = _summary_with([TestStatus.PASS] * 3 + [TestStatus.ERROR] * 4 + [TestStatus.NOT_TESTED] * 3)
+
+    assert summary.score == 100
+    assert "⚠ Résultat incomplet" in card_label(summary)
+    assert "Calculé sur 3 critère(s) sur 10" in card_label(summary)
+    assert "theme-incomplete" in card_classes(summary)
+    assert "7 critère(s) n'ont pas pu être évalués" in build_theme_detail(summary)

@@ -9,7 +9,7 @@ from accessi_code.models.capabilities import Capability
 
 
 async def main() -> None:
-    site_root = Path("test_files/color_site")
+    site_root = Path("test_files/site_demo_rgaa")
 
     input_files = sorted(path for path in site_root.rglob("*") if path.is_file())
 

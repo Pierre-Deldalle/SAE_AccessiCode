@@ -14,6 +14,17 @@ from accessi_code.models.result import (
 from accessi_code.rgaa.base import RGAATest
 
 
+# Rôles WAI-ARIA des composants d'interface (widgets) et de leurs conteneurs interactifs.
+INTERACTIVE_ROLES = frozenset(
+    {
+        "button", "checkbox", "combobox", "grid", "gridcell", "link", "listbox", "menu", "menubar",
+        "menuitem", "menuitemcheckbox", "menuitemradio", "option", "progressbar", "radio", "radiogroup",
+        "scrollbar", "searchbox", "slider", "spinbutton", "switch", "tab", "tablist", "tabpanel",
+        "textbox", "tree", "treegrid", "treeitem", "dialog", "alertdialog",
+    }
+)
+
+
 class Test711(RGAATest):
     test_id = "7.1.1"
     criterion_id = "7.1"
@@ -116,7 +127,14 @@ class Test711(RGAATest):
             elements = soup.find_all(attrs={handler: True})
             script_elements.update(elements)
 
-        role_elements = soup.find_all(attrs={"role": True})
+        # Seuls les rôles de composants interactifs sont concernés : les régions,
+        # les images et les messages de statut (status, alert, log) ne sont pas
+        # des composants d'interface au sens du RGAA.
+        role_elements = [
+            element
+            for element in soup.find_all(attrs={"role": True})
+            if str(element.get("role", "")).strip().lower() in INTERACTIVE_ROLES
+        ]
         script_elements.update(role_elements)
 
         return list(script_elements)
@@ -260,7 +278,14 @@ class Test712(RGAATest):
             elements = soup.find_all(attrs={handler: True})
             script_elements.update(elements)
 
-        role_elements = soup.find_all(attrs={"role": True})
+        # Seuls les rôles de composants interactifs sont concernés : les régions,
+        # les images et les messages de statut (status, alert, log) ne sont pas
+        # des composants d'interface au sens du RGAA.
+        role_elements = [
+            element
+            for element in soup.find_all(attrs={"role": True})
+            if str(element.get("role", "")).strip().lower() in INTERACTIVE_ROLES
+        ]
         script_elements.update(role_elements)
 
         return list(script_elements)
@@ -408,7 +433,14 @@ class Test713(RGAATest):
             elements = soup.find_all(attrs={handler: True})
             script_elements.update(elements)
 
-        role_elements = soup.find_all(attrs={"role": True})
+        # Seuls les rôles de composants interactifs sont concernés : les régions,
+        # les images et les messages de statut (status, alert, log) ne sont pas
+        # des composants d'interface au sens du RGAA.
+        role_elements = [
+            element
+            for element in soup.find_all(attrs={"role": True})
+            if str(element.get("role", "")).strip().lower() in INTERACTIVE_ROLES
+        ]
         script_elements.update(role_elements)
 
         return list(script_elements)
@@ -441,11 +473,16 @@ class Test713(RGAATest):
 
         aria_labelledby = element.get("aria-labelledby")
         if aria_labelledby and isinstance(aria_labelledby, str) and aria_labelledby.strip():
-            labelled_element = soup.find(id=aria_labelledby)
-            if labelled_element:
-                label_text = labelled_element.get_text(strip=True)
-                if label_text:
-                    return label_text
+            # aria-labelledby peut référencer plusieurs identifiants séparés par des espaces.
+            parts = []
+            for reference in aria_labelledby.split():
+                labelled_element = soup.find(id=reference)
+                if labelled_element:
+                    text = labelled_element.get_text(" ", strip=True)
+                    if text:
+                        parts.append(text)
+            if parts:
+                return " ".join(parts)
 
         if element.name in ("button", "a"):
             text = element.get_text(strip=True)

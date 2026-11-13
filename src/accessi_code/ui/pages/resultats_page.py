@@ -16,6 +16,7 @@ from accessi_code.ui.results_view import (
     build_notices,
     build_theme_detail,
     card_classes,
+    card_label,
     initial_card_classes,
     priority_label,
     score_category,
@@ -44,7 +45,7 @@ def results_updates(summaries: tuple[ThemeSummary, ...], notices: list[str]) -> 
         summaries,
         gr.update(value=notices_md, visible=bool(notices_md)),
         gr.update(value=DEFAULT_THEME_DETAIL),
-        *[gr.update(value=s.theme.label, elem_classes=card_classes(s)) for s in summaries],
+        *[gr.update(value=card_label(s), elem_classes=card_classes(s)) for s in summaries],
     ]
 
 
@@ -54,7 +55,7 @@ def reset_updates() -> list:
         (),
         gr.update(value="", visible=False),
         gr.update(value=DEFAULT_THEME_DETAIL),
-        *[gr.update(elem_classes=initial_card_classes()) for _ in RGAA_THEMES],
+        *[gr.update(value=theme.label, elem_classes=initial_card_classes()) for theme in RGAA_THEMES],
     ]
 
 
@@ -79,7 +80,7 @@ def build_resultats_page():
             elem_id="resultats-title",
         )
 
-        gr.Markdown(LEGEND_TEXT, elem_id="resultats-demo-notice")
+        gr.Markdown(LEGEND_TEXT, elem_id="resultats-legend")
 
         audit_notices = gr.Markdown("", visible=False, elem_id="resultats-audit-notices")
 

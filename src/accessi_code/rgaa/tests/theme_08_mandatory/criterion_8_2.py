@@ -36,9 +36,23 @@ class Test821(RGAATest):
         - Les attributs ne sont pas doublés sur un même élément
         """
         # Utiliser le service de validation HTML si disponible
-        if services and getattr(services, 'html_validator', None) is not None:
+        if services and getattr(services, "html_validator", None) is not None:
             validator = services.html_validator
-            validation_result = await validator.validate_html(context.html_source)
+            try:
+                validation_result = await validator.validate_html(context.html_source)
+            except ValueError as error:
+                # Réponse de l'IA incomplète ou mal formée : jamais une preuve.
+                return TestResult(
+                    test_id=self.test_id,
+                    criterion_id=self.criterion_id,
+                    status=TestStatus.NEEDS_REVIEW,
+                    summary=(
+                        "La réponse de l'IA est incomplète ou invalide. "
+                        "Vérification manuelle de la validité du code source nécessaire."
+                    ),
+                    tested_elements=0,
+                    metadata={"analysis_error": str(error)},
+                )
 
             if validation_result.is_valid:
                 return TestResult(
@@ -61,7 +75,9 @@ class Test821(RGAATest):
                 for error in displayed_errors:
                     error_messages.append(f"Ligne {error.line}: {error.message}")
 
-                summary = f"Le code source HTML contient {error_count} erreur(s) de validation :\n" + "\n".join(error_messages)
+                summary = f"Le code source HTML contient {error_count} erreur(s) de validation :\n" + "\n".join(
+                    error_messages
+                )
                 if error_count > max_errors_to_show:
                     summary += f"\n... et {error_count - max_errors_to_show} autre(s) erreur(s)."
 

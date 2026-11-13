@@ -74,6 +74,25 @@ class ThemeSummary:
         """Critères qui demandent encore une intervention humaine."""
         return self.criteria_counts.get(TestStatus.NEEDS_REVIEW, 0) + self.criteria_counts.get(TestStatus.ERROR, 0)
 
+    @property
+    def decided(self) -> int:
+        """Critères tranchés (conformes ou non conformes) : base du pourcentage."""
+        return self.criteria_counts.get(TestStatus.PASS, 0) + self.criteria_counts.get(TestStatus.FAIL, 0)
+
+    @property
+    def applicable(self) -> int:
+        """Critères qui concernent la page (tous sauf les non applicables)."""
+        return len(self.criteria) - self.criteria_counts.get(TestStatus.NOT_APPLICABLE, 0)
+
+    @property
+    def not_evaluated(self) -> int:
+        """Critères qui n'ont pas pu être évalués (erreur, IA indisponible, données manquantes)."""
+        return self.criteria_counts.get(TestStatus.ERROR, 0) + self.criteria_counts.get(TestStatus.NOT_TESTED, 0)
+
+    @property
+    def incomplete(self) -> bool:
+        return self.not_evaluated > 0
+
 
 def compute_score(criteria: list[CriterionResult] | tuple[CriterionResult, ...]) -> int | None:
     """Pourcentage de critères conformes parmi les critères tranchés, ou None."""

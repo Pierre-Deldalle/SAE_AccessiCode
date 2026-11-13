@@ -133,6 +133,19 @@ class Test871(RGAATest):
                         metadata=getattr(analysis_result, 'metadata', {})
                     )
 
+            except ValueError as error:
+                # Réponse de l'IA incomplète ou mal formée : jamais une preuve.
+                return TestResult(
+                    test_id=self.test_id,
+                    criterion_id=self.criterion_id,
+                    status=TestStatus.NEEDS_REVIEW,
+                    summary=(
+                        "La réponse de l'IA est incomplète ou invalide. "
+                        "Vérification manuelle des changements de langue nécessaire."
+                    ),
+                    tested_elements=0,
+                    metadata={"analysis_error": str(error)},
+                )
             except Exception as error:
                 return TestResult(
                     test_id=self.test_id,

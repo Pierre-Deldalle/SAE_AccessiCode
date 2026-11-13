@@ -11,6 +11,41 @@ from accessi_code.models.capabilities import Capability
 from accessi_code.models.result import Finding, TestResult, TestStatus
 from accessi_code.rgaa.base import RGAATest
 
+# Éléments qui ne sont jamais des messages de statut (titres, libellés, métadonnées…).
+NON_MESSAGE_TAGS = frozenset(
+    {
+        "script",
+        "style",
+        "noscript",
+        "template",
+        "head",
+        "meta",
+        "title",
+        "desc",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "label",
+        "legend",
+        "caption",
+        "th",
+        "option",
+        "button",
+        "a",
+    }
+)
+
+# Rôles qui classent déjà un message dans une autre catégorie RGAA :
+# 7.5.1 réussite / état (status), 7.5.2 erreur (alert), 7.5.3 progression (log, progressbar, status).
+OTHER_CATEGORY_ROLES = {
+    "7.5.1": frozenset({"alert", "log", "progressbar"}),
+    "7.5.2": frozenset({"status", "log", "progressbar"}),
+    "7.5.3": frozenset({"alert"}),
+}
+
 
 class Test751(RGAATest):
     test_id = "7.5.1"
@@ -33,10 +68,10 @@ class Test751(RGAATest):
 
         all_elements = soup.find_all(True)
         for element in all_elements:
-            if element.name in ["script", "style"]:
+            if element.name in NON_MESSAGE_TAGS:
                 continue
 
-            text = element.get_text(strip=True)
+            text = _own_text(element)
             if text and len(text) > 0:
                 if self._is_status_message_state(text):
                     status_candidates.append(element)
@@ -54,6 +89,10 @@ class Test751(RGAATest):
                 status_candidates.append(element)
 
         status_candidates = self._filter_container_elements(status_candidates, soup)
+        # Un message déjà déclaré pour une autre catégorie relève d'un autre test.
+        status_candidates = [
+            element for element in status_candidates if element.get("role") not in OTHER_CATEGORY_ROLES["7.5.1"]
+        ]
 
         if not status_candidates:
             return TestResult(
@@ -215,10 +254,10 @@ class Test752(RGAATest):
 
         all_elements = soup.find_all(True)
         for element in all_elements:
-            if element.name in ["script", "style"]:
+            if element.name in NON_MESSAGE_TAGS:
                 continue
 
-            text = element.get_text(strip=True)
+            text = _own_text(element)
             if text and len(text) > 0:
                 if self._is_status_message_suggestion_error(text):
                     status_candidates.append(element)
@@ -236,6 +275,10 @@ class Test752(RGAATest):
                 status_candidates.append(element)
 
         status_candidates = self._filter_container_elements(status_candidates, soup)
+        # Un message déjà déclaré pour une autre catégorie relève d'un autre test.
+        status_candidates = [
+            element for element in status_candidates if element.get("role") not in OTHER_CATEGORY_ROLES["7.5.2"]
+        ]
 
         if not status_candidates:
             return TestResult(
@@ -418,10 +461,10 @@ class Test753(RGAATest):
 
         all_elements = soup.find_all(True)
         for element in all_elements:
-            if element.name in ["script", "style"]:
+            if element.name in NON_MESSAGE_TAGS:
                 continue
 
-            text = element.get_text(strip=True)
+            text = _own_text(element)
             if text and len(text) > 0:
                 if self._is_status_message_process_progression(text):
                     status_candidates.append(element)
@@ -439,6 +482,10 @@ class Test753(RGAATest):
                 status_candidates.append(element)
 
         status_candidates = self._filter_container_elements(status_candidates, soup)
+        # Un message déjà déclaré pour une autre catégorie relève d'un autre test.
+        status_candidates = [
+            element for element in status_candidates if element.get("role") not in OTHER_CATEGORY_ROLES["7.5.3"]
+        ]
 
         if not status_candidates:
             return TestResult(
@@ -582,3 +629,13 @@ class Test753(RGAATest):
             if isinstance(content, str):
                 direct_text_parts.append(content)
         return "".join(direct_text_parts)
+
+
+def _own_text(element) -> str:
+    """
+    Texte porté directement par l'élément, sans celui de ses descendants.
+
+    Sinon <html>, <body> et chaque conteneur seraient eux-mêmes pris pour
+    des messages dès qu'un mot-clé apparaît quelque part dans la page.
+    """
+    return " ".join(part.strip() for part in element.find_all(string=True, recursive=False) if part.strip())

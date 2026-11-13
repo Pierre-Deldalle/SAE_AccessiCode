@@ -6,9 +6,13 @@ moteur existant :
 
     AuditRequest
       -> registre filtré par thématique
-      -> AuditContextBuilder
-      -> AuditService
+      -> AuditContextBuilder              (préparation des documents)
+      -> ContextEnricher, si nécessaire   (analyse du rendu avec Playwright)
+      -> AuditService                     (tests RGAA)
       -> AuditOutcome
+
+Elle suit la progression réelle, mesure la durée de chaque test et
+estime le temps restant (voir service.audit_timing).
 
 Elle ne dépend pas de Gradio et ne contient aucune logique RGAA.
 """
@@ -16,13 +20,15 @@ Elle ne dépend pas de Gradio et ne contient aucune logique RGAA.
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable, Iterable
+import time
+from collections.abc import Awaitable, Callable, Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from accessi_code.input.context_builder import AuditContextBuilder
-from accessi_code.input.file_classifier import is_html_file
+from accessi_code.input.file_classifier import is_html_file, pick_main_html
 from accessi_code.models.audit_result import AuditResult
+from accessi_code.models.capabilities import Capability
 from accessi_code.models.result import TestResult, TestStatus
 from accessi_code.rgaa.default_registry import build_default_registry
 from accessi_code.rgaa.registry import TestRegistry
@@ -39,6 +45,13 @@ from accessi_code.service.audit_progress import (
 )
 from accessi_code.service.audit_service import AuditService
 from accessi_code.service.audit_services import AuditServices
+from accessi_code.service.audit_timing import AuditEstimate, AuditTimingStore, RemainingTimeTracker
+
+# Fichier des durées mesurées, dans l'espace de travail.
+TIMINGS_FILENAME = "audit_timings.json"
+
+# Données produites par l'analyse du rendu (styles calculés, contrastes).
+RENDER_CAPABILITIES = frozenset({Capability.COMPUTED_STYLES, Capability.TEXT_CONTRAST, Capability.NON_TEXT_CONTRAST})
 
 
 class AuditRequestError(ValueError):
@@ -69,6 +82,59 @@ class AuditOutcome:
 
 
 ServicesFactory = Callable[[], AuditServices]
+EnricherFactory = Callable[[], object]
+
+
+# Délai maximal de la vérification du serveur d'IA avant l'audit.
+AI_CHECK_TIMEOUT_SECONDS = 3.0
+AI_UNAVAILABLE_NOTICE = (
+    "IA non disponible : les contrôles qui en dépendent n'ont pas été évalués. "
+    "Vérifiez la connexion au serveur Ollama puis relancez l'audit."
+)
+
+AiCheck = Callable[[], Awaitable[bool]]
+
+
+async def check_ai_available() -> bool:
+    """
+    Vérifie en quelques secondes que le serveur Ollama répond et propose le modèle de langage.
+
+    Évite que chaque test IA attende l'échec de sa propre connexion.
+    """
+    try:
+        import aiohttp
+
+        from accessi_code.config import settings
+
+        url = settings.OLLAMA_HOST.rstrip("/") + "/api/tags"
+        timeout = aiohttp.ClientTimeout(total=AI_CHECK_TIMEOUT_SECONDS)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.get(url) as response:
+                if response.status != 200:
+                    return False
+                data = await response.json()
+    except Exception:
+        return False
+
+    names = {str(model.get("name", "")) for model in data.get("models", []) if isinstance(model, dict)}
+    wanted = settings.LLM_MODEL
+    return wanted in names or f"{wanted}:latest" in names
+
+
+def build_context_enricher() -> object:
+    """Analyse du rendu avec Playwright (import différé : dépendance lourde)."""
+    from accessi_code.input.context_enricher import ContextEnricher
+
+    return ContextEnricher()
+
+
+def needs_rendering(registry: TestRegistry) -> bool:
+    """Vrai si un test du registre exploite les données de l'analyse du rendu."""
+    for test in registry:
+        capabilities = test.required_capabilities | getattr(test, "optional_capabilities", frozenset())
+        if capabilities & RENDER_CAPABILITIES:
+            return True
+    return False
 
 
 def build_services_from_settings() -> AuditServices:
@@ -97,12 +163,30 @@ class AuditOrchestrator:
         workspace_root: Path,
         registry_factory: Callable[[], TestRegistry] = build_default_registry,
         services_factory: ServicesFactory | None = build_services_from_settings,
+        enricher_factory: EnricherFactory | None = build_context_enricher,
+        timing_store: AuditTimingStore | None = None,
+        ai_check: AiCheck | None = None,
     ):
         self.workspace_root = Path(workspace_root)
         self.registry_factory = registry_factory
         self.services_factory = services_factory
+        self.enricher_factory = enricher_factory
+        self.timing = timing_store or AuditTimingStore(self.workspace_root / TIMINGS_FILENAME)
         self._services: AuditServices | None = None
         self._services_notice: str | None = None
+        # Vérification du serveur d'IA avant chaque audit (None : pas de vérification).
+        self.ai_check = ai_check
+
+    def estimate(self, themes: frozenset[int]) -> AuditEstimate | None:
+        """Durée estimée d'un audit des thématiques données, ou None si aucun test."""
+        full_registry = self.registry_factory()
+        registry = filter_registry_by_themes(full_registry, themes & implemented_themes(full_registry))
+        if len(registry) == 0:
+            return None
+        return self.timing.estimate(
+            [test.test_id for test in registry],
+            with_enrichment=self._uses_enrichment(registry),
+        )
 
     async def run(
         self,
@@ -112,11 +196,13 @@ class AuditOrchestrator:
         """
         Exécute l'audit demandé.
 
-        ``on_progress`` reçoit l'avancement réel (étape, tests terminés).
+        ``on_progress`` reçoit l'avancement réel (étape, tests terminés)
+        ainsi que le temps écoulé et le temps restant estimé.
 
         Raises:
             AuditRequestError: si la demande ne permet pas de lancer un audit.
         """
+        started = time.perf_counter()
         notices = self._validate(request)
 
         full_registry = self.registry_factory()
@@ -136,40 +222,107 @@ class AuditOrchestrator:
             )
 
         registry = filter_registry_by_themes(full_registry, executed)
-        services = self._get_services()
-        if self._services_notice:
-            notices.append(self._services_notice)
 
-        total = len(registry)
-        await notify_progress(on_progress, AuditProgress(AuditStep.PREPARATION, total_tests=total))
+        # Vérification de l'IA, en parallèle de la préparation des documents.
+        ai_task = asyncio.create_task(self._check_ai()) if self._should_check_ai() else None
+        ai_available: bool | None = None
 
-        # Copie et analyse des fichiers : opérations bloquantes, hors boucle asyncio.
-        builder = AuditContextBuilder(workspace_root=self.workspace_root)
-        context = await asyncio.to_thread(builder.build, list(request.files))
-
-        await notify_progress(on_progress, AuditProgress(AuditStep.TESTS, total_tests=total))
+        test_ids = [test.test_id for test in registry]
+        total = len(test_ids)
+        with_enrichment = self._uses_enrichment(registry)
+        tracker = RemainingTimeTracker(self.timing, test_ids)
         errors: list[str] = []
 
-        async def on_test_done(done: int, total_tests: int, test_result: TestResult) -> None:
-            if test_result.status == TestStatus.ERROR:
-                errors.append(test_result.test_id)
+        async def report(
+            step: AuditStep,
+            *,
+            done: int = 0,
+            last: str | None = None,
+            remaining: float | None = None,
+        ) -> None:
             await notify_progress(
                 on_progress,
                 AuditProgress(
-                    AuditStep.TESTS,
+                    step,
                     done_tests=done,
-                    total_tests=total_tests,
-                    last_test_id=test_result.test_id,
+                    total_tests=total,
+                    last_test_id=last,
                     error_test_ids=tuple(errors),
+                    elapsed_seconds=time.perf_counter() - started,
+                    remaining_seconds=remaining,
+                    enrichment_needed=with_enrichment,
+                    ai_available=ai_available,
                 ),
+            )
+
+        # 1. Préparation : copie et analyse des fichiers, hors boucle asyncio.
+        estimate = self.timing.estimate(test_ids, with_enrichment=with_enrichment)
+        await report(AuditStep.PREPARATION, remaining=estimate.seconds)
+        step_start = time.perf_counter()
+        builder = AuditContextBuilder(workspace_root=self.workspace_root)
+        try:
+            context = await asyncio.to_thread(builder.build, list(request.files))
+            if ai_task is not None:
+                ai_available = await ai_task
+        except BaseException:
+            if ai_task is not None:
+                ai_task.cancel()
+            raise
+        self.timing.record_preparation(time.perf_counter() - step_start)
+
+        if ai_available is False:
+            # Les tests IA concluent aussitôt « non testé » au lieu d'attendre l'échec de connexion.
+            services = AuditServices()
+            notices.append(AI_UNAVAILABLE_NOTICE)
+        else:
+            services = self._get_services()
+            if self._services_notice:
+                notices.append(self._services_notice)
+
+        # 2. Analyse du rendu, uniquement si une thématique cochée en a besoin.
+        if with_enrichment:
+            await report(
+                AuditStep.ENRICHMENT,
+                remaining=self.timing.enrichment_seconds() + tracker.remaining_seconds(0),
+            )
+            step_start = time.perf_counter()
+            enrichment_notice = await self._enrich(context)
+            if enrichment_notice is None:
+                self.timing.record_enrichment(time.perf_counter() - step_start)
+            else:
+                notices.append(enrichment_notice)
+
+        # 3. Tests RGAA, chronométrés un par un.
+        await report(AuditStep.TESTS, remaining=tracker.remaining_seconds(0))
+        last_tick = time.perf_counter()
+
+        async def on_test_done(done: int, total_tests: int, test_result: TestResult) -> None:
+            nonlocal last_tick
+            now = time.perf_counter()
+            duration = now - last_tick
+            last_tick = now
+
+            tracker.record(done - 1, duration)
+            # Un test non exécuté ou en erreur ne reflète pas sa durée normale.
+            # Sans IA, les tests IA sont anormalement rapides : leurs durées ne sont pas retenues.
+            if ai_available is not False and test_result.status not in (TestStatus.NOT_TESTED, TestStatus.ERROR):
+                self.timing.record_test(test_result.test_id, duration)
+            if test_result.status == TestStatus.ERROR:
+                errors.append(test_result.test_id)
+
+            await report(
+                AuditStep.TESTS,
+                done=done,
+                last=test_result.test_id,
+                remaining=tracker.remaining_seconds(done),
             )
 
         result = await AuditService(registry=registry, services=services).audit(context, on_test_done)
 
-        await notify_progress(
-            on_progress,
-            AuditProgress(AuditStep.DONE, done_tests=total, total_tests=total, error_test_ids=tuple(errors)),
-        )
+        # 4. Synthèse puis enregistrement des durées mesurées.
+        await report(AuditStep.SYNTHESIS, done=total, remaining=0.0)
+        await asyncio.to_thread(self.timing.save)
+        await report(AuditStep.DONE, done=total, remaining=0.0)
 
         return AuditOutcome(
             request=request,
@@ -178,6 +331,47 @@ class AuditOrchestrator:
             executed_themes=executed,
             notices=notices,
         )
+
+    def _should_check_ai(self) -> bool:
+        return self.ai_check is not None and self.services_factory is not None
+
+    async def _check_ai(self) -> bool:
+        try:
+            return bool(await self.ai_check())
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            return False
+
+    def _uses_enrichment(self, registry: TestRegistry) -> bool:
+        return self.enricher_factory is not None and needs_rendering(registry)
+
+    async def _enrich(self, context) -> str | None:
+        """Lance l'analyse du rendu ; retourne un avertissement en cas de problème."""
+        try:
+            enricher = self.enricher_factory()
+            enrichment = await enricher.enrich(context)
+        except asyncio.CancelledError:
+            raise
+        except Exception as error:
+            return (
+                "L'analyse du rendu de la page (styles calculés) n'a pas pu être réalisée "
+                f"({type(error).__name__} : {error}). Les contrôles de contraste "
+                "devront être vérifiés manuellement."
+            )
+
+        problems = [
+            str(problem)
+            for problem in (getattr(enrichment, "error", None), getattr(enrichment, "non_text_error", None))
+            if problem
+        ]
+        if problems:
+            return (
+                "L'analyse du rendu de la page est incomplète : "
+                + " ; ".join(problems)
+                + ". Certains contrôles de contraste devront être vérifiés manuellement."
+            )
+        return None
 
     @staticmethod
     def _validate(request: AuditRequest) -> list[str]:
@@ -207,9 +401,11 @@ class AuditOrchestrator:
         if url:
             notices.append("L'URL saisie n'a pas été analysée : seuls les fichiers importés sont audités.")
         if len(html_files) > 1:
+            main_page = html_files[pick_main_html(html_files)]
             notices.append(
-                f"{len(html_files)} fichiers HTML importés : seul le premier "
-                f"({html_files[0].name}) est analysé pour le moment."
+                f"{len(html_files)} fichiers HTML importés : la page principale analysée est "
+                f"{main_page.name}. Les autres pages servent aux critères qui comparent "
+                "plusieurs pages (cohérence des formulaires et de la navigation)."
             )
         return notices
 

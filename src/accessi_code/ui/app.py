@@ -211,14 +211,15 @@ def confirm_return_home():
     )
 
 
-def create_app():
-    """Crée l'application Gradio principale."""
+def launch_options() -> dict:
+    """Styles et thème de l'application, à passer à app.launch() (Gradio 6)."""
+    return {"css": CSS, "theme": gr.themes.Base()}
 
-    with gr.Blocks(
-        title="AccessiCode",
-        css=CSS,
-        theme=gr.themes.Base(),
-    ) as app:
+
+def create_app():
+    """Crée l'application Gradio principale (à lancer avec launch_options())."""
+
+    with gr.Blocks(title="AccessiCode") as app:
         accueil_page, start_button = build_accueil_page()
 
         (
@@ -344,4 +345,4 @@ def create_app():
 
 
 if __name__ == "__main__":
-    create_app().launch()
+    create_app().launch(**launch_options())

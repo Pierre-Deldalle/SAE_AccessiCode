@@ -15,6 +15,7 @@ from accessi_code.service.audit_progress import (
     AuditProgress,
     AuditStep,
 )
+from accessi_code.service.audit_timing import format_duration
 
 # Nombre maximal d'identifiants de tests en erreur cités sur la page.
 MAX_ERRORS_LISTED = 5
@@ -40,9 +41,16 @@ _STATE_TEXT = {
 }
 
 
+def _visible_steps(progress: AuditProgress | None) -> tuple[AuditStep, ...]:
+    """L'analyse du rendu n'apparaît que si elle est réalisée pour cet audit."""
+    if progress is not None and not progress.enrichment_needed:
+        return tuple(step for step in STEP_ORDER if step != AuditStep.ENRICHMENT)
+    return STEP_ORDER
+
+
 def _render_steps(progress: AuditProgress | None) -> str:
     items = []
-    for step in STEP_ORDER:
+    for step in _visible_steps(progress):
         state = _step_state(step, progress)
         marker, label = _STATE_TEXT[state]
         current = ' aria-current="step"' if state == "current" else ""
@@ -60,12 +68,43 @@ def _description(progress: AuditProgress | None) -> str:
         total = progress.total_tests if progress else 0
         suffix = f" {total} test(s) à exécuter." if total else ""
         return "Copie et analyse des documents importés…" + suffix
+    if progress.step == AuditStep.ENRICHMENT:
+        return "Analyse du rendu de la page dans un navigateur (styles et contrastes)…"
+    if progress.step == AuditStep.SYNTHESIS:
+        return "Synthèse des résultats par thématique…"
     if progress.step == AuditStep.DONE:
         return f"Audit terminé : {progress.total_tests} test(s) exécuté(s)."
     text = f"{progress.done_tests} test(s) terminé(s) sur {progress.total_tests}"
     if progress.last_test_id:
         text += f" — dernier : test {progress.last_test_id}"
     return text + "."
+
+
+def _timing(progress: AuditProgress | None) -> str:
+    """Temps écoulé et temps restant estimé, quand ils sont connus."""
+    if progress is None or progress.step == AuditStep.DONE:
+        return ""
+    parts = []
+    if progress.elapsed_seconds is not None:
+        parts.append(f"Temps écoulé : {format_duration(progress.elapsed_seconds)}")
+    if progress.remaining_seconds is not None:
+        if progress.remaining_seconds < 1:
+            parts.append("Temps restant estimé : quelques secondes")
+        else:
+            parts.append(f"Temps restant estimé : environ {format_duration(progress.remaining_seconds)}")
+    if not parts:
+        return ""
+    return '<p class="accessicode-progress-timing">' + escape(" · ".join(parts)) + "</p>"
+
+
+AI_WARNING_TEXT = "IA non disponible, certains tests ne seront pas évalués."
+
+
+def _ai_warning(progress: AuditProgress | None) -> str:
+    """Zone rouge affichée quand le serveur d'IA ne répond pas."""
+    if progress is None or progress.ai_available is not False:
+        return ""
+    return f'<p class="accessicode-progress-alert accessicode-progress-ai-warning">{escape(AI_WARNING_TEXT)}</p>'
 
 
 def render_progress(progress: AuditProgress | None) -> str:
@@ -107,6 +146,8 @@ def render_progress(progress: AuditProgress | None) -> str:
         + _render_steps(progress)
         + bar
         + f'<p class="accessicode-progress-description" aria-live="polite">{escape(_description(progress))}</p>'
+        + _timing(progress)
+        + _ai_warning(progress)
         + alert
         + "</div>"
     )

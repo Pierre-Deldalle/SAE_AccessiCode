@@ -208,8 +208,8 @@ def parse_arguments() -> Any:
 
     parser.add_argument(
         "--site",
-        default="basic_site",
-        help=("Nom du dossier de test situé dans test_files (défaut : basic_site)."),
+        default="site_demo_rgaa",
+        help=("Nom du dossier de test situé dans test_files (défaut : site_demo_rgaa)."),
     )
 
     return parser.parse_args()

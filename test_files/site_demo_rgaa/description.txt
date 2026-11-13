@@ -1,0 +1,6 @@
+Description détaillée du logo AccessiCode
+
+Le logo représente une fenêtre d'application stylisée, de couleur bleue (#0153C6),
+au centre de laquelle figure un symbole d'accessibilité universelle de couleur cyan
+(#0CA0B0). Le nom « AccessiCode » est écrit à droite, en lettres sombres.
+Le logo symbolise une application qui aide à rendre les sites web accessibles.

@@ -1,7 +1,7 @@
 
 /*
  * AccessiCode — Résultats d'audit
- * Maquette interactive avec scores de démonstration.
+ * Cartes par thématique, scores calculés à partir des résultats du moteur RGAA.
  */
 
 #resultats-page {
@@ -30,13 +30,13 @@
     color: #17212b !important;
 }
 
-#resultats-demo-notice {
+#resultats-legend {
     margin: 0 auto 26px !important;
     width: min(100%, 1100px) !important;
     text-align: center !important;
 }
 
-#resultats-demo-notice p {
+#resultats-legend p {
     margin: 0 !important;
 
     font-family: var(--font-body) !important;
@@ -168,6 +168,11 @@
 
 .theme-status-neutral {
     --score-color: #cbd5e1;
+}
+
+/* Résultat incomplet : des critères n'ont pas pu être évalués (erreur, IA indisponible). */
+.resultats-theme-card.theme-incomplete {
+    border: 2px dashed #b42318 !important;
 }
 
 #resultats-audit-notices {
@@ -563,11 +568,11 @@
 #resultats-legend strong,
 #resultats-legend span,
 #resultats-legend em,
-#resultats-demo-notice,
-#resultats-demo-notice p,
-#resultats-demo-notice strong,
-#resultats-demo-notice span,
-#resultats-demo-notice em {
+#resultats-legend,
+#resultats-legend p,
+#resultats-legend strong,
+#resultats-legend span,
+#resultats-legend em {
     color: #17212b !important;
     opacity: 1 !important;
 }

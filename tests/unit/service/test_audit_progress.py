@@ -81,8 +81,14 @@ async def test_orchestrator_progress_sequence(tmp_path):
         (AuditStep.TESTS, 0, 2),
         (AuditStep.TESTS, 1, 2),
         (AuditStep.TESTS, 2, 2),
+        (AuditStep.SYNTHESIS, 2, 2),
         (AuditStep.DONE, 2, 2),
     ]
+    # Le temps écoulé est toujours fourni et ne diminue jamais.
+    elapsed = [e.elapsed_seconds for e in events]
+    assert all(value is not None for value in elapsed)
+    assert elapsed == sorted(elapsed)
+    assert events[-1].remaining_seconds == 0.0
     assert events[-1].error_test_ids == ("1.1.2",)
 
 

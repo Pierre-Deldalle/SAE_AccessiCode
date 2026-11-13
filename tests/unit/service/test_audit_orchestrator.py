@@ -158,7 +158,7 @@ async def test_several_html_files_notice(orchestrator, html_file, tmp_path):
     second = tmp_path / "autre.html"
     second.write_text("<html></html>", encoding="utf-8")
     outcome = await orchestrator.run(AuditRequest(files=(html_file, second), themes=frozenset({1})))
-    assert any("seul le premier" in notice for notice in outcome.notices)
+    assert any("page principale analysée" in notice for notice in outcome.notices)
 
 
 @pytest.mark.asyncio
@@ -187,3 +187,172 @@ async def test_unavailable_ai_services_fall_back_with_notice(tmp_path, html_file
 
     assert any("Services IA indisponibles" in notice for notice in outcome.notices)
     assert outcome.result.criteria  # L'audit déterministe a bien eu lieu.
+
+
+# Analyse du rendu (Playwright) et durées mesurées
+
+
+class FakeEnricher:
+    """Remplace le ContextEnricher : aucun navigateur n'est lancé."""
+
+    def __init__(self, error: str | None = None, raises: Exception | None = None):
+        self.calls = 0
+        self.error = error
+        self.raises = raises
+
+    async def enrich(self, context):
+        self.calls += 1
+        if self.raises is not None:
+            raise self.raises
+
+        class Report:
+            error = self.error
+            non_text_error = None
+
+        return Report()
+
+
+def make_rendering_test(test_id: str, criterion_id: str):
+    """Test qui exploite les styles calculés, comme les critères de contraste."""
+    from accessi_code.models.capabilities import Capability
+
+    test = make_test(test_id, criterion_id)
+    type(test).optional_capabilities = frozenset({Capability.TEXT_CONTRAST})
+    return test
+
+
+def rendering_registry():
+    return Registry([make_test("1.1.1", "1.1"), make_rendering_test("3.2.1", "3.2")])
+
+
+def make_orchestrator(tmp_path: Path, enricher: FakeEnricher | None) -> AuditOrchestrator:
+    return AuditOrchestrator(
+        workspace_root=tmp_path / "workspace",
+        registry_factory=rendering_registry,
+        services_factory=None,
+        enricher_factory=(lambda: enricher) if enricher is not None else None,
+    )
+
+
+@pytest.mark.asyncio
+async def test_rendering_runs_only_for_themes_that_need_it(tmp_path, html_file):
+    enricher = FakeEnricher()
+    orchestrator = make_orchestrator(tmp_path, enricher)
+
+    await orchestrator.run(AuditRequest(files=(html_file,), themes=frozenset({1})))
+    assert enricher.calls == 0
+
+    await orchestrator.run(AuditRequest(files=(html_file,), themes=frozenset({3})))
+    assert enricher.calls == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "enricher",
+    [FakeEnricher(error="Chromium introuvable"), FakeEnricher(raises=RuntimeError("navigateur absent"))],
+)
+async def test_rendering_failure_is_reported_without_stopping_audit(tmp_path, html_file, enricher):
+    orchestrator = make_orchestrator(tmp_path, enricher)
+
+    outcome = await orchestrator.run(AuditRequest(files=(html_file,), themes=frozenset({3})))
+
+    assert any("analyse du rendu" in notice.lower() for notice in outcome.notices)
+    assert {t.test_id for c in outcome.result.criteria for t in c.tests} == {"3.2.1"}
+
+
+@pytest.mark.asyncio
+async def test_durations_are_saved_and_used_by_the_next_estimate(tmp_path, html_file):
+    orchestrator = make_orchestrator(tmp_path, FakeEnricher())
+    assert orchestrator.estimate(frozenset({1, 3})).measured_tests == 0
+
+    await orchestrator.run(AuditRequest(files=(html_file,), themes=frozenset({1, 3})))
+
+    reopened = make_orchestrator(tmp_path, FakeEnricher())
+    estimate = reopened.estimate(frozenset({1, 3}))
+    assert estimate.fully_measured
+    assert estimate.with_enrichment
+    assert (tmp_path / "workspace" / "audit_timings.json").is_file()
+
+
+def test_estimate_without_tests_is_none(tmp_path):
+    orchestrator = make_orchestrator(tmp_path, None)
+
+    assert orchestrator.estimate(frozenset({13})) is None
+    assert orchestrator.estimate(frozenset({3})).with_enrichment is False
+
+
+@pytest.mark.asyncio
+async def test_homepage_is_the_main_page(tmp_path, orchestrator):
+    other = tmp_path / "a-propos.html"
+    other.write_text("<html lang='fr'><body>A</body></html>", encoding="utf-8")
+    home = tmp_path / "index.html"
+    home.write_text("<html lang='fr'><body>Accueil</body></html>", encoding="utf-8")
+
+    outcome = await orchestrator.run(AuditRequest(files=(other, home), themes=frozenset({1})))
+
+    assert any("page principale analysée est index.html" in notice for notice in outcome.notices)
+
+
+# Vérification du serveur d'IA
+
+
+def make_ai_orchestrator(tmp_path: Path, *, ai_ok: bool, calls: list[str]) -> AuditOrchestrator:
+    async def ai_check():
+        calls.append("check")
+        return ai_ok
+
+    def services_factory():
+        calls.append("services")
+        return AuditServices()
+
+    return AuditOrchestrator(
+        workspace_root=tmp_path / "workspace",
+        registry_factory=registry_factory,
+        services_factory=services_factory,
+        enricher_factory=None,
+        ai_check=ai_check,
+    )
+
+
+@pytest.mark.asyncio
+async def test_unavailable_ai_is_reported_and_ai_services_are_skipped(tmp_path, html_file):
+    calls: list[str] = []
+    events = []
+    orchestrator = make_ai_orchestrator(tmp_path, ai_ok=False, calls=calls)
+
+    outcome = await orchestrator.run(AuditRequest(files=(html_file,), themes=frozenset({1, 6})), events.append)
+
+    assert calls == ["check"]  # Les services IA ne sont jamais construits.
+    assert any("IA non disponible" in notice for notice in outcome.notices)
+    assert events[-1].ai_available is False
+    # Durées faussées par l'absence d'IA : non enregistrées.
+    assert not orchestrator.timing.is_measured("6.1.1")
+
+
+@pytest.mark.asyncio
+async def test_available_ai_uses_ai_services(tmp_path, html_file):
+    calls: list[str] = []
+    orchestrator = make_ai_orchestrator(tmp_path, ai_ok=True, calls=calls)
+
+    outcome = await orchestrator.run(AuditRequest(files=(html_file,), themes=frozenset({1})))
+
+    assert calls == ["check", "services"]
+    assert not any("IA non disponible" in notice for notice in outcome.notices)
+
+
+@pytest.mark.asyncio
+async def test_failing_ai_check_counts_as_unavailable(tmp_path, html_file):
+    async def broken_check():
+        raise OSError("réseau coupé")
+
+    orchestrator = AuditOrchestrator(
+        workspace_root=tmp_path / "workspace",
+        registry_factory=registry_factory,
+        services_factory=AuditServices,
+        enricher_factory=None,
+        ai_check=broken_check,
+    )
+
+    outcome = await orchestrator.run(AuditRequest(files=(html_file,), themes=frozenset({1})))
+
+    assert any("IA non disponible" in notice for notice in outcome.notices)

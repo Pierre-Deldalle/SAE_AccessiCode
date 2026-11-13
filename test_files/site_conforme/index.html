@@ -3,24 +3,26 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>AccessiCode - démonstration accessible</title>
+    <title>AccessiCode — site de démonstration conforme</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <a href="#contenu">Aller au contenu principal</a>
 
     <header>
         <p>AccessiCode</p>
-        <h1>Une démonstration accessible</h1>
+        <h1>Site de démonstration conforme</h1>
         <nav aria-label="Navigation principale">
             <h2>Navigation principale</h2>
             <ul>
                 <li><a href="#presentation">Présentation</a></li>
                 <li><a href="#resultats">Résultats</a></li>
                 <li><a href="#contact">Contact</a></li>
-                <li><a href="sitemap.html">Plan du site</a></li>
+                <li><a href="plan-du-site.html">Plan du site</a></li>
+                <li><a href="a-propos.html">À propos</a></li>
             </ul>
         </nav>
-        <form action="#resultats" method="get" role="search">
+        <form action="#resultats" method="get" role="search" aria-label="Rechercher sur le site">
             <label for="recherche">Rechercher sur le site</label>
             <input id="recherche" name="q" type="text" autocomplete="off">
             <button type="submit">Rechercher</button>
@@ -108,31 +110,31 @@
                 <caption>Nombre de contrôles conformes par domaine et par trimestre.</caption>
                 <thead>
                     <tr>
-                        <th scope="col" rowspan="2">Domaine</th>
-                        <th scope="colgroup" colspan="2">Premier trimestre</th>
-                        <th scope="colgroup" colspan="2">Deuxième trimestre</th>
+                        <th id="domaine" rowspan="2">Domaine</th>
+                        <th id="t1" colspan="2">Premier trimestre</th>
+                        <th id="t2" colspan="2">Deuxième trimestre</th>
                     </tr>
                     <tr>
-                        <th scope="col">Conformes</th>
-                        <th scope="col">À vérifier</th>
-                        <th scope="col">Conformes</th>
-                        <th scope="col">À vérifier</th>
+                        <th id="t1-conformes" headers="t1">Conformes</th>
+                        <th id="t1-verifier" headers="t1">À vérifier</th>
+                        <th id="t2-conformes" headers="t2">Conformes</th>
+                        <th id="t2-verifier" headers="t2">À vérifier</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
-                        <th scope="row">Structure</th>
-                        <td>18</td>
-                        <td>0</td>
-                        <td>20</td>
-                        <td>0</td>
+                        <th id="structure" headers="domaine">Structure</th>
+                        <td headers="structure t1 t1-conformes">18</td>
+                        <td headers="structure t1 t1-verifier">0</td>
+                        <td headers="structure t2 t2-conformes">20</td>
+                        <td headers="structure t2 t2-verifier">0</td>
                     </tr>
                     <tr>
-                        <th scope="row">Navigation</th>
-                        <td>14</td>
-                        <td>0</td>
-                        <td>16</td>
-                        <td>0</td>
+                        <th id="navigation" headers="domaine">Navigation</th>
+                        <td headers="navigation t1 t1-conformes">14</td>
+                        <td headers="navigation t1 t1-verifier">0</td>
+                        <td headers="navigation t2 t2-conformes">16</td>
+                        <td headers="navigation t2 t2-verifier">0</td>
                     </tr>
                 </tbody>
             </table>
@@ -170,11 +172,12 @@
 
             <form action="#confirmation" method="post">
                 <h3>Autres mécanismes d'étiquetage</h3>
+                <label for="libelle-title">Libellé complémentaire</label>
                 <input id="libelle-title" name="libelle-title" type="text"
                        title="Libellé complémentaire">
-                <input id="libelle-aria" name="libelle-aria" type="search"
-                       aria-label="Rechercher un contact">
-                <span id="libelle-reference">Référence du contact</span>
+                <label for="libelle-aria">Rechercher un contact</label>
+                <input id="libelle-aria" name="libelle-aria" type="search">
+                <label id="libelle-reference" for="reference">Référence du contact</label>
                 <input id="reference" name="reference" type="text"
                        aria-labelledby="libelle-reference">
                 <label for="email-secondaire">Adresse email</label>
@@ -238,12 +241,100 @@
                 <p>Les préférences sont accessibles au clavier et annoncées par le bouton.</p>
             </div>
         </section>
+
+        <section id="medias" aria-labelledby="titre-medias">
+            <h2 id="titre-medias">Médias</h2>
+
+            <h3>Podcast sur l'accessibilité</h3>
+            <audio controls src="media/podcast.mp3">
+                Votre navigateur ne lit pas l'audio : <a href="#transcription-podcast">lisez la transcription</a>.
+            </audio>
+            <a href="#transcription-podcast">Lire la transcription du podcast</a>
+            <div id="transcription-podcast">
+                <h4>Transcription du podcast</h4>
+                <p>
+                    Bienvenue dans ce podcast consacré au RGAA. Nous expliquons pourquoi chaque
+                    image porteuse d'information doit avoir une alternative textuelle.
+                </p>
+            </div>
+
+            <h3>Vidéo de présentation</h3>
+            <video controls src="media/presentation.mp4" width="320" height="180">
+                <track kind="captions" src="sous-titres.vtt" srclang="fr" label="Français">
+                Votre navigateur ne lit pas la vidéo.
+            </video>
+            <a href="#transcription-video">Lire la transcription de la vidéo</a>
+            <div id="transcription-video">
+                <h4>Transcription de la vidéo</h4>
+                <p>
+                    Une personne présente AccessiCode à l'écran, puis montre les quatre étapes
+                    d'un audit : import des documents, analyse du rendu, tests RGAA et synthèse.
+                </p>
+            </div>
+
+            <h3>Guide au format PDF</h3>
+            <object data="media/guide-rgaa.pdf" type="application/pdf" width="400" height="250">
+                Guide du RGAA au format PDF.
+            </object>
+            <a href="a-propos.html#guide">Lire la version HTML du guide RGAA</a>
+        </section>
+
+        <section id="liens" aria-labelledby="titre-liens">
+            <h2 id="titre-liens">Ressources utiles</h2>
+            <ul>
+                <li><a href="https://accessibilite.numerique.gouv.fr/">Référentiel RGAA 4.1.2 (site officiel)</a></li>
+                <li><a href="plan-du-site.html">Plan du site AccessiCode</a></li>
+                <li>
+                    <a href="index.html">
+                        <img src="logo.png" alt="Retour à l'accueil d'AccessiCode" width="60" height="30">
+                    </a>
+                </li>
+                <li>
+                    <a href="a-propos.html">En savoir plus sur le projet AccessiCode</a>
+                </li>
+            </ul>
+        </section>
+
+        <section id="suivi" aria-labelledby="titre-suivi">
+            <h2 id="titre-suivi">Suivi de l'audit</h2>
+            <p>Les messages ci-dessous sont annoncés par les lecteurs d'écran sans déplacer le focus.</p>
+            <div role="status" aria-live="polite">Votre demande a bien été enregistrée.</div>
+            <div role="alert">Le champ « Adresse email » doit être renseigné.</div>
+            <div role="progressbar" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100"
+                 aria-label="Avancement de l'audit : 75 %">75 %</div>
+            <div role="log" aria-live="polite">Étape 3 terminée : tests RGAA exécutés.</div>
+        </section>
+
+        <section id="bonnes-pratiques" aria-labelledby="titre-bonnes-pratiques">
+            <h2 id="titre-bonnes-pratiques">Bonnes pratiques</h2>
+
+            <h3>Étapes d'un audit</h3>
+            <ol>
+                <li>Importer les documents de la page.</li>
+                <li>Choisir les thématiques RGAA.</li>
+                <li>Lancer l'audit et consulter les résultats.</li>
+            </ol>
+
+            <h3>Vocabulaire</h3>
+            <dl>
+                <dt>RGAA</dt>
+                <dd>Référentiel général d'amélioration de l'accessibilité.</dd>
+                <dt>Alternative textuelle</dt>
+                <dd>Texte qui transmet la même information qu'une image.</dd>
+            </dl>
+
+            <h3>Citation</h3>
+            <blockquote cite="https://www.w3.org/WAI/">
+                <p>La puissance du Web réside dans son universalité.</p>
+            </blockquote>
+            <p>Comme le rappelle le W3C, <q>l'accès pour tous est un aspect essentiel</q> du Web.</p>
+        </section>
     </main>
 
     <footer>
         <h2>Informations complémentaires</h2>
         <p>AccessiCode est un projet pédagogique consacré à l'accessibilité numérique.</p>
-        <p><a href="sitemap.html">Consulter le plan du site</a></p>
+        <p><a href="plan-du-site.html">Consulter le plan du site</a></p>
         <p><a href="#contenu">Retour au contenu principal</a></p>
     </footer>
     <script>

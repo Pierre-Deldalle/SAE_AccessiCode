@@ -22,7 +22,8 @@ LEGEND_TEXT = (
     "Le pourcentage est la part des critères conformes parmi les critères "
     "que les tests automatiques ont pu trancher (conformes ou non conformes). "
     "Ces repères sont propres à AccessiCode : ce n'est pas un taux officiel "
-    "de conformité RGAA."
+    "de conformité RGAA. Une carte bordée de pointillés rouges signale un "
+    "**résultat incomplet** : certains critères n'ont pas pu être évalués."
 )
 
 # Nombre maximal d'anomalies détaillées par test, pour garder la page lisible.
@@ -67,13 +68,33 @@ def priority_label(score: int) -> str:
     return "Satisfaisant"
 
 
+def _is_incomplete(summary: ThemeSummary) -> bool:
+    """Résultat partiel : des critères de la thématique n'ont pas pu être évalués."""
+    return summary.state not in (ThemeState.NOT_SELECTED, ThemeState.NOT_IMPLEMENTED) and summary.incomplete
+
+
+def card_label(summary: ThemeSummary) -> str:
+    """
+    Texte d'une carte : nom de la thématique, base du pourcentage et,
+    le cas échéant, l'avertissement « Résultat incomplet ».
+    """
+    lines = [summary.theme.label]
+    if summary.state == ThemeState.SCORED:
+        lines.append(f"Calculé sur {summary.decided} critère(s) sur {summary.applicable}")
+    if _is_incomplete(summary):
+        lines.append("⚠ Résultat incomplet")
+    return "\n".join(lines)
+
+
 def card_classes(summary: ThemeSummary) -> list[str]:
-    """Classes CSS d'une carte : contenu du cercle et couleur."""
+    """Classes CSS d'une carte : contenu du cercle, couleur et état incomplet."""
+    extra = ["theme-incomplete"] if _is_incomplete(summary) else []
     if summary.state == ThemeState.SCORED and summary.score is not None:
         return [
             "resultats-theme-card",
             f"theme-score-{summary.score}",
             f"theme-status-{score_category(summary.score)}",
+            *extra,
         ]
     color, _ = _STATE_CIRCLE_TEXT[summary.state]
     return [
@@ -81,6 +102,7 @@ def card_classes(summary: ThemeSummary) -> list[str]:
         "theme-score-word",
         f"theme-score-{summary.state.value}",
         f"theme-status-{color}",
+        *extra,
     ]
 
 
@@ -157,6 +179,19 @@ def build_theme_detail(summary: ThemeSummary) -> str:
         + ", ".join(f"{counts[st]} {label.lower()}" for st, label in STATUS_LABELS.items() if counts.get(st)),
         "",
     ]
+    if summary.state == ThemeState.SCORED:
+        parts += [
+            f"Le pourcentage est calculé sur **{summary.decided} critère(s) tranché(s)** "
+            f"parmi les {summary.applicable} critère(s) qui concernent la page.",
+            "",
+        ]
+    if _is_incomplete(summary):
+        parts += [
+            f"**⚠ Résultat incomplet : {summary.not_evaluated} critère(s) n'ont pas pu être évalués** "
+            "(erreur d'exécution, IA indisponible ou données manquantes). "
+            "Ils ne sont pas comptés dans le pourcentage.",
+            "",
+        ]
     if summary.pending_review:
         parts += [
             f"**{summary.pending_review} critère(s) restent à vérifier par une personne** "

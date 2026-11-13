@@ -9,7 +9,7 @@ from accessi_code.input.extractors.computed_styles import (
 
 
 async def main() -> None:
-    html_path = Path("test_files/color_site/index.html")
+    html_path = Path("test_files/site_demo_rgaa/index.html")
 
     observations = await extract_text_styles(html_path)
 

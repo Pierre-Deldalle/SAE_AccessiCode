@@ -6,6 +6,7 @@ from accessi_code.analysis.tables import (
     COLUMN_HEADER,
     ROW_HEADER,
     TableSlot,
+    associated_headers,
     classify_table_cells,
     get_int_attribute,
     get_row_cells,
@@ -916,51 +917,8 @@ class Test574(RGAATest):
         return False
 
     def _is_implicitly_associated_with_headers_having_id(self, cell: Tag, soup: BeautifulSoup) -> bool:
-        """Check if cell is implicitly associated with headers that have id attributes."""
-        table = cell.find_parent("table")
-        if not table:
-            return False
-
-        rows = get_table_rows(table)
-        # Seuls un en-tête de colonne au-dessus ou un en-tête de ligne à gauche
-        # sont associés à la cellule (pas un en-tête voisin de la même ligne).
-        kinds = _slot_kinds(table)
-        cell_row_index = -1
-        cell_col_index = -1
-
-        for row_idx, row in enumerate(rows):
-            cells = get_row_cells(row)
-            for col_idx, cell_in_row in enumerate(cells):
-                if cell_in_row is cell:
-                    cell_row_index = row_idx
-                    cell_col_index = col_idx
-                    break
-            if cell_row_index != -1:
-                break
-
-        if cell_row_index == -1 or cell_col_index == -1:
-            return False
-
-        for row_idx in range(cell_row_index):
-            row = rows[row_idx]
-            cells = get_row_cells(row)
-            if cell_col_index < len(cells):
-                header_cell = cells[cell_col_index]
-                if kinds.get(id(header_cell)) == COLUMN_HEADER:
-                    header_id = header_cell.get("id")
-                    if isinstance(header_id, str) and header_id.strip():
-                        return True
-
-        row = rows[cell_row_index]
-        cells = get_row_cells(row)
-        for col_idx in range(cell_col_index):
-            header_cell = cells[col_idx]
-            if kinds.get(id(header_cell)) == ROW_HEADER:
-                header_id = header_cell.get("id")
-                if isinstance(header_id, str) and header_id.strip():
-                    return True
-
-        return False
+        """La cellule est associée, par sa position, à au moins un en-tête possédant un id."""
+        return bool(self._get_associated_header_ids(cell, soup))
 
     def _has_proper_headers_attribute(self, cell: Tag, soup: BeautifulSoup) -> bool:
         """Check if cell has headers attribute containing the list of associated header ids."""
@@ -982,53 +940,16 @@ class Test574(RGAATest):
         return set(header_ids) == set(associated_header_ids)
 
     def _get_associated_header_ids(self, cell: Tag, soup: BeautifulSoup) -> list[str]:
-        """Get the ids of headers associated with this cell."""
-        associated_ids = []
-
+        """Identifiants des en-têtes associés à la cellule (cellules fusionnées comprises)."""
         table = cell.find_parent("table")
         if not table:
-            return associated_ids
-
-        rows = get_table_rows(table)
-        # Seuls un en-tête de colonne au-dessus ou un en-tête de ligne à gauche
-        # sont associés à la cellule (pas un en-tête voisin de la même ligne).
-        kinds = _slot_kinds(table)
-        cell_row_index = -1
-        cell_col_index = -1
-
-        for row_idx, row in enumerate(rows):
-            cells = get_row_cells(row)
-            for col_idx, cell_in_row in enumerate(cells):
-                if cell_in_row is cell:
-                    cell_row_index = row_idx
-                    cell_col_index = col_idx
-                    break
-            if cell_row_index != -1:
-                break
-
-        if cell_row_index == -1 or cell_col_index == -1:
-            return associated_ids
-
-        for row_idx in range(cell_row_index):
-            row = rows[row_idx]
-            cells = get_row_cells(row)
-            if cell_col_index < len(cells):
-                header_cell = cells[cell_col_index]
-                if kinds.get(id(header_cell)) == COLUMN_HEADER:
-                    header_id = header_cell.get("id")
-                    if isinstance(header_id, str) and header_id.strip():
-                        associated_ids.append(header_id)
-
-        row = rows[cell_row_index]
-        cells = get_row_cells(row)
-        for col_idx in range(cell_col_index):
-            header_cell = cells[col_idx]
-            if kinds.get(id(header_cell)) == ROW_HEADER:
-                header_id = header_cell.get("id")
-                if isinstance(header_id, str) and header_id.strip():
-                    associated_ids.append(header_id)
-
-        return associated_ids
+            return []
+        ids = []
+        for header in associated_headers(table, cell):
+            header_id = header.get("id")
+            if isinstance(header_id, str) and header_id.strip():
+                ids.append(header_id.strip())
+        return ids
 
     def _get_cell_index_string(self, row: Tag, col_index: int) -> str:
         """Get a string representation of cell's position within its row for error reporting."""
@@ -1331,7 +1252,3 @@ def _is_partial_header(slot: TableSlot) -> bool:
         return get_int_attribute(slot.item, "rowspan") > 1
     return False
 
-
-def _slot_kinds(table: Tag) -> dict[int, str]:
-    """Type de chaque élément du tableau (en-tête de colonne, de ligne, donnée)."""
-    return {id(slot.item): slot.kind for slot in classify_table_cells(table, 0)}

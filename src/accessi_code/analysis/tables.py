@@ -335,7 +335,7 @@ def classify_table_cells(table: Tag, table_index: int) -> list[TableSlot]:
             elif (
                 col_index == 0
                 and not is_data_like(item)
-                and not item.has_attr("headers")
+                and not (item.has_attr("headers") and not is_header_like(item))
                 and any(is_data_like(other) for other in items[1:])
             ):
                 kind = ROW_HEADER
@@ -345,3 +345,56 @@ def classify_table_cells(table: Tag, table_index: int) -> list[TableSlot]:
             slots.append(TableSlot(item, kind, table_index, row_index, col_index))
 
     return slots
+
+
+def table_grid(table: Tag) -> dict[int, tuple[Tag, int, int, int, int]]:
+    """
+    Position réelle de chaque cellule dans la grille du tableau.
+
+    Retourne id(cellule) -> (cellule, ligne, colonne, rowspan, colspan), en
+    tenant compte des cellules fusionnées (colspan, rowspan) des lignes
+    précédentes, comme le fait un navigateur.
+    """
+    occupied: set[tuple[int, int]] = set()
+    positions: dict[int, tuple[Tag, int, int, int, int]] = {}
+
+    for row_index, row in enumerate(get_table_rows(table)):
+        col_index = 0
+        for cell in get_row_cells(row):
+            while (row_index, col_index) in occupied:
+                col_index += 1
+            rowspan = get_int_attribute(cell, "rowspan")
+            colspan = get_int_attribute(cell, "colspan")
+            for dr in range(rowspan):
+                for dc in range(colspan):
+                    occupied.add((row_index + dr, col_index + dc))
+            positions[id(cell)] = (cell, row_index, col_index, rowspan, colspan)
+            col_index += colspan
+
+    return positions
+
+
+def associated_headers(table: Tag, cell: Tag) -> list[Tag]:
+    """
+    En-têtes associés à une cellule d'après la structure du tableau :
+    en-têtes de colonne situés au-dessus et en-têtes de ligne situés à
+    gauche, sur les colonnes et les lignes réellement couvertes.
+    """
+    positions = table_grid(table)
+    if id(cell) not in positions:
+        return []
+    kinds = {id(slot.item): slot.kind for slot in classify_table_cells(table, 0)}
+    _, row, col, rowspan, colspan = positions[id(cell)]
+
+    headers: list[Tag] = []
+    for other, other_row, other_col, other_rowspan, other_colspan in positions.values():
+        if other is cell:
+            continue
+        kind = kinds.get(id(other))
+        same_columns = other_col < col + colspan and col < other_col + other_colspan
+        same_rows = other_row < row + rowspan and row < other_row + other_rowspan
+        if kind == COLUMN_HEADER and other_row + other_rowspan <= row and same_columns:
+            headers.append(other)
+        elif kind == ROW_HEADER and other_col + other_colspan <= col and same_rows:
+            headers.append(other)
+    return headers

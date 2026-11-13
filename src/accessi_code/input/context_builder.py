@@ -8,6 +8,7 @@ from accessi_code.input.file_classifier import (
     is_css_file,
     is_html_file,
     is_image_file,
+    pick_main_html,
 )
 from accessi_code.input.file_collector import FileCollector
 from accessi_code.models.audit_context import AuditContext
@@ -45,7 +46,7 @@ class AuditContextBuilder:
 
         Returns:
             Le contexte contenant les fichiers copiés, les images détectées,
-            les feuilles CSS et le premier document HTML extrait,
+            les feuilles CSS et la page HTML principale extraite,
             le cas échéant.
         """
 
@@ -75,7 +76,9 @@ class AuditContextBuilder:
         """
         Extrait les informations utiles de chaque fichier du contexte.
 
-        Le premier document HTML est considéré comme la page principale.
+        La page principale est index.html (ou index.htm) si elle est fournie,
+        sinon le premier document HTML. Le DOM de chaque page est aussi
+        conservé dans ``page_doms``.
         Tous les fichiers image sont conservés dans ``image_files``.
         Toutes les feuilles CSS fournies sont extraites.
         """
@@ -89,9 +92,10 @@ class AuditContextBuilder:
         context.image_files = [file.path for file in image_files]
 
         if html_files:
+            main_index = pick_main_html([file.path for file in html_files])
             self._extract_main_html(
                 context,
-                html_files[0].path,
+                html_files[main_index].path,
             )
             self._extract_page_doms(context, [file.path for file in html_files])
 
@@ -109,8 +113,9 @@ class AuditContextBuilder:
         """
         Extrait le document HTML principal.
 
-        Pour le prototype, le premier fichier HTML rencontré est considéré
-        comme la page principale.
+        La page principale est choisie par ``pick_main_html`` : la page
+        d'accueil (index.html) si elle est fournie, sinon le premier
+        document HTML.
 
         Args:
             context: Contexte à enrichir en place.

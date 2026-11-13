@@ -5,7 +5,7 @@ import asyncio
 import pytest
 
 from accessi_code.service.audit_progress import AuditProgress, AuditStep
-from accessi_code.ui.audit_bridge import UIAuditResult, stream_audit
+from accessi_code.ui.audit_bridge import UIAuditResult, advance_clock, stream_audit
 from accessi_code.ui.loading_view import render_progress
 
 
@@ -99,3 +99,63 @@ async def test_cancelling_consumer_task_cancels_audit():
         await consumer
 
     await asyncio.wait_for(orchestrator.cancelled.wait(), timeout=2)
+
+
+def test_timing_is_displayed_during_the_audit():
+    html = render_progress(AuditProgress(AuditStep.TESTS, 3, 10, elapsed_seconds=12, remaining_seconds=75))
+
+    assert "Temps écoulé : 12 s" in html
+    assert "Temps restant estimé : environ 1 min 15 s" in html
+
+
+def test_timing_is_hidden_once_done():
+    html = render_progress(AuditProgress(AuditStep.DONE, 2, 2, elapsed_seconds=5, remaining_seconds=0))
+
+    assert "Temps restant" not in html
+
+
+def test_rendering_step_is_shown_only_when_performed():
+    with_rendering = render_progress(AuditProgress(AuditStep.ENRICHMENT, total_tests=4))
+    without = render_progress(AuditProgress(AuditStep.TESTS, 0, 4, enrichment_needed=False))
+
+    assert "Analyse du rendu de la page" in with_rendering
+    assert "Analyse du rendu de la page" not in without
+
+
+def test_advance_clock_keeps_progress_and_moves_time():
+    progress = AuditProgress(AuditStep.TESTS, 2, 5, elapsed_seconds=10, remaining_seconds=4)
+
+    later = advance_clock(progress, 6)
+
+    assert (later.step, later.done_tests, later.total_tests) == (AuditStep.TESTS, 2, 5)
+    assert later.elapsed_seconds == 16
+    assert later.remaining_seconds == 0.0  # Jamais négatif.
+
+
+class LongTestOrchestrator:
+    """Un seul état de progression, puis un long « test IA »."""
+
+    async def run(self, request, on_progress=None):
+        on_progress(AuditProgress(AuditStep.TESTS, 0, 1, elapsed_seconds=1.0, remaining_seconds=30.0))
+        await asyncio.sleep(2.5)
+        raise RuntimeError("fin simulée")
+
+
+@pytest.mark.asyncio
+async def test_long_test_still_updates_the_clock():
+    items = [item async for item in stream_audit(None, [], ["1. Images"], LongTestOrchestrator())]
+    progress = [item for item in items if isinstance(item, AuditProgress)]
+
+    assert len(progress) >= 2  # État initial + au moins une mise à jour d'horloge.
+    assert progress[-1].elapsed_seconds > progress[0].elapsed_seconds
+    assert progress[-1].remaining_seconds < progress[0].remaining_seconds
+
+
+def test_ai_warning_shown_only_when_ai_is_unavailable():
+    unavailable = render_progress(AuditProgress(AuditStep.TESTS, 1, 4, ai_available=False))
+    available = render_progress(AuditProgress(AuditStep.TESTS, 1, 4, ai_available=True))
+    unknown = render_progress(AuditProgress(AuditStep.PREPARATION, total_tests=4))
+
+    assert "IA non disponible, certains tests ne seront pas évalués." in unavailable
+    assert "IA non disponible" not in available
+    assert "IA non disponible" not in unknown

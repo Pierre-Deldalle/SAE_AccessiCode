@@ -200,6 +200,15 @@
     text-align: center;
 }
 
+/* Temps écoulé et temps restant estimé (#475569 : contraste 7,6:1 sur blanc). */
+.accessicode-progress-timing {
+    margin: 6px 0 0 !important;
+    font-family: var(--font-body) !important;
+    font-size: 13px !important;
+    color: #475569 !important;
+    text-align: center;
+}
+
 .accessicode-progress-alert {
     margin: 12px 0 0 !important;
     padding: 8px 12px;

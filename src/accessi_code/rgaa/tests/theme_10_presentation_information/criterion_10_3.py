@@ -58,7 +58,8 @@ class Test1031(RGAATest):
         form_elements = soup.find_all(["input", "textarea", "select"])
         for element in form_elements:
             # Skip hidden inputs and button types that don't need labels
-            if element.get("type") in ["hidden", "submit", "button", "reset"]:
+            # (un bouton image est nommé par son attribut alt).
+            if str(element.get("type", "")).lower() in ["hidden", "submit", "button", "reset", "image"]:
                 continue
 
             # Check if element has an associated label
