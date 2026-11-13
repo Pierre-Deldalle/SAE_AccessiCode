@@ -1,99 +1,74 @@
+"""
+RGAA 4.1.2 — critère 8.2 : pour chaque page web, le code source généré est-il
+valide selon le type de document spécifié ?
+
+Test 8.2.1, contrôle déterministe sans IA (``analysis/html_validation.py``) :
+règles d'écriture, imbrication, ouverture et fermeture des balises, id
+uniques, attributs non doublés. Une erreur → FAIL ; aucune → PASS.
+Les éléments obsolètes ne sont signalés que pour un DOCTYPE HTML5.
+"""
+
 from __future__ import annotations
 
 from typing import Any
 
+from accessi_code.analysis.html_validation import validate_html
+from accessi_code.analysis.page import get_document_doctype, is_html5_doctype
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
-from accessi_code.models.result import TestResult, TestStatus
+from accessi_code.models.result import Finding, TestResult, TestStatus
 from accessi_code.rgaa.base import RGAATest
+
+MAX_FINDINGS = 50
+RECOMMENDATION = "Corriger le code source, puis le contrôler avec le validateur du W3C (validator.w3.org)."
 
 
 class Test821(RGAATest):
-    """Test 8.2.1 - Validation du code source selon le type de document."""
+    """8.2.1 : code source valide selon le type de document."""
 
     test_id = "8.2.1"
     criterion_id = "8.2"
+    required_capabilities = frozenset({Capability.HTML_SOURCE})
 
-    required_capabilities = frozenset(
-        {
-            Capability.HTML_SOURCE,
-        }
-    )
+    async def run(self, context: AuditContext, services: Any | None = None) -> TestResult:
+        source = context.html_source
+        if source is None:
+            raise ValueError("Le test 8.2.1 nécessite la source HTML.")
 
-    async def run(
-        self,
-        context: AuditContext,
-        services: Any | None = None,
-    ) -> TestResult:
-        """
-        Exécute le test 8.2.1 : validation du code source HTML.
+        doctype = get_document_doctype(source)
+        html5 = doctype is None or is_html5_doctype(doctype)
+        errors = validate_html(source, html5=html5)
 
-        Vérifie que le code source généré est valide selon le type de document spécifié :
-        - Les balises, attributs et valeurs d'attributs respectent les règles d'écriture
-        - L'imbrication des balises est conforme
-        - L'ouverture et la fermeture des balises sont conformes
-        - Les valeurs d'attribut id sont uniques dans la page
-        - Les attributs ne sont pas doublés sur un même élément
-        """
-        # Utiliser le service de validation HTML si disponible
-        if services and getattr(services, "html_validator", None) is not None:
-            validator = services.html_validator
-            try:
-                validation_result = await validator.validate_html(context.html_source)
-            except ValueError as error:
-                # Réponse de l'IA incomplète ou mal formée : jamais une preuve.
-                return TestResult(
-                    test_id=self.test_id,
-                    criterion_id=self.criterion_id,
-                    status=TestStatus.NEEDS_REVIEW,
-                    summary=(
-                        "La réponse de l'IA est incomplète ou invalide. "
-                        "Vérification manuelle de la validité du code source nécessaire."
-                    ),
-                    tested_elements=0,
-                    metadata={"analysis_error": str(error)},
-                )
+        counts: dict[str, int] = {}
+        for error in errors:
+            counts[error.condition] = counts.get(error.condition, 0) + 1
 
-            if validation_result.is_valid:
-                return TestResult(
-                    test_id=self.test_id,
-                    criterion_id=self.criterion_id,
-                    status=TestStatus.PASS,
-                    summary="Le code source HTML est valide selon le type de document spécifié.",
-                    tested_elements=1,
-                )
-            else:
-                # Construire un message d'erreur détaillé
-                errors = validation_result.errors
-                error_count = len(errors)
-
-                # Limiter le nombre d'erreurs affichées pour éviter un message trop long
-                max_errors_to_show = 5
-                displayed_errors = errors[:max_errors_to_show]
-
-                error_messages = []
-                for error in displayed_errors:
-                    error_messages.append(f"Ligne {error.line}: {error.message}")
-
-                summary = f"Le code source HTML contient {error_count} erreur(s) de validation :\n" + "\n".join(
-                    error_messages
-                )
-                if error_count > max_errors_to_show:
-                    summary += f"\n... et {error_count - max_errors_to_show} autre(s) erreur(s)."
-
-                return TestResult(
-                    test_id=self.test_id,
-                    criterion_id=self.criterion_id,
-                    status=TestStatus.FAIL,
-                    summary=summary,
-                    tested_elements=1,
-                )
-        else:
-            # Si pas de service de validation disponible, retourner NOT_TESTED
+        if not errors:
             return TestResult(
-                test_id=self.test_id,
-                criterion_id=self.criterion_id,
-                status=TestStatus.NOT_TESTED,
-                summary="Service de validation HTML non disponible.",
-                tested_elements=0,
+                self.test_id,
+                self.criterion_id,
+                TestStatus.PASS,
+                "Aucune erreur d'écriture, d'imbrication, de fermeture, d'id dupliqué ni d'attribut doublé.",
+                tested_elements=1,
+                metadata={"errors": 0},
             )
+
+        findings = [
+            Finding(
+                element=f"ligne {error.line}, colonne {error.column}",
+                message=error.message,
+                recommendation=RECOMMENDATION,
+                evidence={"condition": error.condition, "line": error.line, "column": error.column},
+            )
+            for error in errors[:MAX_FINDINGS]
+        ]
+        detail = ", ".join(f"{count} {condition}" for condition, count in sorted(counts.items()))
+        return TestResult(
+            self.test_id,
+            self.criterion_id,
+            TestStatus.FAIL,
+            f"Le code source contient {len(errors)} erreur(s) ({detail}).",
+            findings=findings,
+            tested_elements=1,
+            metadata={"errors": len(errors), "by_condition": counts, "html5": html5},
+        )

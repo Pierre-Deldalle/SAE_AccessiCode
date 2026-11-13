@@ -1,122 +1,92 @@
-from __future__ import annotations
-
-from unittest.mock import AsyncMock, Mock
+"""Critère RGAA 8.2 : code source valide (contrôle déterministe, sans IA)."""
 
 import pytest
 
-from accessi_code.models.audit_context import AuditContext
-from accessi_code.models.capabilities import Capability
-from accessi_code.models.result import TestStatus
+from accessi_code.analysis.html_validation import validate_html
+from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_08_mandatory.criterion_8_2 import Test821
 
+VALID = """<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8"><title>Accueil</title></head>
+<body>
+<p>Un<p>Deux
+<ul><li>a<li>b</ul>
+<table><tr><td>1<td>2<tr><td>3</table>
+<dl><dt>Terme<dd>Définition</dl>
+<select><option>1<option>2</select>
+<img src="a.png" alt=""><br><input type="text">
+<svg viewBox="0 0 10 10"><path d="M0 0"/><circle r="1"/></svg>
+</body></html>"""
 
-@pytest.mark.unit
-class TestTest821:
-    """Tests unitaires pour le test 8.2.1."""
 
-    def test_test_id_and_criterion_id(self) -> None:
-        """Vérifie que les identifiants du test sont corrects."""
-        test = Test821()
-        assert test.test_id == "8.2.1"
-        assert test.criterion_id == "8.2"
+def test_valid_source_passes(context_factory, run_rgaa):
+    result = run_rgaa(Test821(), context_factory(VALID))
+    assert result.status == Status.PASS
+    assert result.findings == []
 
-    def test_required_capabilities(self) -> None:
-        """Vérifie que les capacités requises sont correctement déclarées."""
-        test = Test821()
-        assert test.required_capabilities == frozenset({Capability.HTML_SOURCE})
 
-    @pytest.mark.asyncio
-    async def test_run_valid_html(self) -> None:
-        """Test du cas où le HTML est valide."""
-        test = Test821()
+@pytest.mark.parametrize(
+    ("fragment", "condition", "message"),
+    [
+        ('<div id="a"></div><p id="a"></p>', "id", "déjà utilisé ligne"),
+        ('<span class="a" class="b">x</span>', "attributs", "« class » est doublé"),
+        ("<b><i>texte</b></i>", "imbrication", "<i> ouvert"),
+        ("<section><div></section>", "imbrication", "<div> ouvert"),
+        ("</span>", "fermeture", "ne correspond à aucune balise ouvrante"),
+        ("<main><div>", "imbrication", "n'est pas fermé avant </body>"),
+        ("<p>a</p></p>", "fermeture", "</p>"),
+        ("<br></br>", "fermeture", "élément vide"),
+        ("<div/>", "écriture", "auto-fermante"),
+        ("<center>x</center>", "écriture", "obsolète"),
+        ('<div id="a b"></div>', "écriture", "contient un espace"),
+    ],
+)
+def test_each_condition_is_detected(fragment, condition, message):
+    errors = validate_html(f"<!DOCTYPE html><html><body>{fragment}</body></html>")
+    assert any(error.condition == condition and message in error.message for error in errors), errors
 
-        # Mock du contexte avec du HTML valide
-        context = Mock(spec=AuditContext)
-        context.html_source = "<!DOCTYPE html><html><head><title>Test</title></head><body><p>Contenu valide</p></body></html>"
 
-        # Mock du service de validation retournant un résultat valide
-        services = Mock()
-        mock_validator = AsyncMock()
-        mock_validation_result = Mock()
-        mock_validation_result.is_valid = True
-        mock_validation_result.errors = []
-        mock_validator.validate_html.return_value = mock_validation_result
-        services.html_validator = mock_validator
+def test_unclosed_element_at_end_of_document():
+    errors = validate_html("<!DOCTYPE html><div><span>texte")
+    assert [error.message for error in errors] == [
+        "<div> ouvert ligne 1 n'est jamais fermé.",
+        "<span> ouvert ligne 1 n'est jamais fermé.",
+    ]
 
-        result = await test.run(context, services)
 
-        assert result.test_id == "8.2.1"
-        assert result.criterion_id == "8.2"
-        assert result.status == TestStatus.PASS
-        assert "valide" in result.summary.lower()
-        assert result.tested_elements == 1
-        mock_validator.validate_html.assert_called_once_with(context.html_source)
+def test_error_line_is_reported():
+    errors = validate_html("<!DOCTYPE html>\n<html>\n<body>\n<div id='x'></div>\n<div id='x'></div>\n</body></html>")
+    assert [(error.line, error.condition) for error in errors] == [(5, "id")]
 
-    @pytest.mark.asyncio
-    async def test_run_invalid_html(self) -> None:
-        """Test du cas où le HTML contient des erreurs."""
-        test = Test821()
 
-        # Mock du contexte avec du HTML invalide
-        context = Mock(spec=AuditContext)
-        context.html_source = "<!DOCTYPE html><html><head><title>Test</title></head><body><p>Contenu invalide<div></p></body></html>"
+def test_obsolete_elements_only_for_html5():
+    source = "<center>x</center>"
+    assert validate_html(source, html5=True)
+    assert validate_html(source, html5=False) == []
 
-        # Mock du service de validation retournant des erreurs
-        services = Mock()
-        mock_validator = AsyncMock()
-        mock_validation_result = Mock()
-        mock_validation_result.is_valid = False
-        mock_validation_result.errors = [
-            Mock(line=5, message="Balise de fermeture inattendue pour p"),
-            Mock(line=6, message="Balise div non fermée")
-        ]
-        mock_validator.validate_html.return_value = mock_validation_result
-        services.html_validator = mock_validator
 
-        result = await test.run(context, services)
+def test_legacy_void_element_is_only_obsolete():
+    errors = validate_html("<!DOCTYPE html><html><body><bgsound src='a.mid'><p>x</p></body></html>")
+    assert [error.condition for error in errors] == ["écriture"]
 
-        assert result.test_id == "8.2.1"
-        assert result.criterion_id == "8.2"
-        assert result.status == TestStatus.FAIL
-        assert "2 erreur(s)" in result.summary
-        assert "Balise de fermeture inattendue" in result.summary
-        assert result.tested_elements == 1
-        mock_validator.validate_html.assert_called_once_with(context.html_source)
 
-    @pytest.mark.asyncio
-    async def test_run_html_validator_service_unavailable(self) -> None:
-        """Test du cas où le service de validation HTML n'est pas disponible."""
-        test = Test821()
+def test_invalid_source_fails_with_findings(context_factory, run_rgaa):
+    html = '<!DOCTYPE html><html lang="fr"><body><div id="a"></div><div id="a"></div></body></html>'
+    result = run_rgaa(Test821(), context_factory(html))
+    assert result.status == Status.FAIL
+    assert result.findings[0].element.startswith("ligne 1")
+    assert result.metadata["by_condition"] == {"id": 1}
 
-        # Mock du contexte
-        context = Mock(spec=AuditContext)
-        context.html_source = "<!DOCTYPE html><html><head><title>Test</title></head><body><p>Contenu</p></body></html>"
 
-        # Services sans validator HTML
-        services = Mock()
-        del services.html_validator  # Supprimer l'attribut s'il existe
+def test_no_ai_service_is_used(context_factory, run_rgaa):
+    """D4 : la validation ne dépend plus d'un service."""
+    assert run_rgaa(Test821(), context_factory(VALID), None).status == Status.PASS
 
-        result = await test.run(context, services)
 
-        assert result.test_id == "8.2.1"
-        assert result.criterion_id == "8.2"
-        assert result.status == TestStatus.NOT_TESTED
-        assert "non disponible" in result.summary.lower()
-        assert result.tested_elements == 0
+def test_missing_source_raises(context_factory):
+    import asyncio
 
-    @pytest.mark.asyncio
-    async def test_run_no_services_provided(self) -> None:
-        """Test du cas où aucun service n'est fourni."""
-        test = Test821()
-
-        # Mock du contexte
-        context = Mock(spec=AuditContext)
-        context.html_source = "<!DOCTYPE html><html><head><title>Test</title></head><body><p>Contenu</p></body></html>"
-
-        result = await test.run(context, None)
-
-        assert result.test_id == "8.2.1"
-        assert result.criterion_id == "8.2"
-        assert result.status == TestStatus.NOT_TESTED
-        assert "non disponible" in result.summary.lower()
-        assert result.tested_elements == 0
+    context = context_factory(VALID)
+    context.html_source = None
+    with pytest.raises(ValueError, match="source HTML"):
+        asyncio.run(Test821().run(context, None))

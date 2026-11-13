@@ -85,11 +85,16 @@ RELEVANCE_KINDS: dict[str, RelevanceKind] = {
         ),
     ),
     "component_name": RelevanceKind(
-        subject="nom accessible d'un composant d'interface géré par script",
-        rule="RGAA 7.1 : chaque composant d'interface doit avoir un nom pertinent.",
-        relevant_when="le nom indique la fonction du composant (par exemple « Ouvrir le menu »).",
+        subject="nom accessible et rôle d'un composant d'interface géré par script",
+        rule="RGAA 7.1.3 : chaque composant d'interface doit avoir un nom pertinent et un rôle pertinent.",
+        relevant_when=(
+            "le nom indique la fonction du composant (par exemple « Ouvrir le menu ») et le rôle fourni "
+            "(« role ») correspond à son comportement (button pour une action, tab pour un onglet, "
+            "checkbox pour une case à cocher…)."
+        ),
         not_relevant_examples=(
-            "« div », « composant », « icon », un nom de classe CSS, un nom sans rapport avec l'action."
+            "« div », « composant », « icon », un nom de classe CSS, un nom sans rapport avec l'action, "
+            "un rôle link sur un composant qui ouvre un panneau, un rôle button sur un onglet."
         ),
     ),
     "table_title": RelevanceKind(
@@ -244,6 +249,34 @@ RELEVANCE_KINDS: dict[str, RelevanceKind] = {
             "contact par un autre canal, validation humaine…)."
         ),
         not_relevant_examples="« Recharger l'image », « Nouvelle image », un lien sans rapport avec le CAPTCHA.",
+    ),
+    "text_language": RelevanceKind(
+        subject="langue d'un passage de texte",
+        rule=(
+            "RGAA 8.7 : chaque texte écrit dans une langue différente de la langue par défaut doit être "
+            "signalé par un attribut lang sur l'élément ou un parent. La langue déclarée pour le passage "
+            "est fournie dans « declared_language » ; les parties déjà balisées avec leur propre langue "
+            "sont remplacées par [passage balisé]."
+        ),
+        relevant_when=(
+            "tout le texte est dans la langue déclarée, ou les seuls mots d'une autre langue sont des noms "
+            "propres, des termes passés dans l'usage courant (« week-end », « e-mail ») ou des mots sans "
+            "équivalent. Si un passage est dans une autre langue, cite-le dans « problems »."
+        ),
+        not_relevant_examples=(
+            "« Please contact us » dans un passage déclaré en français, une citation en allemand non balisée, "
+            "un paragraphe entier dans une autre langue."
+        ),
+        text_limit=1500,
+    ),
+    "language_change": RelevanceKind(
+        subject="code de langue d'un changement de langue",
+        rule=(
+            "RGAA 8.8 : le code de langue de chaque changement de langue (attribut lang, fourni dans "
+            "« declared_language ») doit être pertinent."
+        ),
+        relevant_when="le code correspond à la langue du texte (en pour de l'anglais, de pour de l'allemand…).",
+        not_relevant_examples='lang="en" sur un texte en espagnol, lang="fr" sur un texte en anglais.',
     ),
     "script_alternative": RelevanceKind(
         subject="alternative à un contenu ou une fonctionnalité de script",

@@ -1,192 +1,145 @@
+"""
+RGAA 4.1.2 — critère 8.9 : dans chaque page web, les balises (à l'exception
+de <div>, <span> et <table>) ne doivent pas être utilisées uniquement à des fins
+de présentation. Cette règle est-elle respectée ?
+
+Test 8.9.1. Pré-filtre DOM des usages de présentation :
+
+- paragraphe ou titre vide (espacement) → FAIL, sans IA ;
+- sauts de ligne <br> consécutifs (espacement) → FAIL, sans IA ;
+- <blockquote> : l'IA dit s'il contient réellement une citation ; sinon il
+  sert à indenter → FAIL ; incertain → NEEDS_REVIEW.
+
+Aucun usage repéré → PASS (la règle porte sur la page entière).
+"""
+
 from __future__ import annotations
 
 from typing import Any
 
+from bs4 import BeautifulSoup, NavigableString, Tag
+
+from accessi_code.ai.schemas import StructureCandidate, StructureCandidateAnalysis
+from accessi_code.analysis.sensory import element_context, identifier
+from accessi_code.analysis.structure import HEADING_TAGS, accessible_text, is_hidden
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
-from accessi_code.models.result import (
-    TestResult,
-    TestStatus,
-)
+from accessi_code.models.result import TestResult, TestStatus
+from accessi_code.rgaa.ai_decision import judge_batch
 from accessi_code.rgaa.base import RGAATest
-from accessi_code.rgaa.tests.theme_08_mandatory._ai_findings import (
-    convert_findings,
-    fail_summary,
-    is_precise,
-    with_default_recommendation,
-)
+from accessi_code.rgaa.outcomes import Outcome, build_result, make_outcome
 
-# Recommandation utilisée si l'analyseur n'en fournit pas.
-DEFAULT_RECOMMENDATION = (
-    "Ne pas utiliser de balise sémantique uniquement à des fins de présentation : utiliser CSS à la place."
+PASS_SUMMARY = (
+    "Aucune balise utilisée uniquement pour la présentation n'a été repérée "
+    "(paragraphes ou titres vides, sauts de ligne répétés, blockquote d'indentation)."
 )
+SPACING_RECOMMENDATION = "Supprimer la balise et gérer les espacements avec les feuilles de style (margin, padding)."
+QUOTE_RECOMMENDATION = "Réserver blockquote aux citations et gérer l'indentation avec les feuilles de style."
+_EMBEDDED = ["img", "svg", "canvas", "video", "audio", "iframe", "object", "embed", "input", "select", "textarea"]
+
+
+def _visible(tag: Tag) -> bool:
+    return tag.find_parent(["head", "template", "noscript"]) is None and not is_hidden(tag)
+
+
+def empty_elements(soup: BeautifulSoup) -> list[Tag]:
+    """Paragraphes et titres sans texte ni contenu embarqué."""
+    return [
+        tag
+        for tag in soup.find_all(["p", *HEADING_TAGS])
+        if _visible(tag) and not accessible_text(tag).replace("\xa0", "").strip() and tag.find(_EMBEDDED) is None
+    ]
+
+
+def repeated_breaks(soup: BeautifulSoup) -> list[Tag]:
+    """Premier <br> de chaque suite d'au moins deux <br> consécutifs (séparés par des blancs)."""
+    found: list[Tag] = []
+    for br in soup.find_all("br"):
+        if not _visible(br):
+            continue
+        previous = br.previous_sibling
+        while isinstance(previous, NavigableString) and not previous.strip():
+            previous = previous.previous_sibling
+        if isinstance(previous, Tag) and previous.name == "br":
+            continue  # déjà compté avec le premier de la suite
+        following = br.next_sibling
+        while isinstance(following, NavigableString) and not following.strip():
+            following = following.next_sibling
+        if isinstance(following, Tag) and following.name == "br":
+            found.append(br)
+    return found
 
 
 class Test891(RGAATest):
-    """Test 8.9.1 - Utilisation appropriée des balises sémantiques (pas uniquement pour présentation)."""
+    """8.9.1 : pas de balise utilisée uniquement pour la présentation."""
 
     test_id = "8.9.1"
     criterion_id = "8.9"
+    required_capabilities = frozenset({Capability.DOM})
 
-    required_capabilities = frozenset(
-        {
-            Capability.DOM,
-        }
-    )
+    async def run(self, context: AuditContext, services: Any | None = None) -> TestResult:
+        if not isinstance(context.dom, BeautifulSoup):
+            raise ValueError("Le test 8.9.1 nécessite un DOM.")
+        soup = context.dom
 
-    async def run(
-        self,
-        context: AuditContext,
-        services: Any | None = None,
-    ) -> TestResult:
-        """
-        Exécute le test 8.9.1 : vérifie que les balises ne sont pas utilisées uniquement à des fins de présentation.
-
-        Vérifie que les balises sémantiques (à l'exception de <div>, <span> et <table>) ne sont pas utilisées
-        uniquement à des fins de présentation, sauf si justifiées par un role="presentation".
-        """
-        # Vérifier que le DOM est disponible
-        if not hasattr(context, 'dom') or context.dom is None:
-            return TestResult(
-                test_id=self.test_id,
-                criterion_id=self.criterion_id,
-                status=TestStatus.ERROR,
-                summary="Le DOM n'est pas disponible.",
-                tested_elements=0,
+        outcomes: list[Outcome] = []
+        for index, tag in enumerate(empty_elements(soup)):
+            outcomes.append(
+                make_outcome(
+                    TestStatus.FAIL,
+                    identifier(tag, index),
+                    f"L'élément <{tag.name}> est vide : il ne sert qu'à créer un espacement.",
+                    SPACING_RECOMMENDATION,
+                    usage="empty_element",
+                )
+            )
+        for index, br in enumerate(repeated_breaks(soup)):
+            parent = br.parent if isinstance(br.parent, Tag) else br
+            outcomes.append(
+                make_outcome(
+                    TestStatus.FAIL,
+                    f"{identifier(parent, index)} > br",
+                    "Des sauts de ligne <br> consécutifs sont utilisés pour créer un espacement.",
+                    SPACING_RECOMMENDATION,
+                    usage="repeated_br",
+                )
             )
 
-        # Vérifier si un service d'analyse de présentation sémantique est disponible
-        if services and getattr(services, 'semantic_presentation_analyzer', None) is not None:
-            analyzer = services.semantic_presentation_analyzer
-
-            try:
-                # Utiliser l'analyseur pour détecter l'utilisation inappropriée de balises sémantiques à des fins de présentation
-                analysis_result = await analyzer.analyze_semantic_presentation(
-                    context.dom,
-                    context.html_source if hasattr(context, 'html_source') else None
-                )
-
-                # Vérifier le niveau de confiance de l'analyse
-                if hasattr(analysis_result, 'confidence') and analysis_result.confidence == "low":
-                    return TestResult(
-                        test_id=self.test_id,
-                        criterion_id=self.criterion_id,
-                        status=TestStatus.NEEDS_REVIEW,
-                        summary=getattr(analysis_result, 'explanation',
-                                      "L'analyse automatique de l'utilisation sémantique des balises n'est pas suffisamment fiable."),
-                        tested_elements=getattr(analysis_result, 'total_elements_checked', 0),
-                        findings=self._convert_findings(getattr(analysis_result, 'findings', [])),
-                        metadata=getattr(analysis_result, 'metadata', {})
-                    )
-
-                # S'il y a des violations (balises sémantiques utilisées pour présentation sans justification)
-
-                if getattr(analysis_result, "has_violations", False):
-                    findings = self._convert_findings(
-                        getattr(analysis_result, "findings", [])
-                    )
-
-                    # Un FAIL exige des anomalies identifiables
-                    # et des recommandations exploitables.
-                    findings = with_default_recommendation(findings, DEFAULT_RECOMMENDATION)
-                    valid_findings = [finding for finding in findings if is_precise(finding)]
-
-                    if not findings or len(valid_findings) != len(findings):
-                        return TestResult(
-                            test_id=self.test_id,
-                            criterion_id=self.criterion_id,
-                            status=TestStatus.NEEDS_REVIEW,
-                            summary=(
-                                "Une utilisation potentiellement incorrecte "
-                                "des balises sémantiques a été signalée, "
-                                "mais l'analyse ne fournit pas une anomalie "
-                                "précise et une correction pour chaque élément."
-                            ),
-                            tested_elements=getattr(
-                                analysis_result,
-                                "total_elements_checked",
-                                0,
-                            ),
-                            findings=valid_findings,
-                            metadata=getattr(
-                                analysis_result, "metadata", {}
-                            ),
-                        )
-
-                    return TestResult(
-                        test_id=self.test_id,
-                        criterion_id=self.criterion_id,
-                        status=TestStatus.FAIL,
-                        summary=fail_summary(
-                            analysis_result,
-                            f"{len(valid_findings)} utilisation(s) sémantique(s) incorrecte(s) détectée(s).",
-                            valid_findings,
-                        ),
-                        tested_elements=getattr(
-                            analysis_result,
-                            "total_elements_checked",
-                            0,
-                        ),
-                        findings=valid_findings,
-                        metadata=getattr(
-                            analysis_result, "metadata", {}
-                        ),
-                    )
-
-                else:
-                    return TestResult(
-                        test_id=self.test_id,
-                        criterion_id=self.criterion_id,
-                        status=TestStatus.PASS,
-                        summary=(
-                            "L'analyse automatique n'a pas détecté "
-                            "d'utilisation inappropriée des balises "
-                            "sémantiques."
-                        ),
-                        tested_elements=getattr(
-                            analysis_result,
-                            "total_elements_checked",
-                            0,
-                        ),
-                        findings=[],
-                        metadata=getattr(
-                            analysis_result, "metadata", {}
-                        ),
-                    )
-
-            except ValueError as error:
-                return TestResult(
-                    test_id=self.test_id,
-                    criterion_id=self.criterion_id,
-                    status=TestStatus.NEEDS_REVIEW,
-                    summary=(
-                        "La réponse de l'IA est incomplète ou invalide. "
-                        "Vérification manuelle de l'utilisation "
-                        "sémantique des balises nécessaire."
+        quotes = [tag for tag in soup.find_all("blockquote") if _visible(tag)]
+        items = [
+            StructureCandidate(
+                text=" ".join(tag.get_text(" ", strip=True).split())[:500],
+                element_html=str(tag)[:400],
+                context=element_context(tag),
+            )
+            for tag in quotes
+        ]
+        verdicts = await judge_batch(
+            services,
+            "structure_analyzer",
+            "classify_candidates",
+            "quote",
+            items,
+            verdict_field="should_be_marked",
+            expected_type=StructureCandidateAnalysis,
+            when_true=TestStatus.PASS,
+            when_false=TestStatus.FAIL,
+        )
+        for index, (tag, verdict) in enumerate(zip(quotes, verdicts, strict=True)):
+            outcomes.append(
+                make_outcome(
+                    verdict.status,
+                    identifier(tag, index),
+                    verdict.message(
+                        "L'élément blockquote ne contient pas de citation : il sert uniquement à indenter.",
+                        "Vérifier que cet élément blockquote contient une citation.",
                     ),
-                    tested_elements=0,
-                    metadata={"analysis_error": str(error)},
+                    QUOTE_RECOMMENDATION,
+                    usage="blockquote",
+                    **verdict.evidence,
                 )
-
-            except Exception as error:
-                return TestResult(
-                    test_id=self.test_id,
-                    criterion_id=self.criterion_id,
-                    status=TestStatus.ERROR,
-                    summary=f"L'analyse de l'utilisation sémantique des balises a échoué : {str(error)}",
-                    tested_elements=0,
-                    metadata={"error": str(error)}
-                )
-        else:
-            # Pas de service d'analyse de présentation sémantique disponible
-            return TestResult(
-                test_id=self.test_id,
-                criterion_id=self.criterion_id,
-                status=TestStatus.NOT_TESTED,
-                summary="Service d'analyse de l'utilisation sémantique des balises non disponible.",
-                tested_elements=0,
             )
 
-    def _convert_findings(self, findings):
-        """Convertit les observations de l'analyseur en objets Finding du projet."""
-        return convert_findings(findings)
+        if not outcomes:
+            return TestResult(self.test_id, self.criterion_id, TestStatus.PASS, PASS_SUMMARY, tested_elements=1)
+        return build_result(self, outcomes, empty_summary=PASS_SUMMARY, noun="usage(s) de balise")

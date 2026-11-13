@@ -242,6 +242,9 @@ StructureKind = Literal[
     "list",
     "quote",
     "caption",
+    "status_success",
+    "status_error",
+    "status_progress",
 ]
 
 

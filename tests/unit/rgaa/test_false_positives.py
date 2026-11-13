@@ -5,6 +5,7 @@ Chaque cas est une construction conforme au RGAA qui était signalée à tort.
 """
 
 import pytest
+from ai_fakes import structure, text_services
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_05_tables.criterion_5_7 import Test574
@@ -61,7 +62,7 @@ def test_713_aria_labelledby_with_several_ids(context_factory, run_rgaa):
     <button role="button" aria-labelledby="titre desc">Progression</button>
     """
 
-    result = run_rgaa(Test713(), context_factory(html))
+    result = run_rgaa(Test713(), context_factory(html), text_services())
 
     assert result.status == Status.PASS
 
@@ -94,10 +95,12 @@ def test_75_each_message_is_judged_by_its_own_category(context_factory, run_rgaa
     <div role="log">Étape 3 terminée.</div>
     """
     context = context_factory(html)
+    # L'IA confirme que les messages des autres catégories ne relèvent pas du test.
+    ai = text_services(structure_answer=structure(False))
 
-    assert run_rgaa(Test751(), context).status == Status.PASS
-    assert run_rgaa(Test752(), context).status == Status.PASS
-    assert run_rgaa(Test753(), context).status == Status.PASS
+    assert run_rgaa(Test751(), context, ai).status == Status.PASS
+    assert run_rgaa(Test752(), context, ai).status == Status.PASS
+    assert run_rgaa(Test753(), context, ai).status == Status.PASS
 
 
 def test_1012_dimension_attributes_allowed_by_html5(context_factory, run_rgaa):

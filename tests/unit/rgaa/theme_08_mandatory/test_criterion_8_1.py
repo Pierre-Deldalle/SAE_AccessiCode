@@ -85,7 +85,7 @@ def test_812_invalid_doctype_fails(
     assert result.status == Status.FAIL
 
 
-def test_812_missing_doctype_fails(
+def test_812_missing_doctype_is_left_to_811(
     context_factory,
     run_rgaa,
 ):
@@ -93,7 +93,7 @@ def test_812_missing_doctype_fails(
 
     result = run_rgaa(RGAA812(), context)
 
-    assert result.status == Status.FAIL
+    assert result.status == Status.NOT_APPLICABLE
 
 
 # ---------------------------------------------------------------------------

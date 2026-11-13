@@ -88,12 +88,12 @@ class Test812(RGAATest):
         doctype = get_document_doctype(source)
 
         if doctype is None:
+            # L'absence de DOCTYPE est relevée par le test 8.1.1 : elle n'est pas comptée deux fois.
             return TestResult(
                 self.test_id,
                 self.criterion_id,
-                TestStatus.FAIL,
-                "Aucun DOCTYPE valide ne peut être vérifié car il est absent.",
-                tested_elements=1,
+                TestStatus.NOT_APPLICABLE,
+                "Aucun DOCTYPE n'est présent ; sa validité n'est donc pas vérifiable (absence relevée en 8.1.1).",
             )
 
         validation = validate_document_doctype(doctype)

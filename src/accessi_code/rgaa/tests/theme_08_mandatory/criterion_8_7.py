@@ -1,170 +1,79 @@
+"""
+RGAA 4.1.2 — critère 8.7 : dans chaque page web, chaque changement de langue
+est-il indiqué dans le code source ?
+
+Test 8.7.1. Les blocs de texte visibles sont regroupés en segments de même
+langue héritée (attribut lang de l'élément ou d'un parent) ; les passages
+qui portent déjà leur propre lang sont masqués. L'IA juge si chaque segment
+est entièrement dans la langue déclarée (noms propres et termes passés dans
+l'usage exceptés) : oui → PASS, non → FAIL, incertain → NEEDS_REVIEW.
+"""
+
 from __future__ import annotations
 
 from typing import Any
 
+from bs4 import BeautifulSoup
+
+from accessi_code.ai.schemas import RelevanceItem
+from accessi_code.analysis.language import language_segments
+from accessi_code.analysis.sensory import identifier
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
-from accessi_code.models.result import (
-    TestResult,
-    TestStatus,
-)
+from accessi_code.models.result import TestResult
+from accessi_code.rgaa.ai_decision import judge_relevance
 from accessi_code.rgaa.base import RGAATest
-from accessi_code.rgaa.tests.theme_08_mandatory._ai_findings import (
-    convert_findings,
-    fail_summary,
-    is_precise,
-    with_default_recommendation,
-)
+from accessi_code.rgaa.outcomes import build_result, make_outcome, not_applicable
 
-# Recommandation utilisée si l'analyseur n'en fournit pas.
-DEFAULT_RECOMMENDATION = (
-    "Ajouter un attribut lang avec le code de langue approprié sur le passage concerné."
-)
+EMPTY_SUMMARY = "Aucun texte à analyser."
+RECOMMENDATION = 'Placer le passage dans un élément portant l\'attribut lang de sa langue (par exemple lang="en").'
 
 
 class Test871(RGAATest):
-    """Test 8.7.1 - Indication des changements de langue."""
+    """8.7.1 : chaque texte dans une autre langue est signalé par lang."""
 
     test_id = "8.7.1"
     criterion_id = "8.7"
+    required_capabilities = frozenset({Capability.DOM})
 
-    required_capabilities = frozenset(
-        {
-            Capability.DOM,
-        }
-    )
+    async def run(self, context: AuditContext, services: Any | None = None) -> TestResult:
+        if not isinstance(context.dom, BeautifulSoup):
+            raise ValueError("Le test 8.7.1 nécessite un DOM.")
 
-    async def run(
-        self,
-        context: AuditContext,
-        services: Any | None = None,
-    ) -> TestResult:
-        """
-        Exécute le test 8.7.1 : indication des changements de langue.
+        segments = language_segments(context.dom)
+        if not segments:
+            return not_applicable(self, EMPTY_SUMMARY)
 
-        Vérifie que chaque texte écrit dans une langue différente de la langue par défaut
-        possède une indication de langue (sur l'élément contenant le texte ou un parent),
-        hors cas particuliers (noms propres, mots du dictionnaire, etc.).
-        """
-        # Vérifier que le DOM est disponible
-        if not hasattr(context, 'dom') or context.dom is None:
-            return TestResult(
-                test_id=self.test_id,
-                criterion_id=self.criterion_id,
-                status=TestStatus.ERROR,
-                summary="Le DOM n'est pas disponible.",
-                tested_elements=0,
+        items = [
+            RelevanceItem(
+                text=segment.text,
+                details={"declared_language": segment.lang or "non déclarée"},
             )
+            for segment in segments
+        ]
+        verdicts = await judge_relevance(services, "text_language", items)
 
-        # Vérifier si un service d'analyse de langue est disponible
-        if services and getattr(services, 'language_change_analyzer', None) is not None:
-            analyzer = services.language_change_analyzer
-
-            try:
-                # Utiliser l'analyseur pour détecter les changements de langue manquants
-                analysis_result = await analyzer.analyze_language_changes(
-                    context.dom,
-                    context.html_source if hasattr(context, 'html_source') else None
-                )
-
-                # Vérifier le niveau de confiance de l'analyse
-                if hasattr(analysis_result, 'confidence') and analysis_result.confidence == "low":
-                    return TestResult(
-                        test_id=self.test_id,
-                        criterion_id=self.criterion_id,
-                        status=TestStatus.NEEDS_REVIEW,
-                        summary=getattr(analysis_result, 'explanation',
-                                      "La détection des changements de langue nécessite une vérification manuelle."),
-                        tested_elements=getattr(analysis_result, 'total_elements_checked', 0),
-                        findings=self._convert_findings(getattr(analysis_result, 'findings', [])),
-                        metadata=getattr(analysis_result, 'metadata', {})
-                    )
-
-                # Retourner le résultat basé sur l'analyse
-
-                if getattr(analysis_result, "has_violations", False):
-                    findings = self._convert_findings(
-                        getattr(analysis_result, "findings", [])
-                    )
-
-                    # Un FAIL doit être justifié par des anomalies précises.
-                    findings = with_default_recommendation(findings, DEFAULT_RECOMMENDATION)
-                    if not findings or not all(is_precise(finding) for finding in findings):
-                        return TestResult(
-                            test_id=self.test_id,
-                            criterion_id=self.criterion_id,
-                            status=TestStatus.NEEDS_REVIEW,
-                            summary=(
-                                "Une anomalie de changement de langue a été "
-                                "signalée, mais les preuves sont insuffisantes "
-                                "pour établir une non-conformité précise."
-                            ),
-                            tested_elements=getattr(
-                                analysis_result, "total_elements_checked", 0
-                            ),
-                            findings=findings,
-                            metadata=getattr(analysis_result, "metadata", {}),
-                        )
-
-                    return TestResult(
-                        test_id=self.test_id,
-                        criterion_id=self.criterion_id,
-                        status=TestStatus.FAIL,
-                        summary=fail_summary(
-                            analysis_result,
-                            f"{len(findings)} passage(s) avec une indication de langue manquante ou inappropriée.",
-                            findings,
-                        ),
-                        tested_elements=getattr(
-                            analysis_result, "total_elements_checked", 0
-                        ),
-                        findings=findings,
-                        metadata=getattr(analysis_result, "metadata", {}),
-                    )
-                else:
-                    return TestResult(
-                        test_id=self.test_id,
-                        criterion_id=self.criterion_id,
-                        status=TestStatus.PASS,
-                        summary=getattr(analysis_result, 'explanation',
-                                      "L'analyse automatique n'a pas signalé de code de langue invalide ou inadapté."),
-                        tested_elements=getattr(analysis_result, 'total_elements_checked', 0),
-                        findings=[],  # Pas d'erreurs
-                        metadata=getattr(analysis_result, 'metadata', {})
-                    )
-
-            except ValueError as error:
-                # Réponse de l'IA incomplète ou mal formée : jamais une preuve.
-                return TestResult(
-                    test_id=self.test_id,
-                    criterion_id=self.criterion_id,
-                    status=TestStatus.NEEDS_REVIEW,
-                    summary=(
-                        "La réponse de l'IA est incomplète ou invalide. "
-                        "Vérification manuelle des changements de langue nécessaire."
+        outcomes = []
+        for segment, verdict in zip(segments, verdicts, strict=True):
+            first = identifier(segment.blocks[0], 0)
+            element = first if len(segment.blocks) == 1 else f"{first} (+{len(segment.blocks) - 1} bloc(s))"
+            problems = list(getattr(verdict.analysis, "problems", []) or [])
+            passages = f" Passage(s) concerné(s) : {' ; '.join(problems)}." if problems else ""
+            outcomes.append(
+                make_outcome(
+                    verdict.status,
+                    element,
+                    verdict.message(
+                        f"Un changement de langue n'est pas indiqué dans ce texte (langue déclarée : "
+                        f"{segment.lang or 'aucune'}).{passages}",
+                        "La langue de ce texte reste à vérifier.",
                     ),
-                    tested_elements=0,
-                    metadata={"analysis_error": str(error)},
+                    RECOMMENDATION,
+                    declared_language=segment.lang,
+                    text=segment.text[:300],
+                    blocks=len(segment.blocks),
+                    **verdict.evidence,
                 )
-            except Exception as error:
-                return TestResult(
-                    test_id=self.test_id,
-                    criterion_id=self.criterion_id,
-                    status=TestStatus.ERROR,
-                    summary=f"L'analyse des changements de langue a échoué : {str(error)}",
-                    tested_elements=0,
-                    metadata={"error": str(error)}
-                )
-        else:
-            # Pas de service d'analyse de langue disponible
-            return TestResult(
-                test_id=self.test_id,
-                criterion_id=self.criterion_id,
-                status=TestStatus.NOT_TESTED,
-                summary="Service d'analyse des changements de langue non disponible.",
-                tested_elements=0,
             )
 
-    def _convert_findings(self, findings):
-        """Convertit les observations de l'analyseur en objets Finding du projet."""
-        return convert_findings(findings)
+        return build_result(self, outcomes, empty_summary=EMPTY_SUMMARY, noun="segment(s) de texte")

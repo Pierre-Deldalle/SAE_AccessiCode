@@ -4,7 +4,9 @@ Prompts d'analyse de la structuration de l'information (thème 9).
 - "heading" : RGAA 9.1.3, passage de texte qui a l'apparence ou le rôle d'un titre ;
 - "list" : RGAA 9.3, suite d'éléments présentée comme une liste ;
 - "quote" : RGAA 9.4, citation ;
-- "caption" : RGAA 1.9, légende d'image.
+- "caption" : RGAA 1.9, légende d'image ;
+- "status_success", "status_error", "status_progress" : RGAA 7.5, messages de
+  statut qui n'ont pas le rôle attendu.
 
 La hiérarchie des titres (RGAA 9.1.1) a son propre prompt.
 """
@@ -26,6 +28,28 @@ STRUCTURE_RULES: dict[str, str] = {
         "RGAA 9.3 : chaque liste doit être correctement structurée (ul, ol, dl ou rôles list/listitem). "
         "Un passage constitue une liste s'il présente une suite d'éléments de même nature "
         "(puces, tirets, numéros, retours à la ligne répétés)."
+    ),
+    "status_success": (
+        "RGAA 7.5.1 : un message de statut informe l'utilisateur d'un changement (généralement affiché "
+        "après une action, sans que le focus soit déplacé). Ici, la catégorie visée est le message qui "
+        "informe de la réussite, du résultat d'une action ou de l'état d'une application "
+        "(« Votre message a été envoyé », « 3 résultats », « Article ajouté au panier »). "
+        "Il doit porter le rôle status. Un texte statique de la page (titre, paragraphe, libellé) "
+        "n'est pas un message de statut."
+    ),
+    "status_error": (
+        "RGAA 7.5.2 : un message de statut informe l'utilisateur d'un changement (généralement affiché "
+        "après une action, sans que le focus soit déplacé). Ici, la catégorie visée est le message qui "
+        "présente une suggestion ou avertit d'une erreur (« Le mot de passe est trop court », "
+        "« Erreur : champ obligatoire »). Il doit porter le rôle alert. Un texte statique de la page "
+        "(consigne permanente, paragraphe, libellé) n'est pas un message de statut."
+    ),
+    "status_progress": (
+        "RGAA 7.5.3 : un message de statut informe l'utilisateur d'un changement (généralement affiché "
+        "pendant ou après une action, sans que le focus soit déplacé). Ici, la catégorie visée est le "
+        "message qui indique la progression d'un processus (« Chargement en cours », « Étape 2 sur 4 », "
+        "« Envoi : 40 % »). Il doit porter le rôle log, progressbar ou status. Un texte statique de la "
+        "page n'est pas un message de statut."
     ),
     "quote": (
         "RGAA 9.4 : chaque citation doit être correctement indiquée (q pour une citation courte, "

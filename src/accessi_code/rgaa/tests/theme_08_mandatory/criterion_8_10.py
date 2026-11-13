@@ -1,361 +1,135 @@
+"""
+RGAA 4.1.2 — critère 8.10 : dans chaque page web, les changements du sens de
+lecture sont-ils signalés ?
+
+Le sens d'un texte se déduit de ses lettres (écritures hébraïque, arabe…),
+sans IA :
+
+- 8.10.1 : chaque texte écrit dans le sens opposé au sens par défaut de la
+  page est placé dans un élément dont l'attribut dir (ou celui d'un parent)
+  indique ce sens → PASS, sinon FAIL. Aucun texte de ce type → NOT_APPLICABLE ;
+- 8.10.2 : chaque attribut dir (hors html) a une valeur conforme, rtl ou ltr
+  (``auto`` n'est pas admis par le RGAA), et pertinente : elle correspond au
+  sens du texte de l'élément.
+"""
+
 from __future__ import annotations
 
-import re
 from typing import Any
 
+from bs4 import BeautifulSoup
+
+from accessi_code.analysis.language import (
+    DIRECTIONS,
+    default_direction,
+    effective_direction,
+    opposite_direction_elements,
+    text_direction,
+    text_without_marked,
+)
+from accessi_code.analysis.sensory import identifier
+from accessi_code.analysis.structure import is_hidden
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
-from accessi_code.models.result import Finding, TestResult, TestStatus
+from accessi_code.models.result import TestResult, TestStatus
 from accessi_code.rgaa.base import RGAATest
-from accessi_code.rgaa.tests.theme_08_mandatory._ai_findings import (
-    fail_summary,
-    is_precise,
-    with_default_recommendation,
-)
+from accessi_code.rgaa.outcomes import Outcome, build_result, make_outcome, not_applicable
 
-
-def _field(value: Any, name: str, default: Any = None) -> Any:
-    """Lit un champ de résultat IA, sous forme d'objet ou de dictionnaire."""
-    if isinstance(value, dict):
-        return value.get(name, default)
-    return getattr(value, name, default)
-
-
-def _summary(value: Any, fallback: str) -> str:
-    explanation = _field(value, "explanation")
-    if isinstance(explanation, str) and explanation.strip():
-        return explanation
-    return fallback
-
-
-def _metadata(value: Any) -> dict[str, Any]:
-    metadata = _field(value, "metadata", {})
-    return metadata if isinstance(metadata, dict) else {}
-
-
-def _convert_findings(raw_findings: Any) -> list[Finding]:
-    """Convertit les observations IA en objets Finding du projet."""
-    if not isinstance(raw_findings, (list, tuple)):
-        raise TypeError("Le champ findings doit être une liste.")
-
-    converted: list[Finding] = []
-    for raw in raw_findings:
-        if isinstance(raw, Finding):
-            converted.append(raw)
-            continue
-
-        element = _field(raw, "element", "unknown")
-        message = _field(raw, "message", "")
-        recommendation = _field(raw, "recommendation")
-        evidence = _field(raw, "evidence", {})
-
-        if not isinstance(element, str) or not isinstance(message, str):
-            raise TypeError("Les champs element et message doivent être textuels.")
-        if not isinstance(recommendation, str):
-            recommendation = None
-        if not isinstance(evidence, dict):
-            evidence = {}
-
-        converted.append(
-            Finding(
-                element=element,
-                message=message,
-                recommendation=recommendation,
-                evidence=evidence,
-            )
-        )
-    return converted
+LABELS = {"rtl": "de droite à gauche", "ltr": "de gauche à droite"}
 
 
 class _TextDirectionTest(RGAATest):
-    """Comportement commun aux deux vérifications du critère 8.10."""
-
+    criterion_id = "8.10"
     required_capabilities = frozenset({Capability.DOM})
-    analyzer_attribute: str
-    analyzer_method: str
-    count_attribute: str
-    failure_attribute: str
-    success_summary: str
-    failure_summary: str
-    error_summary: str
-    # Recommandation utilisée si l'analyseur n'en fournit pas.
-    default_recommendation: str
 
-    async def run(
-        self,
-        context: AuditContext,
-        services: Any | None = None,
-    ) -> TestResult:
-        if getattr(context, "dom", None) is None:
-            return self._result(TestStatus.ERROR, "Le DOM n'est pas disponible.")
-
-
-        if self.test_id == "8.10.1":
-            rtl_languages = {"ar", "he", "fa", "ur", "ps"}
-            rtl_pattern = re.compile(
-                r"[\u0590-\u05FF\u0600-\u06FF"
-                r"\u0750-\u077F\u08A0-\u08FF]"
-            )
-
-            rtl_candidates = []
-            missing_direction = []
-
-            for element in context.dom.find_all(True):
-                lang = str(
-                    element.get("lang", "")
-                ).strip().lower().split("-")[0]
-
-                if lang not in rtl_languages:
-                    continue
-
-                text = element.get_text(" ", strip=True)
-
-                if not rtl_pattern.search(text):
-                    continue
-
-                rtl_candidates.append(element)
-
-                # Un dir placé sur un ancêtre peut suffire.
-                has_direction = any(
-                    ancestor.has_attr("dir")
-                    for ancestor in [element, *element.parents]
-                    if getattr(ancestor, "attrs", None) is not None
-                )
-
-                if not has_direction:
-                    missing_direction.append(element)
-
-            if missing_direction:
-                findings = []
-
-                for element in missing_direction:
-                    text = element.get_text(" ", strip=True)
-
-                    findings.append(
-                        Finding(
-                            element=(
-                                f'{element.name}'
-                                f'[lang="{element.get("lang")}"]'
-                            ),
-                            message=(
-                                "Ce passage contient du texte RTL "
-                                "sans indication explicite de direction "
-                                "sur l'élément ou ses ancêtres. "
-                                f"Texte : « {text[:100]} »."
-                            ),
-                            recommendation=(
-                                'Vérifier le changement de direction '
-                                'et ajouter dir="rtl" sur le passage '
-                                "si nécessaire."
-                            ),
-                            evidence={
-                                "lang": element.get("lang"),
-                                "text": text[:150],
-                                "dir": None,
-                            },
-                        )
-                    )
-
-                return self._result(
-                    TestStatus.NEEDS_REVIEW,
-                    (
-                        f"{len(missing_direction)} passage(s) RTL "
-                        "sans direction explicite détecté(s). "
-                        "Vérifier si ces changements de sens "
-                        "de lecture nécessitent un attribut dir."
-                    ),
-                    tested_elements=len(rtl_candidates),
-                    findings=findings,
-                    metadata={
-                        "validation": "dom",
-                        "rtl_candidates": len(rtl_candidates),
-                        "missing_direction": len(missing_direction),
-                    },
-                )
-
-        if self.test_id == "8.10.2":
-            direction_elements = [
-                element
-                for element in context.dom.find_all(True)
-                if element.name != "html"
-                and element.has_attr("dir")
-            ]
-
-            if not direction_elements:
-                return self._result(
-                    TestStatus.NOT_APPLICABLE,
-                    "Aucun attribut dir sur un passage interne "
-                    "du document n'est à vérifier.",
-                )
-
-        analyzer = (
-            getattr(services, self.analyzer_attribute, None)
-            if services is not None
-            else None
-        )
-        if analyzer is None:
-            return self._result(
-                TestStatus.NEEDS_REVIEW,
-                "Service d'analyse de la direction du texte non disponible : "
-                "vérification manuelle nécessaire.",
-            )
-
-        try:
-            method = getattr(analyzer, self.analyzer_method)
-            analysis = await method(
-                context.dom,
-                getattr(context, "html_source", None),
-            )
-            if analysis is None:
-                raise TypeError("L'analyseur n'a retourné aucun résultat.")
-
-            confidence = _field(analysis, "confidence")
-            count = _field(analysis, self.count_attribute)
-            if not isinstance(count, int) or isinstance(count, bool) or count < 0:
-                raise TypeError(f"Compteur IA invalide : {self.count_attribute}.")
-
-            # Une conclusion de faible confiance ne doit jamais produire PASS/FAIL.
-            if confidence not in ("high", "medium"):
-                return self._result(
-                    TestStatus.NEEDS_REVIEW,
-                    _summary(
-                        analysis,
-                        "L'analyse automatique n'est pas suffisamment fiable.",
-                    ),
-                    metadata=_metadata(analysis),
-                )
-
-            failure = _field(analysis, self.failure_attribute)
-            if failure is None or (
-                self.failure_attribute == "has_errors"
-                and not isinstance(failure, bool)
-            ) or (
-                self.failure_attribute == "missing_dir_count"
-                and (
-                    not isinstance(failure, int)
-                    or isinstance(failure, bool)
-                    or failure < 0
-                )
-            ):
-                return self._result(
-                    TestStatus.NEEDS_REVIEW,
-                    "L'analyse ne permet pas de conclure sur ce test.",
-                    metadata=_metadata(analysis),
-                )
-
-
-            has_failure = (
-                failure if isinstance(failure, bool) else failure > 0
-            )
-
-            if has_failure:
-                findings = _convert_findings(
-                    _field(analysis, "findings", [])
-                )
-
-                findings = with_default_recommendation(findings, self.default_recommendation)
-                valid_findings = [finding for finding in findings if is_precise(finding)]
-
-                if not findings or len(valid_findings) != len(findings):
-                    return self._result(
-                        TestStatus.NEEDS_REVIEW,
-                        (
-                            "Une anomalie de direction du texte a été "
-                            "signalée, mais les éléments concernés "
-                            "ne sont pas suffisamment détaillés."
-                        ),
-                        tested_elements=count,
-                        findings=valid_findings,
-                        metadata=_metadata(analysis),
-                    )
-
-                return self._result(
-                    TestStatus.FAIL,
-                    fail_summary(
-                        analysis,
-                        f"{len(valid_findings)} anomalie(s) de direction détectée(s).",
-                        valid_findings,
-                    ),
-                    tested_elements=count,
-                    findings=valid_findings,
-                    metadata=_metadata(analysis),
-                )
-
-            if count == 0:
-                return self._result(
-                    TestStatus.NOT_APPLICABLE,
-                    "Aucun élément concerné par ce test n'a été détecté.",
-                    metadata=_metadata(analysis),
-                )
-
-            return self._result(
-                TestStatus.PASS,
-                self.success_summary,
-                tested_elements=count,
-                metadata=_metadata(analysis),
-            )
-
-
-        except ValueError as error:
-            return self._result(
-                TestStatus.NEEDS_REVIEW,
-                "La réponse de l'IA est incomplète ou invalide. "
-                "Vérification manuelle de la direction du texte nécessaire.",
-                metadata={"analysis_error": str(error)},
-            )
-
-        except Exception as error:
-            return self._result(
-                TestStatus.ERROR,
-                f"{self.error_summary} : {error}",
-                metadata={"error": str(error)},
-            )
-
-    def _result(
-        self,
-        status: TestStatus,
-        summary: str,
-        *,
-        tested_elements: int = 0,
-        findings: list[Finding] | None = None,
-        metadata: dict[str, Any] | None = None,
-    ) -> TestResult:
-        return TestResult(
-            test_id=self.test_id,
-            criterion_id=self.criterion_id,
-            status=status,
-            summary=summary,
-            tested_elements=tested_elements,
-            findings=findings if findings is not None else [],
-            metadata=metadata if metadata is not None else {},
-        )
+    def _dom(self, context: AuditContext) -> BeautifulSoup:
+        if not isinstance(context.dom, BeautifulSoup):
+            raise ValueError(f"Le test {self.test_id} nécessite un DOM.")
+        return context.dom
 
 
 class Test8101(_TextDirectionTest):
-    """8.10.1 : présence de dir sur les passages de sens de lecture différent."""
+    """8.10.1 : les textes de sens opposé sont signalés par dir."""
 
     test_id = "8.10.1"
-    criterion_id = "8.10"
-    analyzer_attribute = "text_direction_analyzer"
-    analyzer_method = "analyze_text_direction_presence"
-    count_attribute = "total_rtl_segments_checked"
-    failure_attribute = "missing_dir_count"
-    success_summary = "Tous les segments RTL concernés possèdent un attribut dir."
-    failure_summary = "Des segments RTL concernés n'ont pas d'attribut dir."
-    error_summary = "L'analyse de la présence de l'attribut dir a échoué"
-    default_recommendation = 'Ajouter dir="rtl" (ou dir="ltr") sur le passage dont le sens de lecture change.'
+    empty_summary = "Aucun texte écrit dans un sens de lecture différent du sens par défaut."
+
+    async def run(self, context: AuditContext, services: Any | None = None) -> TestResult:
+        soup = self._dom(context)
+        default = default_direction(soup)
+        expected = "ltr" if default == "rtl" else "rtl"
+        elements = opposite_direction_elements(soup)
+        if not elements:
+            return not_applicable(self, self.empty_summary)
+
+        outcomes: list[Outcome] = []
+        for index, (tag, text) in enumerate(elements):
+            actual = effective_direction(tag, default)
+            outcomes.append(
+                make_outcome(
+                    TestStatus.PASS if actual == expected else TestStatus.FAIL,
+                    identifier(tag, index),
+                    ""
+                    if actual == expected
+                    else f"Ce texte écrit {LABELS[expected]} n'est pas placé dans un élément "
+                    f'portant dir="{expected}".',
+                    f'Placer le passage dans un élément portant dir="{expected}".',
+                    text=text[:200],
+                    expected=expected,
+                    effective=actual,
+                )
+            )
+        return build_result(self, outcomes, empty_summary=self.empty_summary, noun="texte(s)")
 
 
 class Test8102(_TextDirectionTest):
-    """8.10.2 : validité et pertinence des attributs dir."""
+    """8.10.2 : valeur de dir conforme (rtl ou ltr) et pertinente."""
 
     test_id = "8.10.2"
-    criterion_id = "8.10"
-    analyzer_attribute = "text_direction_validity_analyzer"
-    analyzer_method = "analyze_text_direction_validity"
-    count_attribute = "total_dir_attributes_checked"
-    failure_attribute = "has_errors"
-    success_summary = "Tous les attributs dir concernés sont valides et pertinents."
-    failure_summary = "Certains attributs dir sont invalides ou non pertinents."
-    error_summary = "L'analyse de la validité de l'attribut dir a échoué"
-    default_recommendation = 'Utiliser dir="rtl" ou dir="ltr" selon le sens de lecture réel du passage.'
+    empty_summary = "Aucun changement de sens de lecture (attribut dir) dans la page."
+
+    async def run(self, context: AuditContext, services: Any | None = None) -> TestResult:
+        soup = self._dom(context)
+        elements = [
+            tag
+            for tag in soup.find_all(attrs={"dir": True})
+            if tag.name != "html" and tag.find_parent(["head", "template"]) is None and not is_hidden(tag)
+        ]
+        if not elements:
+            return not_applicable(self, self.empty_summary)
+
+        outcomes: list[Outcome] = []
+        for index, tag in enumerate(elements):
+            value = str(tag.get("dir") or "").strip().lower()
+            element = identifier(tag, index)
+            if value not in DIRECTIONS:
+                outcomes.append(
+                    make_outcome(
+                        TestStatus.FAIL,
+                        element,
+                        f'La valeur dir="{value}" n\'est pas conforme : seules rtl et ltr sont admises.',
+                        "Remplacer la valeur par rtl ou ltr selon le sens de lecture du texte.",
+                        dir=value,
+                    )
+                )
+                continue
+            text = text_without_marked(tag, attributes=("dir",))
+            direction = text_direction(text)
+            if direction is None:
+                outcomes.append(make_outcome(TestStatus.NOT_APPLICABLE))
+                continue
+            relevant = direction == value
+            outcomes.append(
+                make_outcome(
+                    TestStatus.PASS if relevant else TestStatus.FAIL,
+                    element,
+                    ""
+                    if relevant
+                    else f'La valeur dir="{value}" ne correspond pas au texte, écrit {LABELS[direction]}.',
+                    f'Utiliser dir="{direction}" pour ce texte.',
+                    dir=value,
+                    text_direction=direction,
+                    text=text[:200],
+                )
+            )
+        return build_result(self, outcomes, empty_summary=self.empty_summary, noun="attribut(s) dir")
