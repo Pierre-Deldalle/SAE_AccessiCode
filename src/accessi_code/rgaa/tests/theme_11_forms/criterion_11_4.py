@@ -25,21 +25,21 @@ from accessi_code.rgaa.base import RGAATest
 
 _CHOICE_ROLES = frozenset({"checkbox", "radio", "switch"})
 _POSITIONS = frozenset({"above", "below", "left", "right"})
-_EXCEPTIONS = frozenset({
-    "mixed_label_directions",
-    "mixed_form_directions",
-    "nonstandard_choice_appearance",
-    "legitimate_alternative_placement",
-})
+_EXCEPTIONS = frozenset(
+    {
+        "mixed_label_directions",
+        "mixed_form_directions",
+        "nonstandard_choice_appearance",
+        "legitimate_alternative_placement",
+    }
+)
 
 
 def _is_choice(field: Tag) -> bool:
     role = str(field.get("role", "")).strip().lower()
     if role in _CHOICE_ROLES:
         return True
-    return field.name == "input" and str(field.get("type", "text")).lower() in {
-        "checkbox", "radio"
-    }
+    return field.name == "input" and str(field.get("type", "text")).lower() in {"checkbox", "radio"}
 
 
 def _label(field: Tag, soup: Any) -> tuple[str, str] | None:
@@ -110,30 +110,36 @@ def _result(
 
 class _LabelPositionTest(RGAATest):
     required_capabilities = frozenset({Capability.DOM})
+    # Preuves collectées dans le navigateur (ContextEnricher).
+    optional_capabilities = frozenset({Capability.BROWSER_INTERACTION})
     mode: str
 
-    async def run(
-        self, context: AuditContext, services: Any | None = None
-    ) -> TestResult:
+    async def run(self, context: AuditContext, services: Any | None = None) -> TestResult:
         soup = context.dom
         if soup is None or not hasattr(soup, "select"):
             return _result(
-                self, TestStatus.ERROR, "Le DOM n'est pas exploitable.",
-                count=0, findings=[], metadata={},
+                self,
+                TestStatus.ERROR,
+                "Le DOM n'est pas exploitable.",
+                count=0,
+                findings=[],
+                metadata={},
             )
 
         fields = find_form_fields(soup)
         selected = [
             (index, field)
             for index, field in enumerate(fields)
-            if self.mode == "all"
-            or (_is_choice(field) if self.mode == "choice" else not _is_choice(field))
+            if self.mode == "all" or (_is_choice(field) if self.mode == "choice" else not _is_choice(field))
         ]
         if not selected:
             return _result(
-                self, TestStatus.NOT_APPLICABLE,
+                self,
+                TestStatus.NOT_APPLICABLE,
                 "Aucun champ concerné par ce test.",
-                count=0, findings=[], metadata={"selected_fields": 0},
+                count=0,
+                findings=[],
+                metadata={"selected_fields": 0},
             )
 
         failures: list[Finding] = []
@@ -145,86 +151,91 @@ class _LabelPositionTest(RGAATest):
             identifier = get_element_identifier(field, index)
             field_id = field.get("id")
             if isinstance(field_id, str) and field_id and len(soup.find_all(id=field_id)) != 1:
-                reviews.append(Finding(
-                    element=identifier,
-                    message="L'identifiant du champ n'est pas unique dans le DOM.",
-                    recommendation="Rendre les identifiants uniques avant de vérifier la disposition.",
-                    evidence={"id": field_id},
-                ))
+                reviews.append(
+                    Finding(
+                        element=identifier,
+                        message="L'identifiant du champ n'est pas unique dans le DOM.",
+                        recommendation="Rendre les identifiants uniques avant de vérifier la disposition.",
+                        evidence={"id": field_id},
+                    )
+                )
                 continue
             candidate = _label(field, soup)
             if candidate is None or not candidate[1].strip():
-                reviews.append(Finding(
-                    element=identifier,
-                    message=(
-                        "Aucune étiquette textuelle potentiellement visible n'a été "
-                        "identifiée avec certitude pour contrôler sa proximité."
-                    ),
-                    recommendation=(
-                        "Identifier l'étiquette affichée et vérifier sa position "
-                        "par rapport au champ dans le navigateur."
-                    ),
-                    evidence={"mechanism": candidate[0] if candidate else "unknown"},
-                ))
+                reviews.append(
+                    Finding(
+                        element=identifier,
+                        message=(
+                            "Aucune étiquette textuelle potentiellement visible n'a été "
+                            "identifiée avec certitude pour contrôler sa proximité."
+                        ),
+                        recommendation=(
+                            "Identifier l'étiquette affichée et vérifier sa position "
+                            "par rapport au champ dans le navigateur."
+                        ),
+                        evidence={"mechanism": candidate[0] if candidate else "unknown"},
+                    )
+                )
                 continue
 
             mechanism, label_text = candidate
             proof = _layout(context, identifier, label_text)
             if proof is None:
-                reviews.append(Finding(
-                    element=identifier,
-                    message=(
-                        f"La proximité visuelle de l'étiquette « {label_text} » "
-                        "ne peut pas être établie avec le DOM seul."
-                    ),
-                    recommendation=(
-                        "Contrôler le rendu visuel et fournir une preuve "
-                        "de disposition vérifiée."
-                    ),
-                    evidence={"label": label_text, "mechanism": mechanism},
-                ))
+                reviews.append(
+                    Finding(
+                        element=identifier,
+                        message=(
+                            f"La proximité visuelle de l'étiquette « {label_text} » "
+                            "ne peut pas être établie avec le DOM seul."
+                        ),
+                        recommendation=("Contrôler le rendu visuel et fournir une preuve de disposition vérifiée."),
+                        evidence={"label": label_text, "mechanism": mechanism},
+                    )
+                )
                 continue
 
             if self.mode != "all" and proof.get("exception") is not None:
                 exception = proof.get("exception")
                 allowed_exceptions = (
-                    _EXCEPTIONS
-                    if self.mode == "choice"
-                    else _EXCEPTIONS - {"nonstandard_choice_appearance"}
+                    _EXCEPTIONS if self.mode == "choice" else _EXCEPTIONS - {"nonstandard_choice_appearance"}
                 )
                 if exception in allowed_exceptions and proof.get("exception_verified") is True:
                     # L'exception doit être vérifiée et non seulement supposée.
                     exceptions += 1
                     continue
-                reviews.append(Finding(
-                    element=identifier,
-                    message="Le cas particulier invoqué n'est pas suffisamment justifié.",
-                    recommendation="Vérifier si le cas particulier RGAA s'applique réellement.",
-                    evidence={"exception": str(exception)},
-                ))
+                reviews.append(
+                    Finding(
+                        element=identifier,
+                        message="Le cas particulier invoqué n'est pas suffisamment justifié.",
+                        recommendation="Vérifier si le cas particulier RGAA s'applique réellement.",
+                        evidence={"exception": str(exception)},
+                    )
+                )
                 continue
 
             adjacent = proof.get("adjacent")
             position = proof.get("position")
             direction = proof.get("direction")
             if not isinstance(adjacent, bool):
-                reviews.append(Finding(
-                    element=identifier,
-                    message="La preuve ne précise pas si le champ et l'étiquette sont accolés.",
-                    recommendation="Renseigner le constat visuel d'accolement.",
-                    evidence={"label": label_text},
-                ))
+                reviews.append(
+                    Finding(
+                        element=identifier,
+                        message="La preuve ne précise pas si le champ et l'étiquette sont accolés.",
+                        recommendation="Renseigner le constat visuel d'accolement.",
+                        evidence={"label": label_text},
+                    )
+                )
                 continue
 
-            if adjacent and self.mode != "all" and (
-                position not in _POSITIONS or direction not in {"ltr", "rtl"}
-            ):
-                reviews.append(Finding(
-                    element=identifier,
-                    message="La position ou le sens de lecture n'est pas établi.",
-                    recommendation="Vérifier la position visuelle et le sens de lecture de l'étiquette.",
-                    evidence={"position": position, "direction": direction},
-                ))
+            if adjacent and self.mode != "all" and (position not in _POSITIONS or direction not in {"ltr", "rtl"}):
+                reviews.append(
+                    Finding(
+                        element=identifier,
+                        message="La position ou le sens de lecture n'est pas établi.",
+                        recommendation="Vérifier la position visuelle et le sens de lecture de l'étiquette.",
+                        evidence={"position": position, "direction": direction},
+                    )
+                )
                 continue
 
             if not adjacent:
@@ -232,37 +243,40 @@ class _LabelPositionTest(RGAATest):
             elif self.mode == "standard":
                 allowed = {"above", "left"} if direction == "ltr" else {"above", "right"}
                 reason = (
-                    "La position de l'étiquette ne respecte pas le sens de lecture "
-                    "pour ce champ classique."
-                    if position not in allowed else ""
+                    "La position de l'étiquette ne respecte pas le sens de lecture pour ce champ classique."
+                    if position not in allowed
+                    else ""
                 )
             elif self.mode == "choice":
                 allowed = {"below", "right"} if direction == "ltr" else {"below", "left"}
                 reason = (
                     "La position de l'étiquette ne respecte pas le sens de lecture "
                     "pour cette case à cocher, ce bouton radio ou cet interrupteur."
-                    if position not in allowed else ""
+                    if position not in allowed
+                    else ""
                 )
             else:
                 reason = ""
 
             if reason:
-                failures.append(Finding(
-                    element=identifier,
-                    message=f"{reason} Étiquette : « {label_text} ».",
-                    recommendation=(
-                        "Accoler visuellement l'étiquette au champ et respecter "
-                        "le placement RGAA applicable, sauf cas particulier justifié."
-                    ),
-                    evidence={
-                        "label": label_text,
-                        "mechanism": mechanism,
-                        "adjacent": adjacent,
-                        "position": position,
-                        "direction": direction,
-                        "source": proof["source"],
-                    },
-                ))
+                failures.append(
+                    Finding(
+                        element=identifier,
+                        message=f"{reason} Étiquette : « {label_text} ».",
+                        recommendation=(
+                            "Accoler visuellement l'étiquette au champ et respecter "
+                            "le placement RGAA applicable, sauf cas particulier justifié."
+                        ),
+                        evidence={
+                            "label": label_text,
+                            "mechanism": mechanism,
+                            "adjacent": adjacent,
+                            "position": position,
+                            "direction": direction,
+                            "source": proof["source"],
+                        },
+                    )
+                )
             else:
                 confirmed += 1
 
@@ -280,7 +294,9 @@ class _LabelPositionTest(RGAATest):
             summary = "Tous les champs concernés relèvent de cas particuliers vérifiés."
 
         return _result(
-            self, status, summary,
+            self,
+            status,
+            summary,
             count=len(selected),
             findings=failures + reviews,
             metadata={
@@ -296,6 +312,7 @@ class _LabelPositionTest(RGAATest):
 
 class Test1141(_LabelPositionTest):
     """11.4.1 — l'étiquette et le champ sont visuellement accolés."""
+
     test_id = "11.4.1"
     criterion_id = "11.4"
     mode = "all"
@@ -303,6 +320,7 @@ class Test1141(_LabelPositionTest):
 
 class Test1142(_LabelPositionTest):
     """11.4.2 — position des étiquettes des champs classiques."""
+
     test_id = "11.4.2"
     criterion_id = "11.4"
     mode = "standard"
@@ -310,6 +328,7 @@ class Test1142(_LabelPositionTest):
 
 class Test1143(_LabelPositionTest):
     """11.4.3 — position des étiquettes de checkbox/radio/switch."""
+
     test_id = "11.4.3"
     criterion_id = "11.4"
     mode = "choice"

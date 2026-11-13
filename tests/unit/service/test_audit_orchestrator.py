@@ -356,3 +356,34 @@ async def test_failing_ai_check_counts_as_unavailable(tmp_path, html_file):
     outcome = await orchestrator.run(AuditRequest(files=(html_file,), themes=frozenset({1})))
 
     assert any("IA non disponible" in notice for notice in outcome.notices)
+
+
+def test_browser_evidence_tests_trigger_rendering():
+    from accessi_code.models.capabilities import Capability
+    from accessi_code.service.audit_orchestrator import needs_rendering
+
+    test = make_test("12.9.1", "12.9")
+    type(test).optional_capabilities = frozenset({Capability.BROWSER_INTERACTION})
+
+    assert needs_rendering(Registry([test])) is True
+    assert needs_rendering(Registry([make_test("1.1.1", "1.1")])) is False
+
+
+@pytest.mark.asyncio
+async def test_browser_evidence_failure_is_reported(tmp_path, html_file):
+    class BrowserFailingEnricher(FakeEnricher):
+        async def enrich(self, context):
+            self.calls += 1
+
+            class Report:
+                error = None
+                non_text_error = None
+                browser_evidence_error = "Navigation Chromium : aucun navigateur"
+
+            return Report()
+
+    orchestrator = make_orchestrator(tmp_path, BrowserFailingEnricher())
+
+    outcome = await orchestrator.run(AuditRequest(files=(html_file,), themes=frozenset({3})))
+
+    assert any("aucun navigateur" in notice for notice in outcome.notices)

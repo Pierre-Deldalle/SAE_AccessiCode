@@ -149,6 +149,9 @@ class AuditContext:
     # True uniquement après inventaire exhaustif du site / ensemble de pages.
     site_inventory_complete: bool = False
 
+    # True lorsque la collecte des preuves navigateur (RGAA 11.4, 12.x) a abouti.
+    browser_evidence_collected: bool = False
+
     # Feuilles de style CSS sources.
     css_files: list[Path] = field(default_factory=list)
     css_sources: dict[Path, str] = field(default_factory=dict)
@@ -166,9 +169,7 @@ class AuditContext:
     unresolved_text_contrasts: list[UnresolvedTextContrast] = field(default_factory=list)
 
     # Observations non textuelles à vérifier humainement.
-    unresolved_non_text_contrasts: list[UnresolvedNonTextContrast] = field(
-        default_factory=list
-    )
+    unresolved_non_text_contrasts: list[UnresolvedNonTextContrast] = field(default_factory=list)
 
     @property
     def text_contrast_is_partial(self) -> bool:
@@ -176,10 +177,7 @@ class AuditContext:
         Une extraction automatique a été tentée,
         sans preuve de couverture exhaustive.
         """
-        return (
-            self.text_contrast_extraction_attempted
-            and not self.text_contrast_coverage_complete
-        )
+        return self.text_contrast_extraction_attempted and not self.text_contrast_coverage_complete
 
     def get_capabilities(self) -> set[Capability]:
         """
@@ -227,6 +225,9 @@ class AuditContext:
 
         if self.text_contrast_samples or self.non_text_contrast_samples:
             capabilities.add(Capability.COMPUTED_STYLES)
+
+        if self.browser_evidence_collected:
+            capabilities.add(Capability.BROWSER_INTERACTION)
 
         return capabilities
 

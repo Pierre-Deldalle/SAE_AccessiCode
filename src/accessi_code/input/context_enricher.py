@@ -3,6 +3,8 @@
 from dataclasses import dataclass, field
 from math import isfinite
 
+from accessi_code.analysis.form_layout import collect_form_label_layout
+from accessi_code.analysis.navigation_browser import collect_navigation_evidence
 from accessi_code.input.contrast_sample_builder import ContrastSampleBuilder
 from accessi_code.input.extractors.computed_styles import (
     NonTextStyleObservation,
@@ -37,6 +39,8 @@ class ContextEnrichmentReport:
     # Erreurs indépendantes des deux extractions.
     error: str | None = None
     non_text_error: str | None = None
+    # Preuves navigateur (accolement des étiquettes RGAA 11.4, navigation RGAA 12).
+    browser_evidence_error: str | None = None
 
     @property
     def total(self) -> int:
@@ -228,7 +232,44 @@ class ContextEnricher:
 
             context.unresolved_non_text_contrasts = []
 
+        # --------------------------------------------------
+        # Preuves navigateur : RGAA 11.4 et 12
+        # --------------------------------------------------
+        #
+        # Les collecteurs n'ajoutent que des preuves positives observées
+        # dans le navigateur ; en cas d'échec, les tests restent à vérifier.
+
+        await self._collect_browser_evidence(context, report)
+
         return report
+
+    @staticmethod
+    async def _collect_browser_evidence(
+        context: AuditContext,
+        report: ContextEnrichmentReport,
+    ) -> None:
+        """Lance les collecteurs de preuves navigateur et note leur réussite."""
+
+        context.browser_evidence_collected = False
+        context.navigation_evidence = {}
+        context.form_label_layout = {}
+        previous_error = context.visual_evidence_error
+
+        try:
+            await collect_navigation_evidence(context)
+            await collect_form_label_layout(context)
+        except Exception as error:
+            report.browser_evidence_error = (
+                f"Échec de la collecte des preuves navigateur : {type(error).__name__}: {error}"
+            )
+            return
+
+        # Les collecteurs consignent leurs échecs dans visual_evidence_error.
+        if context.visual_evidence_error and context.visual_evidence_error != previous_error:
+            report.browser_evidence_error = context.visual_evidence_error
+            return
+
+        context.browser_evidence_collected = True
 
     @staticmethod
     def _requires_review(

@@ -7,6 +7,9 @@ from accessi_code.ai.analyzers.mandatory_analyzer import OllamaMandatoryAnalyzer
 from accessi_code.ai.analyzers.page_analyzer import (
     OllamaPageAnalyzer,
 )
+from accessi_code.ai.analyzers.sensory_analyzer import OllamaSensoryAnalyzer
+from accessi_code.ai.analyzers.structure_analyzer import OllamaStructureAnalyzer
+from accessi_code.ai.analyzers.text_relevance_analyzer import OllamaTextRelevanceAnalyzer
 from accessi_code.ai.clients.llm import OllamaLLM
 from accessi_code.ai.clients.vlm import OllamaVLM
 from accessi_code.service.audit_services import (
@@ -34,11 +37,14 @@ def build_default_audit_services(
     )
     mandatory_analyzer = OllamaMandatoryAnalyzer(llm)
 
+    # Partagé : l'analyse sensorielle des images réutilise ses observations visuelles.
+    image_analyzer = OllamaImageAnalyzer(
+        vlm=vlm,
+        llm=llm,
+    )
+
     return AuditServices(
-        image_analyzer=OllamaImageAnalyzer(
-            vlm=vlm,
-            llm=llm,
-        ),
+        image_analyzer=image_analyzer,
         page_analyzer=OllamaPageAnalyzer(
             llm=llm,
         ),
@@ -48,4 +54,7 @@ def build_default_audit_services(
         semantic_presentation_analyzer=mandatory_analyzer,
         text_direction_analyzer=mandatory_analyzer,
         text_direction_validity_analyzer=mandatory_analyzer,
+        text_relevance_analyzer=OllamaTextRelevanceAnalyzer(llm),
+        sensory_analyzer=OllamaSensoryAnalyzer(llm, image_analyzer),
+        structure_analyzer=OllamaStructureAnalyzer(llm),
     )

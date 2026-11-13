@@ -177,3 +177,105 @@ is_detailed_description doit être true, false ou null.
 relevant doit être true, false ou null.
 Si is_detailed_description vaut false, relevant doit être null.
 """
+
+
+IMAGE_PROFILE_PROMPT = """
+Tu établis le profil d'une image d'une page web. Ce profil sert ensuite à
+plusieurs critères RGAA ; tu ne rends toi-même aucun verdict de conformité.
+
+Définitions :
+- information_bearing : l'image véhicule une information nécessaire à la
+  compréhension du contenu (une image dans un lien ou un bouton est porteuse
+  d'information). Une image purement décorative ne l'est pas ;
+- is_captcha : l'image sert à distinguer un humain d'un robot (CAPTCHA, image-test) ;
+- contains_text : l'image contient du texte lisible qui transmet une information ;
+- text_content : ce texte, recopié tel quel (chaîne vide sinon) ;
+- needs_detailed_description : l'image est complexe (graphique, schéma, carte,
+  infographie, tableau en image) et son information ne peut pas tenir dans
+  une alternative courte.
+
+IMPORTANT :
+- ne déduis jamais le rôle de l'image de la présence ou du contenu de l'attribut alt ;
+- utilise l'observation visuelle, l'élément HTML et le contexte ;
+- utilise null pour tout champ que tu ne peux pas déterminer.
+
+Élément HTML :
+{element_html}
+
+Contexte :
+{context}
+
+Observation visuelle :
+{visual_observations}
+
+Retourne uniquement :
+
+{{
+    "information_bearing": true,
+    "is_captcha": false,
+    "contains_text": false,
+    "text_content": "",
+    "needs_detailed_description": false,
+    "explanation": "explication courte",
+    "uncertainties": [],
+    "confidence": "high"
+}}
+
+confidence doit être "low", "medium" ou "high".
+"""
+
+
+ALTERNATIVE_RULES = {
+    "alternative": (
+        "RGAA 1.3 : l'alternative textuelle d'une image porteuse d'information doit être pertinente "
+        "(elle transmet la même information que l'image, ou sa fonction si l'image est dans un lien "
+        "ou un bouton) et courte et concise (une description longue relève d'une description détaillée)."
+    ),
+    "captcha": (
+        "RGAA 1.4 : l'alternative textuelle d'un CAPTCHA ou d'une image-test doit permettre d'identifier "
+        "la nature et la fonction de l'image (par exemple « Code de sécurité à recopier »), sans "
+        "nécessairement en donner le contenu."
+    ),
+}
+
+
+ALTERNATIVE_RELEVANCE_PROMPT = """
+Tu compares l'alternative textuelle d'une image à son contenu.
+
+{rule}
+
+Élément HTML :
+{element_html}
+
+Alternative textuelle à évaluer :
+{alternative}
+
+Contexte :
+{context}
+
+Observation visuelle :
+{visual_observations}
+
+Indique :
+- relevant : true si l'alternative est pertinente selon la règle, false si elle ne l'est
+  clairement pas (générique, nom de fichier, contenu différent de l'image…), null si tu ne
+  peux pas conclure ;
+- concise : true si l'alternative est courte et concise, false si elle est trop longue,
+  null si tu ne peux pas conclure ;
+- missing_information : les informations de l'image absentes de l'alternative.
+
+Utilise null si l'observation visuelle n'est pas disponible et que le HTML ne suffit pas.
+
+Retourne uniquement :
+
+{{
+    "relevant": true,
+    "concise": true,
+    "explanation": "explication courte",
+    "missing_information": [],
+    "uncertainties": [],
+    "confidence": "high"
+}}
+
+confidence doit être "low", "medium" ou "high".
+"""

@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+from accessi_code.analysis.navigation import is_site_inventory_complete
 from accessi_code.input.extractors.css import extract_css
 from accessi_code.input.extractors.html import extract_html
 from accessi_code.input.file_classifier import (
@@ -98,6 +99,8 @@ class AuditContextBuilder:
                 html_files[main_index].path,
             )
             self._extract_page_doms(context, [file.path for file in html_files])
+            # Ensemble de pages complet : toutes les pages internes liées ont été importées.
+            context.site_inventory_complete = is_site_inventory_complete(context.page_doms)
 
         for css_file in css_files:
             self._extract_css_file(

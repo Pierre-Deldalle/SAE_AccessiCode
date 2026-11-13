@@ -3,6 +3,7 @@
 La limite de distance est un seuil de confirmation heuristique, PAS une norme
 RGAA. Si la disposition n'est pas évidente, aucune preuve n'est fournie.
 """
+
 from __future__ import annotations
 
 import re
@@ -19,13 +20,15 @@ from accessi_code.models.audit_context import AuditContext
 MAX_OBVIOUS_GAP_PX = 16
 
 
-def classify_geometry(label: dict[str, float], field: dict[str, float],
-                      direction: str, *, max_gap: float = MAX_OBVIOUS_GAP_PX) -> dict[str, Any] | None:
+def classify_geometry(
+    label: dict[str, float], field: dict[str, float], direction: str, *, max_gap: float = MAX_OBVIOUS_GAP_PX
+) -> dict[str, Any] | None:
     if direction not in {"ltr", "rtl"}:
         return None
     for rect in (label, field):
-        if not all(isinstance(rect.get(k), (int, float)) for k in
-                   ("left", "right", "top", "bottom", "width", "height")):
+        if not all(
+            isinstance(rect.get(k), (int, float)) for k in ("left", "right", "top", "bottom", "width", "height")
+        ):
             return None
         if rect["width"] <= 0 or rect["height"] <= 0:
             return None
@@ -47,8 +50,13 @@ def classify_geometry(label: dict[str, float], field: dict[str, float],
     position, gap = min(options, key=lambda option: option[1])
     if gap > max_gap:
         return None
-    return {"adjacent": True, "position": position, "direction": direction,
-            "gap_px": round(gap, 2), "heuristic_gap_px": max_gap}
+    return {
+        "adjacent": True,
+        "position": position,
+        "direction": direction,
+        "gap_px": round(gap, 2),
+        "heuristic_gap_px": max_gap,
+    }
 
 
 _MEASURE_SCRIPT = r"""() => {
@@ -87,13 +95,13 @@ def evidence_from_measurements(context: AuditContext, rows: list[dict[str, Any]]
         if element_id and len(context.dom.find_all(id=element_id)) != 1:
             continue
         label_text = " ".join(str(row.get("label_text", "")).split())
-        if not label_text or (re.search(r"[\u0590-\u08ff]", label_text) and
-                              re.search(r"[A-Za-zÀ-ÖØ-öø-ÿ]", label_text)):
+        if not label_text or (
+            re.search(r"[\u0590-\u08ff]", label_text) and re.search(r"[A-Za-zÀ-ÖØ-öø-ÿ]", label_text)
+        ):
             continue
         geometry = classify_geometry(row.get("label", {}), row.get("field", {}), row.get("direction", ""))
         if geometry is not None:
-            records[identifier] = {"verified": True, "source": "browser",
-                                   "label_text": label_text, **geometry}
+            records[identifier] = {"verified": True, "source": "browser", "label_text": label_text, **geometry}
     return records
 
 
@@ -111,18 +119,23 @@ async def collect_form_label_layout(context: AuditContext) -> None:
     browser = None
     try:
         from playwright.async_api import async_playwright
+
         instrumented = BeautifulSoup(context.html_source, "html.parser")
         for index, field in enumerate(find_form_fields(instrumented)):
             field["data-accessicode-field-index"] = str(index)
-        with NamedTemporaryFile(mode="w", encoding="utf-8", suffix=".html",
-                                prefix=".accessicode_layout_", dir=context.html_path.parent,
-                                delete=False) as temporary:
+        with NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            suffix=".html",
+            prefix=".accessicode_layout_",
+            dir=context.html_path.parent,
+            delete=False,
+        ) as temporary:
             temporary.write(str(instrumented))
             temporary_path = Path(temporary.name)
         async with async_playwright() as playwright:
             browser = await launch_local_browser(playwright)
-            page = await browser.new_page(java_script_enabled=False,
-                                          viewport={"width": 1366, "height": 900})
+            page = await browser.new_page(java_script_enabled=False, viewport={"width": 1366, "height": 900})
             await page.route("http://**/*", lambda route: route.abort())
             await page.route("https://**/*", lambda route: route.abort())
             await page.goto(temporary_path.as_uri(), wait_until="load", timeout=15000)
@@ -131,7 +144,11 @@ async def collect_form_label_layout(context: AuditContext) -> None:
             await browser.close()
             browser = None
     except Exception as exc:
-        context.visual_evidence_error = f"{type(exc).__name__}: {exc}"
+        # Ajout sans effacer un diagnostic précédent (navigation, etc.).
+        message = f"Disposition des étiquettes : {type(exc).__name__}: {exc}"
+        context.visual_evidence_error = (
+            f"{context.visual_evidence_error}; {message}" if context.visual_evidence_error else message
+        )
     finally:
         if browser is not None:
             await browser.close()

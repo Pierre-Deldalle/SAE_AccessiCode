@@ -51,7 +51,15 @@ from accessi_code.service.audit_timing import AuditEstimate, AuditTimingStore, R
 TIMINGS_FILENAME = "audit_timings.json"
 
 # Données produites par l'analyse du rendu (styles calculés, contrastes).
-RENDER_CAPABILITIES = frozenset({Capability.COMPUTED_STYLES, Capability.TEXT_CONTRAST, Capability.NON_TEXT_CONTRAST})
+RENDER_CAPABILITIES = frozenset(
+    {
+        Capability.COMPUTED_STYLES,
+        Capability.TEXT_CONTRAST,
+        Capability.NON_TEXT_CONTRAST,
+        # Preuves navigateur : accolement des étiquettes (11.4), navigation (12.x).
+        Capability.BROWSER_INTERACTION,
+    }
+)
 
 
 class AuditRequestError(ValueError):
@@ -362,14 +370,19 @@ class AuditOrchestrator:
 
         problems = [
             str(problem)
-            for problem in (getattr(enrichment, "error", None), getattr(enrichment, "non_text_error", None))
+            for problem in (
+                getattr(enrichment, "error", None),
+                getattr(enrichment, "non_text_error", None),
+                getattr(enrichment, "browser_evidence_error", None),
+            )
             if problem
         ]
         if problems:
             return (
                 "L'analyse du rendu de la page est incomplète : "
                 + " ; ".join(problems)
-                + ". Certains contrôles de contraste devront être vérifiés manuellement."
+                + ". Certains contrôles (contrastes, navigation au clavier, disposition des "
+                "étiquettes) devront être vérifiés manuellement."
             )
         return None
 
