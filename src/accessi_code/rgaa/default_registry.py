@@ -352,6 +352,51 @@ from accessi_code.rgaa.tests.theme_12_navigation.criterion_12_8 import (
 from accessi_code.rgaa.tests.theme_12_navigation.criterion_12_9 import Test1291
 from accessi_code.rgaa.tests.theme_12_navigation.criterion_12_10 import Test12101
 from accessi_code.rgaa.tests.theme_12_navigation.criterion_12_11 import Test12111
+from accessi_code.rgaa.tests.theme_13_consultation.criterion_13_1 import (
+    Test1311,
+    Test1312,
+    Test1313,
+    Test1314,
+)
+from accessi_code.rgaa.tests.theme_13_consultation.criterion_13_2 import (
+    Test1321,
+)
+from accessi_code.rgaa.tests.theme_13_consultation.criterion_13_3 import (
+    Test1331,
+)
+from accessi_code.rgaa.tests.theme_13_consultation.criterion_13_4 import (
+    Test1341,
+)
+from accessi_code.rgaa.tests.theme_13_consultation.criterion_13_5 import (
+    Test1351,
+)
+from accessi_code.rgaa.tests.theme_13_consultation.criterion_13_6 import (
+    Test1361,
+)
+from accessi_code.rgaa.tests.theme_13_consultation.criterion_13_7 import (
+    Test1371,
+    Test1372,
+    Test1373,
+)
+from accessi_code.rgaa.tests.theme_13_consultation.criterion_13_8 import (
+    Test1381,
+    Test1382,
+)
+from accessi_code.rgaa.tests.theme_13_consultation.criterion_13_9 import (
+    Test1391,
+)
+from accessi_code.rgaa.tests.theme_13_consultation.criterion_13_10 import (
+    Test13101,
+    Test13102,
+)
+from accessi_code.rgaa.tests.theme_13_consultation.criterion_13_11 import (
+    Test13111,
+)
+from accessi_code.rgaa.tests.theme_13_consultation.criterion_13_12 import (
+    Test13121,
+    Test13122,
+    Test13123,
+)
 
 
 def build_default_registry() -> TestRegistry:
@@ -608,5 +653,27 @@ def build_default_registry() -> TestRegistry:
             Test1291(),
             Test12101(),
             Test12111(),
+            # Thème 13 — Consultation
+            Test1311(),
+            Test1312(),
+            Test1313(),
+            Test1314(),
+            Test1321(),
+            Test1331(),
+            Test1341(),
+            Test1351(),
+            Test1361(),
+            Test1371(),
+            Test1372(),
+            Test1373(),
+            Test1381(),
+            Test1382(),
+            Test1391(),
+            Test13101(),
+            Test13102(),
+            Test13111(),
+            Test13121(),
+            Test13122(),
+            Test13123(),
         ]
     )
