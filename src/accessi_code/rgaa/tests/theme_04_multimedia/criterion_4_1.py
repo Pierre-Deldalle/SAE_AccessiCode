@@ -82,7 +82,9 @@ class _Criterion41Test(RGAATest):
                 findings.append(
                     Finding(
                         element=element_id,
-                        message="Aucune alternative textuelle, audiodescription ou lien/bouton adjacent n'a été trouvé.",
+                        message=(
+                            "Aucune alternative textuelle, audiodescription ou lien/bouton adjacent n'a été trouvé."
+                        ),
                         recommendation=(
                             "Fournir une transcription textuelle ou une audiodescription "
                             "accessible via un lien, un bouton ou un texte adjacent."

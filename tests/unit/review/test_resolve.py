@@ -4,22 +4,47 @@ from accessi_code.review.resolve import resolve_report
 
 
 def report():
-    return {"audit_id": "test", "status": "needs_review", "criteria": [
-        {"criterion_id": "11.4", "status": "needs_review", "summary": "", "tests": [
-            {"test_id": "11.4.1", "criterion_id": "11.4", "status": "needs_review",
-             "summary": "À vérifier", "findings": [{"element": "input#x", "message": "?"}],
-             "tested_elements": 1, "metadata": {}}
-        ]}
-    ], "statistics": {"needs_review_tests": 1}}
+    return {
+        "audit_id": "test",
+        "status": "needs_review",
+        "criteria": [
+            {
+                "criterion_id": "11.4",
+                "status": "needs_review",
+                "summary": "",
+                "tests": [
+                    {
+                        "test_id": "11.4.1",
+                        "criterion_id": "11.4",
+                        "status": "needs_review",
+                        "summary": "À vérifier",
+                        "findings": [{"element": "input#x", "message": "?"}],
+                        "tested_elements": 1,
+                        "metadata": {},
+                    }
+                ],
+            }
+        ],
+        "statistics": {"needs_review_tests": 1},
+    }
 
 
 def decision(status="pass"):
-    result = {"test_id": "11.4.1", "status": status, "reviewer": "Auditeur RGAA",
-              "reason": "Contrôle visuel effectué sur le rendu à 1366 px.",
-              "evidence": {"capture": "capture-01.png", "champ": "input#x"}}
+    result = {
+        "test_id": "11.4.1",
+        "status": status,
+        "reviewer": "Auditeur RGAA",
+        "reason": "Contrôle visuel effectué sur le rendu à 1366 px.",
+        "evidence": {"capture": "capture-01.png", "champ": "input#x"},
+    }
     if status == "fail":
-        result["findings"] = [{"element": "input#x", "message": "Étiquette éloignée du champ.",
-                               "recommendation": "Rapprocher l'étiquette."}]
+        result["findings"] = [
+            {
+                "element": "input#x",
+                "message": "Étiquette éloignée du champ.",
+                "recommendation": "Rapprocher l'étiquette.",
+            }
+        ]
     return result
 
 
@@ -33,10 +58,16 @@ def test_valid_review_updates_report_and_statistics(status):
     assert resolved["criteria"][0]["tests"][0]["metadata"]["manual_review"]["reviewer"]
 
 
-@pytest.mark.parametrize("change", [
-    {"reviewer": ""}, {"reason": ""}, {"evidence": {}},
-    {"status": "error"}, {"test_id": "inconnu"},
-])
+@pytest.mark.parametrize(
+    "change",
+    [
+        {"reviewer": ""},
+        {"reason": ""},
+        {"evidence": {}},
+        {"status": "error"},
+        {"test_id": "inconnu"},
+    ],
+)
 def test_invalid_review_rejected(change):
     data = decision()
     data.update(change)

@@ -3,6 +3,7 @@
 Playwright peut être installé sans son binaire Chromium. Dans ce cas,
 utiliser un navigateur local compatible, sans modifier les conclusions RGAA.
 """
+
 from __future__ import annotations
 
 import shutil

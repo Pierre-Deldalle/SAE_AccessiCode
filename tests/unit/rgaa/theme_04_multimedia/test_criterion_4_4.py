@@ -1,4 +1,3 @@
-
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.default_registry import build_default_registry
 from accessi_code.rgaa.tests.theme_04_multimedia.criterion_4_4 import Test441

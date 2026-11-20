@@ -157,13 +157,13 @@ class Test722(RGAATest):
         if not isinstance(context.dom, BeautifulSoup):
             raise ValueError("Le test 7.2.2 nécessite un DOM.")
 
-        soup = context.dom
-
         return TestResult(
             test_id=self.test_id,
             criterion_id=self.criterion_id,
             status=TestStatus.NOT_APPLICABLE,
-            summary="Le test 7.2.2 nécessite un suivi des changements DOM en temps réel qui n'est pas encore implémenté.",
+            summary=(
+                "Le test 7.2.2 nécessite un suivi des changements DOM en temps réel qui n'est pas encore implémenté."
+            ),
             tested_elements=0,
         )
 

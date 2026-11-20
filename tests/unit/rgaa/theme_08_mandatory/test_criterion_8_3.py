@@ -33,7 +33,7 @@ class TestTest831:
 
         # Créer un contexte avec un DOM contenant lang sur html
         html_content = '<html lang="fr"><head><title>Test</title></head><body><p>Bonjour</p></body></html>'
-        soup = BeautifulSoup(html_content, 'html.parser')
+        soup = BeautifulSoup(html_content, "html.parser")
 
         context = Mock(spec=AuditContext)
         context.dom = soup
@@ -53,7 +53,7 @@ class TestTest831:
 
         # Créer un contexte avec un DOM contenant xml:lang sur html
         html_content = '<html xml:lang="fr"><head><title>Test</title></head><body><p>Bonjour</p></body></html>'
-        soup = BeautifulSoup(html_content, 'html.parser')  # Même analyseur que l'application (garde xml:lang)
+        soup = BeautifulSoup(html_content, "html.parser")  # Même analyseur que l'application (garde xml:lang)
 
         context = Mock(spec=AuditContext)
         context.dom = soup
@@ -73,7 +73,7 @@ class TestTest831:
 
         # Créer un contexte avec un div ayant lang, contenant du texte
         html_content = '<html><head><title>Test</title></head><body><div lang="fr"><p>Bonjour</p></div></body></html>'
-        soup = BeautifulSoup(html_content, 'html.parser')
+        soup = BeautifulSoup(html_content, "html.parser")
 
         context = Mock(spec=AuditContext)
         context.dom = soup
@@ -92,7 +92,7 @@ class TestTest831:
         test = Test831()
 
         # Créer un contexte avec un élément de texte sans lang et un autre avec lang via parent
-        html_content = '''
+        html_content = """
         <html>
             <head><title>Test</title></head>
             <body>
@@ -100,8 +100,8 @@ class TestTest831:
                 <div lang="fr"><p>Texte avec lang via parent</p></div>
             </body>
         </html>
-        '''
-        soup = BeautifulSoup(html_content, 'html.parser')
+        """
+        soup = BeautifulSoup(html_content, "html.parser")
 
         context = Mock(spec=AuditContext)
         context.dom = soup
@@ -120,7 +120,7 @@ class TestTest831:
         test = Test831()
 
         # Créer un contexte avec seulement des éléments scripts/styles (pas de texte significatif)
-        html_content = '''
+        html_content = """
         <html>
             <head>
                 <title>Test</title>
@@ -129,8 +129,8 @@ class TestTest831:
             </head>
             <body></body>
         </html>
-        '''
-        soup = BeautifulSoup(html_content, 'html.parser')
+        """
+        soup = BeautifulSoup(html_content, "html.parser")
 
         context = Mock(spec=AuditContext)
         context.dom = soup
@@ -149,8 +149,8 @@ class TestTest831:
         test = Test831()
 
         # Créer un contexte avec un DOM sans élément html
-        html_content = '<head><title>Test</title></head><body><p>Bonjour</p></body>'
-        soup = BeautifulSoup(html_content, 'html.parser')
+        html_content = "<head><title>Test</title></head><body><p>Bonjour</p></body>"
+        soup = BeautifulSoup(html_content, "html.parser")
 
         context = Mock(spec=AuditContext)
         context.dom = soup

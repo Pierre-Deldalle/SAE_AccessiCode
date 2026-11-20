@@ -104,7 +104,6 @@ def test_722_not_implemented_yet(context_factory, run_rgaa):
     assert "nécessite un suivi des changements DOM en temps réel" in result.summary
 
 
-
 def test_722_missing_dom_raises_error(context_factory):
     """Test that missing DOM raises ValueError."""
     context = context_factory("<html><body></body></html>")

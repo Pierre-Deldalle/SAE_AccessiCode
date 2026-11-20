@@ -109,7 +109,8 @@ def test_1061_link_color_only_with_sufficient_contrast_passes_contrast(context_f
     <html>
     <head><title>Test</title></head>
     <body>
-        <p style="color: #000000;">Texte noir avec <a href="#" style="color: #0066cc;">un lien bleu</a> sans soulignement.</p>
+        <p style="color: #000000;">Texte noir avec <a href="#"
+            style="color: #0066cc;">un lien bleu</a> sans soulignement.</p>
     </body>
     </html>
     """
@@ -131,7 +132,8 @@ def test_1061_link_color_only_insufficient_contrast_fails(context_factory, run_r
     <html>
     <head><title>Test</title></head>
     <body>
-        <p style="color: #333333;">Texte gris foncé avec <a href="#" style="color: #666666;">un lien gris</a> sans soulignement.</p>
+        <p style="color: #333333;">Texte gris foncé avec <a href="#"
+            style="color: #666666;">un lien gris</a> sans soulignement.</p>
     </body>
     </html>
     """

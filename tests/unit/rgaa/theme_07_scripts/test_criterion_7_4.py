@@ -104,7 +104,8 @@ def test_741_element_with_aria_label_warning_passes(context_factory, run_rgaa):
 def test_741_element_with_nearby_warning_text_passes(context_factory, run_rgaa):
     """Test that an element with nearby warning text passes 7.4.1."""
     context = context_factory(
-        '<div><span>[Attention: cette action ouvre une nouvelle fenêtre]</span><button onclick="openHelp()">Aide</button></div>'
+        "<div><span>[Attention: cette action ouvre une nouvelle fenêtre]</span><button "
+        'onclick="openHelp()">Aide</button></div>'
     )
     result = run_rgaa(Test741(), context, AuditServices())
 
@@ -168,7 +169,8 @@ def test_741_no_script_elements_is_not_applicable(context_factory, run_rgaa):
 def test_741_onchange_select_with_warning_passes(context_factory, run_rgaa):
     """Test that an onchange select with warning text passes 7.4.1."""
     context = context_factory(
-        '<select onchange="loadPage(this.value)"><option value="">-- Sélectionnez une page --</option><option value="page1">Page 1 [ouvre nouvel onglet]</option></select>'
+        '<select onchange="loadPage(this.value)"><option value="">-- Sélectionnez une page '
+        '--</option><option value="page1">Page 1 [ouvre nouvel onglet]</option></select>'
     )
     result = run_rgaa(Test741(), context, AuditServices())
 
@@ -180,7 +182,8 @@ def test_741_onchange_select_with_warning_passes(context_factory, run_rgaa):
 def test_741_onchange_select_without_warning_fails(context_factory, run_rgaa):
     """Test that an onchange select without warning text fails 7.4.1."""
     context = context_factory(
-        '<select onchange="loadPage(this.value)"><option value="">-- Sélectionnez --</option><option value="page1">Page 1</option></select>'
+        '<select onchange="loadPage(this.value)"><option value="">-- Sélectionnez --</option><option '
+        'value="page1">Page 1</option></select>'
     )
     result = run_rgaa(Test741(), context, AuditServices())
 

@@ -466,7 +466,6 @@ class Test4121(RGAATest):
         if fail_count == 0 and needs_review_count == 0:
             # All PASS or NOT_APPLICABLE
             pass_count = sum(1 for s in statuses if s == TestStatus.PASS)
-            not_applicable_count = sum(1 for s in statuses if s == TestStatus.NOT_APPLICABLE)
             if pass_count > 0:
                 status_message = (
                     f"Conforme : {pass_count} média(s) non temporel(s) avec des contrôles tous accessibles au clavier."
@@ -610,7 +609,6 @@ class Test4122(RGAATest):
         if fail_count == 0 and needs_review_count == 0:
             # All PASS or NOT_APPLICABLE
             pass_count = sum(1 for s in statuses if s == TestStatus.PASS)
-            not_applicable_count = sum(1 for s in statuses if s == TestStatus.NOT_APPLICABLE)
             if pass_count > 0:
                 status_message = (
                     f"Conforme : {pass_count} média(s) non temporel(s) avec des contrôles tous accessibles au clavier."

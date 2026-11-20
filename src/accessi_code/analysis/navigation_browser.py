@@ -4,6 +4,7 @@ Ne conclut jamais PASS à partir de la simple présence de HTML. Les preuves
 sont ajoutées uniquement après observation de pages réellement rendues.
 Les cas dynamiques/complexes restent à vérifier.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -43,12 +44,15 @@ _SNAPSHOT = r"""() => {
   });
   return {nav: nav.map(box), sitemap: box(sitemap), search: box(search),
           skip: box(skip), skipHref: skip?.getAttribute('href') || null,
-          hasScripts: !!document.querySelector('script, iframe, frame, object, embed, dialog, [role="dialog"], [role="tablist"]'),
-          hasComplex: !!document.querySelector('[contenteditable], [tabindex]:not([tabindex="0"]), [aria-activedescendant]')};
+          hasScripts: !!document.querySelector('script, iframe, frame, object, embed, dialog, ' +
+            '[role="dialog"], [role="tablist"]'),
+          hasComplex: !!document.querySelector('[contenteditable], [tabindex]:not([tabindex="0"]), ' +
+            '[aria-activedescendant]')};
 }"""
 
 _FOCUS_INIT = r"""() => {
-  const selector = 'a[href], area[href], button, input:not([type="hidden"]), select, textarea, [tabindex], [contenteditable]';
+  const selector = 'a[href], area[href], button, input:not([type="hidden"]), select, textarea, [tabindex], ' +
+    '[contenteditable]';
   const visible = e => {const s = getComputedStyle(e), r = e.getBoundingClientRect();
     return s.display !== 'none' && s.visibility !== 'hidden' && r.width > 0 && r.height > 0;};
   const list = [...document.querySelectorAll(selector)].filter(e =>
@@ -86,13 +90,13 @@ async def _focus_sequence(page: Any, limit: int = 80) -> tuple[bool, bool]:
     # La disposition n'est pas forcément une grille : on ne confirme l'ordre
     # visuel que si les éléments se succèdent dans un flux vertical évident.
     rects = data["rects"]
-    obvious = all(rects[i+1]["y"] >= rects[i]["y"] - 3 for i in range(count-1))
+    obvious = all(rects[i + 1]["y"] >= rects[i]["y"] - 3 for i in range(count - 1))
     return True, obvious
 
 
 async def _skip_check(page: Any, href: str) -> tuple[bool, bool]:
     """Vérifie focus visible au clavier puis activation effective du fragment."""
-    await page.goto(page.url.split('#')[0], wait_until="load", timeout=8000)
+    await page.goto(page.url.split("#")[0], wait_until="load", timeout=8000)
     # Tab depuis le document initial, pas un .focus() programmatique.
     found = False
     for _ in range(30):
@@ -126,9 +130,9 @@ def _same_boxes(boxes: list[dict[str, Any] | None], *, tolerance: float = 10) ->
         return False
     first = boxes[0]
     return all(
-        item["region"] == first["region"] and
-        abs(item["x"] - first["x"]) <= tolerance and
-        abs(item["y"] - first["y"]) <= tolerance
+        item["region"] == first["region"]
+        and abs(item["x"] - first["x"]) <= tolerance
+        and abs(item["y"] - first["y"]) <= tolerance
         for item in boxes[1:]
     )
 
@@ -163,11 +167,11 @@ async def collect_navigation_evidence(context: AuditContext) -> None:
         files = {context.html_path.name: context.html_path}
     try:
         from playwright.async_api import async_playwright
+
         async with async_playwright() as playwright:
             browser = await launch_local_browser(playwright)
             try:
-                page = await browser.new_page(java_script_enabled=False,
-                                              viewport={"width": 1366, "height": 900})
+                page = await browser.new_page(java_script_enabled=False, viewport={"width": 1366, "height": 900})
                 # Ne pas charger de ressources réseau non sollicitées.
                 await page.route("http://**/*", lambda route: route.abort())
                 await page.route("https://**/*", lambda route: route.abort())
@@ -218,7 +222,6 @@ async def collect_navigation_evidence(context: AuditContext) -> None:
     except Exception as error:
         # Ne pas cacher l'échec de collecte : visible dans le contexte/log.
         context.visual_evidence_error = (
-            (context.visual_evidence_error + "; " if context.visual_evidence_error else "") +
-            f"Navigation Chromium : {type(error).__name__}: {error}"
-        )
+            context.visual_evidence_error + "; " if context.visual_evidence_error else ""
+        ) + f"Navigation Chromium : {type(error).__name__}: {error}"
         print(f"[NAVIGATION] Preuves navigateur indisponibles : {type(error).__name__}: {error}", flush=True)

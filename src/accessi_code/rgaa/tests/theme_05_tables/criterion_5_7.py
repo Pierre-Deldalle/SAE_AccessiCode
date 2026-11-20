@@ -106,16 +106,22 @@ class Test571(RGAATest):
                                         f"#{table_id} > *:nth-child({row_index + 1}) > *:nth-child({col_index + 1})"
                                     )
                                 else:
-                                    element = f"table[index={table_index}] > *:nth-child({row_index + 1}) > *:nth-child({col_index + 1})"
+                                    element = (
+                                        f"table[index={table_index}] > *:nth-child({row_index + 1}) > "
+                                        f"*:nth-child({col_index + 1})"
+                                    )
 
                                 header_findings.append(
                                     Finding(
                                         element=element,
                                         message=(
-                                            "L'en-tête de ligne ou de colonne doit avoir un identifiant unique (id), un attribut scope ou un rôle role='rowheader' ou role='columnheader'."
+                                            "L'en-tête de ligne ou de colonne doit avoir un identifiant "
+                                            "unique (id), un attribut scope ou un rôle role='rowheader' ou "
+                                            "role='columnheader'."
                                         ),
                                         recommendation=(
-                                            "Ajouter un attribut id unique, un attribut scope approprié (row/col) ou un rôle role='rowheader'/'columnheader' à cet en-tête."
+                                            "Ajouter un attribut id unique, un attribut scope approprié "
+                                            "(row/col) ou un rôle role='rowheader'/'columnheader' à cet en-tête."
                                         ),
                                     )
                                 )
@@ -139,7 +145,8 @@ class Test571(RGAATest):
             self.criterion_id,
             status,
             (
-                f"{total_headers_entire} en-tête(s) de ligne/colonne s'appliquant à la totalité de la ligne/colonne, {len(header_findings)} non conforme(s)."
+                f"{total_headers_entire} en-tête(s) de ligne/colonne s'appliquant à la totalité de la "
+                f"ligne/colonne, {len(header_findings)} non conforme(s)."
             ),
             findings=header_findings,
             tested_elements=total_headers_entire,
@@ -357,7 +364,10 @@ class Test572(RGAATest):
                                         f"#{table_id} > *:nth-child({row_index + 1}) > *:nth-child({col_index + 1})"
                                     )
                                 else:
-                                    element = f"table[index={table_index}] > *:nth-child({row_index + 1}) > *:nth-child({col_index + 1})"
+                                    element = (
+                                        f"table[index={table_index}] > *:nth-child({row_index + 1}) > "
+                                        f"*:nth-child({col_index + 1})"
+                                    )
 
                                 header_findings.append(
                                     Finding(
@@ -366,7 +376,8 @@ class Test572(RGAATest):
                                             "L'attribut scope de l'en-tête de ligne ou de colonne n'est pas approprié."
                                         ),
                                         recommendation=(
-                                            "Utiliser scope='row' pour un en-tête de ligne ou scope='col' pour un en-tête de colonne."
+                                            "Utiliser scope='row' pour un en-tête de ligne ou scope='col' "
+                                            "pour un en-tête de colonne."
                                         ),
                                     )
                                 )
@@ -390,7 +401,8 @@ class Test572(RGAATest):
             self.criterion_id,
             status,
             (
-                f"{total_headers_with_scope} en-tête(s) de ligne/colonne avec scope, {len(header_findings)} non conforme(s)."
+                f"{total_headers_with_scope} en-tête(s) de ligne/colonne avec scope, {len(header_findings)} "
+                "non conforme(s)."
             ),
             findings=header_findings,
             tested_elements=total_headers_with_scope,
@@ -632,7 +644,8 @@ class Test573(RGAATest):
             self.criterion_id,
             status,
             (
-                f"{total_headers_not_entire} en-tête(s) ne s'appliquant pas à la totalité de la ligne/colonne, {len(header_findings)} non conforme(s)."
+                f"{total_headers_not_entire} en-tête(s) ne s'appliquant pas à la totalité de la "
+                f"ligne/colonne, {len(header_findings)} non conforme(s)."
             ),
             findings=header_findings,
             tested_elements=total_headers_not_entire,
@@ -842,16 +855,22 @@ class Test574(RGAATest):
                                         f"#{table_id} > *:nth-child({row_index + 1}) > *:nth-child({col_index + 1})"
                                     )
                                 else:
-                                    element = f"table[index={table_index}] > *:nth-child({row_index + 1}) > *:nth-child({col_index + 1})"
+                                    element = (
+                                        f"table[index={table_index}] > *:nth-child({row_index + 1}) > "
+                                        f"*:nth-child({col_index + 1})"
+                                    )
 
                                 cell_findings.append(
                                     Finding(
                                         element=element,
                                         message=(
-                                            "La cellule associée à un ou plusieurs en-têtes possédant un id doit avoir un attribut headers contenant la liste des ids des en-têtes associés."
+                                            "La cellule associée à un ou plusieurs en-têtes possédant un id "
+                                            "doit avoir un attribut headers contenant la liste des ids des "
+                                            "en-têtes associés."
                                         ),
                                         recommendation=(
-                                            "Ajouter un attribut headers contenant la liste des ids des en-têtes associés à cette cellule."
+                                            "Ajouter un attribut headers contenant la liste des ids des "
+                                            "en-têtes associés à cette cellule."
                                         ),
                                     )
                                 )
@@ -875,7 +894,8 @@ class Test574(RGAATest):
             self.criterion_id,
             status,
             (
-                f"{total_associated_cells} cellule(s) associée(s) à un(en) en-tête(s) possédant un id, {len(cell_findings)} non conforme(s)."
+                f"{total_associated_cells} cellule(s) associée(s) à un(en) en-tête(s) possédant un id, "
+                f"{len(cell_findings)} non conforme(s)."
             ),
             findings=cell_findings,
             tested_elements=total_associated_cells,
@@ -1043,16 +1063,22 @@ class Test575(RGAATest):
                                         f"#{table_id} > *:nth-child({row_index + 1}) > *:nth-child({col_index + 1})"
                                     )
                                 else:
-                                    element = f"table[index={table_index}] > *:nth-child({row_index + 1}) > *:nth-child({col_index + 1})"
+                                    element = (
+                                        f"table[index={table_index}] > *:nth-child({row_index + 1}) > "
+                                        f"*:nth-child({col_index + 1})"
+                                    )
 
                                 header_findings.append(
                                     Finding(
                                         element=element,
                                         message=(
-                                            "L'élément avec role='rowheader' ou role='columnheader' doit avoir la valeur appropriée selon qu'il s'applique à une ligne ou une colonne."
+                                            "L'élément avec role='rowheader' ou role='columnheader' doit "
+                                            "avoir la valeur appropriée selon qu'il s'applique à une ligne "
+                                            "ou une colonne."
                                         ),
                                         recommendation=(
-                                            "Utiliser role='rowheader' pour un en-tête de ligne ou role='columnheader' pour un en-tête de colonne."
+                                            "Utiliser role='rowheader' pour un en-tête de ligne ou "
+                                            "role='columnheader' pour un en-tête de colonne."
                                         ),
                                     )
                                 )
@@ -1062,7 +1088,8 @@ class Test575(RGAATest):
                 self.test_id,
                 self.criterion_id,
                 TestStatus.NOT_APPLICABLE,
-                "Aucun élément avec role='rowheader' ou role='columnheader' s'appliquant à la totalité de la ligne ou de la colonne détecté.",
+                "Aucun élément avec role='rowheader' ou role='columnheader' s'appliquant à la totalité de "
+                "la ligne ou de la colonne détecté.",
                 metadata={
                     "total_tables": len(tables),
                     "data_tables": len(data_tables),
@@ -1076,7 +1103,8 @@ class Test575(RGAATest):
             self.criterion_id,
             status,
             (
-                f"{total_role_headers_entire} élément(s) avec role='rowheader'/'columnheader' s'appliquant à la totalité de la ligne/colonne, {len(header_findings)} non conforme(s)."
+                f"{total_role_headers_entire} élément(s) avec role='rowheader'/'columnheader' s'appliquant à "
+                f"la totalité de la ligne/colonne, {len(header_findings)} non conforme(s)."
             ),
             findings=header_findings,
             tested_elements=total_role_headers_entire,

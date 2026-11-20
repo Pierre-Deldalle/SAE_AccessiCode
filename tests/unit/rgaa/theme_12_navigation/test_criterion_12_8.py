@@ -8,7 +8,7 @@ HTML = '<html><body><a href="#contenu">Aller au contenu</a><nav>Menu</nav><main 
 
 def test_1271_pass(context_factory, run_rgaa):
     c = context_factory(HTML)
-    c.navigation_evidence['12.7.1'] = {'visible_on_focus': True}
+    c.navigation_evidence["12.7.1"] = {"visible_on_focus": True}
     assert run_rgaa(Test1271(), c).status == Status.PASS
 
 
@@ -22,8 +22,8 @@ def test_1271_fail(context_factory, run_rgaa):
 
 def test_1272_pass(context_factory, run_rgaa):
     c = context_factory(HTML)
-    c.page_doms['second.html'] = BeautifulSoup(HTML, 'html.parser')
-    c.navigation_evidence['12.7.2'] = {'same_visual_position': True, 'visible_on_focus': True, 'functional': True}
+    c.page_doms["second.html"] = BeautifulSoup(HTML, "html.parser")
+    c.navigation_evidence["12.7.2"] = {"same_visual_position": True, "visible_on_focus": True, "functional": True}
     assert run_rgaa(Test1272(), c).status == Status.PASS
 
 
@@ -33,11 +33,11 @@ def test_1272_review(context_factory, run_rgaa):
 
 def test_1272_fail(context_factory, run_rgaa):
     c = context_factory(HTML)
-    c.navigation_evidence['12.7.2'] = {'same_visual_position': False, 'visible_on_focus': True, 'functional': True}
+    c.navigation_evidence["12.7.2"] = {"same_visual_position": False, "visible_on_focus": True, "functional": True}
     assert run_rgaa(Test1272(), c).status == Status.FAIL
 
 
 def test_single_page_exception(context_factory, run_rgaa):
-    c = context_factory('<main>Texte</main>')
-    c.navigation_evidence['12.7.1'] = {'single_page_no_need': True}
+    c = context_factory("<main>Texte</main>")
+    c.navigation_evidence["12.7.1"] = {"single_page_no_need": True}
     assert run_rgaa(Test1271(), c).status == Status.NOT_APPLICABLE

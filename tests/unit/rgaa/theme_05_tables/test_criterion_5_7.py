@@ -454,8 +454,8 @@ def test_571_table_with_missing_identification_fails(
     assert result.status == Status.FAIL
     assert len(result.findings) == 3
     assert all(
-        "L'en-tête de ligne ou de colonne doit avoir un identifiant unique (id), un attribut scope ou un rôle role='rowheader' ou role='columnheader'."
-        in f.message
+        "L'en-tête de ligne ou de colonne doit avoir un identifiant unique (id), un attribut scope ou un "
+        "rôle role='rowheader' ou role='columnheader'." in f.message
         for f in result.findings
     )
 
@@ -577,8 +577,8 @@ def test_573_table_with_header_missing_id_fails(
     assert len(result.findings) >= 1  # At least the header without id should fail
     assert result.tested_elements >= 1
     assert any(
-        "L'en-tête qui ne s'applique pas à la totalité de la ligne ou de la colonne doit avoir un id unique et ne pas avoir d'attribut scope ni de rôle role='rowheader'/'columnheader'."
-        in f.message
+        "L'en-tête qui ne s'applique pas à la totalité de la ligne ou de la colonne doit avoir un id unique "
+        "et ne pas avoir d'attribut scope ni de rôle role='rowheader'/'columnheader'." in f.message
         for f in result.findings
     )
 
@@ -596,8 +596,8 @@ def test_573_table_with_header_with_scope_fails(
     assert len(result.findings) >= 1  # At least the header with scope should fail
     assert result.tested_elements >= 1
     assert any(
-        "L'en-tête qui ne s'applique pas à la totalité de la ligne ou de la colonne doit avoir un id unique et ne pas avoir d'attribut scope ni de rôle role='rowheader'/'columnheader'."
-        in f.message
+        "L'en-tête qui ne s'applique pas à la totalité de la ligne ou de la colonne doit avoir un id unique "
+        "et ne pas avoir d'attribut scope ni de rôle role='rowheader'/'columnheader'." in f.message
         for f in result.findings
     )
 
@@ -615,8 +615,8 @@ def test_573_table_with_header_with_role_fails(
     assert len(result.findings) >= 1  # At least the header with role should fail
     assert result.tested_elements >= 1
     assert any(
-        "L'en-tête qui ne s'applique pas à la totalité de la ligne ou de la colonne doit avoir un id unique et ne pas avoir d'attribut scope ni de rôle role='rowheader'/'columnheader'."
-        in f.message
+        "L'en-tête qui ne s'applique pas à la totalité de la ligne ou de la colonne doit avoir un id unique "
+        "et ne pas avoir d'attribut scope ni de rôle role='rowheader'/'columnheader'." in f.message
         for f in result.findings
     )
 
@@ -670,8 +670,8 @@ def test_574_table_with_improper_headers_attribute_fails(
     assert len(result.findings) >= 1
     assert result.tested_elements >= 1
     assert any(
-        "La cellule associée à un ou plusieurs en-têtes possédant un id doit avoir un attribut headers contenant la liste des ids des en-têtes associés."
-        in f.message
+        "La cellule associée à un ou plusieurs en-têtes possédant un id doit avoir un attribut headers "
+        "contenant la liste des ids des en-têtes associés." in f.message
         for f in result.findings
     )
 
@@ -738,7 +738,7 @@ def test_575_table_with_wrong_role_fails(
     assert len(result.findings) == 3  # Three headers with wrong role
     assert result.tested_elements == 3
     assert all(
-        "L'élément avec role='rowheader' ou role='columnheader' doit avoir la valeur appropriée selon qu'il s'applique à une ligne ou une colonne."
-        in f.message
+        "L'élément avec role='rowheader' ou role='columnheader' doit avoir la valeur appropriée selon qu'il "
+        "s'applique à une ligne ou une colonne." in f.message
         for f in result.findings
     )

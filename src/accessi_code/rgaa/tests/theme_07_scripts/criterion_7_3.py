@@ -280,13 +280,8 @@ class Test731(RGAATest):
     def _has_accessible_equivalent(self, element: Tag, soup: BeautifulSoup) -> bool:
         tag_name = element.name.lower() if element.name else ""
         role = element.get("role")
-        aria_label = element.get("aria-label")
-        aria_labelledby = element.get("aria-labelledby")
-        title = element.get("title")
 
         element_text = element.get_text(strip=True)
-        element_id = element.get("id")
-        element_class = element.get("class")
 
         all_elements = soup.find_all()
 

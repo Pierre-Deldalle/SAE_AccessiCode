@@ -45,7 +45,7 @@ class Test831(RGAATest):
             )
 
         soup = context.dom
-        html_element = soup.find('html')
+        html_element = soup.find("html")
 
         if not html_element:
             return TestResult(
@@ -57,8 +57,8 @@ class Test831(RGAATest):
             )
 
         # Vérifier la présence de l'attribut lang et/ou xml:lang sur l'élément html
-        lang_attr = html_element.get('lang')
-        xml_lang_attr = html_element.get('xml:lang')
+        lang_attr = html_element.get("lang")
+        xml_lang_attr = html_element.get("xml:lang")
 
         # Déterminer le type de document pour appliquer les règles appropriées
         # Pour simplifier, on considère que si l'un des attributs est présent, c'est OK pour la première condition
@@ -83,7 +83,7 @@ class Test831(RGAATest):
         for text_node in text_elements:
             parent_name = text_node.parent.name
             # Exclure les éléments qui ne contiennent pas de contenu perceptible
-            if parent_name not in ['script', 'style', 'meta', 'link', 'noscript', 'head', 'title']:
+            if parent_name not in ["script", "style", "meta", "link", "noscript", "head", "title"]:
                 # Vérifier si le texte n'est pas juste des espaces blancs
                 if text_node.strip():
                     meaningful_text_elements.append(text_node)
@@ -109,15 +109,15 @@ class Test831(RGAATest):
             has_lang_indication = False
 
             # Remonter dans l'arbre jusqu'à l'élément html pour vérifier la présence de lang ou xml:lang
-            while parent and parent.name != 'html':
-                if parent.get('lang') or parent.get('xml:lang'):
+            while parent and parent.name != "html":
+                if parent.get("lang") or parent.get("xml:lang"):
                     has_lang_indication = True
                     break
                 parent = parent.parent
 
             # Vérifier aussi l'élément html lui-même
-            if parent and parent.name == 'html':
-                if parent.get('lang') or parent.get('xml:lang'):
+            if parent and parent.name == "html":
+                if parent.get("lang") or parent.get("xml:lang"):
                     has_lang_indication = True
 
             if not has_lang_indication:
@@ -128,7 +128,10 @@ class Test831(RGAATest):
                 test_id=self.test_id,
                 criterion_id=self.criterion_id,
                 status=TestStatus.PASS,
-                summary=f"Tous les {checked_elements} éléments de texte ont une indication de langue sur eux-mêmes ou un parent.",
+                summary=(
+                    f"Tous les {checked_elements} éléments de texte ont une indication de langue sur "
+                    "eux-mêmes ou un parent."
+                ),
                 tested_elements=checked_elements,
             )
         else:
@@ -136,6 +139,9 @@ class Test831(RGAATest):
                 test_id=self.test_id,
                 criterion_id=self.criterion_id,
                 status=TestStatus.FAIL,
-                summary=f"Parmi {checked_elements} éléments de texte vérifiés, {elements_without_lang} n'ont pas d'indication de langue sur eux-mêmes ou un parent.",
+                summary=(
+                    f"Parmi {checked_elements} éléments de texte vérifiés, {elements_without_lang} n'ont "
+                    "pas d'indication de langue sur eux-mêmes ou un parent."
+                ),
                 tested_elements=checked_elements,
             )

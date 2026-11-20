@@ -1,5 +1,3 @@
-
-
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_10_presentation_information.criterion_10_1 import (
     Test1011 as RGAA1011,

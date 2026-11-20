@@ -81,7 +81,8 @@ class Test441(RGAATest):
             self.test_id,
             self.criterion_id,
             TestStatus.NEEDS_REVIEW,
-            f"{len(checked_items)} média(s) vidéo avec sous-titres à vérifier pour la pertinence et la synchronisation.",
+            f"{len(checked_items)} média(s) vidéo avec sous-titres à vérifier pour la pertinence et la "
+            "synchronisation.",
             findings=findings,
             tested_elements=len(checked_items),
             metadata={"candidate_media": len(checked_items)},

@@ -102,9 +102,14 @@ class Test1021(RGAATest):
                             findings.append(
                                 Finding(
                                     element=f"CSS block {css_index + 1}",
-                                    message=f"Le pseudo-element :{pseudo_type} utilise la propriété 'content' avec une valeur qui pourrait transmettre de l'information : '{content_value[:50]}...'.",
+                                    message=(
+                                        f"Le pseudo-element :{pseudo_type} utilise la propriété "
+                                        "'content' avec une valeur qui pourrait transmettre de l'information : "
+                                        f"'{content_value[:50]}...'."
+                                    ),
                                     recommendation=(
-                                        "Vérifier que l'information transmise par ce pseudo-element est également disponible sans CSS, ou utiliser du contenu HTML à la place."
+                                        "Vérifier que l'information transmise par ce pseudo-element est "
+                                        "également disponible sans CSS, ou utiliser du contenu HTML à la place."
                                     ),
                                     evidence={
                                         "pseudo_element": f":{pseudo_type}",
@@ -159,9 +164,12 @@ class Test1021(RGAATest):
                     findings.append(
                         Finding(
                             element="CSS background-image",
-                            message=f"Une image d'arrière-plan potentiellement informative est utilisée : '{url_value}'.",
+                            message=(
+                                f"Une image d'arrière-plan potentiellement informative est utilisée : '{url_value}'."
+                            ),
                             recommendation=(
-                                "Vérifier que l'information transmise par cette image est également disponible sans CSS, ou utiliser un élément <img> avec un attribut alt approprié."
+                                "Vérifier que l'information transmise par cette image est également "
+                                "disponible sans CSS, ou utiliser un élément <img> avec un attribut alt approprié."
                             ),
                             evidence={
                                 "background_image_url": url_value,
@@ -187,7 +195,10 @@ class Test1021(RGAATest):
             test_id=self.test_id,
             criterion_id=self.criterion_id,
             status=TestStatus.NEEDS_REVIEW,
-            summary=f"{len(findings)} instance(s) détectée(s) où CSS pourrait être utilisé pour transmettre de l'information.",
+            summary=(
+                f"{len(findings)} instance(s) détectée(s) où CSS pourrait être utilisé pour transmettre "
+                "de l'information."
+            ),
             findings=findings,
             tested_elements=len(findings),
             metadata={

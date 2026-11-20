@@ -75,7 +75,9 @@ class Test541(RGAATest):
                         element=element,
                         message=("Aucun titre associé à ce tableau de données."),
                         recommendation=(
-                            "Associer un titre au tableau de données au moyen d'un élément <caption>, d'un attribut 'title', d'un attribut 'aria-label' ou d'un attribut 'aria-labelledby' faisant référence à un texte descriptif."
+                            "Associer un titre au tableau de données au moyen d'un élément <caption>, d'un "
+                            "attribut 'title', d'un attribut 'aria-label' ou d'un attribut 'aria-labelledby' faisant "
+                            "référence à un texte descriptif."
                         ),
                     )
                 )

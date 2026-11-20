@@ -3,6 +3,7 @@
 Utilisation : python -m accessi_code.review.resolve audit.json decisions.json -o audit_verifie.json
 Aucune conclusion n'est générée sans une décision humaine explicite.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -102,11 +103,14 @@ def resolve_report(report: dict[str, Any], decisions: list[dict[str, Any]]) -> d
     counts = Counter(statuses)
     output["status"] = _overall([criterion["status"] for criterion in criteria])
     output["statistics"] = {
-        "total_criteria": len(criteria), "total_tests": len(statuses),
-        "passed_tests": counts["pass"], "failed_tests": counts["fail"],
+        "total_criteria": len(criteria),
+        "total_tests": len(statuses),
+        "passed_tests": counts["pass"],
+        "failed_tests": counts["fail"],
         "not_applicable_tests": counts["not_applicable"],
         "not_tested_tests": counts["not_tested"],
-        "needs_review_tests": counts["needs_review"], "error_tests": counts["error"],
+        "needs_review_tests": counts["needs_review"],
+        "error_tests": counts["error"],
     }
     return output
 
@@ -123,8 +127,7 @@ def main() -> None:
         raise ValueError("Le fichier de décisions doit contenir une liste JSON.")
     resolved = resolve_report(report, decisions)
     args.output.write_text(json.dumps(resolved, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(f"Rapport vérifié : {args.output} ; NEEDS_REVIEW restants : "
-          f"{resolved['statistics']['needs_review_tests']}")
+    print(f"Rapport vérifié : {args.output} ; NEEDS_REVIEW restants : {resolved['statistics']['needs_review_tests']}")
 
 
 if __name__ == "__main__":

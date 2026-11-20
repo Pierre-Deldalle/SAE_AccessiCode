@@ -1,4 +1,5 @@
 """Tests unitaires du critère 11.4, sans navigateur ni Ollama."""
+
 from __future__ import annotations
 
 import pytest
@@ -23,8 +24,11 @@ def run_with_layout(context_factory, run_rgaa, test, html, record, identifier="i
 
 def proof(*, adjacent=True, position="above", direction="ltr", label_text=None, **extra):
     result = {
-        "verified": True, "source": "browser", "adjacent": adjacent,
-        "position": position, "direction": direction,
+        "verified": True,
+        "source": "browser",
+        "adjacent": adjacent,
+        "position": position,
+        "direction": direction,
     }
     if label_text is not None:
         result["label_text"] = label_text
@@ -49,11 +53,14 @@ def test_1142_only_choices_not_applicable(context_factory, run_rgaa):
     assert result.status == Status.NOT_APPLICABLE
 
 
-@pytest.mark.parametrize("test,html,key", [
-    (Test1141(), HTML_TEXT, "input#email"),
-    (Test1142(), HTML_TEXT, "input#email"),
-    (Test1143(), HTML_CHOICE, "input#agree"),
-])
+@pytest.mark.parametrize(
+    "test,html,key",
+    [
+        (Test1141(), HTML_TEXT, "input#email"),
+        (Test1142(), HTML_TEXT, "input#email"),
+        (Test1143(), HTML_CHOICE, "input#agree"),
+    ],
+)
 def test_without_visual_evidence_needs_review(context_factory, run_rgaa, test, html, key):
     result = run_with_layout(context_factory, run_rgaa, test, html, None, key)
     assert result.status == Status.NEEDS_REVIEW
@@ -62,15 +69,22 @@ def test_without_visual_evidence_needs_review(context_factory, run_rgaa, test, h
     assert result.findings[0].recommendation
 
 
-@pytest.mark.parametrize("test,html,key", [
-    (Test1141(), HTML_TEXT, "input#email"),
-    (Test1142(), HTML_TEXT, "input#email"),
-    (Test1143(), HTML_CHOICE, "input#agree"),
-])
+@pytest.mark.parametrize(
+    "test,html,key",
+    [
+        (Test1141(), HTML_TEXT, "input#email"),
+        (Test1142(), HTML_TEXT, "input#email"),
+        (Test1143(), HTML_CHOICE, "input#agree"),
+    ],
+)
 def test_confirmed_non_adjacent_fail(context_factory, run_rgaa, test, html, key):
     result = run_with_layout(
-        context_factory, run_rgaa, test, html,
-        proof(adjacent=False, position="right"), key,
+        context_factory,
+        run_rgaa,
+        test,
+        html,
+        proof(adjacent=False, position="right"),
+        key,
     )
     assert result.status == Status.FAIL
     assert result.findings[0].evidence["adjacent"] is False
@@ -84,47 +98,85 @@ def test_1141_verified_adjacency_pass(context_factory, run_rgaa):
     assert not result.findings
 
 
-@pytest.mark.parametrize("position,direction", [
-    ("above", "ltr"), ("left", "ltr"), ("above", "rtl"), ("right", "rtl"),
-])
+@pytest.mark.parametrize(
+    "position,direction",
+    [
+        ("above", "ltr"),
+        ("left", "ltr"),
+        ("above", "rtl"),
+        ("right", "rtl"),
+    ],
+)
 def test_1142_allowed_positions(context_factory, run_rgaa, position, direction):
     result = run_with_layout(
-        context_factory, run_rgaa, Test1142(), HTML_TEXT,
+        context_factory,
+        run_rgaa,
+        Test1142(),
+        HTML_TEXT,
         proof(position=position, direction=direction),
     )
     assert result.status == Status.PASS
 
 
-@pytest.mark.parametrize("position,direction", [
-    ("right", "ltr"), ("below", "ltr"), ("left", "rtl"), ("below", "rtl"),
-])
+@pytest.mark.parametrize(
+    "position,direction",
+    [
+        ("right", "ltr"),
+        ("below", "ltr"),
+        ("left", "rtl"),
+        ("below", "rtl"),
+    ],
+)
 def test_1142_disallowed_positions(context_factory, run_rgaa, position, direction):
     result = run_with_layout(
-        context_factory, run_rgaa, Test1142(), HTML_TEXT,
+        context_factory,
+        run_rgaa,
+        Test1142(),
+        HTML_TEXT,
         proof(position=position, direction=direction),
     )
     assert result.status == Status.FAIL
     assert result.findings[0].evidence["position"] == position
 
 
-@pytest.mark.parametrize("position,direction", [
-    ("below", "ltr"), ("right", "ltr"), ("below", "rtl"), ("left", "rtl"),
-])
+@pytest.mark.parametrize(
+    "position,direction",
+    [
+        ("below", "ltr"),
+        ("right", "ltr"),
+        ("below", "rtl"),
+        ("left", "rtl"),
+    ],
+)
 def test_1143_allowed_positions(context_factory, run_rgaa, position, direction):
     result = run_with_layout(
-        context_factory, run_rgaa, Test1143(), HTML_CHOICE,
-        proof(position=position, direction=direction), "input#agree",
+        context_factory,
+        run_rgaa,
+        Test1143(),
+        HTML_CHOICE,
+        proof(position=position, direction=direction),
+        "input#agree",
     )
     assert result.status == Status.PASS
 
 
-@pytest.mark.parametrize("position,direction", [
-    ("left", "ltr"), ("above", "ltr"), ("right", "rtl"), ("above", "rtl"),
-])
+@pytest.mark.parametrize(
+    "position,direction",
+    [
+        ("left", "ltr"),
+        ("above", "ltr"),
+        ("right", "rtl"),
+        ("above", "rtl"),
+    ],
+)
 def test_1143_disallowed_positions(context_factory, run_rgaa, position, direction):
     result = run_with_layout(
-        context_factory, run_rgaa, Test1143(), HTML_CHOICE,
-        proof(position=position, direction=direction), "input#agree",
+        context_factory,
+        run_rgaa,
+        Test1143(),
+        HTML_CHOICE,
+        proof(position=position, direction=direction),
+        "input#agree",
     )
     assert result.status == Status.FAIL
 
@@ -133,8 +185,12 @@ def test_1143_disallowed_positions(context_factory, run_rgaa, position, directio
 def test_1143_aria_roles(context_factory, run_rgaa, role):
     html = f'<span id="l">Choix</span><div id="c" role="{role}" aria-labelledby="l" tabindex="0"></div>'
     result = run_with_layout(
-        context_factory, run_rgaa, Test1143(), html,
-        proof(position="right"), "div#c",
+        context_factory,
+        run_rgaa,
+        Test1143(),
+        html,
+        proof(position="right"),
+        "div#c",
     )
     assert result.status == Status.PASS
 
@@ -146,14 +202,23 @@ def test_1142_excludes_native_choices(context_factory, run_rgaa, type_):
     assert result.status == Status.NOT_APPLICABLE
 
 
-@pytest.mark.parametrize("exception", [
-    "mixed_label_directions", "mixed_form_directions",
-    "nonstandard_choice_appearance", "legitimate_alternative_placement",
-])
+@pytest.mark.parametrize(
+    "exception",
+    [
+        "mixed_label_directions",
+        "mixed_form_directions",
+        "nonstandard_choice_appearance",
+        "legitimate_alternative_placement",
+    ],
+)
 def test_1143_verified_exception_not_applicable(context_factory, run_rgaa, exception):
     result = run_with_layout(
-        context_factory, run_rgaa, Test1143(), HTML_CHOICE,
-        proof(exception=exception, exception_verified=True), "input#agree",
+        context_factory,
+        run_rgaa,
+        Test1143(),
+        HTML_CHOICE,
+        proof(exception=exception, exception_verified=True),
+        "input#agree",
     )
     assert result.status == Status.NOT_APPLICABLE
     assert result.metadata["verified_exceptions"] == 1
@@ -161,7 +226,10 @@ def test_1143_verified_exception_not_applicable(context_factory, run_rgaa, excep
 
 def test_1142_unverified_exception_review(context_factory, run_rgaa):
     result = run_with_layout(
-        context_factory, run_rgaa, Test1142(), HTML_TEXT,
+        context_factory,
+        run_rgaa,
+        Test1142(),
+        HTML_TEXT,
         proof(exception="legitimate_alternative_placement", exception_verified=False),
     )
     assert result.status == Status.NEEDS_REVIEW
@@ -169,15 +237,23 @@ def test_1142_unverified_exception_review(context_factory, run_rgaa):
 
 def test_1141_exception_does_not_override_adjacency(context_factory, run_rgaa):
     result = run_with_layout(
-        context_factory, run_rgaa, Test1141(), HTML_TEXT,
+        context_factory,
+        run_rgaa,
+        Test1141(),
+        HTML_TEXT,
         proof(adjacent=False, exception="legitimate_alternative_placement", exception_verified=True),
     )
     assert result.status == Status.FAIL
 
 
-@pytest.mark.parametrize("change", [
-    {"verified": False}, {"source": "unknown"}, {"label_text": "Autre"},
-])
+@pytest.mark.parametrize(
+    "change",
+    [
+        {"verified": False},
+        {"source": "unknown"},
+        {"label_text": "Autre"},
+    ],
+)
 def test_invalid_or_stale_proof_review(context_factory, run_rgaa, change):
     record = proof(label_text="Courriel")
     record.update(change)
@@ -192,12 +268,19 @@ def test_missing_adjacent_review(context_factory, run_rgaa):
     assert result.status == Status.NEEDS_REVIEW
 
 
-@pytest.mark.parametrize("position,direction", [
-    ("diagonal", "ltr"), ("above", "unknown"),
-])
+@pytest.mark.parametrize(
+    "position,direction",
+    [
+        ("diagonal", "ltr"),
+        ("above", "unknown"),
+    ],
+)
 def test_missing_position_or_direction_review(context_factory, run_rgaa, position, direction):
     result = run_with_layout(
-        context_factory, run_rgaa, Test1142(), HTML_TEXT,
+        context_factory,
+        run_rgaa,
+        Test1142(),
+        HTML_TEXT,
         proof(position=position, direction=direction),
     )
     assert result.status == Status.NEEDS_REVIEW
@@ -234,10 +317,10 @@ def test_duplicate_aria_labelledby_id_review(context_factory, run_rgaa):
 
 
 def test_fail_priority_over_review(context_factory, run_rgaa):
-    html = '''
+    html = """
     <label for="a">A</label><input id="a">
     <label for="b">B</label><input id="b">
-    '''
+    """
     context = context_factory(html)
     context.form_label_layout = {"input#a": proof(adjacent=False)}
     result = run_rgaa(Test1141(), context)
@@ -248,10 +331,10 @@ def test_fail_priority_over_review(context_factory, run_rgaa):
 
 
 def test_review_priority_over_pass(context_factory, run_rgaa):
-    html = '''
+    html = """
     <label for="a">A</label><input id="a">
     <label for="b">B</label><input id="b">
-    '''
+    """
     context = context_factory(html)
     context.form_label_layout = {"input#a": proof()}
     result = run_rgaa(Test1141(), context)

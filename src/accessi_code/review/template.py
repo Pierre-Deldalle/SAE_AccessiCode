@@ -2,6 +2,7 @@
 
 python -m accessi_code.review.template audit.json -o decisions_a_completer.json
 """
+
 from __future__ import annotations
 
 import argparse
