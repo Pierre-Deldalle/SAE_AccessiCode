@@ -401,7 +401,9 @@ def test_581_all_good_layout_tables_passes(
     context_factory,
     run_rgaa,
 ):
-    html = SIMPLE_LAYOUT_TABLE_WITH_ROLE + """
+    html = (
+        SIMPLE_LAYOUT_TABLE_WITH_ROLE
+        + """
     <table role="presentation">
         <tr>
             <td>Banner publicité</td>
@@ -409,6 +411,7 @@ def test_581_all_good_layout_tables_passes(
         </tr>
     </table>
     """
+    )
     context = context_factory(html)
     result = run_rgaa(RGAA581(), context)
     assert result.status == Status.PASS

@@ -9,21 +9,29 @@ from urllib.parse import urlparse
 
 import aiohttp
 
+from accessi_code.ai.analyzers._base import read_tristate
+from accessi_code.ai.cache import AnalysisCache, make_key
 from accessi_code.ai.clients.llm import OllamaLLM
 from accessi_code.ai.clients.vlm import OllamaVLM
 from accessi_code.ai.json_utils import parse_ai_json
 from accessi_code.ai.prompts.images import (
+    ALTERNATIVE_RELEVANCE_PROMPT,
+    ALTERNATIVE_RULES,
     DETAILED_DESCRIPTION_PROMPT,
     IMAGE_ELEMENT_ROLE_PROMPT,
     IMAGE_INFORMATION_PROMPT,
     IMAGE_INFORMATION_ROLE_PROMPT,
     IMAGE_MAP_AREA_ROLE_PROMPT,
+    IMAGE_PROFILE_PROMPT,
 )
 from accessi_code.ai.schemas import (
+    AlternativeAnalysis,
     DescriptionAnalysis,
+    ImageProfile,
     ImageRoleAnalysis,
     VisualObservation,
 )
+from accessi_code.ai.text_safety import clean_explanation
 from accessi_code.analysis.images import (
     DetailedDescription,
     ImageInfo,
@@ -40,10 +48,10 @@ class OllamaImageAnalyzer:
         self.vlm = vlm
         self.llm = llm
 
-        self._visual_cache: dict[
-            str,
-            VisualObservation,
-        ] = {}
+        # Une observation VLM et un profil par image, quel que soit le nombre de tests.
+        self._visual_cache: AnalysisCache[VisualObservation] = AnalysisCache()
+        self._profile_cache: AnalysisCache[ImageProfile] = AnalysisCache()
+        self._alternative_cache: AnalysisCache[AlternativeAnalysis] = AnalysisCache()
 
     async def analyze_information_role(
         self,
@@ -176,19 +184,205 @@ class OllamaImageAnalyzer:
         if is_detailed is False:
             relevant = None
 
+        explanation, corrupted = clean_explanation(data.get("explanation"))
+        if corrupted:
+            relevant = None
         return DescriptionAnalysis(
             relevant=relevant,
-            explanation=str(
-                data.get(
-                    "explanation",
-                    "",
-                )
-            ),
+            explanation=explanation,
             is_detailed_description=is_detailed,
             missing_information=self._get_strings(data.get("missing_information")),
             contradictions=self._get_strings(data.get("contradictions")),
             uncertainties=self._get_strings(data.get("uncertainties")),
-            confidence=self._get_confidence(data.get("confidence")),
+            confidence="low" if corrupted else self._get_confidence(data.get("confidence")),
+        )
+
+    async def observe(
+        self,
+        image: ImageInfo,
+    ) -> VisualObservation:
+        """
+        Observation factuelle de l'image par le VLM (mise en cache).
+
+        Raises:
+            FileNotFoundError: si l'image n'est pas accessible.
+        """
+        image_input = await self._get_image_input(image)
+
+        return await self._get_visual_observation(
+            image,
+            image_input,
+        )
+
+    async def profile(
+        self,
+        image: ImageInfo,
+    ) -> ImageProfile:
+        """
+        Profil d'une image disposant d'un fichier exploitable.
+
+        Le profil est calculé une seule fois par image et réutilisé
+        par les critères 1.1 à 1.8.
+        """
+        key = make_key(
+            "profile",
+            image.image_path or image.src,
+            image.element_html,
+            image.context_text,
+        )
+
+        cached = self._profile_cache.get(key)
+
+        if cached is not None:
+            return cached
+
+        visual = await self.observe(image)
+
+        profile = await self._build_profile(
+            image.element_html,
+            image.context_text,
+            json.dumps(asdict(visual), ensure_ascii=False),
+        )
+
+        self._profile_cache.set(key, profile)
+
+        return profile
+
+    async def profile_element(
+        self,
+        element_html: str,
+        context: str,
+    ) -> ImageProfile:
+        """
+        Profil d'une image sans fichier exploitable (svg en ligne,
+        canvas, role="img"…), établi à partir du HTML et du contexte.
+        """
+        key = make_key("profile_element", element_html, context)
+
+        cached = self._profile_cache.get(key)
+
+        if cached is not None:
+            return cached
+
+        profile = await self._build_profile(
+            element_html,
+            context,
+            json.dumps({"available": False}, ensure_ascii=False),
+        )
+
+        self._profile_cache.set(key, profile)
+
+        return profile
+
+    async def analyze_alternative(
+        self,
+        *,
+        element_html: str,
+        alternative: str,
+        context: str,
+        image: ImageInfo | None = None,
+        mode: str = "alternative",
+    ) -> AlternativeAnalysis:
+        """
+        Compare une alternative textuelle au contenu de l'image.
+
+        mode :
+            "alternative" pour RGAA 1.3 (pertinence et concision),
+            "captcha" pour RGAA 1.4 (nature et fonction du CAPTCHA).
+
+        Sans fichier image, seul le HTML et le contexte sont transmis :
+        le modèle doit alors répondre null s'il ne peut pas conclure.
+        """
+        rule = ALTERNATIVE_RULES.get(mode)
+
+        if rule is None:
+            raise ValueError(f"Mode d'analyse d'alternative inconnu : {mode}")
+
+        key = make_key(
+            "alternative",
+            mode,
+            image.image_path or image.src if image is not None else None,
+            element_html,
+            alternative,
+            context,
+        )
+
+        cached = self._alternative_cache.get(key)
+
+        if cached is not None:
+            return cached
+
+        visual_payload: dict[str, Any] = {"available": False}
+
+        if image is not None:
+            visual = await self.observe(image)
+            visual_payload = {"available": True, **asdict(visual)}
+
+        prompt = ALTERNATIVE_RELEVANCE_PROMPT.format(
+            rule=rule,
+            element_html=element_html,
+            alternative=alternative,
+            context=context,
+            visual_observations=json.dumps(visual_payload, ensure_ascii=False),
+        )
+
+        data = await self._generate_text_json(prompt)
+
+        relevant = read_tristate(data, "relevant")
+        concise = read_tristate(data, "concise")
+        explanation, corrupted = clean_explanation(data.get("explanation"))
+
+        analysis = AlternativeAnalysis(
+            relevant=None if corrupted else relevant,
+            concise=None if corrupted else concise,
+            explanation=explanation,
+            missing_information=self._get_strings(data.get("missing_information")),
+            uncertainties=self._get_strings(data.get("uncertainties")),
+            confidence="low" if corrupted else self._get_confidence(data.get("confidence")),
+        )
+
+        self._alternative_cache.set(key, analysis)
+
+        return analysis
+
+    async def _build_profile(
+        self,
+        element_html: str,
+        context: str,
+        visual_observations: str,
+    ) -> ImageProfile:
+        prompt = IMAGE_PROFILE_PROMPT.format(
+            element_html=element_html,
+            context=context,
+            visual_observations=visual_observations,
+        )
+
+        data = await self._generate_text_json(prompt)
+
+        flags = {
+            name: read_tristate(data, name)
+            for name in (
+                "information_bearing",
+                "is_captcha",
+                "contains_text",
+                "needs_detailed_description",
+                "text_replaceable",
+            )
+        }
+
+        explanation, corrupted = clean_explanation(data.get("explanation"))
+
+        if corrupted:
+            flags = dict.fromkeys(flags)
+
+        text_content = data.get("text_content")
+
+        return ImageProfile(
+            **flags,
+            explanation=explanation,
+            text_content=" ".join(text_content.split()) if isinstance(text_content, str) else "",
+            uncertainties=self._get_strings(data.get("uncertainties")),
+            confidence="low" if corrupted else self._get_confidence(data.get("confidence")),
         )
 
     async def _get_image_input(
@@ -236,17 +430,12 @@ class OllamaImageAnalyzer:
         data = await self._generate_visual_json(image_input)
 
         visual = VisualObservation(
-            summary=str(
-                data.get(
-                    "summary",
-                    "",
-                )
-            ),
+            summary=clean_explanation(data.get("summary"))[0],
             important_information=self._get_strings(data.get("important_information")),
             uncertainties=self._get_strings(data.get("uncertainties")),
         )
 
-        self._visual_cache[cache_key] = visual
+        self._visual_cache.set(cache_key, visual)
 
         return visual
 
@@ -370,16 +559,12 @@ class OllamaImageAnalyzer:
         }:
             raise ValueError("information_bearing doit être true, false ou null.")
 
+        explanation, corrupted = clean_explanation(data.get("explanation"))
         return ImageRoleAnalysis(
-            information_bearing=information_bearing,
-            explanation=str(
-                data.get(
-                    "explanation",
-                    "",
-                )
-            ),
+            information_bearing=None if corrupted else information_bearing,
+            explanation=explanation,
             uncertainties=OllamaImageAnalyzer._get_strings(data.get("uncertainties")),
-            confidence=OllamaImageAnalyzer._get_confidence(data.get("confidence")),
+            confidence="low" if corrupted else OllamaImageAnalyzer._get_confidence(data.get("confidence")),
         )
 
     @staticmethod

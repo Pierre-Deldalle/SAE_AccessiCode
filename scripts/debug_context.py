@@ -7,7 +7,7 @@ from accessi_code.models.audit_context import AuditContext
 
 
 def build_debug_context(
-    site_name: str = "basic_site",
+    site_name: str = "site_demo_rgaa",
 ) -> AuditContext:
     """
     Construit un AuditContext à partir d'un site présent dans test_files.

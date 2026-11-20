@@ -1,264 +1,82 @@
+"""Critère RGAA 9.3 : listes."""
+
+import pytest
+from ai_fakes import structure, text_services
+
 from accessi_code.models.result import TestStatus as Status
-from accessi_code.rgaa.tests.theme_09_structuration_information.criterion_9_3 import (
-    Test931 as RGAA931,
-    Test932 as RGAA932,
-    Test933 as RGAA933,
-)
+from accessi_code.rgaa.tests.theme_09_structuration_information.criterion_9_3 import Test931, Test932, Test933
+
+BULLETS = "<p>- Audit<br>- Formation<br>- Conseil</p>"
+NUMBERS = "<p>1. Importer<br>2. Analyser<br>3. Corriger</p>"
 
 
-def test_931_unordered_list_with_ul_li_passes(context_factory, run_rgaa):
-    """Test 9.3.1: Liste non ordonnée avec <ul> et <li> doit passer."""
-    html = """
-    <!DOCTYPE html>
-    <html lang="fr">
-    <body>
-        <ul>
-            <li>Item 1</li>
-            <li>Item 2</li>
-            <li>Item 3</li>
-        </ul>
-    </body>
-    </html>
-    """
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA931(), context)
-
-    assert result.status == Status.PASS
-    assert result.findings == []
-    assert result.tested_elements > 0
+@pytest.mark.parametrize("cls", [Test931, Test932, Test933])
+def test_no_list_is_not_applicable(cls, context_factory, run_rgaa):
+    assert run_rgaa(cls(), context_factory("<p>Texte</p>"), text_services()).status == Status.NOT_APPLICABLE
 
 
-def test_931_unordered_list_with_wai_aria_passes(context_factory, run_rgaa):
-    """Test 9.3.1: Liste non ordonnée avec role="list"/role="listitem" doit passer."""
-    html = """
-    <!DOCTYPE html>
-    <html lang="fr">
-    <body>
-        <div role="list">
-            <div role="listitem">Item 1</div>
-            <div role="listitem">Item 2</div>
-            <div role="listitem">Item 3</div>
-        </div>
-    </body>
-    </html>
-    """
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA931(), context)
-
-    assert result.status == Status.PASS
-    assert result.findings == []
-    assert result.tested_elements > 0
+def test_931_well_formed_list_passes(context_factory, run_rgaa):
+    assert run_rgaa(Test931(), context_factory("<ul><li>A</li><li>B</li></ul>"), text_services()).status == Status.PASS
 
 
-def test_931_unordered_list_missing_structure_fails(context_factory, run_rgaa):
-    """Test 9.3.1: Liste non ordonnée sans structure appropriée doit échouer."""
-    html = """
-    <!DOCTYPE html>
-    <html lang="fr">
-    <body>
-        <ul>
-            <div>Item 1</div>
-            <div>Item 2</div>
-        </ul>
-    </body>
-    </html>
-    """
-    context = context_factory(html)
+@pytest.mark.parametrize("html", ["<ul></ul>", "<ul><div>A</div></ul>", '<div role="list"><span>A</span></div>'])
+def test_931_badly_structured_list_fails(html, context_factory, run_rgaa):
+    assert run_rgaa(Test931(), context_factory(html), text_services()).status == Status.FAIL
 
-    result = run_rgaa(RGAA931(), context)
 
-    # Selon notre implémentation, ceci pourrait échouer car les <div> ne sont pas des <li>
-    # Mais on est permissif dans notre implémentation actuelle - on vérifie juste qu'il y a des <li>
-    # Dans ce cas, il n'y a pas de <li> donc ça devrait échouer
+def test_931_aria_list_passes(context_factory, run_rgaa):
+    html = '<div role="list"><div role="listitem">A</div><div role="listitem">B</div></div>'
+    assert run_rgaa(Test931(), context_factory(html), text_services()).status == Status.PASS
+
+
+def test_931_visual_list_confirmed_by_ai_fails(context_factory, run_rgaa):
+    ai = text_services(structure_answer=structure(True))
+    result = run_rgaa(Test931(), context_factory(BULLETS), ai)
     assert result.status == Status.FAIL
-    assert len(result.findings) >= 1
-    assert result.tested_elements > 0
+    kind, items = ai.structure_analyzer.classify_candidates.call_args.args
+    assert kind == "list"
+    assert items[0].text.splitlines() == ["- Audit", "- Formation", "- Conseil"]
 
 
-def test_931_unordered_list_wai_aria_missing_listitem_fails(context_factory, run_rgaa):
-    """Test 9.3.1: Élément role="list" sans role="listitem" doit échouer."""
-    html = """
-    <!DOCTYPE html>
-    <html lang="fr">
-    <body>
-        <div role="list">
-            <div>Item 1</div>
-            <div>Item 2</div>
-        </div>
-    </body>
-    </html>
-    """
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA931(), context)
-
-    assert result.status == Status.FAIL
-    assert len(result.findings) >= 1
-    # Vérifier qu'il y a bien une finding concernant le manque de role="listitem"
-    listitem_findings = [f for f in result.findings if "listitem" in f.message]
-    assert len(listitem_findings) >= 1
-    assert result.tested_elements > 0
+def test_931_dashes_that_are_not_a_list(context_factory, run_rgaa):
+    ai = text_services(structure_answer=structure(False))
+    assert run_rgaa(Test931(), context_factory(BULLETS), ai).status == Status.NOT_APPLICABLE
 
 
-def test_932_ordered_list_with_ol_li_passes(context_factory, run_rgaa):
-    """Test 9.3.2: Liste ordonnée avec <ol> et <li> doit passer."""
-    html = """
-    <!DOCTYPE html>
-    <html lang="fr">
-    <body>
-        <ol>
-            <li>Item 1</li>
-            <li>Item 2</li>
-            <li>Item 3</li>
-        </ol>
-    </body>
-    </html>
-    """
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA932(), context)
-
-    assert result.status == Status.PASS
-    assert result.findings == []
-    assert result.tested_elements > 0
+def test_931_consecutive_bullet_paragraphs(context_factory, run_rgaa):
+    ai = text_services()
+    html = "<p>• Audit</p><p>• Formation</p>"
+    assert run_rgaa(Test931(), context_factory(html), ai).status == Status.FAIL
+    assert len(ai.structure_analyzer.classify_candidates.call_args.args[1]) == 1
 
 
-def test_932_ordered_list_with_wai_aria_passes(context_factory, run_rgaa):
-    """Test 9.3.2: Liste ordonnée avec role="list"/role="listitem" doit passer."""
-    html = """
-    <!DOCTYPE html>
-    <html lang="fr">
-    <body>
-        <div role="list">
-            <div role="listitem">Item 1</div>
-            <div role="listitem">Item 2</div>
-            <div role="listitem">Item 3</div>
-        </div>
-    </body>
-    </html>
-    """
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA932(), context)
-
-    assert result.status == Status.PASS
-    assert result.findings == []
-    assert result.tested_elements > 0
+def test_931_low_confidence_no_ai_and_error(context_factory, run_rgaa):
+    low = text_services(structure_answer=structure(True, confidence="low"))
+    assert run_rgaa(Test931(), context_factory(BULLETS), low).status == Status.NEEDS_REVIEW
+    assert run_rgaa(Test931(), context_factory(BULLETS)).status == Status.NEEDS_REVIEW
+    broken = text_services(structure_answer=RuntimeError("panne"))
+    assert run_rgaa(Test931(), context_factory(BULLETS), broken).status == Status.ERROR
 
 
-def test_932_ordered_list_missing_structure_fails(context_factory, run_rgaa):
-    """Test 9.3.2: Liste ordonnée sans structure appropriée doit échouer."""
-    html = """
-    <!DOCTYPE html>
-    <html lang="fr">
-    <body>
-        <ol>
-            <div>Item 1</div>
-            <div>Item 2</div>
-        </ol>
-    </body>
-    </html>
-    """
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA932(), context)
-
-    assert result.status == Status.FAIL
-    assert len(result.findings) >= 1
-    assert result.tested_elements > 0
+def test_932_ordered_lists(context_factory, run_rgaa):
+    assert run_rgaa(Test932(), context_factory("<ol><li>A</li></ol>"), text_services()).status == Status.PASS
+    assert run_rgaa(Test932(), context_factory(NUMBERS), text_services()).status == Status.FAIL
 
 
-def test_932_ordered_list_wai_aria_missing_listitem_fails(context_factory, run_rgaa):
-    """Test 9.3.2: Élément role="list" sans role="listitem" doit échouer."""
-    html = """
-    <!DOCTYPE html>
-    <html lang="fr">
-    <body>
-        <div role="list">
-            <div>Item 1</div>
-            <div>Item 2</div>
-        </div>
-    </body>
-    </html>
-    """
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA932(), context)
-
-    assert result.status == Status.FAIL
-    assert len(result.findings) >= 1
-    # Vérifier qu'il y a bien une finding concernant le manque de role="listitem"
-    listitem_findings = [f for f in result.findings if "listitem" in f.message]
-    assert len(listitem_findings) >= 1
-    assert result.tested_elements > 0
+def test_932_numbered_aria_list(context_factory, run_rgaa):
+    html = '<div role="list"><div role="listitem">1. A</div><div role="listitem">2. B</div></div>'
+    assert run_rgaa(Test932(), context_factory(html), text_services()).status == Status.PASS
+    assert run_rgaa(Test931(), context_factory(html), text_services()).status == Status.NOT_APPLICABLE
 
 
-def test_933_description_list_with_dl_dt_dd_passes(context_factory, run_rgaa):
-    """Test 9.3.3: Liste de description avec <dl>, <dt> et <dd> doit passer."""
-    html = """
-    <!DOCTYPE html>
-    <html lang="fr">
-    <body>
-        <dl>
-            <dt>Terme 1</dt>
-            <dd>Description 1</dd>
-            <dt>Terme 2</dt>
-            <dd>Description 2</dd>
-        </dl>
-    </body>
-    </html>
-    """
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA933(), context)
-
-    assert result.status == Status.PASS
-    assert result.findings == []
-    assert result.tested_elements > 0
+def test_933_description_lists(context_factory, run_rgaa):
+    ok = "<dl><dt>RGAA</dt><dd>Référentiel</dd></dl>"
+    grouped = "<dl><div><dt>RGAA</dt><dd>Référentiel</dd></div></dl>"
+    only_terms = "<dl><dt>RGAA</dt></dl>"
+    assert run_rgaa(Test933(), context_factory(ok), text_services()).status == Status.PASS
+    assert run_rgaa(Test933(), context_factory(grouped), text_services()).status == Status.PASS
+    assert run_rgaa(Test933(), context_factory(only_terms), text_services()).status == Status.FAIL
 
 
-def test_933_description_list_missing_elements_fails(context_factory, run_rgaa):
-    """Test 9.3.3: Liste de description sans <dt> ou <dd> doit échouer."""
-    html = """
-    <!DOCTYPE html>
-    <html lang="fr">
-    <body>
-        <dl>
-            <div>Terme 1</div>
-            <div>Description 1</div>
-        </dl>
-    </body>
-    </html>
-    """
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA933(), context)
-
-    assert result.status == Status.FAIL
-    assert len(result.findings) >= 1
-    # Vérifier qu'il y a bien une finding concernant le manque de dt/dd
-    dt_dd_findings = [f for f in result.findings if "dt" in f.message or "dd" in f.message]
-    assert len(dt_dd_findings) >= 1
-    assert result.tested_elements > 0
-
-
-def test_933_empty_description_list_passes(context_factory, run_rgaa):
-    """Test 9.3.3: Liste de description vide doit passer (pas de violation)."""
-    html = """
-    <!DOCTYPE html>
-    <html lang="fr">
-    <body>
-        <dl></dl>
-    </body>
-    </html>
-    """
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA933(), context)
-
-    # Une liste de description vide n'est pas une violation en soi
-    assert result.status == Status.PASS
-    assert result.findings == []
-    assert result.tested_elements > 0  # On teste quand même l'élément dl
+def test_hidden_list_is_ignored(context_factory, run_rgaa):
+    assert run_rgaa(Test931(), context_factory("<ul hidden></ul>"), text_services()).status == Status.NOT_APPLICABLE

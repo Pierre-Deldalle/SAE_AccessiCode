@@ -4,6 +4,7 @@ from typing import Any
 
 from bs4 import BeautifulSoup
 
+from accessi_code.analysis.page import is_html5_doctype
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
 from accessi_code.models.result import (
@@ -40,14 +41,8 @@ class Test1011(RGAATest):
         # List of presentation HTML elements to check for
         presentation_elements = {"basefont", "big", "blink", "center", "font", "marquee", "strike", "tt"}
 
-        # <u> element is only checked if DOCTYPE is not HTML5
-        # We'll need to check the doctype from context
-        is_html5_doctype = False
-        if hasattr(context, "html_source") and context.html_source:
-            # Simple check for HTML5 doctype
-            is_html5_doctype = "<!DOCTYPE html>" in context.html_source.upper()
-
-        if not is_html5_doctype:
+        # <u> n'est une balise de présentation qu'en dehors du HTML5.
+        if not is_html5_doctype(context.doctype):
             presentation_elements.add("u")
 
         # Find all presentation elements
@@ -194,6 +189,11 @@ class Test1012(RGAATest):
 
         # Check all elements in the document
         for element in soup.find_all(True):  # True means all elements
+            # Les éléments internes d'un SVG (rect, circle, text...) ne sont pas du HTML :
+            # leurs attributs width, height, etc. décrivent la forme, pas la présentation.
+            if element.name != "svg" and element.find_parent("svg") is not None:
+                continue
+
             # Check for standard presentation attributes
             for attr in presentation_attributes:
                 if element.has_attr(attr):
@@ -207,14 +207,14 @@ class Test1012(RGAATest):
                     {"element": element, "attribute": "size", "value": element.get("size")}
                 )
 
-            # Check width attribute (except for <img>, <object>, <embed>, <canvas>, <svg>)
-            if element.has_attr("width") and element.name not in ["img", "object", "embed", "canvas", "svg"]:
+            # Check width attribute, sauf sur les éléments où HTML5 en fait un attribut de dimension
+            if element.has_attr("width") and not _has_dimension_attributes(element):
                 elements_with_presentation_attrs.append(
                     {"element": element, "attribute": "width", "value": element.get("width")}
                 )
 
-            # Check height attribute (except for <img>, <object>, <embed>, <canvas>, <svg>)
-            if element.has_attr("height") and element.name not in ["img", "object", "embed", "canvas", "svg"]:
+            # Check height attribute, sauf sur les éléments où HTML5 en fait un attribut de dimension
+            if element.has_attr("height") and not _has_dimension_attributes(element):
                 elements_with_presentation_attrs.append(
                     {"element": element, "attribute": "height", "value": element.get("height")}
                 )
@@ -344,7 +344,8 @@ class Test1013(RGAATest):
         if matches:
             # Check if we have multiple consecutive letter-space patterns (suggesting spaced-out word)
             # Look for patterns like "H E L L O" which would match as ["H E", "E L", "L L", "L O"]
-            spaced_word_pattern = r"(?:[A-Za-z]\s+){2,}[A-Za-z]"
+            # Lettres isolées uniquement : « e a b » dans « conforme a bien » ne compte pas.
+            spaced_word_pattern = r"(?<![\w])(?:[A-Za-z]\s+){2,}[A-Za-z](?![\w])"
             spaced_word_matches = re.findall(spaced_word_pattern, text_only)
 
             if spaced_word_matches:
@@ -450,3 +451,13 @@ class Test1013(RGAATest):
                 ),
             },
         )
+
+
+# Éléments pour lesquels width et height sont des attributs de dimension en HTML5.
+DIMENSION_ELEMENTS = frozenset({"img", "object", "embed", "canvas", "svg", "iframe", "video"})
+
+
+def _has_dimension_attributes(element) -> bool:
+    if element.name in DIMENSION_ELEMENTS:
+        return True
+    return element.name == "input" and str(element.get("type", "")).lower() == "image"

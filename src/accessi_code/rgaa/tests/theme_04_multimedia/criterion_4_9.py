@@ -4,11 +4,11 @@ from typing import Any
 
 from bs4 import BeautifulSoup, Tag
 
+from accessi_code.analysis.media import is_media_exempt, media_identifier
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
 from accessi_code.models.result import Finding, TestResult, TestStatus
 from accessi_code.rgaa.base import RGAATest
-from accessi_code.analysis.media import is_media_exempt, media_identifier
 
 
 class Test491(RGAATest):
@@ -36,11 +36,7 @@ class Test491(RGAATest):
         if not isinstance(context.dom, BeautifulSoup):
             raise ValueError(f"Le test {self.test_id} nécessite un DOM.")
 
-        media = [
-            tag
-            for tag in _find_non_temporal_media(context.dom)
-            if not is_media_exempt(tag)
-        ]
+        media = [tag for tag in _find_non_temporal_media(context.dom) if not is_media_exempt(tag)]
 
         if not media:
             return TestResult(
@@ -52,41 +48,35 @@ class Test491(RGAATest):
 
         findings: list[Finding] = []
         media_with_alternative = 0
+        # Un lien placé entre deux médias n'est associé qu'au premier.
+        claimed_controls: set[int] = set()
 
         for index, tag in enumerate(media):
             element_id = media_identifier(tag, index)
 
-            controls = _find_adjacent_links_or_buttons(tag)
-
-            identifiable_controls = [
-                control
-                for control in controls
-                if _is_clearly_identifiable(control)
+            controls = [
+                control for control in _find_adjacent_links_or_buttons(tag) if id(control) not in claimed_controls
             ]
 
+            identifiable_controls = [control for control in controls if _is_clearly_identifiable(control)]
+
             alternative_controls = [
-                control
-                for control in identifiable_controls
-                if _has_alternative_destination(control)
+                control for control in identifiable_controls if _has_alternative_destination(control)
             ]
 
             if not alternative_controls:
                 continue
 
             media_with_alternative += 1
+            claimed_controls.update(id(control) for control in alternative_controls)
 
             for control in alternative_controls:
-                finding_element = (
-                    f"{element_id} -> {_control_identifier(control)}"
-                )
+                finding_element = f"{element_id} -> {_control_identifier(control)}"
 
                 findings.append(
                     Finding(
                         element=finding_element,
-                        message=(
-                            "Une alternative associée au média "
-                            "non temporel a été détectée."
-                        ),
+                        message=("Une alternative associée au média non temporel a été détectée."),
                         recommendation=(
                             "Vérifier que l'alternative permet d'accéder "
                             "au même contenu et à des fonctionnalités "
@@ -108,10 +98,7 @@ class Test491(RGAATest):
                 self.test_id,
                 self.criterion_id,
                 TestStatus.NOT_APPLICABLE,
-                (
-                    f"{len(media)} média(s) non temporel(s) détecté(s), "
-                    "mais aucun n'est associé à une alternative."
-                ),
+                (f"{len(media)} média(s) non temporel(s) détecté(s), mais aucun n'est associé à une alternative."),
                 tested_elements=len(media),
                 metadata={
                     "candidate_media": len(media),
@@ -134,9 +121,7 @@ class Test491(RGAATest):
             metadata={
                 "candidate_media": len(media),
                 "media_with_alternative": media_with_alternative,
-                "media_without_alternative": (
-                    len(media) - media_with_alternative
-                ),
+                "media_without_alternative": (len(media) - media_with_alternative),
                 "relevance_requires_manual_review": True,
             },
         )
@@ -229,11 +214,7 @@ def _has_alternative_destination(tag: Tag) -> bool:
     if tag.name == "a":
         href = tag.get("href")
 
-        return (
-            isinstance(href, str)
-            and bool(href.strip())
-            and href.strip() != "#"
-        )
+        return isinstance(href, str) and bool(href.strip()) and href.strip() != "#"
 
     if tag.name == "button":
         for attribute in (
@@ -297,5 +278,3 @@ def _control_identifier(tag: Tag) -> str:
         return f"{tag.name}#{tag_id}"
 
     return tag.name
-
-

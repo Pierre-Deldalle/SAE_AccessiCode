@@ -2,10 +2,14 @@
 
 from pathlib import Path
 
+from accessi_code.analysis.navigation import is_site_inventory_complete
+from accessi_code.input.extractors.css import extract_css
 from accessi_code.input.extractors.html import extract_html
 from accessi_code.input.file_classifier import (
+    is_css_file,
     is_html_file,
     is_image_file,
+    pick_main_html,
 )
 from accessi_code.input.file_collector import FileCollector
 from accessi_code.models.audit_context import AuditContext
@@ -28,24 +32,33 @@ class AuditContextBuilder:
     def build(
         self,
         input_files: list[Path],
+        site_root: Path | None = None,
     ) -> AuditContext:
         """
-        Construit un contexte complet à partir
-        des fichiers reçus.
+        Construit un contexte d'audit à partir des fichiers reçus.
+
+        Deux modes sont disponibles :
+        - sans site_root : import individuel avec copie à plat ;
+        - avec site_root : conservation de l'arborescence du site.
 
         Args:
             input_files: Fichiers source à copier et analyser.
+            site_root: Répertoire racine du site, facultatif.
 
         Returns:
-            Le contexte contenant les fichiers copiés, les images détectées
-            et le premier document HTML extrait, le cas échéant.
+            Le contexte contenant les fichiers copiés, les images détectées,
+            les feuilles CSS et la page HTML principale extraite,
+            le cas échéant.
         """
 
         (
             audit_id,
             workspace_path,
             files,
-        ) = self.collector.collect(input_files)
+        ) = self.collector.collect(
+            input_files,
+            site_root=site_root,
+        )
 
         context = AuditContext(
             audit_id=audit_id,
@@ -64,20 +77,35 @@ class AuditContextBuilder:
         """
         Extrait les informations utiles de chaque fichier du contexte.
 
-        Les fichiers HTML sont analysés uniquement pour le premier document
-        détecté ; tous les fichiers image sont conservés dans ``image_files``.
+        La page principale est index.html (ou index.htm) si elle est fournie,
+        sinon le premier document HTML. Le DOM de chaque page est aussi
+        conservé dans ``page_doms``.
+        Tous les fichiers image sont conservés dans ``image_files``.
+        Toutes les feuilles CSS fournies sont extraites.
         """
 
         html_files = [file for file in context.files if is_html_file(file.path)]
 
         image_files = [file for file in context.files if is_image_file(file.path)]
 
+        css_files = [file for file in context.files if is_css_file(file.path)]
+
         context.image_files = [file.path for file in image_files]
 
         if html_files:
+            main_index = pick_main_html([file.path for file in html_files])
             self._extract_main_html(
                 context,
-                html_files[0].path,
+                html_files[main_index].path,
+            )
+            self._extract_page_doms(context, [file.path for file in html_files])
+            # Ensemble de pages complet : toutes les pages internes liées ont été importées.
+            context.site_inventory_complete = is_site_inventory_complete(context.page_doms)
+
+        for css_file in css_files:
+            self._extract_css_file(
+                context,
+                css_file.path,
             )
 
     @staticmethod
@@ -88,8 +116,9 @@ class AuditContextBuilder:
         """
         Extrait le document HTML principal.
 
-        Pour le prototype, le premier fichier HTML
-        rencontré est considéré comme la page principale.
+        La page principale est choisie par ``pick_main_html`` : la page
+        d'accueil (index.html) si elle est fournie, sinon le premier
+        document HTML.
 
         Args:
             context: Contexte à enrichir en place.
@@ -102,3 +131,49 @@ class AuditContextBuilder:
         context.html_source = extraction.source
         context.dom = extraction.dom
         context.doctype = extraction.doctype
+
+    @staticmethod
+    def _extract_page_doms(
+        context: AuditContext,
+        html_paths: list[Path],
+    ) -> None:
+        """
+        Conserve le DOM de chaque page HTML importée (utilisé par le test 11.3.2).
+
+        Les pages sont indexées par leur chemin relatif dans l'audit
+        (par exemple « index.html » ou « contact/index.html »). La page
+        principale réutilise le DOM déjà extrait.
+        """
+
+        source_root = context.workspace_path / "source"
+
+        for html_path in html_paths:
+            try:
+                key = html_path.relative_to(source_root).as_posix()
+            except ValueError:
+                key = html_path.name
+
+            if html_path == context.html_path:
+                context.page_doms[key] = context.dom
+            else:
+                context.page_doms[key] = extract_html(html_path).dom
+
+    @staticmethod
+    def _extract_css_file(
+        context: AuditContext,
+        css_path: Path,
+    ) -> None:
+        """
+        Extrait le contenu d'une feuille CSS.
+
+        Le chemin et le contenu source sont conservés dans l'AuditContext.
+
+        Args:
+            context: Contexte à enrichir en place.
+            css_path: Chemin de la feuille CSS à analyser.
+        """
+
+        extraction = extract_css(css_path)
+
+        context.css_files.append(css_path)
+        context.css_sources[css_path] = extraction.source

@@ -1,209 +1,102 @@
+"""Critère RGAA 7.5 : messages de statut (catégorie confirmée par l'IA, rôle vérifié sans IA)."""
+
 import pytest
+from ai_fakes import structure, text_services
 
 from accessi_code.models.result import TestStatus as Status
-from accessi_code.rgaa.tests.theme_07_scripts.criterion_7_5 import (
-    Test751,
-    Test752,
-    Test753,
-)
+from accessi_code.rgaa.tests.theme_07_scripts.criterion_7_5 import Test751, Test752, Test753
+
+SUCCESS = '<div id="msg">Votre message a été envoyé.</div>'
+ERROR = '<p id="err">Erreur : le champ e-mail est obligatoire.</p>'
+PROGRESS = '<div id="up">Chargement en cours…</div>'
+
+
+def submitted(ai, kind):
+    called_kind, items = ai.structure_analyzer.classify_candidates.call_args.args
+    assert called_kind == kind
+    return items
 
 
 @pytest.mark.parametrize("test_class", [Test751, Test752, Test753])
-def test_no_status_messages_is_not_applicable(test_class, context_factory, run_rgaa):
-    result = run_rgaa(test_class(), context_factory("<main><p>Texte.</p></main>"))
-
-    assert result.status == Status.NOT_APPLICABLE
-    assert result.tested_elements == 0
-
-
-def test_751_status_message_with_role_status_passes(context_factory, run_rgaa):
-    """Test that a status message with role='status' passes."""
-    html = '<div role="status">Chargement terminé</div>'
-    result = run_rgaa(Test751(), context_factory(html))
-
-    assert result.status == Status.PASS
-    assert result.tested_elements == 1
-    assert len(result.findings) == 0
+def test_no_candidate_is_not_applicable(test_class, context_factory, run_rgaa):
+    ai = text_services()
+    assert run_rgaa(test_class(), context_factory("<p>Bienvenue.</p>"), ai).status == Status.NOT_APPLICABLE
+    ai.structure_analyzer.classify_candidates.assert_not_called()
 
 
-def test_751_status_message_with_aria_live_polite_and_atomic_true_passes(
-    context_factory, run_rgaa,
-):
-    """Test that a status message with aria-live='polite' and aria-atomic='true' passes."""
-    html = '<div aria-live="polite" aria-atomic="true">Sauvegarde réussie</div>'
-    result = run_rgaa(Test751(), context_factory(html))
-
-    assert result.status == Status.PASS
-    assert result.tested_elements == 1
-    assert len(result.findings) == 0
-
-
-def test_751_status_message_without_required_attributes_fails(
-    context_factory, run_rgaa,
-):
-    """Test that a status message without required attributes fails."""
-    html = '<div>Chargement terminé</div>'
-    result = run_rgaa(Test751(), context_factory(html))
-
+@pytest.mark.parametrize(
+    ("test_class", "html", "kind"),
+    [
+        (Test751, SUCCESS, "status_success"),
+        (Test752, ERROR, "status_error"),
+        (Test753, PROGRESS, "status_progress"),
+    ],
+)
+def test_unmarked_status_message_fails(test_class, html, kind, context_factory, run_rgaa):
+    ai = text_services(structure_answer=structure(True))
+    result = run_rgaa(test_class(), context_factory(html), ai)
     assert result.status == Status.FAIL
-    assert len(result.findings) == 1
-    assert "n'utilise pas le rôle WAI-ARIA approprié" in result.findings[0].message
-    assert result.tested_elements == 1
+    assert "Aucun marquage de région dynamique" in submitted(ai, kind)[0].context
 
 
-def test_751_mixed_compliant_and_non_compliant_messages(
-    context_factory, run_rgaa,
-):
-    """Test mixed compliant and non-compliant status messages."""
-    html = '''
-    <div>
-        <div role="status">Chargement terminé</div>
-        <div>Sauvegarde réussie</div>
-    </div>
-    '''
-    result = run_rgaa(Test751(), context_factory(html))
+@pytest.mark.parametrize(
+    ("test_class", "html"),
+    [
+        (Test751, '<div role="status">Votre message a été envoyé.</div>'),
+        (Test751, '<div aria-live="polite" aria-atomic="true">Article ajouté au panier.</div>'),
+        (Test751, "<output>3 résultats</output>"),
+        (Test752, '<p role="alert">Erreur : champ obligatoire.</p>'),
+        (Test752, '<p aria-live="assertive" aria-atomic="true">Mot de passe invalide.</p>'),
+        (Test753, '<div role="log">Étape 2 sur 4</div>'),
+        (Test753, '<progress value="40" max="100">40 %</progress>'),
+        (Test753, '<div aria-live="polite">Chargement en cours</div>'),
+    ],
+)
+def test_expected_marking_passes_without_ai(test_class, html, context_factory, run_rgaa):
+    ai = text_services()
+    assert run_rgaa(test_class(), context_factory(html), ai).status == Status.PASS
+    ai.structure_analyzer.classify_candidates.assert_not_called()
 
+
+def test_other_category_marking_is_judged(context_factory, run_rgaa):
+    """Un message d'erreur marqué role=status doit porter role=alert (7.5.2)."""
+    ai = text_services(structure_answer=structure(True))
+    html = '<p role="status">Erreur : paiement refusé.</p>'
+    result = run_rgaa(Test752(), context_factory(html), ai)
     assert result.status == Status.FAIL
-    assert result.tested_elements == 2
-    assert len(result.findings) == 1
+    assert result.findings[0].evidence["role"] == "status"
 
 
-def test_752_alert_message_with_role_alert_passes(context_factory, run_rgaa):
-    """Test that an alert message with role='alert' passes."""
-    html = '<div role="alert">Erreur de validation</div>'
-    result = run_rgaa(Test752(), context_factory(html))
-
-    assert result.status == Status.PASS
-    assert result.tested_elements == 1
-    assert len(result.findings) == 0
+def test_static_text_is_not_a_status_message(context_factory, run_rgaa):
+    ai = text_services(structure_answer=structure(False))
+    html = "<p>Les champs marqués d'un astérisque sont obligatoires.</p>"
+    assert run_rgaa(Test752(), context_factory(html), ai).status == Status.NOT_APPLICABLE
 
 
-def test_752_alert_message_with_aria_live_assertive_and_atomic_true_passes(
-    context_factory, run_rgaa,
-):
-    """Test that an alert message with aria-live='assertive' and aria-atomic='true' passes."""
-    html = '<div aria-live="assertive" aria-atomic="true">Attention : session expirée</div>'
-    result = run_rgaa(Test752(), context_factory(html))
-
-    assert result.status == Status.PASS
-    assert result.tested_elements == 1
-    assert len(result.findings) == 0
+def test_headings_buttons_and_links_are_not_candidates(context_factory, run_rgaa):
+    html = "<h2>Erreurs fréquentes</h2><button>Erreur</button><a href='/e'>Erreur</a>"
+    assert run_rgaa(Test752(), context_factory(html), text_services()).status == Status.NOT_APPLICABLE
 
 
-def test_752_alert_message_without_required_attributes_fails(
-    context_factory, run_rgaa,
-):
-    """Test that an alert message without required attributes fails."""
-    html = '<div>Erreur de validation</div>'
-    result = run_rgaa(Test752(), context_factory(html))
-
-    assert result.status == Status.FAIL
-    assert len(result.findings) == 1
-    assert "n'utilise pas le rôle WAI-ARIA approprié" in result.findings[0].message
-    assert result.tested_elements == 1
+def test_children_of_a_live_region_are_not_repeated(context_factory, run_rgaa):
+    ai = text_services(structure_answer=structure(True))
+    html = '<div role="alert"><p>Votre message a été envoyé.</p></div>'
+    result = run_rgaa(Test751(), context_factory(html), ai)
+    assert len(submitted(ai, "status_success")) == 1
+    assert result.findings[0].element == "div[index=0]"
 
 
-def test_752_mixed_compliant_and_non_compliant_messages(
-    context_factory, run_rgaa,
-):
-    """Test mixed compliant and non-compliant alert messages."""
-    html = '''
-    <div>
-        <div role="alert">Erreur critique</div>
-        <div>Problème détecté</div>
-    </div>
-    '''
-    result = run_rgaa(Test752(), context_factory(html))
-
-    assert result.status == Status.FAIL
-    assert result.tested_elements == 2
-    assert len(result.findings) == 1
+def test_uncertain_answer_needs_review(context_factory, run_rgaa):
+    ai = text_services(structure_answer=structure(True, confidence="low"))
+    assert run_rgaa(Test751(), context_factory(SUCCESS), ai).status == Status.NEEDS_REVIEW
 
 
-def test_753_process_message_with_role_log_passes(context_factory, run_rgaa):
-    """Test that a process message with role='log' passes."""
-    html = '<div role="log">Étape 3 sur 5 terminée</div>'
-    result = run_rgaa(Test753(), context_factory(html))
-
-    assert result.status == Status.PASS
-    assert result.tested_elements == 1
-    assert len(result.findings) == 0
+def test_without_ai_needs_review(context_factory, run_rgaa):
+    result = run_rgaa(Test751(), context_factory(SUCCESS))
+    assert result.status == Status.NEEDS_REVIEW
+    assert "IA n'est pas disponible" in result.findings[0].message
 
 
-def test_753_process_message_with_role_progressbar_passes(
-    context_factory, run_rgaa,
-):
-    """Test that a process message with role='progressbar' passes."""
-    html = '<div role="progressbar">Traitement en cours</div>'
-    result = run_rgaa(Test753(), context_factory(html))
-
-    assert result.status == Status.PASS
-    assert result.tested_elements == 1
-    assert len(result.findings) == 0
-
-
-def test_753_process_message_with_role_status_passes(
-    context_factory, run_rgaa,
-):
-    """Test that a process message with role='status' passes."""
-    html = '<div role="status">Étape 3 terminée</div>'
-    result = run_rgaa(Test753(), context_factory(html))
-
-    assert result.status == Status.PASS
-    assert result.tested_elements == 1
-    assert len(result.findings) == 0
-
-
-def test_753_process_message_with_aria_live_polite_passes(
-    context_factory, run_rgaa,
-):
-    """Test that a process message with aria-live='polite' passes."""
-    html = '<div aria-live="polite">Chargement des données</div>'
-    result = run_rgaa(Test753(), context_factory(html))
-
-    assert result.status == Status.PASS
-    assert result.tested_elements == 1
-    assert len(result.findings) == 0
-
-
-def test_753_process_message_with_aria_live_polite_and_atomic_true_passes(
-    context_factory, run_rgaa,
-):
-    """Test that a process message with aria-live='polite' and aria-atomic='true' passes."""
-    html = '<div aria-live="polite" aria-atomic="true">Sauvegarde en cours</div>'
-    result = run_rgaa(Test753(), context_factory(html))
-
-    assert result.status == Status.PASS
-    assert result.tested_elements == 1
-    assert len(result.findings) == 0
-
-
-def test_753_process_message_without_required_attributes_fails(
-    context_factory,
-    run_rgaa,
-):
-    """Test that a process message without required attributes fails."""
-    html = '<div>Étape 3 terminée</div>'
-    result = run_rgaa(Test753(), context_factory(html))
-
-    assert result.status == Status.FAIL
-    assert len(result.findings) == 1
-    assert "n'utilise pas le rôle WAI-ARIA approprié" in result.findings[0].message
-    assert result.tested_elements == 1
-
-
-def test_753_mixed_compliant_and_non_compliant_messages(
-    context_factory, run_rgaa,
-):
-    """Test mixed compliant and non-compliant process messages."""
-    html = '''
-    <div>
-        <div role="log">Étape 3 terminée</div>
-        <div>Traitement en cours</div>
-    </div>
-    '''
-    result = run_rgaa(Test753(), context_factory(html))
-
-    assert result.status == Status.FAIL
-    assert result.tested_elements == 2
-    assert len(result.findings) == 1
+def test_ai_exception_gives_error(context_factory, run_rgaa):
+    ai = text_services(structure_answer=RuntimeError("panne"))
+    assert run_rgaa(Test751(), context_factory(SUCCESS), ai).status == Status.ERROR

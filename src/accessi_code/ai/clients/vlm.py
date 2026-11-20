@@ -7,7 +7,7 @@ from typing import Any
 
 import aiohttp
 
-from accessi_code.ai.clients.base import BaseModelEndpoint
+from accessi_code.ai.clients.base import BaseModelEndpoint, cap_max_tokens
 
 ImageInput = str | Path | bytes | bytearray
 
@@ -101,7 +101,7 @@ class OllamaVLM(BaseModelEndpoint):
             "stream": False,
             "options": {
                 "temperature": temperature,
-                "num_predict": max_tokens,
+                "num_predict": cap_max_tokens(max_tokens),
             },
         }
 

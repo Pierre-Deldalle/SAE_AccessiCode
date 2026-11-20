@@ -67,12 +67,7 @@ def test_criterion_49_with_alternative_needs_review(
     context_factory,
     run_rgaa,
 ):
-    html = (
-        "<div>"
-        f"{media}"
-        '<a href="alternative.html">Lire l’alternative</a>'
-        "</div>"
-    )
+    html = f'<div>{media}<a href="alternative.html">Lire l’alternative</a></div>'
 
     result = run_rgaa(
         Test491(),
@@ -93,16 +88,8 @@ def test_criterion_49_with_alternative_needs_review(
     "control",
     [
         '<a href="alternative.html">Lire l’alternative</a>',
-        (
-            '<button aria-controls="alternative">'
-            "Afficher l’alternative"
-            "</button>"
-        ),
-        (
-            '<button data-href="alternative.html">'
-            "Afficher l’alternative"
-            "</button>"
-        ),
+        ('<button aria-controls="alternative">Afficher l’alternative</button>'),
+        ('<button data-href="alternative.html">Afficher l’alternative</button>'),
     ],
 )
 def test_criterion_49_detects_alternative(
@@ -110,12 +97,7 @@ def test_criterion_49_detects_alternative(
     context_factory,
     run_rgaa,
 ):
-    html = (
-        '<div>'
-        '<object id="document" data="document.pdf"></object>'
-        f"{control}"
-        "</div>"
-    )
+    html = f'<div><object id="document" data="document.pdf"></object>{control}</div>'
 
     result = run_rgaa(
         Test491(),
@@ -262,21 +244,9 @@ def test_criterion_49_multiple_media_one_with_alternative(
 @pytest.mark.parametrize(
     "media",
     [
-        (
-            '<object id="decorative" '
-            'data="icon.svg" '
-            'aria-hidden="true"></object>'
-        ),
-        (
-            '<embed id="decorative" '
-            'src="icon.svg" '
-            'role="presentation">'
-        ),
-        (
-            '<object id="decorative" '
-            'data="icon.svg" '
-            'data-decorative="true"></object>'
-        ),
+        ('<object id="decorative" data="icon.svg" aria-hidden="true"></object>'),
+        ('<embed id="decorative" src="icon.svg" role="presentation">'),
+        ('<object id="decorative" data="icon.svg" data-decorative="true"></object>'),
     ],
 )
 def test_criterion_49_ignores_decorative_media(

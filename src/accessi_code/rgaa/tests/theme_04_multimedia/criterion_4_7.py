@@ -34,11 +34,7 @@ class Test471(RGAATest):
         # - autres médias identifiés par find_temporal_media
         #
         # Les médias décoratifs sont exclus du test.
-        media = [
-            item
-            for item in find_temporal_media(context.dom)
-            if not is_media_exempt(item.tag)
-        ]
+        media = [item for item in find_temporal_media(context.dom) if not is_media_exempt(item.tag)]
 
         # Aucun média temporel :
         # le critère ne s'applique pas.
@@ -65,9 +61,7 @@ class Test471(RGAATest):
             has_preceding_text = bool(preceding_text)
             has_following_text = bool(following_text)
 
-            has_identifying_text = (
-                has_preceding_text or has_following_text
-            )
+            has_identifying_text = has_preceding_text or has_following_text
 
             if not has_identifying_text:
                 all_identified = False
@@ -78,16 +72,12 @@ class Test471(RGAATest):
                     message=(
                         "Un contenu textuel adjacent a été détecté."
                         if has_identifying_text
-                        else
-                        "Aucun contenu textuel adjacent permettant "
-                        "d'identifier le média temporel n'a été détecté."
+                        else "Aucun contenu textuel adjacent permettant d'identifier le média temporel n'a été détecté."
                     ),
                     recommendation=(
-                        "Vérifier que le contenu textuel adjacent "
-                        "identifie clairement le média temporel."
+                        "Vérifier que le contenu textuel adjacent identifie clairement le média temporel."
                         if has_identifying_text
-                        else
-                        "Ajouter un contenu textuel, par exemple "
+                        else "Ajouter un contenu textuel, par exemple "
                         "un titre ou un paragraphe, immédiatement "
                         "avant ou après le média afin de permettre "
                         "son identification."
@@ -130,15 +120,9 @@ class Test471(RGAATest):
             tested_elements=len(media),
             metadata={
                 "candidate_media": len(media),
-                "identified_media": sum(
-                    1
-                    for finding in findings
-                    if finding.evidence.get("media_identified") is True
-                ),
+                "identified_media": sum(1 for finding in findings if finding.evidence.get("media_identified") is True),
                 "unidentified_media": sum(
-                    1
-                    for finding in findings
-                    if finding.evidence.get("media_identified") is False
+                    1 for finding in findings if finding.evidence.get("media_identified") is False
                 ),
             },
         )
@@ -221,5 +205,3 @@ def _extract_identifying_text(tag: Tag) -> str:
         return ""
 
     return tag.get_text(" ", strip=True)
-
-

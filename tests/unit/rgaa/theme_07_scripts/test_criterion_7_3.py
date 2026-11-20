@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from bs4 import BeautifulSoup
 from unittest.mock import AsyncMock
 
 import pytest
+from bs4 import BeautifulSoup
 
 from accessi_code.models.result import TestStatus
 from accessi_code.rgaa.tests.theme_07_scripts.criterion_7_3 import Test731, Test732

@@ -242,7 +242,9 @@ def test_541_all_good_tables_passes(
     context_factory,
     run_rgaa,
 ):
-    html = SIMPLE_TABLE_WITH_CAPTION + """
+    html = (
+        SIMPLE_TABLE_WITH_CAPTION
+        + """
     <table title="Autre tableau">
         <tr>
             <th>Produit</th>
@@ -254,6 +256,7 @@ def test_541_all_good_tables_passes(
         </tr>
     </table>
     """
+    )
     context = context_factory(html)
     result = run_rgaa(RGAA541(), context)
     assert result.status == Status.PASS

@@ -1,308 +1,93 @@
+"""Critère RGAA 5.2 : pertinence du résumé des tableaux de données complexes."""
+
+from ai_fakes import relevance, text_services
+
 from accessi_code.models.result import TestStatus as Status
-from accessi_code.rgaa.tests.theme_05_tables.criterion_5_2 import (
-    Test521 as RGAA521,
+from accessi_code.rgaa.tests.theme_05_tables.criterion_5_2 import Test521
+
+HEADERS = """
+    <thead>
+        <tr><th rowspan="2" scope="col">Produit</th><th colspan="2" scope="colgroup">Semestre</th></tr>
+        <tr><th scope="col">S1</th><th scope="col">S2</th></tr>
+    </thead>
+    <tbody><tr><th scope="row">Ordinateurs</th><td>150</td><td>200</td></tr></tbody>
+"""
+COMPLEX = f"<table id='ventes'><caption>Ventes par produit, puis par semestre en colonnes</caption>{HEADERS}</table>"
+DESCRIBED = (
+    "<p id='res'>Chaque ligne est un produit ; les colonnes regroupent les deux semestres.</p>"
+    f"<table aria-describedby='res'>{HEADERS}</table>"
 )
 
 
-TABLE_WITH_NON_PERTINENT_SUMMARY = """
-<table>
-    <caption>Tableau</caption>
-    <thead>
-        <tr>
-            <th rowspan="2" scope="col">Produit</th>
-            <th colspan="2" scope="colgroup">Semestre</th>
-        </tr>
-        <tr>
-            <th scope="col">S1</th>
-            <th scope="col">S2</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <th scope="row">Ordinateurs</th>
-            <td>150</td>
-            <td>200</td>
-        </tr>
-    </tbody>
-</table>
-"""
-
-TABLE_WITH_WEAK_SUMMARY = """
-<table>
-    <caption>Données</caption>
-    <thead>
-        <tr>
-            <th rowspan="2" scope="col">Produit</th>
-            <th colspan="2" scope="colgroup">Semestre</th>
-        </tr>
-        <tr>
-            <th scope="col">S1</th>
-            <th scope="col">S2</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <th scope="row">Ordinateurs</th>
-            <td>150</td>
-            <td>200</td>
-        </tr>
-    </tbody>
-</table>
-"""
-
-TABLE_WITH_GOOD_SUMMARY = """
-<table>
-    <caption>Évolution des ventes de produits informatiques sur les deux semestres de l'année</caption>
-    <thead>
-        <tr>
-            <th rowspan="2" scope="col">Produit</th>
-            <th colspan="2" scope="colgroup">Semestre</th>
-        </tr>
-        <tr>
-            <th scope="col">S1</th>
-            <th scope="col">S2</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <th scope="row">Ordinateurs</th>
-            <td>150</td>
-            <td>200</td>
-        </tr>
-    </tbody>
-</table>
-"""
-
-TABLE_WITH_ARIA_DESCRIBEDBY_NON_PERTINENT = """
-<div id="non-pertinent-summary">Info</div>
-<table aria-describedby="non-pertinent-summary">
-    <thead>
-        <tr>
-            <th rowspan="2" scope="col">Produit</th>
-            <th colspan="2" scope="colgroup">Semestre</th>
-        </tr>
-        <tr>
-            <th scope="col">S1</th>
-            <th scope="col">S2</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <th scope="row">Ordinateurs</th>
-            <td>150</td>
-            <td>200</td>
-        </tr>
-    </tbody>
-</table>
-"""
-
-TABLE_WITH_ARIA_DESCRIBEDBY_GOOD = """
-<div id="good-summary">Tableau montrant les ventes mensuelles par région et par produit</div>
-<table aria-describedby="good-summary">
-    <thead>
-        <tr>
-            <th rowspan="2" scope="col">Produit</th>
-            <th colspan="2" scope="colgroup">Semestre</th>
-        </tr>
-        <tr>
-            <th scope="col">S1</th>
-            <th scope="col">S2</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <th scope="row">Ordinateurs</th>
-            <td>150</td>
-            <td>200</td>
-        </tr>
-    </tbody>
-</table>
-"""
-
-COMPLEX_TABLE_WITH_NON_PERTINENT_SUMMARY = """
-<table>
-    <caption>Tableau</caption>
-    <thead>
-        <tr>
-            <th rowspan="2" scope="col">Produit</th>
-            <th colspan="2" scope="colgroup">Semestre</th>
-        </tr>
-        <tr>
-            <th scope="col">S1</th>
-            <th scope="col">S2</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <th scope="row">Ordinateurs</th>
-            <td>150</td>
-            <td>200</td>
-        </tr>
-    </tbody>
-</table>
-"""
-
-COMPLEX_TABLE_WITH_GOOD_SUMMARY = """
-<table>
-    <caption>Évolution des ventes de produits informatiques sur les deux semestres de l'année</caption>
-    <thead>
-        <tr>
-            <th rowspan="2" scope="col">Produit</th>
-            <th colspan="2" scope="colgroup">Semestre</th>
-        </tr>
-        <tr>
-            <th scope="col">S1</th>
-            <th scope="col">S2</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <th scope="row">Ordinateurs</th>
-            <td>150</td>
-            <td>200</td>
-        </tr>
-    </tbody>
-</table>
-"""
-
-SIMPLE_TABLE_NO_SUMMARY_NEEDED = """
-<table>
-    <tr>
-        <th>Nom</th>
-        <th>Age</th>
-    </tr>
-    <tr>
-        <td>Dupont</td>
-        <td>30</td>
-    </tr>
-</table>
-"""
+def test_simple_table_is_not_applicable(context_factory, run_rgaa):
+    html = "<table><caption>Liste</caption><tr><th>Nom</th></tr><tr><td>A</td></tr></table>"
+    assert run_rgaa(Test521(), context_factory(html), text_services()).status == Status.NOT_APPLICABLE
 
 
-def test_521_no_complex_tables_not_applicable(
-    context_factory,
-    run_rgaa,
-):
-    """Test when there are no complex tables."""
-    context = context_factory("<main><p>Aucun tableau ici.</p></main>")
-    result = run_rgaa(RGAA521(), context)
+def test_complex_table_without_summary_is_not_applicable(context_factory, run_rgaa):
+    ai = text_services()
+    result = run_rgaa(Test521(), context_factory(f"<table>{HEADERS}</table>"), ai)
     assert result.status == Status.NOT_APPLICABLE
-    assert result.tested_elements == 0
+    ai.text_relevance_analyzer.analyze_relevance.assert_not_called()
 
 
-def test_521_simple_tables_not_applicable(
-    context_factory,
-    run_rgaa,
-):
-    """Test when there are only simple tables (no complex structure)."""
-    context = context_factory(SIMPLE_TABLE_NO_SUMMARY_NEEDED)
-    result = run_rgaa(RGAA521(), context)
-    assert result.status == Status.NOT_APPLICABLE
-    assert result.tested_elements == 0
-
-
-def test_521_complex_table_with_non_pertinent_caption_fails(
-    context_factory,
-    run_rgaa,
-):
-    """Test that a complex table with a non-pertinent caption fails."""
-    context = context_factory(TABLE_WITH_NON_PERTINENT_SUMMARY)
-    result = run_rgaa(RGAA521(), context)
-    assert result.status == Status.FAIL
-    assert len(result.findings) == 1
-    assert "résumé du tableau de données complexe n'est pas pertinent" in result.findings[0].message
-
-
-def test_521_complex_table_with_weak_summary_fails(
-    context_factory,
-    run_rgaa,
-):
-    """Test that a complex table with a weak summary fails."""
-    context = context_factory(TABLE_WITH_WEAK_SUMMARY)
-    result = run_rgaa(RGAA521(), context)
-    assert result.status == Status.FAIL
-    assert len(result.findings) == 1
-
-
-def test_521_complex_table_with_good_caption_passes(
-    context_factory,
-    run_rgaa,
-):
-    """Test that a complex table with a good caption passes."""
-    context = context_factory(TABLE_WITH_GOOD_SUMMARY)
-    result = run_rgaa(RGAA521(), context)
+def test_relevant_summary_passes(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=relevance(True))
+    result = run_rgaa(Test521(), context_factory(COMPLEX), ai)
     assert result.status == Status.PASS
-    assert result.findings == []
+    kind, items = ai.text_relevance_analyzer.analyze_relevance.call_args.args
+    assert kind == "table_summary"
+    assert "Ventes par produit" in items[0].text
+    assert "Produit | Semestre" in items[0].context
 
 
-def test_521_complex_table_with_non_pertinent_aria_describedby_fails(
-    context_factory,
-    run_rgaa,
-):
-    """Test that a complex table with non-pertinent aria-describedby fails."""
-    context = context_factory(TABLE_WITH_ARIA_DESCRIBEDBY_NON_PERTINENT)
-    result = run_rgaa(RGAA521(), context)
+def test_described_summary_is_submitted(context_factory, run_rgaa):
+    ai = text_services()
+    run_rgaa(Test521(), context_factory(DESCRIBED), ai)
+    _, items = ai.text_relevance_analyzer.analyze_relevance.call_args.args
+    assert items[0].text.startswith("aria-describedby : Chaque ligne")
+
+
+def test_legacy_summary_attribute_only_outside_html5(context_factory, run_rgaa):
+    html = f'<table summary="Produits en lignes, semestres en colonnes">{HEADERS}</table>'
+    html5 = run_rgaa(Test521(), context_factory("<!DOCTYPE html>" + html), text_services())
+    assert html5.status == Status.NOT_APPLICABLE
+    legacy = run_rgaa(Test521(), context_factory(html, doctype=None), text_services())
+    assert legacy.status == Status.PASS
+
+
+def test_irrelevant_summary_fails(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=relevance(False))
+    result = run_rgaa(Test521(), context_factory(COMPLEX), ai)
     assert result.status == Status.FAIL
-    assert len(result.findings) == 1
+    assert result.findings[0].element == "table#ventes"
+    assert "n'est pas pertinent" in result.findings[0].message
 
 
-def test_521_complex_table_with_good_aria_describedby_passes(
-    context_factory,
-    run_rgaa,
-):
-    """Test that a complex table with good aria-describedby passes."""
-    context = context_factory(TABLE_WITH_ARIA_DESCRIBEDBY_GOOD)
-    result = run_rgaa(RGAA521(), context)
-    assert result.status == Status.PASS
-    assert result.findings == []
+def test_low_confidence_needs_review(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=relevance(False, confidence="low"))
+    assert run_rgaa(Test521(), context_factory(COMPLEX), ai).status == Status.NEEDS_REVIEW
 
 
-def test_521_complex_table_with_non_pertinent_summary_fails(
-    context_factory,
-    run_rgaa,
-):
-    """Test that a complex table with non-pertinent summary attribute fails (legacy doctype)."""
-    doctype = '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">'
-    html = doctype + COMPLEX_TABLE_WITH_NON_PERTINENT_SUMMARY
-    context = context_factory(html, doctype=doctype)
-    result = run_rgaa(RGAA521(), context)
+def test_unknown_relevance_needs_review(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=relevance(None))
+    assert run_rgaa(Test521(), context_factory(COMPLEX), ai).status == Status.NEEDS_REVIEW
+
+
+def test_without_ai_needs_review(context_factory, run_rgaa):
+    result = run_rgaa(Test521(), context_factory(COMPLEX))
+    assert result.status == Status.NEEDS_REVIEW
+    assert "IA n'est pas disponible" in result.findings[0].message
+
+
+def test_ai_exception_gives_error(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=RuntimeError("panne"))
+    assert run_rgaa(Test521(), context_factory(COMPLEX), ai).status == Status.ERROR
+
+
+def test_mixed_results(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=[relevance(True), relevance(False)])
+    result = run_rgaa(Test521(), context_factory(COMPLEX + DESCRIBED), ai)
     assert result.status == Status.FAIL
-    assert len(result.findings) == 1
-
-
-def test_521_complex_table_with_good_summary_passes(
-    context_factory,
-    run_rgaa,
-):
-    """Test that a complex table with good summary attribute passes (legacy doctype)."""
-    doctype = '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">'
-    html = doctype + COMPLEX_TABLE_WITH_GOOD_SUMMARY
-    context = context_factory(html, doctype=doctype)
-    result = run_rgaa(RGAA521(), context)
-    assert result.status == Status.PASS
-    assert result.findings == []
-
-
-def test_521_mixed_good_and_bad_summaries_fails(
-    context_factory,
-    run_rgaa,
-):
-    """Test that when there are multiple complex tables, one bad summary makes the whole test fail."""
-    html = TABLE_WITH_GOOD_SUMMARY + TABLE_WITH_NON_PERTINENT_SUMMARY
-    context = context_factory(html)
-    result = run_rgaa(RGAA521(), context)
-    assert result.status == Status.FAIL
-    assert len(result.findings) == 1  # Only the bad one should generate a finding
-
-
-def test_521_all_good_summaries_passes(
-    context_factory,
-    run_rgaa,
-):
-    """Test that when all complex tables have good summaries, the test passes."""
-    html = TABLE_WITH_GOOD_SUMMARY + COMPLEX_TABLE_WITH_GOOD_SUMMARY
-    context = context_factory(html)
-    result = run_rgaa(RGAA521(), context)
-    assert result.status == Status.PASS
-    assert result.findings == []
-    assert result.tested_elements == 2  # Both complex tables should be tested
+    assert result.metadata["statuses"]["pass"] == 1
+    assert result.metadata["statuses"]["fail"] == 1

@@ -1,233 +1,122 @@
+"""
+RGAA 4.1.2 — critère 9.4 : dans chaque page web, chaque citation est-elle
+correctement indiquée ?
+
+- 9.4.1 : chaque citation courte utilise une balise <q>.
+- 9.4.2 : chaque bloc de citation utilise une balise <blockquote>.
+
+Les balises présentes sont vérifiées dans le DOM (une balise vide n'indique
+aucune citation). Les passages entre guillemets ou identifiés comme citation
+sans être balisés sont soumis à l'IA, qui juge s'il s'agit réellement d'une
+citation (et pas d'un simple usage de guillemets).
+"""
+
 from __future__ import annotations
 
-from bs4 import Tag
+from typing import Any
 
+from bs4 import BeautifulSoup, Tag
+
+from accessi_code.ai.schemas import StructureCandidate
+from accessi_code.analysis.dom import get_element_identifier
+from accessi_code.analysis.structure import block_quote_candidates, inline_quote_candidates, is_hidden
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
-from accessi_code.models.result import (
-    Finding,
-    TestResult,
-    TestStatus,
-)
+from accessi_code.models.result import TestResult, TestStatus
+from accessi_code.rgaa.ai_decision import judge_structure
 from accessi_code.rgaa.base import RGAATest
+from accessi_code.rgaa.outcomes import Outcome, build_result, make_outcome, not_applicable
 
 
-def _is_visible_element(element: Tag) -> bool:
-    """
-    Vérifie si un élément est visible (pas caché par attribut hidden ou style display:none).
-    """
-    # Vérifier l'attribut hidden
-    if element.has_attr('hidden'):
-        return False
+async def _candidate_outcomes(
+    services: Any | None,
+    candidates: list[tuple[Tag, str]],
+    *,
+    fail: str,
+    uncertain: str,
+    recommendation: str,
+) -> list[Outcome]:
+    items = [
+        StructureCandidate(text=text, element_html=str(tag)[:500], context=tag.get_text(" ", strip=True)[:500])
+        for tag, text in candidates
+    ]
+    verdicts = await judge_structure(services, "quote", items)
+    return [
+        make_outcome(
+            verdict.status,
+            get_element_identifier(tag, index),
+            verdict.message(fail.format(text=text[:100]), uncertain.format(text=text[:100])),
+            recommendation,
+            text=text[:200],
+            **verdict.evidence,
+        )
+        for index, ((tag, text), verdict) in enumerate(zip(candidates, verdicts, strict=True))
+    ]
 
-    # Vérifier le style display:none (simplifié)
-    style = element.get('style', '')
-    if isinstance(style, str) and 'display:none' in style.replace(' ', '').lower():
-        return False
 
-    return True
+def _existing_outcomes(tags: list[Tag], name: str) -> list[Outcome]:
+    return [
+        make_outcome(TestStatus.PASS)
+        if tag.get_text(strip=True)
+        else make_outcome(
+            TestStatus.FAIL,
+            get_element_identifier(tag, index),
+            f"La balise <{name}> est vide : elle n'indique aucune citation.",
+            f"Supprimer la balise <{name}> vide ou y placer la citation.",
+        )
+        for index, tag in enumerate(tags)
+    ]
 
 
 class Test941(RGAATest):
-    """
-    Test 9.4.1 : Dans chaque page web, chaque citation courte utilise-t-elle une balise <q> ?
-    """
+    """9.4.1 : chaque citation courte utilise-t-elle une balise <q> ?"""
+
     test_id = "9.4.1"
     criterion_id = "9.4"
+    required_capabilities = frozenset({Capability.DOM})
 
-    required_capabilities = frozenset(
-        {
-            Capability.DOM,
-        }
-    )
-
-    async def run(
-        self,
-        context: AuditContext,
-        services: object | None = None,
-    ) -> TestResult:
-        if not hasattr(context, 'dom'):
+    async def run(self, context: AuditContext, services: Any | None = None) -> TestResult:
+        if not isinstance(context.dom, BeautifulSoup):
             raise ValueError("Le test 9.4.1 nécessite un DOM.")
-
         soup = context.dom
-        findings: list[Finding] = []
+        quotes = [tag for tag in soup.find_all("q") if not is_hidden(tag)]
+        candidates = inline_quote_candidates(soup)
+        if not quotes and not candidates:
+            return not_applicable(self, "Aucune citation courte dans la page.")
 
-        # Trouver toutes les citations courtes potentielles dans le texte
-        # On recherche du texte qui pourrait être une citation courte
-        # Pour simplifier, on va chercher tous les éléments texte et appliquer une heuristique
-        # Une approche plus précise nécessiterait de l'IA pour détecter les citations courtes
-        # Mais on peut au moins vérifier que les balises <q> existantes sont bien utilisées
-
-        # Vérifier que toutes les balises <q> sont bien utilisées (contiennent du texte)
-        q_elements = soup.find_all('q')
-        visible_q_elements = [q for q in q_elements if _is_visible_element(q)]
-
-        for index, q_element in enumerate(visible_q_elements):
-            # Vérifier que la balise <q> contient du texte
-            q_text = q_element.get_text(strip=True)
-            if not q_text:
-                element_id = (
-                    f"q#{q_element.get('id')}"
-                    if q_element.get('id')
-                    else f"q[{visible_q_elements.index(q_element)}]"
-                )
-                findings.append(
-                    Finding(
-                        element=element_id,
-                        message="La balise <q> est vide.",
-                        recommendation=(
-                            "La balise <q> doit contenir le texte de la citation courte."
-                        ),
-                    )
-                )
-
-        # Note : Déterminer de manière déterministe quel texte devrait être une citation courte
-        # nécessite une compréhension sémantique du contenu qui dépasse les capacités d'analyse
-        # statique simple. Ce test se concentre donc sur la validation de l'utilisation correcte
-        # des balises <q> lorsqu'elles sont présentes.
-        # Pour une détection complète des citations courtes manquantes, une analyse IA serait nécessaire.
-
-        # Déterminer le statut final
-        if not visible_q_elements:
-            return TestResult(
-                test_id=self.test_id,
-                criterion_id=self.criterion_id,
-                status=TestStatus.NOT_APPLICABLE,
-                summary="Aucune balise <q> détectée.",
-                tested_elements=0,
-            )
-        elif findings:
-            status = TestStatus.FAIL
-        else:
-            status = TestStatus.PASS
-
-        return TestResult(
-            test_id=self.test_id,
-            criterion_id=self.criterion_id,
-            status=status,
-            summary=(
-                f"Analyse des balises <q> : "
-                f"{len(visible_q_elements)} balise(s) <q> visible(s) détectée(s)."
-            ),
-            findings=findings,
-            tested_elements=len(visible_q_elements),
-            metadata={
-                "total_q_tags": len(visible_q_elements),
-                "empty_q_tags": len([f for f in findings if "La balise <q> est vide." in f.message]),
-            },
+        outcomes = _existing_outcomes(quotes, "q")
+        outcomes += await _candidate_outcomes(
+            services,
+            candidates,
+            fail="La citation « {text} » n'est pas balisée avec <q>.",
+            uncertain="Le passage « {text} » pourrait être une citation non balisée.",
+            recommendation="Baliser chaque citation courte avec <q>.",
         )
+        return build_result(self, outcomes, empty_summary="Aucune citation courte dans la page.", noun="citation(s)")
 
 
 class Test942(RGAATest):
-    """
-    Test 9.4.2 : Dans chaque page web, chaque bloc de citation utilise-t-il une balise <blockquote> ?
-    """
+    """9.4.2 : chaque bloc de citation utilise-t-il une balise <blockquote> ?"""
+
     test_id = "9.4.2"
     criterion_id = "9.4"
+    required_capabilities = frozenset({Capability.DOM})
 
-    required_capabilities = frozenset(
-        {
-            Capability.DOM,
-        }
-    )
-
-    async def run(
-        self,
-        context: AuditContext,
-        services: object | None = None,
-    ) -> TestResult:
-        if not hasattr(context, 'dom'):
+    async def run(self, context: AuditContext, services: Any | None = None) -> TestResult:
+        if not isinstance(context.dom, BeautifulSoup):
             raise ValueError("Le test 9.4.2 nécessite un DOM.")
-
         soup = context.dom
-        findings: list[Finding] = []
+        blocks = [tag for tag in soup.find_all("blockquote") if not is_hidden(tag)]
+        candidates = [(tag, tag.get_text(" ", strip=True)) for tag in block_quote_candidates(soup)]
+        if not blocks and not candidates:
+            return not_applicable(self, "Aucun bloc de citation dans la page.")
 
-        # Trouver toutes les balises <blockquote>
-        blockquote_elements = soup.find_all('blockquote')
-        visible_blockquote_elements = [bq for bq in blockquote_elements if _is_visible_element(bq)]
-
-        for index, blockquote_element in enumerate(visible_blockquote_elements):
-            # Vérifier que la balise <blockquote> contient du texte
-            blockquote_text = blockquote_element.get_text(strip=True)
-            if not blockquote_text:
-                element_id = (
-                    f"blockquote#{blockquote_element.get('id')}"
-                    if blockquote_element.get('id')
-                    else f"blockquote[{visible_blockquote_elements.index(blockquote_element)}]"
-                )
-                findings.append(
-                    Finding(
-                        element=element_id,
-                        message="La balise <blockquote> est vide.",
-                        recommendation=(
-                            "La balise <blockquote> doit contenir le texte de la citation longue."
-                        ),
-                    )
-                )
-
-            # Vérifier que la balise <blockquote> contient bien du contenu de citation
-            # On peut faire quelques vérifications basiques
-            # Une balise <blockquote> devrait idéalement contenir soit du texte, soit des éléments blocs
-            children = list(blockquote_element.children)
-            non_whitespace_children = [
-                child for child in children
-                if not (isinstance(child, str) and child.strip() == "")
-            ]
-
-            if not non_whitespace_children:
-                element_id = (
-                    f"blockquote#{blockquote_element.get('id')}"
-                    if blockquote_element.get('id')
-                    else f"blockquote[{visible_blockquote_elements.index(blockquote_element)}]"
-                )
-                findings.append(
-                    Finding(
-                        element=element_id,
-                        message="La balise <blockquote> ne contient aucun contenu.",
-                        recommendation=(
-                            "La balise <blockquote> doit contenir le texte de la citation longue "
-                            "ou des éléments blocs représentant la citation."
-                        ),
-                    )
-                )
-
-        # Note : Déterminer de manière déterministe quel texte devrait être une citation longue
-        # nécessite une compréhension sémantique du contenu qui dépasse les capacités d'analyse
-        # statique simple. Ce test se concentre donc sur la validation de l'utilisation correcte
-        # des balises <blockquote> lorsqu'elles sont présentes.
-        # Pour une détection complète des citations longues manquantes, une analyse IA serait nécessaire.
-
-        # Déterminer le statut final
-        if not visible_blockquote_elements:
-            return TestResult(
-                test_id=self.test_id,
-                criterion_id=self.criterion_id,
-                status=TestStatus.NOT_APPLICABLE,
-                summary="Aucune balise <blockquote> détectée.",
-                tested_elements=0,
-            )
-        elif findings:
-            status = TestStatus.FAIL
-        else:
-            status = TestStatus.PASS
-
-        return TestResult(
-            test_id=self.test_id,
-            criterion_id=self.criterion_id,
-            status=status,
-            summary=(
-                f"Analyse des balises <blockquote> : "
-                f"{len(visible_blockquote_elements)} balise(s) <blockquote> visible(s) détectée(s)."
-            ),
-            findings=findings,
-            tested_elements=len(visible_blockquote_elements),
-            metadata={
-                "total_blockquote_tags": len(visible_blockquote_elements),
-                "empty_blockquote_tags": len(
-                    [f for f in findings if "La balise <blockquote> est vide." in f.message]
-                ),
-                "blockquote_without_content": len(
-                    [f for f in findings if "La balise <blockquote> ne contient aucun contenu." in f.message]
-                ),
-            },
+        outcomes = _existing_outcomes(blocks, "blockquote")
+        outcomes += await _candidate_outcomes(
+            services,
+            candidates,
+            fail="Le bloc de citation « {text} » n'est pas balisé avec <blockquote>.",
+            uncertain="Le bloc « {text} » pourrait être une citation non balisée.",
+            recommendation="Baliser chaque bloc de citation avec <blockquote>.",
         )
+        return build_result(self, outcomes, empty_summary="Aucun bloc de citation dans la page.", noun="citation(s)")

@@ -1,7 +1,7 @@
-from types import SimpleNamespace
-from unittest.mock import AsyncMock
+"""Critère RGAA 7.2 : alternatives aux scripts (7.2.1 jugé par l'IA)."""
 
 import pytest
+from ai_fakes import relevance, text_services
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_07_scripts.criterion_7_2 import (
@@ -10,114 +10,71 @@ from accessi_code.rgaa.tests.theme_07_scripts.criterion_7_2 import (
 )
 from accessi_code.service.audit_services import AuditServices
 
+NOSCRIPT = """
+<div id="carte">
+  <script src="carte.js"></script>
+  <noscript>Consultez la <a href="/agences.html">liste des agences</a>.</noscript>
+</div>
+"""
 
 
-def test_721_script_with_noscript_alternative_passes(context_factory, run_rgaa):
-    """Test that a script with noscript alternative passes 7.2.1."""
-    html = '''
-    <script>
-        // Some JavaScript functionality
-        function showMessage() {
-            alert("Hello");
-        }
-    </script>
-    <noscript>
-        <p>JavaScript is disabled. Please enable it to see the full content.</p>
-    </noscript>
-    '''
-    context = context_factory(html)
-    result = run_rgaa(Test721(), context, AuditServices())
+def test_721_no_noscript_is_not_applicable(context_factory, run_rgaa):
+    html = '<script src="app.js"></script><p>Contenu</p>'
+    assert run_rgaa(Test721(), context_factory(html), text_services()).status == Status.NOT_APPLICABLE
 
+
+@pytest.mark.parametrize(
+    "html",
+    [
+        '<html><head><noscript><link rel="stylesheet" href="x.css"></noscript></head><body></body></html>',
+        '<noscript><img src="https://stats.example/p.gif" width="1" height="1" alt=""></noscript>',
+    ],
+)
+def test_721_head_and_tracking_noscript_are_ignored(html, context_factory, run_rgaa):
+    assert run_rgaa(Test721(), context_factory(html), text_services()).status == Status.NOT_APPLICABLE
+
+
+def test_721_alternative_and_script_context_are_submitted(context_factory, run_rgaa):
+    ai = text_services()
+    result = run_rgaa(Test721(), context_factory(NOSCRIPT), ai)
     assert result.status == Status.PASS
-    assert result.findings == []
-    assert result.tested_elements == 1
+    kind, items = ai.text_relevance_analyzer.analyze_relevance.call_args.args
+    assert kind == "script_alternative"
+    assert items[0].text == "Consultez la liste des agences ."
+    assert "Script voisin : carte.js" in items[0].context
 
 
-def test_721_script_without_alternative_not_counted(context_factory, run_rgaa):
-    """Test that a script without alternative is not counted in 7.2.1."""
-    html = '''
-    <script>
-        // Some JavaScript functionality
-        console.log("Script running");
-    </script>
-    <p>Some content</p>
-    '''
-    context = context_factory(html)
-    result = run_rgaa(Test721(), context, AuditServices())
-
-    assert result.status == Status.NOT_APPLICABLE
-    assert result.tested_elements == 0
-    assert result.findings == []
-
-
-def test_721_multiple_scripts_mixed(context_factory, run_rgaa):
-    """Test multiple scripts with mixed alternative presence."""
-    html = '''
-    <!-- Script with noscript alternative -->
-    <script>
-        function updateClock() {
-            document.getElementById('clock').textContent = new Date().toLocaleTimeString();
-        }
-    </script>
-    <noscript>
-        <div id="clock">12:00:00</div>
-    </noscript>
-
-    <!-- Script without alternative -->
-    <script>
-        function trackAnalytics() {
-            // Analytics tracking code
-        }
-    </script>
-
-    <!-- Another script with noscript alternative -->
-    <script>
-        function validateForm() {
-            // Form validation
-            return true;
-        }
-    </script>
-    <noscript>
-        <p>Please enable JavaScript for form validation.</p>
-    </noscript>
-    '''
-    context = context_factory(html)
-    result = run_rgaa(Test721(), context, AuditServices())
-
-    assert result.status == Status.PASS
-    assert result.findings == []
-    assert result.tested_elements == 2
-
-
-def test_721_script_with_empty_noscript_fails(context_factory, run_rgaa):
-    """Test that a script with empty noscript fails 7.2.1."""
-    html = '''
-    <script>
-        function importantFunction() {
-            // Critical functionality
-        }
-    </script>
-    <noscript>
-        <!-- Empty noscript -->
-    </noscript>
-    '''
-    context = context_factory(html)
-    result = run_rgaa(Test721(), context, AuditServices())
-
+def test_721_empty_noscript_fails_without_ai(context_factory, run_rgaa):
+    ai = text_services()
+    result = run_rgaa(Test721(), context_factory("<script>go()</script><noscript>  </noscript>"), ai)
     assert result.status == Status.FAIL
-    assert len(result.findings) == 1
-    assert result.tested_elements == 1
-    assert "L'alternative du script ne permet pas d'accéder" in result.findings[0].message
+    assert "vide" in result.findings[0].message
+    ai.text_relevance_analyzer.analyze_relevance.assert_not_called()
 
 
-def test_721_no_scripts_is_not_applicable(context_factory, run_rgaa):
-    """Test that absence of scripts results in NOT_APPLICABLE."""
-    context = context_factory('<h1>Title</h1><p>Just HTML content</p>')
-    result = run_rgaa(Test721(), context, AuditServices())
+def test_721_irrelevant_alternative_fails(context_factory, run_rgaa):
+    html = "<script>go()</script><noscript>Activez JavaScript.</noscript>"
+    result = run_rgaa(Test721(), context_factory(html), text_services(relevance_answer=relevance(False)))
+    assert result.status == Status.FAIL
+    assert result.findings[0].element == "noscript[index=0]"
 
-    assert result.status == Status.NOT_APPLICABLE
-    assert result.tested_elements == 0
-    assert result.findings == []
+
+def test_721_without_ai_needs_review(context_factory, run_rgaa):
+    assert run_rgaa(Test721(), context_factory(NOSCRIPT)).status == Status.NEEDS_REVIEW
+
+
+def test_721_ai_exception_gives_error(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=RuntimeError("panne"))
+    assert run_rgaa(Test721(), context_factory(NOSCRIPT), ai).status == Status.ERROR
+
+
+def test_721_missing_dom_raises_error(context_factory):
+    import asyncio
+
+    context = context_factory("<p>x</p>")
+    context.dom = None
+    with pytest.raises(ValueError, match="7.2.1 nécessite un DOM"):
+        asyncio.run(Test721().run(context, AuditServices()))
 
 
 # ---------------------------------------------------------------------------
@@ -127,7 +84,7 @@ def test_721_no_scripts_is_not_applicable(context_factory, run_rgaa):
 
 def test_722_not_implemented_yet(context_factory, run_rgaa):
     """Test that 7.2.2 returns NOT_APPLICABLE as it's not yet fully implemented."""
-    html = '''
+    html = """
     <img id="dynamic-image" src="default.jpg" alt="Default image">
     <script>
         // Script that updates the image source
@@ -138,7 +95,7 @@ def test_722_not_implemented_yet(context_factory, run_rgaa):
         // Call the function after a delay
         setTimeout(changeImage, 1000);
     </script>
-    '''
+    """
     context = context_factory(html)
     result = run_rgaa(Test722(), context, AuditServices())
 
@@ -148,18 +105,6 @@ def test_722_not_implemented_yet(context_factory, run_rgaa):
 
 
 
-
-
-def test_721_missing_html_source_raises_error(context_factory):
-    """Test that missing HTML source raises ValueError."""
-    context = context_factory("<html><body></body></html>")
-    context.html_source = None
-
-    with pytest.raises(ValueError, match="Le test 7.2.1 nécessite la source HTML"):
-        import asyncio
-        asyncio.run(Test721().run(context, AuditServices()))
-
-
 def test_722_missing_dom_raises_error(context_factory):
     """Test that missing DOM raises ValueError."""
     context = context_factory("<html><body></body></html>")
@@ -167,4 +112,5 @@ def test_722_missing_dom_raises_error(context_factory):
 
     with pytest.raises(ValueError, match="Le test 7.2.2 nécessite un DOM"):
         import asyncio
+
         asyncio.run(Test722().run(context, AuditServices()))

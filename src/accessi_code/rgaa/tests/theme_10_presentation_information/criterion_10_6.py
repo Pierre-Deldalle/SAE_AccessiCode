@@ -274,6 +274,7 @@ def _parse_color(color_str: str) -> tuple[int, int, int] | None:
 
 def _luminance(r: int, g: int, b: int) -> float:
     """Calcule la luminance relative selon WCAG."""
+
     def channel(c: int) -> float:
         c = c / 255.0
         return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
@@ -364,7 +365,9 @@ def _analyze_link_for_1061(
     for hover_selector, hover_declarations in hover_rules:
         # Vérifier si ce sélecteur correspond à notre élément
         # (approximation simple : vérifier si le tag ou la classe correspond)
-        if element.name in hover_selector or (element.get("class") and any(c in hover_selector for c in element.get("class", []))):
+        if element.name in hover_selector or (
+            element.get("class") and any(c in hover_selector for c in element.get("class", []))
+        ):
             if _has_visual_indicator_other_than_color(hover_declarations):
                 has_hover_indicator = True
                 hover_details.append(f"{hover_selector}: {hover_declarations[:100]}")
@@ -374,7 +377,9 @@ def _analyze_link_for_1061(
     has_focus_indicator = False
     focus_details = []
     for focus_selector, focus_declarations in focus_rules:
-        if element.name in focus_selector or (element.get("class") and any(c in focus_selector for c in element.get("class", []))):
+        if element.name in focus_selector or (
+            element.get("class") and any(c in focus_selector for c in element.get("class", []))
+        ):
             if _has_visual_indicator_other_than_color(focus_declarations):
                 has_focus_indicator = True
                 focus_details.append(f"{focus_selector}: {focus_declarations[:100]}")
@@ -529,10 +534,11 @@ def _analyze_link_for_1061(
                     "Ajouter un indicateur visuel au focus : outline, soulignement, bordure, ombre, "
                     "changement de fond, etc. (note: outline est recommandé pour l'accessibilité)."
                 ),
-                focus_detail = focus_details[:3] if focus_details else "Aucune regle :focus correspondante trouvee",
                 evidence={
                     "focus_rules_checked": len(focus_rules),
-                    "focus_details": focus_detail,
+                    "focus_details": focus_details[:3]
+                    if focus_details
+                    else "Aucune règle :focus correspondante trouvée",
                     "test_id": test_id,
                     "condition": "focus",
                     "needs_manual_check": True,
@@ -661,15 +667,16 @@ class Test1061(RGAATest):
         # Déterminer le statut
         # Échecs certains : passed=False (ex: contraste insuffisant calculable)
         fail_findings = [
-            f for f in findings
+            f
+            for f in findings
             if f.evidence.get("risk_type") == "stylesheet_link_color_only"
-            or (f.evidence.get("condition") in {"contrast", "hover", "focus"}
-                and f.evidence.get("passed") is False)
+            or (f.evidence.get("condition") in {"contrast", "hover", "focus"} and f.evidence.get("passed") is False)
         ]
 
         # Besoin de révision manuelle : needs_manual_check=True ou risques stylesheet
         needs_review_findings = [
-            f for f in findings
+            f
+            for f in findings
             if f.evidence.get("needs_manual_check", False)
             or f.evidence.get("risk_type") == "stylesheet_link_color_only"
         ]

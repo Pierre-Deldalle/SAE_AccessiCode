@@ -11,7 +11,6 @@ from accessi_code.models.capabilities import Capability
 from accessi_code.models.result import Finding, TestResult, TestStatus
 from accessi_code.rgaa.base import RGAATest
 
-
 _NON_TEMPORAL_TAGS = frozenset(
     {
         "svg",
@@ -75,8 +74,6 @@ _CONTROL_KEYWORDS = re.compile(
 )
 
 
-
-
 def _find_non_temporal_media(
     soup: BeautifulSoup,
 ) -> list[Tag]:
@@ -116,9 +113,7 @@ def _control_label(tag: Tag) -> str:
             referenced = tag.find(id=reference)
 
             if referenced is not None:
-                values.append(
-                    referenced.get_text(" ", strip=True)
-                )
+                values.append(referenced.get_text(" ", strip=True))
 
     text = tag.get_text(" ", strip=True)
 
@@ -291,9 +286,7 @@ def _is_keyboard_reachable(control: Tag) -> bool:
         return False
 
     if control.name == "a":
-        return bool(control.get("href")) or (
-            control.get("tabindex") is not None
-        )
+        return bool(control.get("href")) or (control.get("tabindex") is not None)
 
     if control.name in {
         "button",
@@ -404,10 +397,7 @@ class Test4121(RGAATest):
                 findings.append(
                     Finding(
                         element=identifier,
-                        message=(
-                            "Aucune fonctionnalité de contrôle "
-                            "détectée pour ce média non temporel."
-                        ),
+                        message=("Aucune fonctionnalité de contrôle détectée pour ce média non temporel."),
                         evidence={
                             "control_count": 0,
                             "keyboard_reachable": None,
@@ -417,11 +407,7 @@ class Test4121(RGAATest):
 
                 continue
 
-            unreachable = [
-                control
-                for control in controls
-                if not _is_keyboard_reachable(control)
-            ]
+            unreachable = [control for control in controls if not _is_keyboard_reachable(control)]
 
             if unreachable:
                 statuses.append(TestStatus.FAIL)
@@ -430,9 +416,7 @@ class Test4121(RGAATest):
                     Finding(
                         element=identifier,
                         message=(
-                            "Une ou plusieurs fonctionnalités de "
-                            "contrôle ne semblent pas accessibles "
-                            "au clavier."
+                            "Une ou plusieurs fonctionnalités de contrôle ne semblent pas accessibles au clavier."
                         ),
                         recommendation=(
                             "Rendre chaque fonctionnalité de contrôle "
@@ -443,10 +427,7 @@ class Test4121(RGAATest):
                             "control_count": len(controls),
                             "keyboard_reachable": False,
                             "unreachable_controls": [
-                                _control_label(control)
-                                or control.name
-                                or "contrôle"
-                                for control in unreachable
+                                _control_label(control) or control.name or "contrôle" for control in unreachable
                             ],
                         },
                     )
@@ -473,12 +454,7 @@ class Test4121(RGAATest):
                     evidence={
                         "control_count": len(controls),
                         "keyboard_reachable": True,
-                        "controls": [
-                            _control_label(control)
-                            or control.name
-                            or "contrôle"
-                            for control in controls
-                        ],
+                        "controls": [_control_label(control) or control.name or "contrôle" for control in controls],
                     },
                 )
             )
@@ -493,8 +469,7 @@ class Test4121(RGAATest):
             not_applicable_count = sum(1 for s in statuses if s == TestStatus.NOT_APPLICABLE)
             if pass_count > 0:
                 status_message = (
-                    f"Conforme : {pass_count} média(s) non temporel(s) "
-                    "avec des contrôles tous accessibles au clavier."
+                    f"Conforme : {pass_count} média(s) non temporel(s) avec des contrôles tous accessibles au clavier."
                 )
             else:
                 status_message = (
@@ -507,9 +482,7 @@ class Test4121(RGAATest):
                 "avec des contrôles nécessitant une vérification manuelle de l'accessibilité au clavier."
             )
             if fail_count > 0:
-                status_message += (
-                    f" De plus, {fail_count} média(s) ont des contrôles définitivement inaccessibles."
-                )
+                status_message += f" De plus, {fail_count} média(s) ont des contrôles définitivement inaccessibles."
         else:  # fail_count > 0 and needs_review_count == 0
             status_message = (
                 f"Non conforme : {fail_count} média(s) non temporel(s) "
@@ -531,9 +504,7 @@ class Test4121(RGAATest):
     @staticmethod
     def _get_dom(context: AuditContext) -> BeautifulSoup:
         if not isinstance(context.dom, BeautifulSoup):
-            raise ValueError(
-                "Le test 4.12.1 nécessite un DOM."
-            )
+            raise ValueError("Le test 4.12.1 nécessite un DOM.")
 
         return context.dom
 
@@ -577,10 +548,7 @@ class Test4122(RGAATest):
                 findings.append(
                     Finding(
                         element=identifier,
-                        message=(
-                            "Aucune fonctionnalité de contrôle "
-                            "détectée pour ce média non temporel."
-                        ),
+                        message=("Aucune fonctionnalité de contrôle détectée pour ce média non temporel."),
                         evidence={
                             "control_count": 0,
                             "keyboard_activatable": None,
@@ -590,11 +558,7 @@ class Test4122(RGAATest):
 
                 continue
 
-            non_activatable = [
-                control
-                for control in controls
-                if not _is_keyboard_activatable(control)
-            ]
+            non_activatable = [control for control in controls if not _is_keyboard_activatable(control)]
 
             if non_activatable:
                 statuses.append(TestStatus.FAIL)
@@ -602,24 +566,15 @@ class Test4122(RGAATest):
                 findings.append(
                     Finding(
                         element=identifier,
-                        message=(
-                            "Une ou plusieurs fonctionnalités de "
-                            "contrôle ne semblent pas activables "
-                            "au clavier."
-                        ),
+                        message=("Une ou plusieurs fonctionnalités de contrôle ne semblent pas activables au clavier."),
                         recommendation=(
-                            "Rendre chaque fonctionnalité activable "
-                            "au clavier et avec tout dispositif "
-                            "de pointage."
+                            "Rendre chaque fonctionnalité activable au clavier et avec tout dispositif de pointage."
                         ),
                         evidence={
                             "control_count": len(controls),
                             "keyboard_activatable": False,
                             "non_activatable_controls": [
-                                _control_label(control)
-                                or control.name
-                                or "contrôle"
-                                for control in non_activatable
+                                _control_label(control) or control.name or "contrôle" for control in non_activatable
                             ],
                         },
                     )
@@ -638,18 +593,12 @@ class Test4122(RGAATest):
                         "action réelle doit être vérifiée."
                     ),
                     recommendation=(
-                        "Tester l'activation de chaque fonctionnalité "
-                        "au clavier et avec tout dispositif de pointage."
+                        "Tester l'activation de chaque fonctionnalité au clavier et avec tout dispositif de pointage."
                     ),
                     evidence={
                         "control_count": len(controls),
                         "keyboard_activatable": True,
-                        "controls": [
-                            _control_label(control)
-                            or control.name
-                            or "contrôle"
-                            for control in controls
-                        ],
+                        "controls": [_control_label(control) or control.name or "contrôle" for control in controls],
                     },
                 )
             )
@@ -664,8 +613,7 @@ class Test4122(RGAATest):
             not_applicable_count = sum(1 for s in statuses if s == TestStatus.NOT_APPLICABLE)
             if pass_count > 0:
                 status_message = (
-                    f"Conforme : {pass_count} média(s) non temporel(s) "
-                    "avec des contrôles tous accessibles au clavier."
+                    f"Conforme : {pass_count} média(s) non temporel(s) avec des contrôles tous accessibles au clavier."
                 )
             else:
                 status_message = (
@@ -678,9 +626,7 @@ class Test4122(RGAATest):
                 "avec des contrôles nécessitant une vérification manuelle de l'accessibilité au clavier."
             )
             if fail_count > 0:
-                status_message += (
-                    f" De plus, {fail_count} média(s) ont des contrôles définitivement inaccessibles."
-                )
+                status_message += f" De plus, {fail_count} média(s) ont des contrôles définitivement inaccessibles."
         else:  # fail_count > 0 and needs_review_count == 0
             status_message = (
                 f"Non conforme : {fail_count} média(s) non temporel(s) "
@@ -702,8 +648,6 @@ class Test4122(RGAATest):
     @staticmethod
     def _get_dom(context: AuditContext) -> BeautifulSoup:
         if not isinstance(context.dom, BeautifulSoup):
-            raise ValueError(
-                "Le test 4.12.2 nécessite un DOM."
-            )
+            raise ValueError("Le test 4.12.2 nécessite un DOM.")
 
         return context.dom

@@ -14,3 +14,9 @@ class AuditServices:
 
     image_analyzer: Any | None = None
     page_analyzer: Any | None = None
+    # Pertinence de textes : cadres, titres, liens, étiquettes, boutons, tableaux…
+    text_relevance_analyzer: Any | None = None
+    # Information donnée par la couleur, la forme, la taille ou la position.
+    sensory_analyzer: Any | None = None
+    # Titres, listes et citations non balisés ; hiérarchie des titres.
+    structure_analyzer: Any | None = None

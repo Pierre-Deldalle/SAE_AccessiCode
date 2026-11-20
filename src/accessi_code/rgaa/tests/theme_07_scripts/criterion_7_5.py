@@ -1,580 +1,272 @@
-# -*- coding: utf-8 -*-
+"""
+RGAA 4.1.2 — critère 7.5 : dans chaque page web, les messages de statut
+sont-ils correctement restitués par les technologies d'assistance ?
+
+- 7.5.1 : réussite, résultat d'une action ou état d'une application → rôle status ;
+- 7.5.2 : suggestion ou avertissement d'erreur → rôle alert ;
+- 7.5.3 : progression d'un processus → rôle log, progressbar ou status.
+
+Les propriétés équivalentes admises par le RGAA sont acceptées
+(aria-live="polite" + aria-atomic="true" pour status, aria-live="assertive"
++ aria-atomic="true" pour alert, aria-live="polite" pour log), ainsi que les
+rôles implicites des éléments ``<output>`` (status) et ``<progress>`` (progressbar).
+
+Candidats : zones déjà déclarées comme régions dynamiques et textes contenant
+un mot-clé de la catégorie (pré-filtre).
+
+- marquage attendu présent → PASS, sans IA ;
+- sinon l'IA dit si le passage est un message de statut de la catégorie :
+  oui → FAIL (rôle manquant), non → NOT_APPLICABLE, incertain → NEEDS_REVIEW.
+"""
+
 from __future__ import annotations
 
-from typing import Any
+import re
+from typing import Any, ClassVar
 
+from bs4 import BeautifulSoup, NavigableString, Tag
+
+from accessi_code.ai.schemas import StructureCandidate
+from accessi_code.analysis.structure import HEADING_TAGS
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
-from accessi_code.models.result import TestResult, TestStatus, Finding
+from accessi_code.models.result import TestResult, TestStatus
+from accessi_code.rgaa.ai_decision import judge_structure
 from accessi_code.rgaa.base import RGAATest
-from bs4 import BeautifulSoup, Tag
-import re
+from accessi_code.rgaa.outcomes import Outcome, build_result, make_outcome, not_applicable
+
+# Éléments qui ne sont jamais des messages de statut (titres, libellés, métadonnées…).
+NON_MESSAGE_TAGS = frozenset(
+    {
+        "html",
+        "body",
+        "script",
+        "style",
+        "noscript",
+        "template",
+        "head",
+        "meta",
+        "title",
+        "desc",
+        "label",
+        "legend",
+        "caption",
+        "th",
+        "option",
+        "button",
+        "a",
+        "code",
+        "pre",
+        *HEADING_TAGS,
+    }
+)
+
+LIVE_ROLES = frozenset({"status", "alert", "log", "progressbar"})
+
+SUCCESS_WORDS = re.compile(
+    r"(?<!\w)(?:succès|réussie?s?|effectuée?s?|enregistrée?s?|envoyée?s?|ajoutée?s?|supprimée?s?"
+    r"|terminée?s?|confirmée?s?|validée?s?|\d+\s+résultats?|aucun résultat"
+    r"|successful|saved|sent|added|completed)(?!\w)",
+    re.IGNORECASE,
+)
+ERROR_WORDS = re.compile(
+    r"(?<!\w)(?:erreurs?|error|échoué|échec|invalide|incorrecte?|obligatoire|manquante?|trop (?:court|long)e?"
+    r"|avertissement|warning|attention|veuillez|failed|invalid|required)(?!\w)",
+    re.IGNORECASE,
+)
+PROGRESS_WORDS = re.compile(
+    r"(?<!\w)(?:en cours|chargement|loading|traitement|processing|progression|progress|patientez|veuillez patienter"
+    r"|étape\s+\d+|step\s+\d+|\d+\s*%)(?!\w)",
+    re.IGNORECASE,
+)
 
 
-class Test751(RGAATest):
+def normalize(value: str) -> str:
+    return " ".join(value.split())
+
+
+def own_text(element: Tag) -> str:
+    """Texte porté directement par l'élément, sans celui de ses enfants."""
+    return normalize(" ".join(str(part) for part in element.children if isinstance(part, NavigableString)))
+
+
+def live_role(element: Tag) -> str:
+    """Rôle de région dynamique, explicite ou implicite (output, progress)."""
+    role = str(element.get("role") or "").strip().lower()
+    if role:
+        return role
+    return {"output": "status", "progress": "progressbar"}.get(element.name, "")
+
+
+def live_markers(element: Tag) -> tuple[str, str, str]:
+    return (
+        live_role(element),
+        str(element.get("aria-live") or "").strip().lower(),
+        str(element.get("aria-atomic") or "").strip().lower(),
+    )
+
+
+def is_live_region(element: Tag) -> bool:
+    role, live, _ = live_markers(element)
+    return role in LIVE_ROLES or live in {"polite", "assertive"}
+
+
+def element_identifier(element: Tag, index: int) -> str:
+    element_id = element.get("id")
+    if isinstance(element_id, str) and element_id.strip():
+        return f"{element.name}#{element_id.strip()}"
+    classes = element.get("class")
+    if isinstance(classes, list) and classes:
+        return f"{element.name}.{'.'.join(str(name) for name in classes[:2])}"
+    return f"{element.name}[index={index}]"
+
+
+class StatusMessageTest(RGAATest):
+    """Base commune des trois catégories de messages de statut."""
+
+    criterion_id = "7.5"
+    required_capabilities = frozenset({Capability.DOM})
+
+    kind: ClassVar[str]
+    keywords: ClassVar[re.Pattern[str]]
+    expected: ClassVar[str]
+    empty_summary: ClassVar[str]
+    fail_message: ClassVar[str]
+    uncertain_message: ClassVar[str]
+    recommendation: ClassVar[str]
+
+    def accepts(self, role: str, live: str, atomic: str) -> bool:
+        raise NotImplementedError
+
+    def candidates(self, soup: BeautifulSoup) -> list[Tag]:
+        found: list[Tag] = []
+        for element in soup.find_all(True):
+            if element.name in NON_MESSAGE_TAGS or element.find_parent(["head", "script", "template"]):
+                continue
+            if is_live_region(element) or self.keywords.search(own_text(element)):
+                found.append(element)
+        # Une région dynamique englobe ses enfants : on ne garde pas un enfant
+        # déjà couvert par une région candidate.
+        regions = [element for element in found if is_live_region(element)]
+        return [
+            element
+            for element in found
+            if is_live_region(element) or not any(region in element.parents for region in regions)
+        ]
+
+    async def run(self, context: AuditContext, services: Any | None = None) -> TestResult:
+        if not isinstance(context.dom, BeautifulSoup):
+            raise ValueError(f"Le test {self.test_id} nécessite un DOM.")
+
+        elements = self.candidates(context.dom)
+        if not elements:
+            return not_applicable(self, self.empty_summary)
+
+        outcomes: list[Outcome | None] = [None] * len(elements)
+        to_judge: list[int] = []
+        for index, element in enumerate(elements):
+            if self.accepts(*live_markers(element)):
+                outcomes[index] = make_outcome(TestStatus.PASS)
+            else:
+                to_judge.append(index)
+
+        items = [
+            StructureCandidate(
+                text=normalize(elements[index].get_text(" ", strip=True))[:300] or "(région vide)",
+                element_html=str(elements[index])[:400],
+                context=_context(elements[index]),
+            )
+            for index in to_judge
+        ]
+        verdicts = await judge_structure(services, self.kind, items)
+        for index, item, verdict in zip(to_judge, items, verdicts, strict=True):
+            role, live, atomic = live_markers(elements[index])
+            outcomes[index] = make_outcome(
+                verdict.status,
+                element_identifier(elements[index], index),
+                verdict.message(self.fail_message, self.uncertain_message),
+                self.recommendation,
+                text=item.text,
+                role=role,
+                aria_live=live,
+                aria_atomic=atomic,
+                expected=self.expected,
+                **verdict.evidence,
+            )
+
+        return build_result(
+            self,
+            [item for item in outcomes if item is not None],
+            empty_summary=self.empty_summary,
+            noun="message(s) de statut",
+        )
+
+
+def _context(element: Tag) -> str:
+    role, live, atomic = live_markers(element)
+    markers = ", ".join(part for part in (f"role={role}" if role else "", f"aria-live={live}" if live else "") if part)
+    parent = element.parent if isinstance(element.parent, Tag) else None
+    around = normalize(parent.get_text(" ", strip=True))[:250] if parent is not None else ""
+    return " — ".join(
+        part
+        for part in (
+            f"Marquage actuel : {markers}" if markers else "Aucun marquage de région dynamique",
+            f"aria-atomic={atomic}" if atomic else "",
+            f"Contenu autour : {around}" if around else "",
+        )
+        if part
+    )
+
+
+class Test751(StatusMessageTest):
+    """7.5.1 : messages de réussite, de résultat ou d'état → rôle status."""
+
     test_id = "7.5.1"
-    criterion_id = "7.5"
-
-    required_capabilities = frozenset(
-        {
-            Capability.DOM,
-        }
+    kind = "status_success"
+    keywords = SUCCESS_WORDS
+    expected = 'role="status"'
+    empty_summary = "Aucun message de statut de réussite, de résultat ou d'état."
+    fail_message = "Ce message de statut (réussite, résultat ou état) n'a pas le rôle status."
+    uncertain_message = (
+        "Vérifier si ce passage est un message de statut (réussite, résultat ou état) et s'il a le rôle status."
     )
+    recommendation = 'Ajouter role="status" (ou aria-live="polite" et aria-atomic="true") sur le conteneur du message.'
 
-    async def run(
-        self,
-        context: AuditContext,
-        services: Any | None = None,
-    ) -> TestResult:
-        soup = self._get_dom(context)
-
-        status_candidates = []
-
-        all_elements = soup.find_all(True)
-        for element in all_elements:
-            if element.name in ['script', 'style']:
-                continue
-
-            text = element.get_text(strip=True)
-            if text and len(text) > 0:
-                if self._is_status_message_state(text):
-                    status_candidates.append(element)
-
-        elements_with_role = soup.find_all(attrs={"role": True})
-        for element in elements_with_role:
-            role = element.get("role")
-            if role in ["status", "log", "progressbar", "alert"]:
-                if element not in status_candidates:
-                    status_candidates.append(element)
-
-        elements_with_aria_live = soup.find_all(attrs={"aria-live": True})
-        for element in elements_with_aria_live:
-            if element not in status_candidates:
-                status_candidates.append(element)
-
-        status_candidates = self._filter_container_elements(status_candidates, soup)
-
-        if not status_candidates:
-            return TestResult(
-                test_id=self.test_id,
-                criterion_id=self.criterion_id,
-                status=TestStatus.NOT_APPLICABLE,
-                summary="Aucun message de statut détecté.",
-            )
-
-        findings: list = []
-        compliant_count = 0
-
-        for element in status_candidates:
-            role = element.get("role")
-            aria_live = element.get("aria-live")
-            aria_atomic = element.get("aria-atomic")
-
-            is_compliant = False
-
-            if role == "status":
-                is_compliant = True
-            elif aria_live == "polite" and aria_atomic == "true":
-                is_compliant = True
-
-            if is_compliant:
-                compliant_count += 1
-            else:
-                element_id = self._get_element_id(element)
-                findings.append(
-                    Finding(
-                        element=element_id,
-                        message="Le message de statut n'utilise pas le rôle WAI-ARIA approprié ou les attributs aria-live/aria-atomic requis.",
-                        recommendation=("Utiliser role='status' ou les attributs aria-live='polite' et aria-atomic='true' pour les messages de statut."),
-                    )
-                )
-
-        if findings:
-            status = TestStatus.FAIL
-        else:
-            status = TestStatus.PASS
-
-        return TestResult(
-            test_id=self.test_id,
-            criterion_id=self.criterion_id,
-            status=status,
-            summary=(
-                f"{len(status_candidates)} message(s) de statut détecté(s) : "
-                f"{compliant_count} conforme(s), {len(findings)} non conforme(s)."
-            ),
-            findings=findings,
-            tested_elements=len(status_candidates),
-        )
-
-    def _is_status_message_state(self, text: str) -> bool:
-        text_lower = text.lower().strip()
-
-        state_indicators = [
-            r'\bterminé\b',
-            r'\bcompleted\b',
-            r'\bfinished\b',
-            r'\bsauvegarde?\s*réussie?\b',
-            r'\bsave\s*successful\b',
-            r'\bchargement\s*terminé\b',
-            r'\bloading\s*completed\b',
-            r'\btéléchargement\s*terminé\b',
-            r'\bdownload\s*completed\b',
-            r'\bopération\s*réussie\b',
-            r'\boperation\s*successful\b',
-            r'\bmise\s*à\s*jour\s*effectuée\b',
-            r'\bupdate\s*completed\b',
-            r'\b enregistrée?\b',
-            r'\bsaved\b',
-            r'\b valide\b',
-            r'\bvalid\b',
-            r'\bcorrect\b',
-            r'\bconforme\b',
-            r'\bnon\s*conforme\b',
-            r'\bétat\b',
-            r'\bstate\b',
-            r'\bstatus\b',
-            r'\bcondition\b',
-        ]
-
-        for pattern in state_indicators:
-            if re.search(pattern, text_lower):
-                return True
-
-        return False
-
-    def _get_element_id(self, element: Tag) -> str:
-        element_id = element.get("id")
-        if isinstance(element_id, str) and element_id.strip():
-            return f"{element.name}#{element_id}"
-
-        return f"{element.name}[index={len(element.find_previous_siblings())}]"
-
-    @staticmethod
-    def _get_dom(
-        context: AuditContext,
-    ) -> BeautifulSoup:
-        if not isinstance(
-            context.dom,
-            BeautifulSoup,
-        ):
-            raise ValueError("Le test 7.5.1 nécessite un DOM.")
-
-        return context.dom
-
-    def _filter_container_elements(self, candidates: list[Tag], soup: BeautifulSoup) -> list[Tag]:
-        if len(candidates) <= 1:
-            return candidates
-
-        candidate_set = set(candidates)
-        filtered_candidates = []
-
-        for element in candidates:
-            direct_text = self._get_direct_text_content(element)
-
-            if not direct_text.strip():
-                text_children = [
-                    child for child in element.children
-                    if isinstance(child, Tag) and child.get_text(strip=True)
-                ]
-
-                if text_children and all(child in candidate_set for child in text_children):
-                    continue
-
-            filtered_candidates.append(element)
-
-        return filtered_candidates
-
-    def _get_direct_text_content(self, element: Tag) -> str:
-        direct_text_parts = []
-        for content in element.contents:
-            if isinstance(content, str):
-                direct_text_parts.append(content)
-        return ''.join(direct_text_parts)
+    def accepts(self, role: str, live: str, atomic: str) -> bool:
+        return role == "status" or (live == "polite" and atomic == "true")
 
 
-class Test752(RGAATest):
+class Test752(StatusMessageTest):
+    """7.5.2 : suggestions et avertissements d'erreur → rôle alert."""
+
     test_id = "7.5.2"
-    criterion_id = "7.5"
-
-    required_capabilities = frozenset(
-        {
-            Capability.DOM,
-        }
+    kind = "status_error"
+    keywords = ERROR_WORDS
+    expected = 'role="alert"'
+    empty_summary = "Aucun message de statut de suggestion ou d'erreur."
+    fail_message = "Ce message de statut (suggestion ou erreur) n'a pas le rôle alert."
+    uncertain_message = (
+        "Vérifier si ce passage est un message de statut (suggestion ou erreur) et s'il a le rôle alert."
+    )
+    recommendation = (
+        'Ajouter role="alert" (ou aria-live="assertive" et aria-atomic="true") sur le conteneur du message.'
     )
 
-    async def run(
-        self,
-        context: AuditContext,
-        services: Any | None = None,
-    ) -> TestResult:
-        soup = self._get_dom(context)
-
-        status_candidates = []
-
-        all_elements = soup.find_all(True)
-        for element in all_elements:
-            if element.name in ['script', 'style']:
-                continue
-
-            text = element.get_text(strip=True)
-            if text and len(text) > 0:
-                if self._is_status_message_suggestion_error(text):
-                    status_candidates.append(element)
-
-        elements_with_role = soup.find_all(attrs={"role": True})
-        for element in elements_with_role:
-            role = element.get("role")
-            if role in ["status", "log", "progressbar", "alert"]:
-                if element not in status_candidates:
-                    status_candidates.append(element)
-
-        elements_with_aria_live = soup.find_all(attrs={"aria-live": True})
-        for element in elements_with_aria_live:
-            if element not in status_candidates:
-                status_candidates.append(element)
-
-        status_candidates = self._filter_container_elements(status_candidates, soup)
-
-        if not status_candidates:
-            return TestResult(
-                test_id=self.test_id,
-                criterion_id=self.criterion_id,
-                status=TestStatus.NOT_APPLICABLE,
-                summary="Aucun message de statut détecté.",
-            )
-
-        findings: list = []
-        compliant_count = 0
-
-        for element in status_candidates:
-            role = element.get("role")
-            aria_live = element.get("aria-live")
-            aria_atomic = element.get("aria-atomic")
-
-            is_compliant = False
-
-            if role == "alert":
-                is_compliant = True
-            elif aria_live == "assertive" and aria_atomic == "true":
-                is_compliant = True
-
-            if is_compliant:
-                compliant_count += 1
-            else:
-                element_id = self._get_element_id(element)
-                findings.append(
-                    Finding(
-                        element=element_id,
-                        message="Le message de suggestion ou d'erreur n'utilise pas le rôle WAI-ARIA approprié ou les attributs aria-live/aria-atomic requis.",
-                        recommendation=("Utiliser role='alert' ou les attributs aria-live='assertive' et aria-atomic='true' pour les messages de suggestion ou d'erreur."),
-                    )
-                )
-
-        if findings:
-            status = TestStatus.FAIL
-        else:
-            status = TestStatus.PASS
-
-        return TestResult(
-            test_id=self.test_id,
-            criterion_id=self.criterion_id,
-            status=status,
-            summary=(
-                f"{len(status_candidates)} message(s) de statut détecté(s) : "
-                f"{compliant_count} conforme(s), {len(findings)} non conforme(s)."
-            ),
-            findings=findings,
-            tested_elements=len(status_candidates),
-        )
-
-    def _is_status_message_suggestion_error(self, text: str) -> bool:
-        text_lower = text.lower().strip()
-
-        error_indicators = [
-            r'\berreur\b',
-            r'\berror\b',
-            r'\bavertissement\b',
-            r'\bwarning\b',
-            r'\battention\b',
-            r'\b caution\b',
-            r'\bproblème\b',
-            r'\bproblem\b',
-            r'\bdifficulté\b',
-            r'\bdifficulty\b',
-            r'\bechoue?\b',
-            r'\bfailed\b',
-            r'\b échoué\b',
-            r'\b inattendu\b',
-            r'\b unexpected\b',
-            r'\b invalide\b',
-            r'\b invalid\b',
-            r'\b incorrect\b',
-            r'\b suggestion\b',
-            r'\b conseille?\b',
-            r'\b recommande?\b',
-            r'\b recommend\b',
-        ]
-
-        absence_indicators = [
-            r'\baucu?n?\s+message\s+d\'?erreur\b',
-            r'\bno\s+error\s+message\b',
-            r'\bpas\s+d\'?erreur\b',
-            r'\bsans\s+erreur\b',
-            r'\bwithout\s+error\b',
-        ]
-
-        for pattern in absence_indicators:
-            if re.search(pattern, text_lower):
-                return False
-
-        for pattern in error_indicators:
-            if re.search(pattern, text_lower):
-                return True
-
-        return False
-
-    def _get_element_id(self, element: Tag) -> str:
-        """Generate a unique identifier for an element."""
-        element_id = element.get("id")
-        if isinstance(element_id, str) and element_id.strip():
-            return f"{element.name}#{element_id}"
-
-        # Fallback to index-based identifier
-        return f"{element.name}[index={len(element.find_previous_siblings())}]"
-
-    @staticmethod
-    def _get_dom(
-        context: AuditContext,
-    ) -> BeautifulSoup:
-        if not isinstance(
-            context.dom,
-            BeautifulSoup,
-        ):
-            raise ValueError("Le test 7.5.2 nécessite un DOM.")
-
-        return context.dom
-
-    def _filter_container_elements(self, candidates: list[Tag], soup: BeautifulSoup) -> list[Tag]:
-        if len(candidates) <= 1:
-            return candidates
-
-        # Create a set for faster lookup
-        candidate_set = set(candidates)
-        filtered_candidates = []
-
-        for element in candidates:
-            # Get the element's direct text content (not including children's text)
-            direct_text = self._get_direct_text_content(element)
-
-            # If the element has no direct text content of its own,
-            # and all of its text-containing children are status candidates,
-            # then this is likely just a container wrapper
-            if not direct_text.strip():
-                # Check if all text-containing children are already status candidates
-                text_children = [
-                    child for child in element.children
-                    if isinstance(child, Tag) and child.get_text(strip=True)
-                ]
-
-                if text_children and all(child in candidate_set for child in text_children):
-                    # This element is just a container - skip it
-                    continue
-
-            # Otherwise, keep this element
-            filtered_candidates.append(element)
-
-        return filtered_candidates
-
-    def _get_direct_text_content(self, element: Tag) -> str:
-        direct_text_parts = []
-        for content in element.contents:
-            if isinstance(content, str):
-                direct_text_parts.append(content)
-            # Skip Tag objects - we only want direct text
-        return ''.join(direct_text_parts)
+    def accepts(self, role: str, live: str, atomic: str) -> bool:
+        return role == "alert" or (live == "assertive" and atomic == "true")
 
 
-class Test753(RGAATest):
+class Test753(StatusMessageTest):
+    """7.5.3 : progression d'un processus → rôle log, progressbar ou status."""
+
     test_id = "7.5.3"
-    criterion_id = "7.5"
+    kind = "status_progress"
+    keywords = PROGRESS_WORDS
+    expected = 'role="log", role="progressbar" ou role="status"'
+    empty_summary = "Aucun message de statut de progression."
+    fail_message = "Ce message de progression n'a ni le rôle log, ni progressbar, ni status."
+    uncertain_message = "Vérifier si ce passage indique la progression d'un processus et s'il a le rôle adapté."
+    recommendation = 'Ajouter role="log", role="progressbar" ou role="status" (ou aria-live="polite") sur le message.'
 
-    required_capabilities = frozenset(
-        {
-            Capability.DOM,
-        }
-    )
-
-    async def run(
-        self,
-        context: AuditContext,
-        services: Any | None = None,
-    ) -> TestResult:
-        soup = self._get_dom(context)
-
-        status_candidates = []
-
-        all_elements = soup.find_all(True)
-        for element in all_elements:
-            if element.name in ['script', 'style']:
-                continue
-
-            text = element.get_text(strip=True)
-            if text and len(text) > 0:
-                if self._is_status_message_process_progression(text):
-                    status_candidates.append(element)
-
-        elements_with_role = soup.find_all(attrs={"role": True})
-        for element in elements_with_role:
-            role = element.get("role")
-            if role in ["status", "log", "progressbar"]:
-                if element not in status_candidates:
-                    status_candidates.append(element)
-
-        elements_with_aria_live = soup.find_all(attrs={"aria-live": True})
-        for element in elements_with_aria_live:
-            if element not in status_candidates:
-                status_candidates.append(element)
-
-        status_candidates = self._filter_container_elements(status_candidates, soup)
-
-        if not status_candidates:
-            return TestResult(
-                test_id=self.test_id,
-                criterion_id=self.criterion_id,
-                status=TestStatus.NOT_APPLICABLE,
-                summary="Aucun message de statut détecté.",
-            )
-
-        findings: list = []
-        compliant_count = 0
-
-        for element in status_candidates:
-            role = element.get("role")
-            aria_live = element.get("aria-live")
-            aria_atomic = element.get("aria-atomic")
-
-            is_compliant = False
-
-            if role in ["log", "progressbar", "status"]:
-                is_compliant = True
-            elif aria_live == "polite":
-                is_compliant = True
-            elif aria_live == "polite" and aria_atomic == "true":
-                is_compliant = True
-
-            if is_compliant:
-                compliant_count += 1
-            else:
-                element_id = self._get_element_id(element)
-                findings.append(
-                    Finding(
-                        element=element_id,
-                        message="Le message indiquant la progression d'un processus n'utilise pas le rôle WAI-ARIA approprié ou les attributs aria-live/aria-atomic requis.",
-                        recommendation=("Utiliser role='log', role='progressbar', ou role='status' ; ou les attributs aria-live='polite' (pour log) ou aria-live='polite' et aria-atomic='true' (pour status)."),
-                    )
-                )
-
-        if findings:
-            status = TestStatus.FAIL
-        else:
-            status = TestStatus.PASS
-
-        return TestResult(
-            test_id=self.test_id,
-            criterion_id=self.criterion_id,
-            status=status,
-            summary=(
-                f"{len(status_candidates)} message(s) de statut détecté(s) : "
-                f"{compliant_count} conforme(s), {len(findings)} non conforme(s)."
-            ),
-            findings=findings,
-            tested_elements=len(status_candidates),
-        )
-
-    def _is_status_message_process_progression(self, text: str) -> bool:
-        text_lower = text.lower().strip()
-
-        progression_indicators = [
-            r'\b(en\s+cours?|in\s+progress)\b',
-            r'\bchargement\b',
-            r'\bloading\b',
-            r'\btéléchargement\b',
-            r'\bdownload\b',
-            r'\btraitement\b',
-            r'\bprocessing\b',
-            r'\betape\s*\d+\b',
-            r'\bstep\s*\d+\b',
-            r'\bprogression\b',
-            r'\bprogress\b',
-            r'\battente?\b',
-            r'\bwait(ing)?\b',
-            r'\bpause?\b',
-            r'\binitialisation\b',
-            r'\binitialization\b',
-            r'\bfinalisation\b',
-            r'\bfinalization\b',
-            r'\bsynchronisation\b',
-            r'\bsynchronization\b',
-            r'\b mise\s*en\s*mémoire\s*tampon\b',
-            r'\b buffering\b',
-            r'\betape\b',
-            r'\bstep\b',
-            r'\bterminé\b',
-            r'\bcompleted\b',
-            r'\bfinished\b',
-        ]
-
-        for pattern in progression_indicators:
-            if re.search(pattern, text_lower):
-                return True
-
-        return False
-
-    def _get_element_id(self, element: Tag) -> str:
-        element_id = element.get("id")
-        if isinstance(element_id, str) and element_id.strip():
-            return f"{element.name}#{element_id}"
-
-        return f"{element.name}[index={len(element.find_previous_siblings())}]"
-
-    @staticmethod
-    def _get_dom(
-        context: AuditContext,
-    ) -> BeautifulSoup:
-        if not isinstance(
-            context.dom,
-            BeautifulSoup,
-        ):
-            raise ValueError("Le test 7.5.3 nécessite un DOM.")
-
-        return context.dom
-
-    def _filter_container_elements(self, candidates: list[Tag], soup: BeautifulSoup) -> list[Tag]:
-        if len(candidates) <= 1:
-            return candidates
-
-        candidate_set = set(candidates)
-        filtered_candidates = []
-
-        for element in candidates:
-            direct_text = self._get_direct_text_content(element)
-
-            if not direct_text.strip():
-                text_children = [
-                    child for child in element.children
-                    if isinstance(child, Tag) and child.get_text(strip=True)
-                ]
-
-                if text_children and all(child in candidate_set for child in text_children):
-                    continue
-
-            filtered_candidates.append(element)
-
-        return filtered_candidates
-
-    def _get_direct_text_content(self, element: Tag) -> str:
-        direct_text_parts = []
-        for content in element.contents:
-            if isinstance(content, str):
-                direct_text_parts.append(content)
-        return ''.join(direct_text_parts)
+    def accepts(self, role: str, live: str, atomic: str) -> bool:
+        return role in {"log", "progressbar", "status"} or live == "polite"

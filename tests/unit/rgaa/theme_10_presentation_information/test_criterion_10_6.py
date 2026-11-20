@@ -412,7 +412,10 @@ def test_1061_metadata_contains_manual_checks(context_factory, run_rgaa):
     result = run_rgaa(RGAA1061(), context)
 
     assert result.metadata["browser_check_required"] is True
-    assert "vérifier le contraste lien/texte >= 3:1 pour les liens couleur seule" in result.metadata["required_manual_checks"]
+    assert (
+        "vérifier le contraste lien/texte >= 3:1 pour les liens couleur seule"
+        in result.metadata["required_manual_checks"]
+    )
     assert "vérifier l'indicateur visuel au survol (autre que couleur)" in result.metadata["required_manual_checks"]
     assert "vérifier l'indicateur visuel au focus (autre que couleur)" in result.metadata["required_manual_checks"]
     assert result.metadata["manual_check_for"] == "critère 10.6.1 - liens signalés uniquement par la couleur"
@@ -503,7 +506,9 @@ def test_1061_mixed_pass_and_fail_returns_fail(context_factory, run_rgaa):
 
     assert result.status == Status.FAIL
     # Au moins un échec certain doit être détecté
-    fail_findings = [f for f in result.findings if f.evidence.get("condition") == "contrast" and not f.evidence.get("passed", False)]
+    fail_findings = [
+        f for f in result.findings if f.evidence.get("condition") == "contrast" and not f.evidence.get("passed", False)
+    ]
     assert len(fail_findings) >= 1
 
 

@@ -511,3 +511,37 @@ def _find_matching_selectors(
             pass
 
     return matching
+
+
+def stylesheet_rules(context: AuditContext) -> list[CSSRule]:
+    """
+    Règles des feuilles de style : balises <style> puis fichiers CSS fournis
+    (``context.css_sources``). Les attributs style en ligne sont exclus : ils
+    se lisent directement sur l'élément (``inline_style``).
+    """
+    rules: list[CSSRule] = []
+    if isinstance(context.dom, BeautifulSoup):
+        for style_tag in context.dom.find_all("style"):
+            if style_tag.string:
+                rules.extend(_parse_stylesheet(style_tag.string, "style_tag"))
+    for path, css_text in (context.css_sources or {}).items():
+        rules.extend(_parse_stylesheet(css_text, f"external:{path}"))
+    return rules
+
+
+_GROUPING_AT_RULE = re.compile(r"@(?:media|supports|layer|container|document)[^{;]*\{", re.IGNORECASE)
+
+
+def _parse_stylesheet(css_text: str, source: str) -> list[CSSRule]:
+    """Règles d'une feuille, y compris celles placées dans @media / @supports."""
+    unwrapped = _GROUPING_AT_RULE.sub("", re.sub(r"/\*.*?\*/", "", css_text, flags=re.DOTALL))
+    rules = _parse_css_text(unwrapped, source)
+    for rule in rules:
+        rule.selector = rule.selector.lstrip("} \t\r\n")
+    return [rule for rule in rules if rule.selector and not rule.selector.startswith("@")]
+
+
+def inline_style(element: Tag) -> dict[str, str]:
+    """Propriétés de l'attribut style d'un élément (noms en minuscules)."""
+    style = element.get("style")
+    return _parse_inline_style(style) if isinstance(style, str) else {}

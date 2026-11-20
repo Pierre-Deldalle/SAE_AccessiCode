@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import re
-from bs4 import BeautifulSoup, Tag
 from typing import Any, Set
+
+from bs4 import BeautifulSoup, Tag
 
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
@@ -92,9 +93,22 @@ class Test741(RGAATest):
         script_elements: set[Tag] = set()
 
         event_handlers: Set[str] = {
-            "onclick", "ondblclick", "onmousedown", "onmouseup", "onmouseover",
-            "onmousemove", "onmouseout", "onkeypress", "onkeydown", "onkeyup",
-            "onchange", "onsubmit", "onreset", "onselect", "onblur", "onfocus"
+            "onclick",
+            "ondblclick",
+            "onmousedown",
+            "onmouseup",
+            "onmouseover",
+            "onmousemove",
+            "onmouseout",
+            "onkeypress",
+            "onkeydown",
+            "onkeyup",
+            "onchange",
+            "onsubmit",
+            "onreset",
+            "onselect",
+            "onblur",
+            "onfocus",
         }
 
         for handler in event_handlers:
@@ -138,8 +152,8 @@ class Test741(RGAATest):
         if not text:
             return False
 
-        if re.search(r'\[[^\]]*\]', text):
-            bracketed_matches = re.findall(r'\[([^\]]*)\]', text)
+        if re.search(r"\[[^\]]*\]", text):
+            bracketed_matches = re.findall(r"\[([^\]]*)\]", text)
             for match in bracketed_matches:
                 if self._contains_warning_indicators(match):
                     return True
@@ -195,7 +209,7 @@ class Test741(RGAATest):
             "external",
             "new window",
             "new tab",
-            "external link"
+            "external link",
         ]
 
         for indicator in context_change_indicators:
@@ -210,7 +224,7 @@ class Test741(RGAATest):
             return False
 
         for child in parent.children:
-            if hasattr(child, 'get_text'):
+            if hasattr(child, "get_text"):
                 child_text = child.get_text()
                 if self._element_text_contains_warning(child_text):
                     if child != element:

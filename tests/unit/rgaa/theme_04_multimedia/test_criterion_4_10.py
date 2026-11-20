@@ -266,14 +266,8 @@ def test_criterion_410_multiple_automatic_sounds(
 @pytest.mark.parametrize(
     "media",
     [
-        (
-            '<audio autoplay src="audio.mp3" '
-            'aria-hidden="true"></audio>'
-        ),
-        (
-            '<video autoplay src="video.mp4" '
-            'role="presentation"></video>'
-        ),
+        ('<audio autoplay src="audio.mp3" aria-hidden="true"></audio>'),
+        ('<video autoplay src="video.mp4" role="presentation"></video>'),
     ],
 )
 def test_criterion_410_ignores_decorative_media(

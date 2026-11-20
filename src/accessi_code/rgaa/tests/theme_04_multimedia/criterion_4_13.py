@@ -48,8 +48,6 @@ def _has_accessible_interface(tag: Tag, soup: BeautifulSoup) -> bool:
     return tag.name in {"canvas", "object", "embed"} and bool(tag.get_text(" ", strip=True))
 
 
-
-
 def _referenced_alternative(tag: Tag, soup: BeautifulSoup) -> bool:
     for attribute in ("aria-describedby", "aria-details"):
         references = tag.get(attribute)
@@ -143,9 +141,7 @@ class Test4131(RGAATest):
         status = TestStatus.PASS if accessible_count == len(media) else TestStatus.FAIL
         # Determine explicit descriptive message
         if status == TestStatus.PASS:
-            status_message = (
-                f"Conforme : Tous les {len(media)} média(s) présentent des marqueurs d'accessibilité."
-            )
+            status_message = f"Conforme : Tous les {len(media)} média(s) présentent des marqueurs d'accessibilité."
         else:  # TestStatus.FAIL
             inaccessible_count = len(media) - accessible_count
             status_message = (

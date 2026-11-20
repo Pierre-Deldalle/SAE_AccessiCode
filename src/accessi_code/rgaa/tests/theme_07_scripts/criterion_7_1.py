@@ -1,445 +1,220 @@
+"""
+RGAA 4.1.2 — critère 7.1 : chaque script est-il, si nécessaire, compatible
+avec les technologies d'assistance ?
+
+Composants concernés : éléments avec un gestionnaire d'événement (``onclick``…)
+ou un rôle WAI-ARIA de composant d'interface (``analysis/components.py``).
+
+- 7.1.1 (sans IA) : le composant expose un rôle et un nom, et les états
+  obligatoires de son rôle (aria-checked, aria-valuenow, aria-expanded) ;
+- 7.1.2 : la restitution par les technologies d'assistance ne peut être
+  vérifiée qu'avec un lecteur d'écran → NEEDS_REVIEW, jamais PASS ni FAIL ;
+- 7.1.3 : nom absent, rôle absent, ou intitulé visible absent du nom → FAIL
+  sans IA ; sinon l'IA juge la pertinence du nom et du rôle.
+"""
+
 from __future__ import annotations
 
-from bs4 import BeautifulSoup, Tag
-from typing import Any, Set
+from typing import Any
 
+from bs4 import BeautifulSoup, Tag
+
+from accessi_code.ai.schemas import RelevanceItem
+from accessi_code.analysis.components import (
+    NAME_OPTIONAL,
+    component_identifier,
+    component_name,
+    component_role,
+    missing_states,
+    normalize,
+    script_components,
+    visible_label,
+)
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
-from accessi_code.models.result import (
-    Finding,
-    TestResult,
-    TestStatus,
-)
+from accessi_code.models.result import TestResult, TestStatus
+from accessi_code.rgaa.ai_decision import judge_relevance
 from accessi_code.rgaa.base import RGAATest
+from accessi_code.rgaa.outcomes import Outcome, build_result, make_outcome, not_applicable
+
+EMPTY_SUMMARY = "Aucun composant d'interface généré ou contrôlé par script."
+NOUN = "composant(s) contrôlé(s) par script"
+API_RECOMMENDATION = (
+    "Donner au composant un rôle WAI-ARIA adapté, un nom accessible et les états de son rôle, "
+    "ou utiliser un élément HTML natif équivalent."
+)
+NAME_RECOMMENDATION = "Donner au composant un nom qui décrit sa fonction et un rôle qui correspond à son comportement."
 
 
-class Test711(RGAATest):
+class ComponentTest(RGAATest):
+    criterion_id = "7.1"
+    required_capabilities = frozenset({Capability.DOM})
+
+    def _components(self, context: AuditContext) -> tuple[BeautifulSoup, list[Tag]]:
+        if not isinstance(context.dom, BeautifulSoup):
+            raise ValueError(f"Le test {self.test_id} nécessite un DOM.")
+        return context.dom, script_components(context.dom)
+
+
+class Test711(ComponentTest):
+    """7.1.1 : nom, rôle et états exposés à l'API d'accessibilité."""
+
     test_id = "7.1.1"
-    criterion_id = "7.1"
 
-    required_capabilities = frozenset(
-        {
-            Capability.DOM,
-        }
-    )
+    async def run(self, context: AuditContext, services: Any | None = None) -> TestResult:
+        soup, components = self._components(context)
+        if not components:
+            return not_applicable(self, EMPTY_SUMMARY)
 
-    async def run(
-        self,
-        context: AuditContext,
-        services: Any | None = None,
-    ) -> TestResult:
-        if not isinstance(context.dom, BeautifulSoup):
-            raise ValueError("Le test 7.1.1 nécessite un DOM.")
+        outcomes: list[Outcome] = []
+        for index, element in enumerate(components):
+            role, role_source = component_role(element)
+            name, name_source = component_name(element, soup)
+            problems: list[str] = []
+            if not role:
+                problems.append("aucun rôle de composant (ni rôle WAI-ARIA, ni élément HTML natif)")
+            if not name and role not in NAME_OPTIONAL:
+                problems.append("aucun nom accessible")
+            states = missing_states(element, role, role_source)
+            if states:
+                problems.append(f"état(s) obligatoire(s) du rôle {role} absent(s) : {', '.join(states)}")
 
-        soup = context.dom
-
-        script_elements = self._find_script_controlled_elements(soup)
-
-        if not script_elements:
-            return TestResult(
-                test_id=self.test_id,
-                criterion_id=self.criterion_id,
-                status=TestStatus.NOT_APPLICABLE,
-                summary="Aucun composant d'interface généré ou contrôlé par script détecté.",
-            )
-
-        findings: list[Finding] = []
-        compliant_count = 0
-
-        for index, element in enumerate(script_elements):
-            if self._has_accessibility_support(element, soup):
-                compliant_count += 1
-                continue
-
-            findings.append(
-                Finding(
-                    element=self._get_element_identifier(element, index),
-                    message=(
-                        "Le composant d'interface généré ou contrôlé par script ne possède "
-                        "pas de support d'accessibilité via une API d'accessibilité, "
-                        "ni de composant d'interface accessible équivalent, "
-                        "ni d'alternative accessible."
-                    ),
-                    recommendation=(
-                        "Ajouter un rôle ARIA approprié, un nom accessible via aria-label ou aria-labelledby, "
-                        "ou fournir une alternative accessible permettant d'accéder aux mêmes fonctionnalités."
-                    ),
+            status = TestStatus.FAIL if problems else TestStatus.PASS
+            outcomes.append(
+                make_outcome(
+                    status,
+                    component_identifier(element, index),
+                    f"Le composant n'expose pas ses informations d'accessibilité : {' ; '.join(problems)}."
+                    if problems
+                    else "",
+                    API_RECOMMENDATION,
+                    role=role,
+                    role_source=role_source,
+                    name=name,
+                    name_source=name_source,
+                    missing_states=states,
                 )
             )
-
-        if findings:
-            status = TestStatus.FAIL
-        else:
-            status = TestStatus.PASS
-
-        return TestResult(
-            test_id=self.test_id,
-            criterion_id=self.criterion_id,
-            status=status,
-            summary=(
-                f"{len(script_elements)} composant(s) d'interface généré(s) ou contrôlé(s) par script : "
-                f"{compliant_count} conforme(s), {len(findings)} non conforme(s)."
-            ),
-            findings=findings,
-            tested_elements=len(script_elements),
-            metadata={
-                "script_controlled_elements": len(script_elements),
-                "compliant_elements": compliant_count,
-                "non_compliant_elements": len(findings),
-            },
-        )
-
-    def _find_script_controlled_elements(self, soup: BeautifulSoup) -> list[Tag]:
-        script_elements: set[Tag] = set()
-
-        event_handlers: Set[str] = {
-            "onclick", "ondblclick", "onmousedown", "onmouseup", "onmouseover",
-            "onmousemove", "onmouseout", "onkeypress", "onkeydown", "onkeyup",
-            "onchange", "onsubmit", "onreset", "onselect", "onblur", "onfocus"
-        }
-
-        for handler in event_handlers:
-            elements = soup.find_all(attrs={handler: True})
-            script_elements.update(elements)
-
-        role_elements = soup.find_all(attrs={"role": True})
-        script_elements.update(role_elements)
-
-        return list(script_elements)
-
-    def _has_accessibility_support(self, element: Tag, soup: BeautifulSoup) -> bool:
-        role = element.get("role")
-        if role and isinstance(role, str) and role.strip():
-            return True
-
-        aria_label = element.get("aria-label")
-        if aria_label and isinstance(aria_label, str) and aria_label.strip():
-            return True
-
-        aria_labelledby = element.get("aria-labelledby")
-        if aria_labelledby and isinstance(aria_labelledby, str) and aria_labelledby.strip():
-            labelled_element = soup.find(id=aria_labelledby)
-            if labelled_element and labelled_element.get_text(strip=True):
-                return True
-
-        if element.name in ("button", "a", "textarea"):
-            if element.get_text(strip=True):
-                return True
-        elif element.name == "input":
-            input_type = element.get("type", "").lower()
-            if input_type in ("submit", "button", "reset", "image"):
-                if element.get("value", "").strip():
-                    return True
-            elif input_type == "image":
-                alt = element.get("alt")
-                if alt and isinstance(alt, str) and alt.strip():
-                    return True
-
-        return False
-
-    def _get_element_identifier(self, element: Tag, index: int) -> str:
-        element_id = element.get("id")
-        if isinstance(element_id, str) and element_id.strip():
-            return f"{element.name}#{element_id}"
-
-        return f"{element.name}[index={index}]"
+        return build_result(self, outcomes, empty_summary=EMPTY_SUMMARY, noun=NOUN)
 
 
-class Test712(RGAATest):
+class Test712(ComponentTest):
+    """7.1.2 : restitution correcte par les technologies d'assistance (vérification humaine)."""
+
     test_id = "7.1.2"
-    criterion_id = "7.1"
 
-    required_capabilities = frozenset(
-        {
-            Capability.DOM,
-        }
-    )
+    async def run(self, context: AuditContext, services: Any | None = None) -> TestResult:
+        _soup, components = self._components(context)
+        if not components:
+            return not_applicable(self, EMPTY_SUMMARY)
 
-    async def run(
-        self,
-        context: AuditContext,
-        services: Any | None = None,
-    ) -> TestResult:
-        if not isinstance(context.dom, BeautifulSoup):
-            raise ValueError("Le test 7.1.2 nécessite un DOM.")
-
-        soup = context.dom
-
-        script_elements = self._find_script_controlled_elements(soup)
-
-        if not script_elements:
-            return TestResult(
-                test_id=self.test_id,
-                criterion_id=self.criterion_id,
-                status=TestStatus.NOT_APPLICABLE,
-                summary="Aucun composant d'interface généré ou contrôlé par script détecté.",
-            )
-
-        findings: list[Finding] = []
-        compliant_count = 0
-
-        for index, element in enumerate(script_elements):
-            if self._is_accessibly_restituted(element, soup):
-                compliant_count += 1
-                continue
-
-            findings.append(
-                Finding(
-                    element=self._get_element_identifier(element, index),
-                    message=(
-                        "Le composant d'interface généré ou contrôlé par script n'est pas "
-                        "correctement restitué par les technologies d'assistance, "
-                        "et aucune alternative accessible ne permet d'accéder aux mêmes fonctionnalités."
-                    ),
-                    recommendation=(
-                        "Assurer que le composant possède un rôle ARIA approprié et un nom accessible, "
-                        "ou fournir une alternative accessible permettant d'accéder aux mêmes fonctionnalités."
-                    ),
+        return build_result(
+            self,
+            [
+                make_outcome(
+                    TestStatus.NEEDS_REVIEW,
+                    component_identifier(element, index),
+                    "La restitution de ce composant (nom, rôle, valeur, changements d'état) doit être vérifiée "
+                    "avec une technologie d'assistance.",
+                    "Tester le composant avec un lecteur d'écran (NVDA, JAWS, VoiceOver).",
+                    role=component_role(element)[0],
                 )
-            )
-
-        if findings:
-            status = TestStatus.FAIL
-        else:
-            status = TestStatus.PASS
-
-        return TestResult(
-            test_id=self.test_id,
-            criterion_id=self.criterion_id,
-            status=status,
-            summary=(
-                f"{len(script_elements)} composant(s) d'interface généré(s) ou contrôlé(s) par script : "
-                f"{compliant_count} restitué(s) correctement, {len(findings)} non restitué(s)."
-            ),
-            findings=findings,
-            tested_elements=len(script_elements),
-            metadata={
-                "script_controlled_elements": len(script_elements),
-                "correctly_restituted": compliant_count,
-                "not_restituted": len(findings),
-            },
+                for index, element in enumerate(components)
+            ],
+            empty_summary=EMPTY_SUMMARY,
+            noun=NOUN,
         )
 
-    def _find_script_controlled_elements(self, soup: BeautifulSoup) -> list[Tag]:
-        script_elements: set[Tag] = set()
 
-        event_handlers: Set[str] = {
-            "onclick", "ondblclick", "onmousedown", "onmouseup", "onmouseover",
-            "onmousemove", "onmouseout", "onkeypress", "onkeydown", "onkeyup",
-            "onchange", "onsubmit", "onreset", "onselect", "onblur", "onfocus"
-        }
+class Test713(ComponentTest):
+    """7.1.3 : nom et rôle pertinents, nom contenant l'intitulé visible."""
 
-        for handler in event_handlers:
-            elements = soup.find_all(attrs={handler: True})
-            script_elements.update(elements)
-
-        role_elements = soup.find_all(attrs={"role": True})
-        script_elements.update(role_elements)
-
-        return list(script_elements)
-
-    def _is_accessibly_restituted(self, element: Tag, soup: BeautifulSoup) -> bool:
-        return self._has_basic_accessibility(element, soup)
-
-    def _has_basic_accessibility(self, element: Tag, soup: BeautifulSoup) -> bool:
-        role = element.get("role")
-        if role and isinstance(role, str) and role.strip():
-            return True
-
-        aria_label = element.get("aria-label")
-        if aria_label and isinstance(aria_label, str) and aria_label.strip():
-            return True
-
-        aria_labelledby = element.get("aria-labelledby")
-        if aria_labelledby and isinstance(aria_labelledby, str) and aria_labelledby.strip():
-            labelled_element = soup.find(id=aria_labelledby)
-            if labelled_element and labelled_element.get_text(strip=True):
-                return True
-
-        if element.name in ("button", "a", "textarea"):
-            if element.get_text(strip=True):
-                return True
-        elif element.name == "input":
-            input_type = element.get("type", "").lower()
-            if input_type in ("submit", "button", "reset", "image"):
-                if element.get("value", "").strip():
-                    return True
-            elif input_type == "image":
-                alt = element.get("alt")
-                if alt and isinstance(alt, str) and alt.strip():
-                    return True
-
-        return False
-
-    def _get_element_identifier(self, element: Tag, index: int) -> str:
-        """Generate a unique identifier for the element."""
-        element_id = element.get("id")
-        if isinstance(element_id, str) and element_id.strip():
-            return f"{element.name}#{element_id}"
-
-        return f"{element.name}[index={index}]"
-
-
-class Test713(RGAATest):
     test_id = "7.1.3"
-    criterion_id = "7.1"
 
-    required_capabilities = frozenset(
-        {
-            Capability.DOM,
-        }
-    )
+    async def run(self, context: AuditContext, services: Any | None = None) -> TestResult:
+        soup, components = self._components(context)
+        if not components:
+            return not_applicable(self, EMPTY_SUMMARY)
 
-    async def run(
-        self,
-        context: AuditContext,
-        services: Any | None = None,
-    ) -> TestResult:
-        if not isinstance(context.dom, BeautifulSoup):
-            raise ValueError("Le test 7.1.3 nécessite un DOM.")
+        outcomes: list[Outcome | None] = [None] * len(components)
+        to_judge: list[tuple[int, RelevanceItem]] = []
 
-        soup = context.dom
+        for position, element in enumerate(components):
+            identifier = component_identifier(element, position)
+            role, _ = component_role(element)
+            name, name_source = component_name(element, soup)
+            label = visible_label(element, soup)
+            evidence = {"role": role, "name": name, "name_source": name_source, "visible_label": label}
 
-        script_elements = self._find_script_controlled_elements(soup)
-
-        if not script_elements:
-            return TestResult(
-                test_id=self.test_id,
-                criterion_id=self.criterion_id,
-                status=TestStatus.NOT_APPLICABLE,
-                summary="Aucun composant d'interface généré ou contrôlé par script détecté.",
-            )
-
-        findings: list[Finding] = []
-        compliant_count = 0
-
-        for index, element in enumerate(script_elements):
-            if self._has_relevant_name_and_role(element, soup):
-                compliant_count += 1
+            if not name and role in NAME_OPTIONAL:
+                # Conteneur (menu, tablist…) : son nom n'est pas obligatoire, ses éléments sont jugés.
+                outcomes[position] = make_outcome(TestStatus.NOT_APPLICABLE)
                 continue
 
-            findings.append(
-                Finding(
-                    element=self._get_element_identifier(element, index),
-                    message=(
-                        "Le composant d'interface généré ou contrôlé par script ne possède "
-                        "pas de nom pertinent (contenant au moins l'intitulé visible) "
-                        "ou pas de rôle pertinent."
-                    ),
-                    recommendation=(
-                        "S'assurer que le composant possède un rôle ARIA approprié décrivant sa fonction, "
-                        "et un nom accessible contenant au moins l'intitulé visible du composant."
+            if not name or not role:
+                missing = " ni ".join(
+                    part for part, absent in (("de rôle", not role), ("de nom accessible", not name)) if absent
+                )
+                outcomes[position] = make_outcome(
+                    TestStatus.FAIL,
+                    identifier,
+                    f"Le composant n'a pas {missing} : il ne peut pas être pertinent.",
+                    NAME_RECOMMENDATION,
+                    **evidence,
+                )
+                continue
+
+            if _label_missing_from_name(label, name):
+                outcomes[position] = make_outcome(
+                    TestStatus.FAIL,
+                    identifier,
+                    f"Le nom accessible « {name} » ne contient pas l'intitulé visible « {label} ».",
+                    "Faire commencer le nom accessible par l'intitulé visible du composant.",
+                    **evidence,
+                )
+                continue
+
+            to_judge.append(
+                (
+                    position,
+                    RelevanceItem(
+                        text=name,
+                        element_html=str(element)[:400],
+                        context=normalize(element.parent.get_text(" ", strip=True))[:300]
+                        if isinstance(element.parent, Tag)
+                        else "",
+                        details={"role": role, "visible_label": label, "name_source": name_source},
                     ),
                 )
             )
 
-        if findings:
-            status = TestStatus.FAIL
-        else:
-            status = TestStatus.PASS
+        verdicts = await judge_relevance(services, "component_name", [item for _, item in to_judge])
+        for (position, item), verdict in zip(to_judge, verdicts, strict=True):
+            outcomes[position] = make_outcome(
+                verdict.status,
+                component_identifier(components[position], position),
+                verdict.message(
+                    f"Le nom « {item.text} » ou le rôle {item.details['role']} du composant n'est pas pertinent.",
+                    f"La pertinence du nom « {item.text} » et du rôle {item.details['role']} reste à vérifier.",
+                ),
+                NAME_RECOMMENDATION,
+                **item.details,
+                **verdict.evidence,
+            )
 
-        return TestResult(
-            test_id=self.test_id,
-            criterion_id=self.criterion_id,
-            status=status,
-            summary=(
-                f"{len(script_elements)} composant(s) d'interface généré(s) ou contrôlé(s) par script : "
-                f"{compliant_count} avec nom et rôle pertinent(s), {len(findings)} non conforme(s)."
-            ),
-            findings=findings,
-            tested_elements=len(script_elements),
-            metadata={
-                "script_controlled_elements": len(script_elements),
-                "relevant_name_role": compliant_count,
-                "irrelevant_name_role": len(findings),
-            },
+        return build_result(
+            self, [item for item in outcomes if item is not None], empty_summary=EMPTY_SUMMARY, noun=NOUN
         )
 
-    def _find_script_controlled_elements(self, soup: BeautifulSoup) -> list[Tag]:
-        script_elements: set[Tag] = set()
 
-        event_handlers: Set[str] = {
-            "onclick", "ondblclick", "onmousedown", "onmouseup", "onmouseover",
-            "onmousemove", "onmouseout", "onkeypress", "onkeydown", "onkeyup",
-            "onchange", "onsubmit", "onreset", "onselect", "onblur", "onfocus"
-        }
-
-        for handler in event_handlers:
-            elements = soup.find_all(attrs={handler: True})
-            script_elements.update(elements)
-
-        role_elements = soup.find_all(attrs={"role": True})
-        script_elements.update(role_elements)
-
-        return list(script_elements)
-
-    def _has_relevant_name_and_role(self, element: Tag, soup: BeautifulSoup) -> bool:
-        role = element.get("role")
-        if not (role and isinstance(role, str) and role.strip()):
-            if element.name not in ("button", "a", "input", "select", "textarea"):
-                return False
+def _words(text: str) -> str:
+    """Texte réduit à ses lettres et chiffres : la ponctuation (« Recherche : ») est ignorée."""
+    return normalize("".join(character if character.isalnum() else " " for character in text)).lower()
 
 
-        accessible_name = self._get_accessible_name(element, soup)
-        if not accessible_name:
-            return False
-
-        visible_label = self._get_visible_label(element)
-
-        if visible_label:
-            if len(visible_label) == 1 and not visible_label.isalnum():
-                pass
-            else:
-                if visible_label.lower() not in accessible_name.lower():
-                    return False
-
-        return True
-
-    def _get_accessible_name(self, element: Tag, soup: BeautifulSoup) -> str | None:
-        aria_label = element.get("aria-label")
-        if aria_label and isinstance(aria_label, str) and aria_label.strip():
-            return aria_label.strip()
-
-        aria_labelledby = element.get("aria-labelledby")
-        if aria_labelledby and isinstance(aria_labelledby, str) and aria_labelledby.strip():
-            labelled_element = soup.find(id=aria_labelledby)
-            if labelled_element:
-                label_text = labelled_element.get_text(strip=True)
-                if label_text:
-                    return label_text
-
-        if element.name in ("button", "a"):
-            text = element.get_text(strip=True)
-            if text:
-                return text
-        elif element.name == "textarea":
-            text = element.get_text(strip=True)
-            if text:
-                return text
-        elif element.name == "input":
-            input_type = element.get("type", "").lower()
-            if input_type in ("submit", "button", "reset"):
-                value = element.get("value")
-                if value and isinstance(value, str) and value.strip():
-                    return value.strip()
-            elif input_type == "image":
-                alt = element.get("alt")
-                if alt and isinstance(alt, str) and alt.strip():
-                    return alt.strip()
-
-        return None
-
-    def _get_visible_label(self, element: Tag) -> str:
-        if element.name in ("button", "a", "span", "div", "label"):
-            text = element.get_text(strip=True)
-            if text:
-                return text
-
-        return ""
-
-    def _get_element_identifier(self, element: Tag, index: int) -> str:
-        element_id = element.get("id")
-        if isinstance(element_id, str) and element_id.strip():
-            return f"{element.name}#{element_id}"
-
-        return f"{element.name}[index={index}]"
+def _label_missing_from_name(label: str, name: str) -> bool:
+    """L'intitulé visible (hors symboles) n'apparaît pas dans le nom accessible."""
+    label = _words(label)
+    if not label:
+        return False
+    return label not in _words(name)

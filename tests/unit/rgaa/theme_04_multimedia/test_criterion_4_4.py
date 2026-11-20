@@ -1,4 +1,3 @@
-import pytest
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.default_registry import build_default_registry
@@ -14,11 +13,7 @@ def test_441_video_without_subtitles_is_not_applicable(context_factory, run_rgaa
 
 
 def test_441_video_with_caption_track_requires_review(context_factory, run_rgaa):
-    html = (
-        '<video id="interview" src="interview.mp4">'
-        '<track kind="captions" src="subtitles_fr.vtt">'
-        '</video>'
-    )
+    html = '<video id="interview" src="interview.mp4"><track kind="captions" src="subtitles_fr.vtt"></video>'
     result = run_rgaa(Test441(), context_factory(html))
 
     assert result.status == Status.NEEDS_REVIEW
@@ -29,12 +24,7 @@ def test_441_video_with_caption_track_requires_review(context_factory, run_rgaa)
 
 
 def test_441_video_with_adjacent_alternative_requires_review(context_factory, run_rgaa):
-    html = (
-        '<div>'
-        '<video src="presentation.mp4"></video>'
-        '<a href="subtitles.html">Version sous-titrée</a>'
-        '</div>'
-    )
+    html = '<div><video src="presentation.mp4"></video><a href="subtitles.html">Version sous-titrée</a></div>'
     result = run_rgaa(Test441(), context_factory(html))
 
     assert result.status == Status.NEEDS_REVIEW

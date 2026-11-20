@@ -1,7 +1,4 @@
-from types import SimpleNamespace
-from unittest.mock import AsyncMock
 
-import pytest
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_10_presentation_information.criterion_10_1 import (
@@ -62,7 +59,7 @@ def test_1011_basefont_element_fails(context_factory, run_rgaa):
     assert len(result.findings) == 1
     assert "<basefont>" in result.findings[0].message
     assert result.tested_elements == 1
-    assert "Supprimer cet élément" in result.findings[0].recommendation[0]
+    assert "Supprimer cet élément" in result.findings[0].recommendation
 
 
 def test_1011_font_element_fails(context_factory, run_rgaa):
@@ -133,8 +130,8 @@ def test_1011_multiple_presentation_elements_fails(context_factory, run_rgaa):
     result = run_rgaa(RGAA1011(), context)
 
     assert result.status == Status.FAIL
-    assert len(result.findings) == 4  # font, big, strike
-    assert result.tested_elements == 4
+    assert len(result.findings) == 3  # font, big, strike
+    assert result.tested_elements == 3
 
 
 def test_1011_u_element_non_html5_fails(context_factory, run_rgaa):
@@ -428,7 +425,7 @@ def test_1013_html_source_not_available_returns_not_tested(context_factory, run_
     # Create a context without html_source
     context = context_factory("")
     # Manually remove or set html_source to None to simulate missing data
-    if hasattr(context, 'html_source'):
+    if hasattr(context, "html_source"):
         context.html_source = None
 
     result = run_rgaa(RGAA1013(), context)
