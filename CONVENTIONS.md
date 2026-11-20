@@ -757,7 +757,7 @@ rgaa/runner.py
 rgaa/registry.py
 rgaa/aggregation.py
 service/audit_service.py
-ui_gradio.py
+service/audit_orchestrator.py
 ```
 
 Si l’ajout d’un test oblige à écrire quelque chose comme :
@@ -890,11 +890,14 @@ Tout doit passer avant fusion.
 
 # 19. Validation de bout en bout
 
-Si nécessaire, ajouter un exemple représentatif dans :
+Ajouter un exemple conforme et un exemple non conforme du nouveau test dans la section
+de sa thématique du site de démonstration :
 
 ```text
-test_files/
+test_files/site_demo_rgaa/index.html
 ```
+
+Ce site doit rester capable de rendre applicables tous les tests RGAA (voir son `README.md`).
 
 Les scripts de debug permettent de vérifier plusieurs niveaux :
 

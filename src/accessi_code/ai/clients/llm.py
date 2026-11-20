@@ -5,7 +5,7 @@ from typing import Any
 
 import aiohttp
 
-from accessi_code.ai.clients.base import BaseModelEndpoint
+from accessi_code.ai.clients.base import BaseModelEndpoint, cap_max_tokens
 
 
 class OllamaLLM(BaseModelEndpoint):
@@ -69,7 +69,7 @@ class OllamaLLM(BaseModelEndpoint):
             "stream": False,
             "options": {
                 "temperature": temperature,
-                "num_predict": max_tokens,
+                "num_predict": cap_max_tokens(max_tokens),
                 "repeat_penalty": 1.25,
                 "repeat_last_n": 64,
                 "top_p": 0.85,
@@ -114,7 +114,7 @@ class OllamaLLM(BaseModelEndpoint):
             "stream": False,
             "options": {
                 "temperature": temperature,
-                "num_predict": max_tokens,
+                "num_predict": cap_max_tokens(max_tokens),
                 "repeat_penalty": 1.25,
                 "repeat_last_n": 64,
                 "top_p": 0.85,

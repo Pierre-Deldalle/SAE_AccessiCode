@@ -1,0 +1,215 @@
+<!-- Site volontairement NON conforme : chaque bloc contient des erreurs RGAA typiques.
+     8.1 : le DOCTYPE est absent. -->
+<html>
+<head>
+    <meta charset="utf-8">
+    <title></title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* 10.2 : information donnée uniquement par du contenu CSS. */
+        .prix::after { content: " — promotion -50 %"; }
+        /* 10.7 : la prise de focus est rendue invisible. */
+        a:focus, button:focus, input:focus { outline: none; }
+        /* 10.4 : taille de texte figée en pixels et contenu tronqué. */
+        .bandeau { font-size: 11px; height: 20px; overflow: hidden; }
+        /* 10.5 : couleur de texte sans couleur de fond. */
+        .alerte { color: #b42318; }
+        /* 10.11 : largeur fixe qui empêche l'affichage sur un écran étroit. */
+        .conteneur { width: 1200px; }
+        /* 10.12 : espacement du texte imposé, l'utilisateur ne peut pas l'adapter. */
+        p { line-height: 1 !important; letter-spacing: 0 !important; word-spacing: 0 !important; }
+        /* 10.13 / 10.14 : information qui n'apparaît qu'au survol. */
+        .bulle { display: none; }
+        .info:hover .bulle { display: block; }
+    </style>
+</head>
+<body bgcolor="#ffffff">
+    <!-- 12 : pas de lien d'évitement, navigation différente de l'autre page. -->
+    <div class="menu">
+        <a href="index.html">Accueil</a> |
+        <a href="services.html">Services</a>
+    </div>
+
+    <h1></h1>
+    <h4>Bienvenue sur notre site</h4>
+    <center><font color="#999999" size="2">Site de démonstration NON conforme</font></center>
+    <p class="bandeau">Ce bandeau est tronqué quand on agrandit le texte de la page.</p>
+    <p>I M P O R T A N T : ce texte utilise des espaces entre les lettres.</p>
+
+    <!-- 1. Images -->
+    <h2>Nos produits</h2>
+    <img src="logo.png">
+    <a href="produits.html"><img src="logo.png"></a>
+    <img src="logo.png" alt="" title="Logo de l'entreprise">
+    <img src="logo.png" alt="image" usemap="#carte">
+    <map name="carte">
+        <area shape="rect" coords="0,0,100,50" href="produits.html">
+    </map>
+    <input type="image" src="logo.png">
+    <svg role="img" width="100" height="40" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="40"></rect></svg>
+    <figure>
+        <img src="logo.png" alt="Graphique des ventes">
+        <figcaption>Légende sans lien avec l'image</figcaption>
+    </figure>
+
+    <!-- 2. Cadres -->
+    <iframe src="https://www.example.com"></iframe>
+    <iframe src="https://www.example.com" title=""></iframe>
+
+    <!-- 3. Couleurs (repris de l'ancien color_site) -->
+    <section class="ko" data-rgaa="3.1.1">
+<span class="test-id">3.1.1</span>
+<h2>Information transmise uniquement par la couleur</h2>
+<div class="example status-color-only">
+<p class="good">Commande #1024</p>
+<p class="bad">Commande #1025</p>
+<p>La couleur seule permet ici de distinguer l'état des deux commandes.</p>
+</div>
+</section>
+<section class="ko" data-rgaa="3.1.2">
+<span class="test-id">3.1.2</span>
+<h2>Champ obligatoire indiqué uniquement en rouge</h2>
+<div class="example required-bad">
+<p>Les champs affichés en rouge sont obligatoires.</p>
+<label class="required" for="name-ko">Nom</label><br/>
+<input id="name-ko" type="text"/>
+</div>
+</section>
+<section class="ko" data-rgaa="3.1.4">
+<span class="test-id">3.1.4</span>
+<h2>Information portée uniquement par une propriété CSS de couleur</h2>
+<div class="example legend-color-only">
+<span class="success">Dossier A</span>
+<span class="error">Dossier B</span>
+</div>
+<p>Le sens « accepté/refusé » n'est fourni que par les couleurs de fond CSS.</p>
+</section>
+<section class="ko" data-rgaa="3.2.1">
+<span class="test-id">3.2.1</span>
+<h2>Petit texte normal : contraste insuffisant</h2>
+<p class="example text-small-fail">Ce texte de 16 px est volontairement trop clair sur fond blanc.</p>
+</section>
+<section class="ko" data-rgaa="3.2.2">
+<span class="test-id">3.2.2</span>
+<h2>Petit texte gras : contraste insuffisant</h2>
+<p class="example text-bold-small-fail">Ce texte gras de 17 px est volontairement trop clair.</p>
+</section>
+<section class="ko" data-rgaa="3.2.3">
+<span class="test-id">3.2.3</span>
+<h2>Grand texte normal : contraste insuffisant</h2>
+<p class="example text-large-fail">Grand texte normal de 26 px, volontairement trop clair.</p>
+</section>
+<section class="ko" data-rgaa="3.2.4">
+<span class="test-id">3.2.4</span>
+<h2>Grand texte gras : contraste insuffisant</h2>
+<p class="example text-bold-large-fail">Grand texte gras de 20 px, volontairement trop clair.</p>
+</section>
+<section class="ko" data-rgaa="3.3.1">
+<span class="test-id">3.3.1</span>
+<h2>Composants d'interface trop peu contrastés</h2>
+<div class="example controls">
+<button class="button-fail">Valider</button>
+<label for="email-ko">E-mail</label>
+<input class="input-fail" id="email-ko" type="email"/>
+</div>
+</section>
+<section class="ko" data-rgaa="3.3.2">
+<span class="test-id">3.3.2</span>
+<h2>Élément graphique trop peu contrasté</h2>
+<div class="example">
+<div aria-label="Graphique CSS : catégorie A 55 %, catégorie B 85 %" class="chart chart-fail">
+<div class="bar bar-a"></div>
+<div class="bar bar-b"></div>
+</div>
+<div class="chart-labels"><span>A</span><span>B</span></div>
+</div>
+</section>
+
+    <!-- 4. Multimédia -->
+    <h2>Vidéos</h2>
+    <audio autoplay src="media/musique.mp3"></audio>
+    <video src="media/presentation.mp4">
+        <track kind="subtitles" src="sous-titres.vtt" srclang="fr">
+    </video>
+    <object data="media/catalogue.pdf" type="application/pdf"></object>
+    <a href="#">Alternative</a>
+
+    <!-- 5. Tableaux -->
+    <h2>Tarifs</h2>
+    <table>
+        <tr>
+            <th rowspan="2">Offre</th>
+            <th colspan="2">Prix</th>
+        </tr>
+        <tr>
+            <th scope="row">Mensuel</th>
+            <th scope="row">Annuel</th>
+        </tr>
+        <tr>
+            <td>Basique</td>
+            <td>10 €</td>
+            <td>100 €</td>
+        </tr>
+    </table>
+    <table>
+        <tr>
+            <th>Menu</th>
+            <td>Mise en page à l'aide d'un tableau</td>
+        </tr>
+    </table>
+
+    <!-- 6. Liens -->
+    <p>
+        <a href="contact.html"></a>
+        <a href="contact.html" aria-label="Envoyer un message">Contact</a>
+        <a href="tarifs.html">Cliquez ici</a>
+    </p>
+
+    <!-- 7. Scripts -->
+    <div onclick="alert('Commande validée')">Valider la commande</div>
+    <span onclick="document.body.classList.toggle('sombre')">☾</span>
+    <div>Votre message a bien été envoyé.</div>
+    <div>Erreur : le champ adresse email est obligatoire.</div>
+    <div>Chargement en cours, étape 2 sur 3…</div>
+
+    <!-- 8. Éléments obligatoires -->
+    <p lang="xx">Texte dans une langue dont le code est invalide.</p>
+    <p>This sentence is in English but has no lang attribute.</p>
+    <p dir="invalid">محتوى عربي بلا اتجاه صالح.</p>
+    <p id="doublon">Premier élément.</p>
+    <p id="doublon">Second élément avec le même identifiant.</p>
+    <b>Texte mis en gras avec une balise de présentation.</b>
+
+    <!-- 9. Structuration -->
+    <h2></h2>
+    <p>- premier point<br>- deuxième point<br>- troisième point</p>
+    <blockquote></blockquote>
+    <p>Comme le dit le proverbe <q></q>.</p>
+
+    <!-- 10. Présentation -->
+    <p align="center">Texte centré avec un attribut de présentation.</p>
+    <p class="prix">Prix : 20 €</p>
+    <div class="conteneur">
+        <p class="alerte">Attention : offre limitée.</p>
+        <span class="info">Détails de l'offre<span class="bulle">Offre valable jusqu'au 31 décembre.</span></span>
+    </div>
+
+    <!-- 11. Formulaires -->
+    <h2>Contact</h2>
+    <form action="contact.html" method="post">
+        <input type="text" name="nom" placeholder="Nom">
+        <label for="champ-inexistant">Adresse email</label>
+        <input type="email" name="email" id="email">
+        <input type="tel" name="telephone" autocomplete="numero">
+        Genre :
+        <input type="radio" name="genre" value="f"> Femme
+        <input type="radio" name="genre" value="h"> Homme
+        <select name="pays"><option>France</option><option>Belgique</option></select>
+        <textarea name="message"></textarea>
+        <button type="submit"></button>
+    </form>
+
+    <!-- 12. Navigation : ordre de tabulation forcé -->
+    <a href="index.html" tabindex="5">Lien avec un ordre de tabulation forcé</a>
+</body>
+</html>

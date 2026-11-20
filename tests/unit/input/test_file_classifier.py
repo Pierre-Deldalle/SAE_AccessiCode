@@ -6,6 +6,7 @@ from accessi_code.input.file_classifier import (
     could_be_screenshot,
     is_html_file,
     is_image_file,
+    pick_main_html,
 )
 
 
@@ -90,3 +91,17 @@ def test_screenshot_compatible_files_are_detected(filename: str):
 )
 def test_non_screenshot_compatible_files_are_rejected(filename: str):
     assert not could_be_screenshot(Path(filename))
+
+
+@pytest.mark.parametrize(
+    ("names", "expected"),
+    [
+        (["description.html", "index.html", "logo.png"], 1),
+        (["style.css", "contact.HTM", "accueil.html"], 1),
+        (["blog/index.html", "index.html"], 1),
+        (["INDEX.HTML", "a.html"], 0),
+        (["logo.png", "style.css"], None),
+    ],
+)
+def test_pick_main_html_prefers_homepage(names, expected):
+    assert pick_main_html([Path(name) for name in names]) == expected

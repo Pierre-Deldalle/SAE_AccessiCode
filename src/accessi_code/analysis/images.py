@@ -19,6 +19,10 @@ DescriptionSource = Literal[
     "adjacent_link",
     "adjacent_button",
     "aria-describedby",
+    # Sources propres au svg, au canvas et à role="img" (RGAA 1.6.5, 1.6.7, 1.6.10).
+    "svg-desc",
+    "aria-labelledby",
+    "canvas-content",
 ]
 
 
@@ -105,7 +109,7 @@ def _add_description(
         descriptions.append(description)
 
 
-def _resolve_image_source(
+def resolve_image_source(
     src: str,
     base_dir: str | Path | None,
 ) -> tuple[str | None, bytes | None]:
@@ -160,7 +164,7 @@ def build_image_info_from_tag(
         )
     )
 
-    image_path, image_data = _resolve_image_source(
+    image_path, image_data = resolve_image_source(
         src,
         base_dir,
     )
@@ -251,7 +255,7 @@ def make_local_resource_loader(
     return load
 
 
-def _get_referenced_descriptions(
+def get_referenced_descriptions(
     image: Tag,
     soup: BeautifulSoup,
 ) -> list[DetailedDescription]:
@@ -331,7 +335,7 @@ def _get_figure_description(
     )
 
 
-def _get_adjacent_description(
+def get_adjacent_description(
     image: Tag,
     soup: BeautifulSoup,
     *,
@@ -520,7 +524,7 @@ def extract_images(
                 figure_description,
             )
 
-        adjacent = _get_adjacent_description(
+        adjacent = get_adjacent_description(
             image,
             soup,
             page_url=page_url,
@@ -533,7 +537,7 @@ def extract_images(
                 adjacent,
             )
 
-        for description in _get_referenced_descriptions(
+        for description in get_referenced_descriptions(
             image,
             soup,
         ):

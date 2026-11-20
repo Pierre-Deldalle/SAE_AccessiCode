@@ -29,7 +29,10 @@ def context_factory(tmp_path: Path):
         *,
         resources: dict[str, str | bytes] | None = None,
         doctype: str | None | object = _AUTO_DOCTYPE,
+        image_evidence: dict[str, dict] | None = None,
     ) -> AuditContext:
+        # image_evidence : vérifications manuelles du thème 1, par élément
+        # (ex. {"img#logo": {"verified": True, ...}}).
         html_path = tmp_path / "index.html"
         html_path.write_text(html, encoding="utf-8")
 
@@ -82,6 +85,7 @@ def context_factory(tmp_path: Path):
             dom=soup,
             doctype=resolved_doctype,
             image_files=list(dict.fromkeys(image_files)),
+            image_evidence=dict(image_evidence or {}),
         )
 
     return build

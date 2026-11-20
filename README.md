@@ -238,8 +238,7 @@ class Test851(RGAATest):
     criterion_id = "8.5"
     required_capabilities = frozenset({Capability.DOM})
 
-    async def run(self, context: AuditContext, services=None) -> TestResult:
-        ...
+    async def run(self, context: AuditContext, services=None) -> TestResult: ...
 ```
 
 Pour ajouter un test, il suffit de créer sa classe dans le bon dossier `theme_XX_*` et de l'enregistrer dans `build_default_registry()`. La méthode complète est décrite dans [CONVENTIONS.md](CONVENTIONS.md).

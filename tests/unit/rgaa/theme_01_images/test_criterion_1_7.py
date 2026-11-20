@@ -1,273 +1,80 @@
-from types import SimpleNamespace
-from unittest.mock import AsyncMock
+"""Critère RGAA 1.7 : pertinence des descriptions détaillées."""
 
-from accessi_code.ai.schemas import DescriptionAnalysis, ImageRoleAnalysis
+import pytest
+from image_fakes import description, services
+
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_01_images.criterion_1_7 import (
-    Test171 as RGAA171,
+    Test171,
+    Test172,
+    Test173,
+    Test174,
+    Test175,
+    Test176,
 )
-from accessi_code.service.audit_services import AuditServices
+
+ALL = [Test171, Test172, Test173, Test174, Test175, Test176]
+WITH_DESCRIPTION = '<img src="g.png" alt="Ventes" aria-describedby="d"><p id="d">Les ventes ont doublé en 2025.</p>'
 
 
-def role(
-    information_bearing: bool | None,
-    *,
-    confidence: str = "high",
-) -> ImageRoleAnalysis:
-    return ImageRoleAnalysis(
-        information_bearing=information_bearing,
-        explanation="Analyse du rôle simulée.",
-        uncertainties=[],
-        confidence=confidence,
-    )
+@pytest.mark.parametrize("cls", ALL)
+def test_no_element_is_not_applicable(cls, context_factory, run_rgaa):
+    assert run_rgaa(cls(), context_factory("<p>Texte</p>"), services()).status == Status.NOT_APPLICABLE
 
 
-def description(
-    *,
-    relevant: bool | None,
-    detailed: bool | None = True,
-    confidence: str = "high",
-    missing_information: list[str] | None = None,
-) -> DescriptionAnalysis:
-    return DescriptionAnalysis(
-        relevant=relevant,
-        explanation="Analyse de description simulée.",
-        is_detailed_description=detailed,
-        missing_information=missing_information or [],
-        contradictions=[],
-        uncertainties=[],
-        confidence=confidence,
-    )
+def test_171_relevant_description_passes(context_factory, run_rgaa):
+    ai = services(description_analysis=description(relevant=True))
+    assert run_rgaa(Test171(), context_factory(WITH_DESCRIPTION), ai).status == Status.PASS
+    image_info, detailed = ai.image_analyzer.analyze.await_args.args
+    assert detailed.content == "Les ventes ont doublé en 2025."
+    assert image_info.src == "g.png"
 
 
-def services(
-    *,
-    role_result: ImageRoleAnalysis,
-    description_result: DescriptionAnalysis | None = None,
-):
-    role_method = AsyncMock(return_value=role_result)
-    description_method = AsyncMock(return_value=description_result)
-
-    analyzer = SimpleNamespace(
-        analyze_information_role=role_method,
-        analyze=description_method,
-    )
-    return (
-        AuditServices(image_analyzer=analyzer),
-        role_method,
-        description_method,
-    )
+def test_171_irrelevant_description_fails(context_factory, run_rgaa):
+    ai = services(description_analysis=description(relevant=False))
+    assert run_rgaa(Test171(), context_factory(WITH_DESCRIPTION), ai).status == Status.FAIL
 
 
-def html_with_description() -> str:
-    return (
-        '<img src="graph.png" alt="Graphique" aria-describedby="details">'
-        '<p id="details">'
-        "Le graphique montre une hausse régulière de janvier à mars."
-        "</p>"
-    )
+def test_171_low_confidence_needs_review(context_factory, run_rgaa):
+    ai = services(description_analysis=description(relevant=False, confidence="low"))
+    assert run_rgaa(Test171(), context_factory(WITH_DESCRIPTION), ai).status == Status.NEEDS_REVIEW
 
 
-def test_171_no_description_candidate_is_not_applicable(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<img src="graph.png" alt="Graphique">')
-
-    result = run_rgaa(RGAA171(), context, AuditServices())
-
-    assert result.status == Status.NOT_APPLICABLE
+def test_171_not_a_detailed_description_is_not_applicable(context_factory, run_rgaa):
+    ai = services(description_analysis=description(relevant=None, detailed=False))
+    assert run_rgaa(Test171(), context_factory(WITH_DESCRIPTION), ai).status == Status.NOT_APPLICABLE
 
 
-def test_171_non_informative_image_is_outside_scope(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory(html_with_description())
-    audit_services, _, description_method = services(
-        role_result=role(False),
-        description_result=description(relevant=True),
-    )
-
-    result = run_rgaa(RGAA171(), context, audit_services)
-
-    assert result.status == Status.NOT_APPLICABLE
-    description_method.assert_not_awaited()
+def test_171_without_ai_needs_review(context_factory, run_rgaa):
+    assert run_rgaa(Test171(), context_factory(WITH_DESCRIPTION)).status == Status.NEEDS_REVIEW
 
 
-def test_171_uncertain_image_role_requires_review(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory(html_with_description())
-    audit_services, _, description_method = services(
-        role_result=role(True, confidence="low"),
-        description_result=description(relevant=True),
-    )
-
-    result = run_rgaa(RGAA171(), context, audit_services)
-
-    assert result.status == Status.NEEDS_REVIEW
-    description_method.assert_not_awaited()
+def test_171_ai_exception_gives_error(context_factory, run_rgaa):
+    ai = services(description_analysis=RuntimeError("panne"))
+    assert run_rgaa(Test171(), context_factory(WITH_DESCRIPTION), ai).status == Status.ERROR
 
 
-def test_171_without_image_analyzer_requires_review(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory(html_with_description())
-
-    result = run_rgaa(RGAA171(), context, AuditServices())
-
-    assert result.status == Status.NEEDS_REVIEW
-
-
-def test_171_detailed_relevant_description_passes(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory(html_with_description())
-    audit_services, _, _ = services(
-        role_result=role(True),
-        description_result=description(
-            relevant=True,
-            detailed=True,
-            confidence="high",
-        ),
-    )
-
-    result = run_rgaa(RGAA171(), context, audit_services)
-
-    assert result.status == Status.PASS
-    assert result.findings == []
-
-
-def test_171_detailed_irrelevant_description_fails(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory(html_with_description())
-    audit_services, _, _ = services(
-        role_result=role(True),
-        description_result=description(
-            relevant=False,
-            detailed=True,
-            confidence="high",
-            missing_information=["valeurs importantes"],
-        ),
-    )
-
-    result = run_rgaa(RGAA171(), context, audit_services)
-
-    assert result.status == Status.FAIL
-    assert len(result.findings) >= 1
-
-
-def test_171_candidate_that_is_not_a_detailed_description_is_not_applicable(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory(html_with_description())
-    audit_services, _, _ = services(
-        role_result=role(True),
-        description_result=description(
-            relevant=None,
-            detailed=False,
-            confidence="high",
-        ),
-    )
-
-    result = run_rgaa(RGAA171(), context, audit_services)
-
-    assert result.status == Status.NOT_APPLICABLE
-
-
-def test_171_low_confidence_description_requires_review(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory(html_with_description())
-    audit_services, _, _ = services(
-        role_result=role(True),
-        description_result=description(
-            relevant=True,
-            detailed=True,
-            confidence="low",
-        ),
-    )
-
-    result = run_rgaa(RGAA171(), context, audit_services)
-
-    assert result.status == Status.NEEDS_REVIEW
-
-
-def test_171_unknown_relevance_requires_review(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory(html_with_description())
-    audit_services, _, _ = services(
-        role_result=role(True),
-        description_result=description(
-            relevant=None,
-            detailed=True,
-            confidence="medium",
-        ),
-    )
-
-    result = run_rgaa(RGAA171(), context, audit_services)
-
-    assert result.status == Status.NEEDS_REVIEW
-
-
-def test_171_missing_longdesc_resource_is_never_passed(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<img src="graph.png" alt="Graphique" longdesc="missing.html">')
-
-    result = run_rgaa(RGAA171(), context, AuditServices())
-
-    assert result.status == Status.NEEDS_REVIEW
-
-
-def test_171_local_longdesc_can_be_analyzed(
-    context_factory,
-    run_rgaa,
-):
+def test_171_longdesc_is_loaded_from_local_file(context_factory, run_rgaa):
+    ai = services()
     context = context_factory(
-        '<img src="graph.png" alt="Graphique" longdesc="details.html">',
-        resources={"details.html": ("<p>Le graphique progresse de 10 à 20 unités entre janvier et mars.</p>")},
+        '<img src="g.png" alt="Ventes" longdesc="desc.txt">',
+        resources={"desc.txt": "Description complète des ventes."},
     )
-    audit_services, _, description_method = services(
-        role_result=role(True),
-        description_result=description(
-            relevant=True,
-            detailed=True,
-            confidence="high",
-        ),
-    )
-
-    result = run_rgaa(RGAA171(), context, audit_services)
-
-    assert result.status == Status.PASS
-    description_method.assert_awaited()
+    assert run_rgaa(Test171(), context, ai).status == Status.PASS
+    assert ai.image_analyzer.analyze.await_args.args[1].content == "Description complète des ventes."
 
 
-def test_171_analyzer_error_is_reported(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory(html_with_description())
-    analyzer = SimpleNamespace(
-        analyze_information_role=AsyncMock(return_value=role(True)),
-        analyze=AsyncMock(side_effect=RuntimeError("IA indisponible")),
-    )
+def test_171_unreadable_description_needs_review(context_factory, run_rgaa):
+    ai = services()
+    result = run_rgaa(Test171(), context_factory('<img src="g.png" alt="Ventes" longdesc="absent.txt">'), ai)
+    assert result.status == Status.NEEDS_REVIEW
+    ai.image_analyzer.analyze.assert_not_called()
 
-    result = run_rgaa(
-        RGAA171(),
-        context,
-        AuditServices(image_analyzer=analyzer),
-    )
 
-    assert result.status == Status.ERROR
+def test_175_svg_without_image_file_needs_review(context_factory, run_rgaa):
+    ai = services()
+    html = '<svg role="img" aria-label="Ventes" aria-describedby="d"></svg><p id="d">Hausse.</p>'
+    result = run_rgaa(Test175(), context_factory(html), ai)
+    assert result.status == Status.NEEDS_REVIEW
+    assert "pas analysable" in result.findings[0].message
+    ai.image_analyzer.analyze.assert_not_called()
