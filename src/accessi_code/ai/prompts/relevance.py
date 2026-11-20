@@ -284,6 +284,83 @@ RELEVANCE_KINDS: dict[str, RelevanceKind] = {
         relevant_when="elle donne accès au même contenu ou à la même fonctionnalité que le script.",
         not_relevant_examples="« Activez JavaScript » seul, un texte sans rapport avec la fonctionnalité.",
     ),
+    # ---- Consultation (thème 13) ----
+    "cryptic_context": RelevanceKind(
+        subject=(
+            "contenu cryptique (émoticône, art ASCII ou syntaxe de type SMS, nature fournie dans « kind ») "
+            "et texte qui l'entoure"
+        ),
+        rule=(
+            "RGAA 13.5 : chaque contenu cryptique doit avoir une alternative ; sans attribut title, "
+            "une définition doit être donnée par le contexte adjacent."
+        ),
+        relevant_when=(
+            "le texte qui entoure le contenu en donne le sens (par exemple « Merci :) » où le contenu "
+            "n'ajoute qu'une nuance, ou une légende qui décrit un dessin en art ASCII)."
+        ),
+        not_relevant_examples=(
+            "« @+ » seul en fin de message sans explication, un dessin en art ASCII sans légende, "
+            "une émoticône qui porte seule une information (« Résultat : :( »)."
+        ),
+    ),
+    "cryptic_alternative": RelevanceKind(
+        subject="alternative (attribut title ou aria-label) d'un contenu cryptique fourni dans « cryptic_content »",
+        rule="RGAA 13.6 : l'alternative de chaque contenu cryptique doit être pertinente.",
+        relevant_when="elle donne le sens du contenu cryptique (« sourire » pour :-), « à plus tard » pour @+).",
+        not_relevant_examples="« émoticône », « image », « art ASCII », un texte sans rapport avec le contenu.",
+    ),
+    "gesture_alternative": RelevanceKind(
+        subject=(
+            "fonctionnalité déclenchée par un geste complexe (type fourni dans « gesture » : contact multipoint "
+            "ou suivi de trajectoire), décrite par l'extrait de code ; le contexte liste les contrôles de la page"
+        ),
+        rule=(
+            "RGAA 13.10 : chaque fonctionnalité utilisable par un geste complexe doit aussi être utilisable "
+            "par un contact en un point unique de l'écran (bouton, lien…), sauf si le geste est essentiel."
+        ),
+        relevant_when=(
+            "un contrôle de la page permet la même action en un seul contact (boutons « Zoom + / Zoom - » pour "
+            "un pincement, flèches « Suivant / Précédent » pour un balayage), ou le geste est essentiel "
+            "(signature manuscrite, dessin à main levée)."
+        ),
+        not_relevant_examples=(
+            "un carrousel qui ne change de diapositive que par balayage, un zoom de carte uniquement au pincement."
+        ),
+    ),
+    "motion_alternative": RelevanceKind(
+        subject=(
+            "fonctionnalité déclenchée par un mouvement de l'appareil ou vers l'appareil (type fourni dans "
+            "« motion »), décrite par l'extrait de code ; le contexte liste les contrôles de la page"
+        ),
+        rule=(
+            "RGAA 13.12.1 et 13.12.2 : chaque fonctionnalité déclenchée par un mouvement de l'appareil ou vers "
+            "l'appareil doit pouvoir être accomplie avec des composants d'interface, sauf si le mouvement est "
+            "essentiel."
+        ),
+        relevant_when=(
+            "un contrôle de la page permet la même action (bouton « Annuler » pour « secouer pour annuler », "
+            "flèches pour un défilement par inclinaison), ou le mouvement est essentiel (podomètre, niveau à bulle)."
+        ),
+        not_relevant_examples=(
+            "« secouer pour annuler » sans bouton d'annulation, une navigation par inclinaison seule."
+        ),
+    ),
+    "motion_disable": RelevanceKind(
+        subject=(
+            "fonctionnalité déclenchée par un mouvement de l'appareil ou vers l'appareil, décrite par l'extrait "
+            "de code ; « disable_code » indique si le code retire l'écoute du capteur ; le contexte liste "
+            "les contrôles de la page"
+        ),
+        rule=(
+            "RGAA 13.12.3 : l'utilisateur doit pouvoir désactiver la détection du mouvement pour éviter un "
+            "déclenchement accidentel, sauf si le mouvement est essentiel."
+        ),
+        relevant_when=(
+            "un contrôle de la page permet de désactiver la détection (case « Désactiver le secouement », "
+            "interrupteur des capteurs), ou le mouvement est essentiel à la fonctionnalité."
+        ),
+        not_relevant_examples="aucun contrôle de désactivation, un réglage sans rapport avec le mouvement.",
+    ),
 }
 
 

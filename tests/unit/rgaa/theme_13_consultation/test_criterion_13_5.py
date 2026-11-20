@@ -1,505 +1,124 @@
-from __future__ import annotations
+"""Critères RGAA 13.5 et 13.6 : contenus cryptiques (jugés par l'IA)."""
 
+import asyncio
+
+import pytest
+from ai_fakes import relevance, text_services
+from bs4 import BeautifulSoup
+
+from accessi_code.analysis.cryptic import ASCII_ART_KIND, EMOTICON_KIND, SYNTAX_KIND, find_cryptic_contents
 from accessi_code.models.result import TestStatus as Status
-from accessi_code.rgaa.tests.theme_13_consultation.criterion_13_5 import (
-    Test1351 as RGAA1351,
+from accessi_code.rgaa.tests.theme_13_consultation.criterion_13_5 import Test1351
+from accessi_code.rgaa.tests.theme_13_consultation.criterion_13_6 import Test1361
+
+ASCII_ART = "<pre>\n  /\\_/\\   ##\n ( o.o )  ==\n  > ^ <  ~~**\n /|   |\\ //\\\\\n</pre>"
+
+
+def _kinds(html: str) -> list[tuple[str, str]]:
+    return [(item.kind, item.text) for item in find_cryptic_contents(BeautifulSoup(html, "html.parser"))]
+
+
+def test_detection_of_cryptic_contents():
+    assert _kinds("<p>Merci :-) et à bientôt ;)</p>") == [(EMOTICON_KIND, ":-)"), (EMOTICON_KIND, ";)")]
+    assert _kinds("<p>Bonne soirée @+</p>") == [(SYNTAX_KIND, "@+")]
+    assert _kinds(ASCII_ART)[0][0] == ASCII_ART_KIND
+
+
+@pytest.mark.parametrize(
+    "html",
+    [
+        "<a href='r.pdf'>Rapport annuel (PDF, 2 Mo)</a>",
+        "<p>La SNCF et la RATP. Prix TTC : 10 €. Voir l'annexe x)</p>",
+        "<p>Horaires : 9h-12h (sauf lundi).</p>",
+        "<p>Lien : https://exemple.fr/page</p>",
+        "<pre><code>if (a) { b(); }</code></pre>",
+    ],
 )
-
-# ---------------------------------------------------------------------------
-# 13.5.1 : Contenu cryptique (art ASCII, émoticône, syntaxe cryptique) - title ou définition adjacente
-# ---------------------------------------------------------------------------
+def test_ordinary_text_is_not_cryptic(html):
+    assert _kinds(html) == []
 
 
-def test_1351_no_cryptic_content_not_applicable(context_factory, run_rgaa):
-    """Aucun contenu cryptique -> NOT_APPLICABLE."""
-    html = "<!DOCTYPE html><html><body><p>Contenu normal sans art ASCII ni émoticônes.</p></body></html>"
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA1351(), context)
-
-    assert result.status == Status.NOT_APPLICABLE
-    assert result.tested_elements == 0
+# 13.5.1 ---------------------------------------------------------------------
 
 
-def test_1351_ascii_art_with_title_pass(context_factory, run_rgaa):
-    """Art ASCII multi-lignes avec attribut title -> PASS."""
-    html = (
-        "<!DOCTYPE html><html><body>"
-        '<pre title="Chat en art ASCII">'
-        "  |\\\\      _,,,---,,_\n"
-        "ZZZzz /,`.-'`'    -.  ;-;;,_\n"
-        "     |,4-  ) )-,_. \\\\ (  `'-'\n"
-        "    '---''(_/--'  `-'\\_)</pre>"
-        "</body></html>"
-    )
-    context = context_factory(html)
+def test_1351_no_cryptic_content_is_not_applicable(context_factory, run_rgaa):
+    html = "<p>La SNCF publie son rapport (PDF).</p>"
+    assert run_rgaa(Test1351(), context_factory(html), text_services()).status == Status.NOT_APPLICABLE
 
-    result = run_rgaa(RGAA1351(), context)
 
+def test_1351_title_passes_without_ai(context_factory, run_rgaa):
+    ai = text_services()
+    result = run_rgaa(Test1351(), context_factory('<p>Merci <span title="sourire">:-)</span></p>'), ai)
     assert result.status == Status.PASS
-    assert result.tested_elements == 1
-    assert any(f.evidence.get("condition_met") == "title_attribute" for f in result.findings)
+    ai.text_relevance_analyzer.analyze_relevance.assert_not_called()
 
 
-def test_1351_ascii_art_with_adjacent_definition_pass(context_factory, run_rgaa):
-    """Art ASCII avec définition dans le contexte adjacent -> PASS."""
-    html = (
-        "<!DOCTYPE html><html><body>"
-        "<p>Voici un chat en art ASCII (qui signifie une représentation textuelle d'un chat) :</p>"
-        "<pre>"
-        "  |\\\\      _,,,---,,_\n"
-        "ZZZzz /,`.-'`'    -.  ;-;;,_\n"
-        "     |,4-  ) )-,_. \\\\ (  `'-'\n"
-        "    '---''(_/--'  `-'\\_)</pre>"
-        "</body></html>"
-    )
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA1351(), context)
-
+def test_1351_context_is_judged_by_ai(context_factory, run_rgaa):
+    ai = text_services()
+    result = run_rgaa(Test1351(), context_factory("<p>Résultat du test : :(</p>"), ai)
     assert result.status == Status.PASS
-    # May detect both paragraph text (with definition) and pre text
-    assert result.tested_elements >= 1
-    assert any(f.evidence.get("condition_met") == "adjacent_definition" for f in result.findings)
+    kind, items = ai.text_relevance_analyzer.analyze_relevance.call_args.args
+    assert kind == "cryptic_context"
+    assert items[0].text == ":("
+    assert items[0].context == "Résultat du test : :("
+    assert items[0].details == {"kind": EMOTICON_KIND}
 
 
-def test_1351_emoticon_with_title_pass(context_factory, run_rgaa):
-    """Émoticône avec attribut title -> PASS."""
-    html = (
-        "<!DOCTYPE html><html><body>"
-        '<p>Je suis content <span title="visage souriant">:-)</span> aujourd\'hui.</p>'
-        "</body></html>"
-    )
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA1351(), context)
-
-    assert result.status == Status.PASS
-    assert result.tested_elements == 1
-    assert any(f.evidence.get("condition_met") == "title_attribute" for f in result.findings)
-
-
-def test_1351_emoticon_with_abbr_definition_pass(context_factory, run_rgaa):
-    """Émoticône avec définition via <abbr> (title ou texte) -> PASS."""
-    html = (
-        "<!DOCTYPE html><html><body>"
-        '<p>Je suis content <abbr title="visage souriant">:-)</abbr> aujourd\'hui.</p>'
-        "</body></html>"
-    )
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA1351(), context)
-
-    assert result.status == Status.PASS
-    assert result.tested_elements == 1
-    # The abbr has a title attribute, so it's detected as title_attribute
-    # Both title_attribute and adjacent_definition are compliant conditions
-    conditions = [f.evidence.get("condition_met") for f in result.findings]
-    assert any(c in ["title_attribute", "adjacent_definition"] for c in conditions)
-
-
-def test_1351_emoticon_with_dfn_definition_pass(context_factory, run_rgaa):
-    """Émoticône avec définition via <dfn> -> PASS."""
-    html = (
-        "<!DOCTYPE html><html><body><p><dfn>Visage souriant</dfn> <span>:-)</span> indique la joie.</p></body></html>"
-    )
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA1351(), context)
-
-    assert result.status == Status.PASS
-    assert result.tested_elements == 1
-    assert any(f.evidence.get("condition_met") == "adjacent_definition" for f in result.findings)
-
-
-def test_1351_cryptic_syntax_with_title_pass(context_factory, run_rgaa):
-    """Syntaxe cryptique (acronyme technique peu commun) avec title -> PASS."""
-    html = (
-        "<!DOCTYPE html><html><body>"
-        '<p>Le <span title="Système de Gestion de Base de Données">SGBD</span> est disponible.</p>'
-        "</body></html>"
-    )
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA1351(), context)
-
-    assert result.status == Status.PASS
-    assert result.tested_elements == 1
-    assert any(f.evidence.get("condition_met") == "title_attribute" for f in result.findings)
-
-
-def test_1351_ascii_art_without_title_or_definition_fail(context_factory, run_rgaa):
-    """Art ASCII sans title ni définition adjacente -> FAIL."""
-    html = (
-        "<!DOCTYPE html><html><body>"
-        "<pre>"
-        "  |\\\\      _,,,---,,_\n"
-        "ZZZzz /,`.-'`'    -.  ;-;;,_\n"
-        "     |,4-  ) )-,_. \\\\ (  `'-'\n"
-        "    '---''(_/--'  `-'\\_)</pre>"
-        "</body></html>"
-    )
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA1351(), context)
-
+def test_1351_ai_says_no_definition_fails(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=relevance(False))
+    result = run_rgaa(Test1351(), context_factory("<p>@+</p>"), ai)
     assert result.status == Status.FAIL
-    assert result.tested_elements == 1
-    assert any(f.evidence.get("condition_met") == "none" for f in result.findings)
+    assert "ni attribut title" in result.findings[0].message
 
 
-def test_1351_emoticon_without_title_or_definition_fail(context_factory, run_rgaa):
-    """Émoticône sans title ni définition adjacente -> FAIL."""
-    html = "<!DOCTYPE html><html><body><p>Je suis content :-) aujourd'hui.</p></body></html>"
-    context = context_factory(html)
+def test_1351_uncertain_or_missing_ai_needs_review(context_factory, run_rgaa):
+    html = "<p>Bravo ^^</p>"
+    low = text_services(relevance_answer=relevance(False, confidence="low"))
+    assert run_rgaa(Test1351(), context_factory(html), low).status == Status.NEEDS_REVIEW
+    assert run_rgaa(Test1351(), context_factory(html)).status == Status.NEEDS_REVIEW
 
-    result = run_rgaa(RGAA1351(), context)
 
+def test_1351_ai_error_gives_error(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=RuntimeError("panne"))
+    assert run_rgaa(Test1351(), context_factory("<p>Bravo ^^</p>"), ai).status == Status.ERROR
+
+
+# 13.6.1 ---------------------------------------------------------------------
+
+
+def test_1361_only_contents_with_title_are_concerned(context_factory, run_rgaa):
+    ai = text_services()
+    assert run_rgaa(Test1361(), context_factory("<p>Bravo ^^</p>"), ai).status == Status.NOT_APPLICABLE
+    ai.text_relevance_analyzer.analyze_relevance.assert_not_called()
+
+
+def test_1361_title_is_judged_by_ai(context_factory, run_rgaa):
+    ai = text_services()
+    html = '<p>À demain <abbr title="à plus tard">@+</abbr></p>'
+    assert run_rgaa(Test1361(), context_factory(html), ai).status == Status.PASS
+    kind, items = ai.text_relevance_analyzer.analyze_relevance.call_args.args
+    assert kind == "cryptic_alternative"
+    assert items[0].text == "à plus tard"
+    assert items[0].details["cryptic_content"] == "@+"
+
+
+def test_1361_aria_label_on_ascii_art_is_an_alternative(context_factory, run_rgaa):
+    html = ASCII_ART.replace("<pre>", '<pre role="img" aria-label="Un chat">')
+    ai = text_services(relevance_answer=relevance(False))
+    result = run_rgaa(Test1361(), context_factory(html), ai)
     assert result.status == Status.FAIL
-    assert result.tested_elements == 1
-    assert any(f.evidence.get("condition_met") == "none" for f in result.findings)
+    assert result.findings[0].evidence["source"] == "aria-label"
+    assert run_rgaa(Test1351(), context_factory(html), ai).status == Status.PASS
 
 
-def test_1351_cryptic_syntax_without_title_or_definition_fail(context_factory, run_rgaa):
-    """Syntaxe cryptique (acronyme peu commun) sans title ni définition adjacente -> FAIL."""
-    html = "<!DOCTYPE html><html><body><p>Le SGBD est disponible.</p></body></html>"
-    context = context_factory(html)
+def test_1361_without_ai_needs_review(context_factory, run_rgaa):
+    html = '<span title="banane">:-)</span>'
+    assert run_rgaa(Test1361(), context_factory(html)).status == Status.NEEDS_REVIEW
 
-    result = run_rgaa(RGAA1351(), context)
 
-    assert result.status == Status.FAIL
-    assert result.tested_elements == 1
-    assert any(f.evidence.get("condition_met") == "none" for f in result.findings)
-
-
-def test_1351_multiple_cryptic_some_pass_some_fail(context_factory, run_rgaa):
-    """Plusieurs contenus cryptiques, certains conformes d'autres non -> FAIL (priority)."""
-    html = (
-        "<!DOCTYPE html><html><body>"
-        '<p>Émoticône avec title : <span title="sourire">:-)</span></p>'
-        "<p>Émoticône sans explication : :-)</p>"
-        "</body></html>"
-    )
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA1351(), context)
-
-    assert result.status == Status.FAIL
-    assert result.tested_elements == 2
-    # One should be compliant (title_attribute), one non-compliant (none)
-    conditions = [f.evidence.get("condition_met") for f in result.findings]
-    assert "title_attribute" in conditions
-    assert "none" in conditions
-
-
-def test_1351_kaomoji_with_adjacent_text_pass(context_factory, run_rgaa):
-    """Kaomoji (émoticône orientale) avec définition adjacente -> PASS."""
-    html = (
-        "<!DOCTYPE html><html><body>"
-        "<p>(^_^) signifie un visage heureux.</p>"
-        "<p>Je vais bien (^_^) aujourd'hui.</p>"
-        "</body></html>"
-    )
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA1351(), context)
-
-    # Should detect the kaomoji and find adjacent definition
-    assert result.status in [Status.PASS, Status.FAIL]  # Depends on detection
-    assert result.tested_elements >= 1
-
-
-def test_1351_shrug_emoticon_with_title_pass(context_factory, run_rgaa):
-    """¯\\_(ツ)_/¯ avec title -> PASS."""
-    html = '<!DOCTYPE html><html><body><p><span title="haussement d\'épaules">¯\\_(ツ)_/¯</span></p></body></html>'
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA1351(), context)
-
-    assert result.status == Status.PASS
-    assert result.tested_elements == 1
-
-
-def test_1351_table_flip_emoticon_with_title_pass(context_factory, run_rgaa):
-    """(╯°□°)╯︵┻━┻ avec title -> PASS."""
-    html = (
-        '<!DOCTYPE html><html><body><p><span title="renversement de table colère">(╯°□°)╯︵┻━┻</span></p></body></html>'
-    )
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA1351(), context)
-
-    assert result.status == Status.PASS
-    assert result.tested_elements == 1
-
-
-def test_1351_parent_title_inheritance_pass(context_factory, run_rgaa):
-    """Title sur élément parent -> PASS."""
-    html = (
-        "<!DOCTYPE html><html><body>"
-        '<div title="Art ASCII représentant un chat">'
-        "<pre>"
-        "  |\\\\      _,,,---,,_\n"
-        "ZZZzz /,`.-'`'    -.  ;-;;,_</pre>"
-        "</div>"
-        "</body></html>"
-    )
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA1351(), context)
-
-    assert result.status == Status.PASS
-    assert result.tested_elements == 1
-    assert any(f.evidence.get("condition_met") == "title_attribute" for f in result.findings)
-
-
-def test_1351_link_with_title_pass(context_factory, run_rgaa):
-    """Lien avec title sur art ASCII multi-lignes -> PASS."""
-    html = (
-        "<!DOCTYPE html><html><body>"
-        '<p><a href="#art" title="Voir l\'art ASCII en grand">'
-        "  |\\\\      _,,,---,,_\n"
-        "ZZZzz /,`.-'`'    -.  ;-;;,_</a></p>"
-        "</body></html>"
-    )
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA1351(), context)
-
-    assert result.status == Status.PASS
-    assert result.tested_elements == 1
-
-
-def test_1351_input_with_title_pass(context_factory, run_rgaa):
-    """Input avec title sur émoticône - input value n'est pas un text node, test ajusté."""
-    # Note: les inputs n'ont pas de text nodes de la même façon,
-    # ce test vérifie que le titre sur l'input fonctionne s'il y a du texte détecté
-    html = '<!DOCTYPE html><html><body><p><span title="Sourire">:-)</span></p></body></html>'
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA1351(), context)
-
-    assert result.status == Status.PASS
-    assert result.tested_elements == 1
-
-
-def test_1351_definition_in_parentheses_pass(context_factory, run_rgaa):
-    """Définition entre parenthèses adjacente -> PASS."""
-    html = "<!DOCTYPE html><html><body><p>Le symbole :-) (visage souriant) indique la joie.</p></body></html>"
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA1351(), context)
-
-    # May detect both emoticon and cryptic_syntax (partial match)
-    assert result.status == Status.PASS
-    assert result.tested_elements >= 1
-    assert any(f.evidence.get("condition_met") == "adjacent_definition" for f in result.findings)
-
-
-def test_1351_definition_with_means_pass(context_factory, run_rgaa):
-    """Définition avec 'signifie' adjacent -> PASS."""
-    html = "<!DOCTYPE html><html><body><p>Le symbole :-) signifie un visage souriant.</p></body></html>"
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA1351(), context)
-
-    assert result.status == Status.PASS
-    assert result.tested_elements >= 1
-    assert any(f.evidence.get("condition_met") == "adjacent_definition" for f in result.findings)
-
-
-def test_1351_definition_with_represents_pass(context_factory, run_rgaa):
-    """Définition avec 'représente' adjacent -> PASS."""
-    html = (
-        "<!DOCTYPE html><html><body>"
-        "<p>L'art ASCII représente un chat.</p>"
-        "<pre>"
-        "  |\\\\      _,,,---,,_\n"
-        "ZZZzz /,`.-'`'    -.  ;-;;,_</pre>"
-        "</body></html>"
-    )
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA1351(), context)
-
-    assert result.status == Status.PASS
-    assert result.tested_elements >= 1
-
-
-def test_1351_abbr_without_title_but_text_pass(context_factory, run_rgaa):
-    """<abbr> sans title mais avec texte -> PASS."""
-    html = (
-        "<!DOCTYPE html><html><body>"
-        "<p>Le <abbr>SGBD</abbr> signifie Système de Gestion de Base de Données.</p>"
-        "</body></html>"
-    )
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA1351(), context)
-
-    # This might not pass if the detection doesn't find "SGBD" as cryptic
-    # or if the adjacent definition is not found
-    assert result.status in [Status.PASS, Status.NOT_APPLICABLE, Status.FAIL]
-
-
-def test_1351_uncommon_acronym_with_abbr_pass(context_factory, run_rgaa):
-    """Acronyme peu commun avec <abbr> -> PASS."""
-    html = (
-        "<!DOCTYPE html><html><body>"
-        '<p>Le <abbr title="Système de Gestion de Base de Données">SGBD</abbr> est installé.</p>'
-        "</body></html>"
-    )
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA1351(), context)
-
-    assert result.status == Status.PASS
-    assert result.tested_elements == 1
-
-
-def test_1351_multiple_ascii_art_all_with_titles_pass(context_factory, run_rgaa):
-    """Plusieurs arts ASCII multi-lignes tous avec titles -> PASS."""
-    html = (
-        "<!DOCTYPE html><html><body>"
-        '<pre title="Chat">'
-        "  |\\\\      _,,,---,,_\n"
-        "ZZZzz /,`.-'`'    -.  ;-;;,_\n"
-        "     |,4-  ) )-,_. \\\\ (  `'-')\n"
-        "    '---''(_/--'  `-'\\_)</pre>"
-        '<pre title="Chien">'
-        "  __      __\n"
-        " /  \\\\    /  \\\\\n"
-        " |    |  |    |\n"
-        "  \\\\  /    \\\\  /\n"
-        "   \\\\/      \\\\/</pre>"
-        '<pre title="Oiseau">'
-        "   \\\\\\  //\n"
-        "    \\\\\\//\n"
-        "     \\/\\/\n"
-        "    //\\\\\\\\\n"
-        "   //  \\\\\\\\</pre>"
-        "</body></html>"
-    )
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA1351(), context)
-
-    assert result.status == Status.PASS
-    assert result.tested_elements == 3
-    assert all(f.evidence.get("condition_met") == "title_attribute" for f in result.findings)
-
-
-def test_1351_metadata_contains_type_counts(context_factory, run_rgaa):
-    """Metadata contient les compteurs par type."""
-    html = (
-        "<!DOCTYPE html><html><body>"
-        '<pre title="Art">  |\\\\      _,,,---,,_\nZZZzz /,`.-\\`    -.  ;-;;,_</pre>'
-        '<p><span title="Sourire">:-)</span></p>'
-        "<p>Le SGBD (Système de Gestion de Base de Données) est utilisé.</p>"
-        "</body></html>"
-    )
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA1351(), context)
-
-    assert "ascii_art_count" in result.metadata
-    assert "emoticon_count" in result.metadata
-    assert "cryptic_syntax_count" in result.metadata
-
-
-# ---------------------------------------------------------------------------
-# Tests de régression : cas limites
-# ---------------------------------------------------------------------------
-
-
-def test_1351_empty_page_not_applicable(context_factory, run_rgaa):
-    """Page vide -> NOT_APPLICABLE."""
-    html = "<!DOCTYPE html><html><body></body></html>"
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA1351(), context)
-
-    assert result.status == Status.NOT_APPLICABLE
-    assert result.tested_elements == 0
-
-
-def test_1351_only_whitespace_not_applicable(context_factory, run_rgaa):
-    """Seulement des espaces -> NOT_APPLICABLE."""
-    html = "<!DOCTYPE html><html><body>   \n\t  </body></html>"
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA1351(), context)
-
-    assert result.status == Status.NOT_APPLICABLE
-    assert result.tested_elements == 0
-
-
-def test_1351_noscript_content_ignored(context_factory, run_rgaa):
-    """Contenu dans <noscript> ignoré -> NOT_APPLICABLE."""
-    html = "<!DOCTYPE html><html><body><noscript>:-) JavaScript requis</noscript></body></html>"
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA1351(), context)
-
-    assert result.status == Status.NOT_APPLICABLE
-    assert result.tested_elements == 0
-
-
-def test_1351_template_content_ignored(context_factory, run_rgaa):
-    """Contenu dans <template> ignoré -> NOT_APPLICABLE."""
-    html = "<!DOCTYPE html><html><body><template>:-) Contenu template</template></body></html>"
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA1351(), context)
-
-    assert result.status == Status.NOT_APPLICABLE
-    assert result.tested_elements == 0
-
-
-def test_1351_single_char_not_detected(context_factory, run_rgaa):
-    """Caractère unique non détecté -> NOT_APPLICABLE."""
-    html = "<!DOCTYPE html><html><body><p>-</p></body></html>"
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA1351(), context)
-
-    assert result.status == Status.NOT_APPLICABLE
-    assert result.tested_elements == 0
-
-
-def test_1351_common_acronyms_ignored(context_factory, run_rgaa):
-    """Acronymes communs (HTML, CSS, API, etc.) ignorés -> NOT_APPLICABLE."""
-    html = (
-        "<!DOCTYPE html><html><body>"
-        "<p>HTML, CSS, JS, API, URL, HTTP, JSON, XML, UTF, ISO, W3C, WCAG, RGAA, ARIA.</p>"
-        "</body></html>"
-    )
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA1351(), context)
-
-    # Common acronyms should be filtered out
-    assert result.status == Status.NOT_APPLICABLE
-    assert result.tested_elements == 0
-
-
-def test_1351_text_in_script_ignored(context_factory, run_rgaa):
-    """Contenu dans <script> ignoré -> NOT_APPLICABLE."""
-    html = "<!DOCTYPE html><html><body><script>var API_ENDPOINT = 'test'; // :-) commentaire</script></body></html>"
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA1351(), context)
-
-    assert result.status == Status.NOT_APPLICABLE
-    assert result.tested_elements == 0
-
-
-def test_1351_text_in_style_ignored(context_factory, run_rgaa):
-    """Contenu dans <style> ignoré -> NOT_APPLICABLE."""
-    html = "<!DOCTYPE html><html><body><style>/* ASCII art comment */ .class { content: ':-)'; }</style></body></html>"
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA1351(), context)
-
-    assert result.status == Status.NOT_APPLICABLE
-    assert result.tested_elements == 0
+@pytest.mark.parametrize("test", [Test1351(), Test1361()])
+def test_13_5_missing_dom_raises_error(test, context_factory):
+    context = context_factory("<p>x</p>")
+    context.dom = None
+    with pytest.raises(ValueError, match="nécessite un DOM"):
+        asyncio.run(test.run(context))

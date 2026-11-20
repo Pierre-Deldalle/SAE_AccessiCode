@@ -264,3 +264,22 @@ def component_identifier(element: Tag, index: int) -> str:
     if isinstance(element_id, str) and element_id.strip():
         return f"{element.name}#{element_id.strip()}"
     return f"{element.name}[index={index}]"
+
+
+def interface_controls(soup: BeautifulSoup, limit: int = 40) -> list[str]:
+    """
+    Contrôles d'interface de la page sous la forme « rôle « nom » » (boutons,
+    champs, composants à rôle), pour donner du contexte à un jugement.
+    """
+    controls: list[str] = []
+    for element in soup.find_all(["button", "input", "select", "textarea", "summary"]) + script_components(soup):
+        if element.name == "input" and str(element.get("type") or "").lower() == "hidden":
+            continue
+        role, _ = component_role(element)
+        name, _ = component_name(element, soup)
+        entry = f"{role or element.name} « {name} »" if name else f"{role or element.name} (sans nom)"
+        if entry not in controls:
+            controls.append(entry)
+        if len(controls) >= limit:
+            break
+    return controls
