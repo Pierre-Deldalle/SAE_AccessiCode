@@ -43,6 +43,29 @@ _ENTRIES = (
         "Un titre vague comme « iframe » ou « cadre 1 » n'aide pas une personne qui utilise un lecteur d'écran : "
         "elle doit ouvrir le cadre pour découvrir son contenu, et ne peut pas choisir rapidement où aller.",
     ),
+    # ---- Thème 3 : couleurs ----
+    CriterionInfo(
+        "3.1",
+        "Dans chaque page web, l'information ne doit pas être donnée uniquement par la couleur. Cette règle est-elle "
+        "respectée ?",
+        "Une personne daltonienne ou malvoyante ne distingue pas toujours les couleurs : si seule la couleur signale "
+        "une information (un champ en erreur en rouge, un statut en vert), elle passe à côté. Une personne aveugle "
+        "non plus, car le lecteur d'écran n'annonce pas les couleurs.",
+    ),
+    CriterionInfo(
+        "3.2",
+        "Dans chaque page web, le contraste entre la couleur du texte et la couleur de son arrière-plan est-il "
+        "suffisamment élevé (hors cas particuliers) ?",
+        "Un texte gris clair sur fond blanc est difficile, voire impossible, à lire pour une personne malvoyante, une "
+        "personne âgée ou quelqu'un qui consulte son téléphone en plein soleil.",
+    ),
+    CriterionInfo(
+        "3.3",
+        "Dans chaque page web, les couleurs utilisées dans les composants d'interface ou les éléments graphiques "
+        "porteurs d'informations sont-elles suffisamment contrastées (hors cas particuliers) ?",
+        "Un bouton, le contour d'un champ ou un graphique trop pâle par rapport au fond passe inaperçu pour une "
+        "personne malvoyante : elle ne voit pas où cliquer, où écrire, ni ce que montre le graphique.",
+    ),
     # ---- Thème 7 : scripts ----
     CriterionInfo(
         "7.1",

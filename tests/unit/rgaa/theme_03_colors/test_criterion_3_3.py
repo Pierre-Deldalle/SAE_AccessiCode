@@ -622,3 +622,11 @@ def test_other_33_tests_require_review_when_coverage_is_uncertain(
         assert result.status == Status.NEEDS_REVIEW
         assert result.tested_elements == 0
         assert result.metadata["non_text_coverage_partial"] is True
+
+
+def test_fail_shows_the_nearest_sufficient_color(context_factory, run_rgaa):
+    context = context_factory("<button>OK</button>")
+    context.non_text_contrast_samples = [non_text_sample(foreground_color="#cccccc")]
+    result = run_rgaa(RGAA331(), context)
+    assert result.status == Status.FAIL
+    assert result.findings[0].recommendation.endswith(" Exemple : #cccccc → #949494 (contraste 3.03:1 sur #ffffff).")

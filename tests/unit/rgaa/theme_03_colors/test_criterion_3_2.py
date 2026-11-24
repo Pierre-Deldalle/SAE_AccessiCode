@@ -845,3 +845,37 @@ def test_unresolved_text_is_not_attributed_to_contrast_mechanism(
     assert result.status == Status.NEEDS_REVIEW
     assert result.tested_elements == 0
     assert result.findings == []
+
+
+# ---------------------------------------------------------------------------
+# Exemple de couleur corrigée
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("test", "sample", "example"),
+    [
+        (
+            RGAA321(),
+            text_sample(color="rgb(153, 153, 153)"),
+            "color: #999999 → color: #767676 (contraste 4.54:1 sur #ffffff).",
+        ),
+        (
+            RGAA323(),
+            text_sample(color="#aaaaaa", font_size_px=24),
+            "color: #aaaaaa → color: #949494 (contraste 3.03:1 sur #ffffff).",
+        ),
+        (
+            RGAA325(),
+            text_sample(color="#999999", is_contrast_mechanism=True),
+            "color: #999999 → color: #767676 (contraste 4.54:1 sur #ffffff).",
+        ),
+    ],
+    ids=["3.2.1", "3.2.3", "3.2.5"],
+)
+def test_fail_shows_the_nearest_sufficient_color(test, sample, example, context_factory, run_rgaa):
+    context = context_factory("<p>Texte</p>")
+    context.text_contrast_samples = [sample]
+    result = run_rgaa(test, context)
+    assert result.status == Status.FAIL
+    assert result.findings[0].recommendation.endswith(f" Exemple : {example}")

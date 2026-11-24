@@ -235,6 +235,10 @@ class SensoryAnalysis:
 
     confidence: AIConfidence = "low"
 
+    # Texte corrigé proposé lorsque l'information repose uniquement sur la caractéristique
+    # (demandé seulement pour les types de SENSORY_SUGGESTIONS).
+    suggestion: str | None = None
+
 
 # ----------------------------------------------------------------------
 # Structuration (titres, listes, citations non balisés)

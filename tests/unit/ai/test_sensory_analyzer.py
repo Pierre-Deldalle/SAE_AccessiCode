@@ -83,3 +83,49 @@ async def test_analyze_image_without_image_analyzer_raises() -> None:
 
     with pytest.raises(RuntimeError):
         await analyzer.analyze_image("color", image)
+
+
+@pytest.mark.asyncio
+async def test_color_prompt_asks_for_a_suggestion_but_not_shape_size_position() -> None:
+    llm = FakeModel(batch(ONLY_COLOR), batch(WITH_TEXT))
+    analyzer = OllamaSensoryAnalyzer(llm)
+
+    await analyzer.analyze_texts("color", [SensoryCandidate("Dossier B")])
+    await analyzer.analyze_texts("shape_size_position", [SensoryCandidate("Cliquez sur le bouton rond")])
+
+    assert '"suggestion": null' in llm.prompts[0]
+    assert "propose dans suggestion le texte de l'élément corrigé" in llm.prompts[0]
+    assert "suggestion" not in llm.prompts[1]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [("Dossier B : en erreur", "Dossier B : en erreur"), ("", None), (12, None), (None, None)],
+    ids=["texte", "vide", "nombre", "null"],
+)
+async def test_suggestion_is_read_or_ignored(value, expected) -> None:
+    llm = FakeModel(batch({**ONLY_COLOR, "suggestion": value}))
+    [result] = await OllamaSensoryAnalyzer(llm).analyze_texts("color", [SensoryCandidate("Dossier B")])
+    assert result.suggestion == expected
+
+
+@pytest.mark.asyncio
+async def test_missing_suggestion_does_not_break_analysis() -> None:
+    llm = FakeModel(batch(ONLY_COLOR))
+    [result] = await OllamaSensoryAnalyzer(llm).analyze_texts("color", [SensoryCandidate("Dossier B")])
+    assert (result.relies_only_on_sensory, result.confidence, result.suggestion) == (True, "high", None)
+
+
+@pytest.mark.asyncio
+async def test_image_prompt_asks_for_a_suggestion_for_color() -> None:
+    image_analyzer = AsyncMock()
+    image_analyzer.observe.return_value = VisualObservation(summary="Graphique")
+    llm = FakeModel({**ONLY_COLOR, "suggestion": "Rouge : en retard ; vert : à l'heure"})
+    analyzer = OllamaSensoryAnalyzer(llm, image_analyzer)
+    image = ImageInfo(src="g.png", alt="Graphique", element_html='<img src="g.png">', image_data=b"x")
+
+    result = await analyzer.analyze_image("color", image)
+
+    assert result.suggestion == "Rouge : en retard ; vert : à l'heure"
+    assert "propose dans suggestion le texte à ajouter à l'alternative" in llm.prompts[0]

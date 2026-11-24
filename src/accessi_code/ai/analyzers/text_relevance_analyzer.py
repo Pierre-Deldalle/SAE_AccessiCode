@@ -16,19 +16,18 @@ from accessi_code.ai.analyzers._base import (
     read_confidence,
     read_explanation,
     read_strings,
+    read_suggestion,
     read_tristate,
     truncate,
 )
 from accessi_code.ai.cache import AnalysisCache, make_key
 from accessi_code.ai.prompts.relevance import RELEVANCE_BATCH_PROMPT, RELEVANCE_KINDS, suggestion_parts
 from accessi_code.ai.schemas import RelevanceAnalysis, RelevanceItem
-from accessi_code.ai.text_safety import clean_explanation
 
 TEXT_LIMIT = 300
 HTML_LIMIT = 400
 CONTEXT_LIMIT = 600
 DETAIL_LIMIT = 300
-SUGGESTION_LIMIT = 200
 
 
 class OllamaTextRelevanceAnalyzer(JsonAnalyzer):
@@ -101,16 +100,8 @@ def _parse_relevance(entry: dict[str, Any]) -> RelevanceAnalysis:
         problems=read_strings(entry.get("problems")),
         uncertainties=read_strings(entry.get("uncertainties")),
         confidence="low" if corrupted else read_confidence(entry.get("confidence")),
-        suggestion=None if corrupted else _read_suggestion(entry.get("suggestion")),
+        suggestion=None if corrupted else read_suggestion(entry.get("suggestion")),
     )
-
-
-def _read_suggestion(value: Any) -> str | None:
-    """Proposition du modèle ; absente, vide, non textuelle ou incohérente → None."""
-    if not isinstance(value, str) or not value.strip():
-        return None
-    text, corrupted = clean_explanation(value, max_chars=SUGGESTION_LIMIT)
-    return None if corrupted else text
 
 
 def _unknown(reason: str) -> RelevanceAnalysis:
