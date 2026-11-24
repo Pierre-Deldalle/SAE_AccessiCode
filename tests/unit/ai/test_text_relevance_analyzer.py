@@ -45,7 +45,7 @@ async def test_prompt_contains_rgaa_rule_and_items() -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("kind", ["captcha_alternative", "link"])
+@pytest.mark.parametrize("kind", ["captcha_alternative", "link", "text_language", "language_change"])
 @pytest.mark.parametrize(
     ("reply", "expected"),
     [

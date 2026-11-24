@@ -281,6 +281,13 @@ RELEVANCE_KINDS: dict[str, RelevanceKind] = {
             "« Please contact us » dans un passage déclaré en français, une citation en allemand non balisée, "
             "un paragraphe entier dans une autre langue."
         ),
+        suggestion_rule=(
+            '- ajoute le champ "suggestion". Si relevant vaut false et confidence vaut medium ou high, indique '
+            "quel passage précis entourer et quel attribut lang écrire, par exemple : "
+            '« Entourer le passage “Please contact us” avec <span lang="en"> et </span>. » '
+            "Conserve le texte original. Retourne null dans les autres cas "
+            "ou si le passage ou la langue est incertain.\n"
+        ),
         text_limit=1500,
     ),
     "language_change": RelevanceKind(
@@ -291,6 +298,12 @@ RELEVANCE_KINDS: dict[str, RelevanceKind] = {
         ),
         relevant_when="le code correspond à la langue du texte (en pour de l'anglais, de pour de l'allemand…).",
         not_relevant_examples='lang="en" sur un texte en espagnol, lang="fr" sur un texte en anglais.',
+        suggestion_rule=(
+            '- ajoute le champ "suggestion". Si relevant vaut false et confidence vaut medium ou high, indique '
+            "le code de langue à utiliser et l'attribut à corriger (lang ou xml:lang selon le HTML fourni). "
+            'Par exemple : « Remplacer lang="en" par lang="es". » Retourne null dans les autres cas '
+            "ou si le bon code est incertain.\n"
+        ),
     ),
     "script_alternative": RelevanceKind(
         subject="alternative à un contenu ou une fonctionnalité de script",

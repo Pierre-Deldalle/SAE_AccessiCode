@@ -28,12 +28,14 @@ from accessi_code.models.result import TestResult, TestStatus
 from accessi_code.rgaa.ai_decision import judge_batch
 from accessi_code.rgaa.base import RGAATest
 from accessi_code.rgaa.outcomes import Outcome, build_result, make_outcome
+from accessi_code.rgaa.tests.theme_08_mandatory._common import html_example
 
 PASS_SUMMARY = (
     "Aucune balise utilisée uniquement pour la présentation n'a été repérée "
     "(paragraphes ou titres vides, sauts de ligne répétés, blockquote d'indentation)."
 )
 SPACING_RECOMMENDATION = "Supprimer la balise et gérer les espacements avec les feuilles de style (margin, padding)."
+BREAK_RECOMMENDATION = "Garder un seul saut de ligne si nécessaire et gérer l'espacement supplémentaire en CSS."
 QUOTE_RECOMMENDATION = "Réserver blockquote aux citations et gérer l'indentation avec les feuilles de style."
 _EMBEDDED = ["img", "svg", "canvas", "video", "audio", "iframe", "object", "embed", "input", "select", "textarea"]
 
@@ -51,9 +53,9 @@ def empty_elements(soup: BeautifulSoup) -> list[Tag]:
     ]
 
 
-def repeated_breaks(soup: BeautifulSoup) -> list[Tag]:
-    """Premier <br> de chaque suite d'au moins deux <br> consécutifs (séparés par des blancs)."""
-    found: list[Tag] = []
+def repeated_breaks(soup: BeautifulSoup) -> list[list[Tag]]:
+    """Suites d'au moins deux <br> consécutifs (séparés par des blancs)."""
+    found: list[list[Tag]] = []
     for br in soup.find_all("br"):
         if not _visible(br):
             continue
@@ -62,11 +64,15 @@ def repeated_breaks(soup: BeautifulSoup) -> list[Tag]:
             previous = previous.previous_sibling
         if isinstance(previous, Tag) and previous.name == "br":
             continue  # déjà compté avec le premier de la suite
-        following = br.next_sibling
-        while isinstance(following, NavigableString) and not following.strip():
-            following = following.next_sibling
-        if isinstance(following, Tag) and following.name == "br":
-            found.append(br)
+        group = [br]
+        for sibling in br.next_siblings:
+            if isinstance(sibling, NavigableString) and not sibling.strip():
+                continue
+            if not isinstance(sibling, Tag) or sibling.name != "br":
+                break
+            group.append(sibling)
+        if len(group) > 1:
+            found.append(group)
     return found
 
 
@@ -84,23 +90,32 @@ class Test891(RGAATest):
 
         outcomes: list[Outcome] = []
         for index, tag in enumerate(empty_elements(soup)):
+            recommendation = SPACING_RECOMMENDATION
+            if not tag.has_attr("id") and tag.find(True) is None:
+                recommendation = html_example(recommendation, str(tag), "<!-- Espacement géré en CSS -->")
             outcomes.append(
                 make_outcome(
                     TestStatus.FAIL,
                     identifier(tag, index),
                     f"L'élément <{tag.name}> est vide : il ne sert qu'à créer un espacement.",
-                    SPACING_RECOMMENDATION,
+                    recommendation,
+                    node=tag,
                     usage="empty_element",
                 )
             )
-        for index, br in enumerate(repeated_breaks(soup)):
+        for index, group in enumerate(repeated_breaks(soup)):
+            br = group[0]
             parent = br.parent if isinstance(br.parent, Tag) else br
+            recommendation = BREAK_RECOMMENDATION
+            if not any(tag.attrs for tag in group[1:]):
+                recommendation = html_example(recommendation, "".join(str(tag) for tag in group), str(br))
             outcomes.append(
                 make_outcome(
                     TestStatus.FAIL,
                     f"{identifier(parent, index)} > br",
                     "Des sauts de ligne <br> consécutifs sont utilisés pour créer un espacement.",
-                    SPACING_RECOMMENDATION,
+                    recommendation,
+                    node=br,
                     usage="repeated_br",
                 )
             )
@@ -118,7 +133,7 @@ class Test891(RGAATest):
             services,
             "structure_analyzer",
             "classify_candidates",
-            "quote",
+            "presentation_quote",
             items,
             verdict_field="should_be_marked",
             expected_type=StructureCandidateAnalysis,
@@ -134,7 +149,8 @@ class Test891(RGAATest):
                         "L'élément blockquote ne contient pas de citation : il sert uniquement à indenter.",
                         "Vérifier que cet élément blockquote contient une citation.",
                     ),
-                    QUOTE_RECOMMENDATION,
+                    verdict.recommendation(QUOTE_RECOMMENDATION),
+                    node=tag,
                     usage="blockquote",
                     **verdict.evidence,
                 )

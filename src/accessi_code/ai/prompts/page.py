@@ -9,7 +9,8 @@ Retourne uniquement un objet JSON contenant exactement :
   "detected_language": "fr",
   "explanation": "explication courte",
   "uncertainties": [],
-  "confidence": "low"
+  "confidence": "low",
+  "suggestion": null
 }}
 
 Le champ relevant doit valoir :
@@ -25,6 +26,8 @@ Le champ confidence doit valoir uniquement :
 Règles :
 - utilise le contenu fourni comme seule source d'information ;
 - utilise null si le texte est trop court, multilingue ou ambigu ;
+- si relevant vaut false et confidence vaut medium ou high, indique le code de langue à utiliser dans suggestion,
+  par exemple « Utiliser en comme code de langue de la page. » ; sinon, retourne null pour suggestion ;
 - ne rends aucun autre verdict RGAA ;
 - n'ajoute aucun texte en dehors du JSON.
 
@@ -47,7 +50,8 @@ Retourne uniquement un objet JSON contenant exactement :
   "explanation": "explication courte",
   "contradictions": [],
   "uncertainties": [],
-  "confidence": "low"
+  "confidence": "low",
+  "suggestion": null
 }}
 
 Le champ relevant doit valoir :
@@ -61,6 +65,9 @@ Le champ confidence doit valoir uniquement :
 - "high"
 
 Compare notamment le titre HTML, le titre principal et le contenu de la page.
+Si relevant vaut false et confidence vaut medium ou high, propose dans suggestion le texte exact à mettre
+dans la balise title, sans balise ni information inventée. Sinon, ou si le contenu ne permet pas de proposer
+un titre précis, retourne null pour suggestion.
 
 N'ajoute aucun texte en dehors du JSON.
 

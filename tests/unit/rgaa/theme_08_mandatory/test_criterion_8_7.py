@@ -49,12 +49,17 @@ def test_long_text_is_split(context_factory, run_rgaa):
 
 
 def test_unmarked_change_fails_with_passages(context_factory, run_rgaa):
-    ai = text_services(relevance_answer=relevance(False, problems=["« please contact us »"]))
-    html = '<html lang="fr"><body><p id="p1">Pour nos clients : please contact us.</p></body></html>'
+    suggestion = 'Entourer « please contact us » avec <span lang="en"> et </span>.'
+    ai = text_services(relevance_answer=relevance(False, problems=["« please contact us »"], suggestion=suggestion))
+    passage = '<p id="p1">Pour nos clients : please contact us.</p>'
+    html = f'<html lang="fr"><body>\n{passage}\n</body></html>'
     result = run_rgaa(Test871(), context_factory(html), ai)
     assert result.status == Status.FAIL
-    assert result.findings[0].element == "p#p1"
-    assert "« please contact us »" in result.findings[0].message
+    [finding] = result.findings
+    assert finding.element == "p#p1"
+    assert "« please contact us »" in finding.message
+    assert (finding.line, finding.snippet) == (2, passage)
+    assert finding.recommendation.endswith(f"\nProposition : {suggestion}")
 
 
 def test_missing_default_language_is_sent_as_undeclared(context_factory, run_rgaa):
@@ -64,7 +69,12 @@ def test_missing_default_language_is_sent_as_undeclared(context_factory, run_rga
 
 
 def test_without_ai_needs_review(context_factory, run_rgaa):
-    assert run_rgaa(Test871(), context_factory(PAGE)).status == Status.NEEDS_REVIEW
+    result = run_rgaa(Test871(), context_factory(PAGE))
+    assert result.status == Status.NEEDS_REVIEW
+    assert [(finding.line, finding.snippet) for finding in result.findings] == [
+        (2, "<h1>Contact</h1>"),
+        (5, "<p>Willkommen auf unserer Seite.</p>"),
+    ]
 
 
 def test_ai_exception_gives_error(context_factory, run_rgaa):
@@ -73,5 +83,8 @@ def test_ai_exception_gives_error(context_factory, run_rgaa):
 
 
 def test_low_confidence_needs_review(context_factory, run_rgaa):
-    ai = text_services(relevance_answer=relevance(False, confidence="low"))
-    assert run_rgaa(Test871(), context_factory(PAGE), ai).status == Status.NEEDS_REVIEW
+    ai = text_services(relevance_answer=relevance(False, confidence="low", suggestion='Ajouter lang="en".'))
+    result = run_rgaa(Test871(), context_factory(PAGE), ai)
+    assert result.status == Status.NEEDS_REVIEW
+    assert all("Proposition :" not in finding.recommendation for finding in result.findings)
+    assert all("suggestion" not in finding.evidence["analysis"] for finding in result.findings)

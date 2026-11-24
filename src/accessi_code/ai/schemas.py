@@ -59,6 +59,7 @@ class LanguageAnalysis:
     uncertainties: list[str] = field(default_factory=list)
 
     confidence: AIConfidence = "low"
+    suggestion: str | None = None
 
 
 @dataclass
@@ -75,6 +76,7 @@ class TitleAnalysis:
     uncertainties: list[str] = field(default_factory=list)
 
     confidence: AIConfidence = "low"
+    suggestion: str | None = None
 
 
 @dataclass
@@ -244,6 +246,7 @@ StructureKind = Literal[
     "heading",
     "list",
     "quote",
+    "presentation_quote",
     "caption",
     "status_success",
     "status_error",
@@ -274,3 +277,4 @@ class StructureCandidateAnalysis:
     uncertainties: list[str] = field(default_factory=list)
 
     confidence: AIConfidence = "low"
+    suggestion: str | None = None

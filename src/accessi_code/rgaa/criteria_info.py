@@ -95,6 +95,68 @@ _CRITERIA_INFO = {
             "Quand un lien n’a pas de nom, le lecteur d’écran peut annoncer seulement « lien » ou lire une adresse "
             "difficile à comprendre. Les personnes qui l’utilisent ont alors du mal à savoir quel lien ouvrir.",
         ),
+        (
+            "8.1",
+            "Chaque page web est-elle définie par un type de document\u00a0?",
+            "Sans indication correcte du type de document, le navigateur peut afficher la page en mode ancien. "
+            "Certains textes peuvent alors être plus difficiles à lire pour les personnes malvoyantes qui zooment.",
+        ),
+        (
+            "8.2",
+            "Pour chaque page web, le code source généré est-il valide selon le type de document spécifié\u00a0?",
+            "Certaines erreurs dans la page peuvent empêcher un lecteur d’écran d’annoncer le nom d’un champ. "
+            "La personne qui l’utilise peut alors ne pas savoir quoi saisir.",
+        ),
+        (
+            "8.3",
+            "Dans chaque page web, la langue par défaut est-elle présente\u00a0?",
+            "Sans indication de la langue principale, un lecteur d’écran peut prononcer toute la page "
+            "comme si elle était écrite dans une autre langue. Le texte devient alors difficile à comprendre.",
+        ),
+        (
+            "8.4",
+            "Pour chaque page web ayant une langue par défaut, le code de langue est-il pertinent\u00a0?",
+            "Si la langue indiquée ne correspond pas au texte, les personnes qui utilisent un lecteur d’écran "
+            "risquent d’entendre une prononciation qui rend les mots difficiles à reconnaître.",
+        ),
+        (
+            "8.5",
+            "Chaque page web a-t-elle un titre de page\u00a0?",
+            "Sans titre, une personne qui utilise un lecteur d’écran peut avoir du mal à identifier la page "
+            "qu’elle vient d’ouvrir ou à la retrouver parmi ses onglets.",
+        ),
+        (
+            "8.6",
+            "Pour chaque page web ayant un titre de page, ce titre est-il pertinent\u00a0?",
+            "Un titre vague comme « Accueil » sur plusieurs pages d’un même site peut empêcher une personne "
+            "qui utilise un lecteur d’écran de distinguer ses onglets ou de savoir sur quelle page elle se trouve.",
+        ),
+        (
+            "8.7",
+            "Dans chaque page web, chaque changement de langue est-il indiqué dans le code source "
+            "(hors cas particuliers)\u00a0?",
+            "Si le changement de langue n’est pas signalé, le lecteur d’écran peut prononcer un passage "
+            "en anglais comme du français. Les personnes qui l’utilisent peuvent alors mal comprendre ce passage.",
+        ),
+        (
+            "8.8",
+            "Dans chaque page web, le code de langue de chaque changement de langue est-il valide et pertinent\u00a0?",
+            "Une indication de langue invalide ou erronée peut amener le lecteur d’écran à mal prononcer "
+            "le passage concerné. Les personnes qui l’écoutent peuvent ne pas reconnaître les mots.",
+        ),
+        (
+            "8.9",
+            "Dans chaque page web, les balises ne doivent pas être utilisées uniquement à des fins de présentation. "
+            "Cette règle est-elle respectée\u00a0?",
+            "Pour une personne qui utilise un lecteur d’écran, un simple retrait peut être annoncé comme une citation "
+            "ou un espace vide comme un titre. Ces annonces peuvent rendre l’organisation de la page confuse.",
+        ),
+        (
+            "8.10",
+            "Dans chaque page web, les changements du sens de lecture sont-ils signalés\u00a0?",
+            "Sans indication du sens de lecture, les personnes qui lisent un passage en arabe ou en hébreu "
+            "peuvent voir des mots, des nombres ou des signes de ponctuation apparaître dans un ordre déroutant.",
+        ),
     )
 }
 

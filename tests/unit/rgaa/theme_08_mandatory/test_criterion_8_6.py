@@ -13,6 +13,7 @@ def analysis(
     relevant: bool | None,
     *,
     confidence: str = "high",
+    suggestion: str | None = None,
 ) -> TitleAnalysis:
     return TitleAnalysis(
         relevant=relevant,
@@ -20,6 +21,7 @@ def analysis(
         contradictions=[],
         uncertainties=[],
         confidence=confidence,
+        suggestion=suggestion,
     )
 
 
@@ -63,12 +65,14 @@ def test_861_irrelevant_title_with_high_confidence_fails(
             "Choisissez un nouveau mot de passe.",
         )
     )
-    services, _ = page_services(analysis(False))
+    suggestion = "Réinitialiser son mot de passe"
+    services, _ = page_services(analysis(False, suggestion=suggestion))
 
     result = run_rgaa(RGAA861(), context, services)
 
     assert result.status == Status.FAIL
     assert result.findings[0].element == "title"
+    assert result.findings[0].recommendation.endswith(f"\nProposition : {suggestion}")
 
 
 def test_861_missing_title_is_not_applicable(

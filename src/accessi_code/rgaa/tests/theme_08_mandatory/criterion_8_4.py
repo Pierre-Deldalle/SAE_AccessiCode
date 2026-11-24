@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import asdict
 from typing import Any
 
 from bs4 import BeautifulSoup
@@ -17,6 +16,7 @@ from accessi_code.models.result import (
     TestResult,
     TestStatus,
 )
+from accessi_code.rgaa.ai_decision import Verdict, analysis_evidence
 from accessi_code.rgaa.base import RGAATest
 
 
@@ -122,7 +122,7 @@ class Test841(RGAATest):
 
         evidence = {
             "lang": page.lang,
-            "analysis": asdict(analysis),
+            "analysis": analysis_evidence(analysis),
         }
 
         if analysis.confidence == "low":
@@ -154,6 +154,7 @@ class Test841(RGAATest):
             )
 
         if analysis.relevant is False:
+            verdict = Verdict(TestStatus.FAIL, analysis=analysis)
             return TestResult(
                 self.test_id,
                 self.criterion_id,
@@ -163,7 +164,7 @@ class Test841(RGAATest):
                     Finding(
                         element="html",
                         message=analysis.explanation,
-                        recommendation=("Déclarer la langue principale réelle du document."),
+                        recommendation=verdict.recommendation("Déclarer la langue principale réelle du document."),
                         evidence=evidence,
                     )
                 ],
