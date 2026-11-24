@@ -58,6 +58,13 @@ RELEVANCE_KINDS: dict[str, RelevanceKind] = {
         not_relevant_examples=(
             "« cliquez ici », « en savoir plus », « lire la suite », « ici » sans contexte explicite."
         ),
+        suggestion_rule=(
+            '- ajoute le champ "suggestion" à chaque résultat. Si relevant vaut false et que confidence vaut '
+            "high ou medium, propose un intitulé court en français, prêt à copier et sans balise HTML. "
+            "Précise la destination ou l'action en t'appuyant sur le lien et le contexte fournis. "
+            "Si les données ne permettent pas d'écrire un intitulé sans inventer d'information, retourne null. "
+            "Retourne aussi null si relevant n'est pas false ou si confidence vaut low.\n"
+        ),
     ),
     "sitemap_link": RelevanceKind(
         subject="lien de la page « plan du site »",

@@ -1,17 +1,22 @@
-"""Couverture des critères Images et validité de leurs informations."""
+"""Couverture des critères documentés et validité de leurs informations."""
+
+import pytest
 
 from accessi_code.rgaa.criteria_info import _CRITERIA_INFO, criterion_info
 from accessi_code.rgaa.default_registry import build_default_registry
 from accessi_code.rgaa.themes import filter_registry_by_themes
 
 
-def test_criteria_info_covers_registered_image_criteria():
-    registry = filter_registry_by_themes(build_default_registry(), {1})
+@pytest.mark.parametrize("theme", [1, 6], ids=["images", "liens"])
+def test_criteria_info_covers_registered_criteria(theme):
+    registry = filter_registry_by_themes(build_default_registry(), {theme})
     registered_ids = {test.criterion_id for test in registry}
 
     assert registered_ids
     assert registered_ids <= _CRITERIA_INFO.keys()
 
+
+def test_criteria_info_entries_have_required_fields():
     for criterion_id in _CRITERIA_INFO:
         info = criterion_info(criterion_id)
         assert info is not None

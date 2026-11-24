@@ -1,4 +1,4 @@
-"""Intitulés et impacts des critères du thème Images.
+"""Intitulés et impacts des critères RGAA documentés.
 
 Les intitulés proviennent du RGAA 4.1.2, publié par la DINUM le 18 avril 2023
 sous Licence Ouverte 2.0.
@@ -81,6 +81,19 @@ _CRITERIA_INFO = {
             "Chaque légende d’image est-elle, si nécessaire, correctement reliée à l’image correspondante\u00a0?",
             "Une personne qui utilise un lecteur d’écran peut ne pas savoir quelle image une légende décrit, "
             "surtout lorsque plusieurs images se suivent.",
+        ),
+        (
+            "6.1",
+            "Chaque lien est-il explicite (hors cas particuliers)\u00a0?",
+            "Un lien vague comme « Cliquez ici » peut obliger les personnes qui utilisent un lecteur d’écran "
+            "à l’ouvrir pour savoir où il mène. Les personnes qui naviguent à la voix peuvent aussi avoir du mal "
+            "à activer un lien si son nom ne reprend pas le texte qu’elles voient.",
+        ),
+        (
+            "6.2",
+            "Dans chaque page web, chaque lien a-t-il un intitulé\u00a0?",
+            "Quand un lien n’a pas de nom, le lecteur d’écran peut annoncer seulement « lien » ou lire une adresse "
+            "difficile à comprendre. Les personnes qui l’utilisent ont alors du mal à savoir quel lien ouvrir.",
         ),
     )
 }
