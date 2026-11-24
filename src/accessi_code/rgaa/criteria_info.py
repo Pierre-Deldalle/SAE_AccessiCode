@@ -132,6 +132,61 @@ _ENTRIES = (
         "ou le média ne lui donne pas le nom de ses boutons et de son contenu, elles ne peuvent ni le comprendre "
         "ni le commander.",
     ),
+    # ---- Thème 5 : tableaux ----
+    CriterionInfo(
+        "5.1",
+        "Chaque tableau de données complexe a-t-il un résumé ?",
+        "Une personne aveugle découvre un tableau case par case avec son lecteur d'écran, sans vue d'ensemble. "
+        "Si un tableau à plusieurs niveaux d'en-têtes n'est pas présenté, elle a du mal à comprendre comment le lire.",
+    ),
+    CriterionInfo(
+        "5.2",
+        "Pour chaque tableau de données complexe ayant un résumé, celui-ci est-il pertinent ?",
+        "Un résumé qui n'explique pas comment le tableau est organisé ne sert à rien à une personne aveugle : "
+        "elle doit parcourir toutes les cases pour deviner le sens de lecture.",
+    ),
+    CriterionInfo(
+        "5.3",
+        "Pour chaque tableau de mise en forme, le contenu linéarisé reste-t-il compréhensible ?",
+        "Un lecteur d'écran lit les cases d'un tableau l'une après l'autre, ligne par ligne. Si un tableau sert "
+        "seulement à disposer la page, les textes peuvent alors être lus dans le désordre et perdre leur sens.",
+    ),
+    CriterionInfo(
+        "5.4",
+        "Pour chaque tableau de données ayant un titre, le titre est-il correctement associé au tableau de données ?",
+        "Une personne aveugle peut passer d'un tableau à l'autre en entendant leur titre. Si le titre n'est pas "
+        "relié au tableau, elle ne sait pas ce que contient le tableau avant de l'avoir parcouru.",
+    ),
+    CriterionInfo(
+        "5.5",
+        "Pour chaque tableau de données ayant un titre, celui-ci est-il pertinent ?",
+        "Un titre vague comme « Tableau » ou « Données » n'aide pas une personne qui utilise un lecteur d'écran "
+        "à savoir de quoi parle le tableau ni à choisir celui qu'elle cherche.",
+    ),
+    CriterionInfo(
+        "5.6",
+        "Pour chaque tableau de données, chaque en-tête de colonne et chaque en-tête de ligne "
+        "sont-ils correctement déclarés ?",
+        "Le lecteur d'écran annonce le nom de la colonne ou de la ligne avant chaque valeur. Si les en-têtes "
+        "ne sont pas reconnus comme tels, une personne aveugle entend des chiffres sans savoir à quoi ils "
+        "correspondent.",
+    ),
+    CriterionInfo(
+        "5.7",
+        "Pour chaque tableau de données, la technique appropriée permettant d’associer chaque cellule "
+        "avec ses en-têtes est-elle utilisée (hors cas particuliers) ?",
+        "Dans un tableau, une personne aveugle a besoin d'entendre à quelle ligne et à quelle colonne "
+        "appartient chaque case. Si ce lien est absent ou faux, elle ne peut pas interpréter les valeurs, "
+        "ou les interprète mal.",
+    ),
+    CriterionInfo(
+        "5.8",
+        "Chaque tableau de mise en forme ne doit pas utiliser d’éléments propres aux tableaux de données. "
+        "Cette règle est-elle respectée ?",
+        "Un tableau qui sert seulement à disposer la page, mais qui contient un titre ou des en-têtes, est "
+        "présenté par le lecteur d'écran comme un vrai tableau de données : une personne aveugle cherche alors "
+        "des lignes et des colonnes qui n'ont pas de sens.",
+    ),
 )
 
 CRITERIA: dict[str, CriterionInfo] = {entry.criterion_id: entry for entry in _ENTRIES}

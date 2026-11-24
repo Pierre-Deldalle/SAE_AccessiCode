@@ -105,12 +105,14 @@ RELEVANCE_KINDS: dict[str, RelevanceKind] = {
         rule="RGAA 5.5 : chaque titre de tableau de données doit être pertinent.",
         relevant_when="il identifie le contenu du tableau (en-têtes et premières lignes fournis en contexte).",
         not_relevant_examples="« Tableau », « Tableau 1 », « Données », un titre sans rapport avec le contenu.",
+        suggestion="un titre de tableau court qui identifie son contenu",
     ),
     "table_summary": RelevanceKind(
         subject="résumé de tableau de données complexe",
         rule="RGAA 5.2 : chaque résumé de tableau complexe doit être pertinent.",
         relevant_when="il explique l'organisation du tableau (structure des en-têtes, sens de lecture, contenu).",
         not_relevant_examples="« Tableau », « Résumé », la simple répétition du titre sans expliquer la structure.",
+        suggestion="un résumé court qui explique l'organisation du tableau (en-têtes, sens de lecture)",
     ),
     "layout_table_linearized": RelevanceKind(
         subject=(

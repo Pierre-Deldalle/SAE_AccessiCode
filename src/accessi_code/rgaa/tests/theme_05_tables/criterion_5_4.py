@@ -7,6 +7,7 @@ from accessi_code.analysis.dom import (
     has_aria_label,
     has_title,
 )
+from accessi_code.analysis.location import location_fields
 from accessi_code.analysis.tables import (
     find_tables,
 )
@@ -73,6 +74,7 @@ class Test541(RGAATest):
                 findings.append(
                     Finding(
                         element=element,
+                        **location_fields(table),
                         message=("Aucun titre associé à ce tableau de données."),
                         recommendation=(
                             "Associer un titre au tableau de données au moyen d'un élément <caption>, d'un "

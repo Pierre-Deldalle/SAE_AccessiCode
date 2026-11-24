@@ -173,3 +173,15 @@ def test_511_one_missing_summary_makes_the_test_fail(
 
     assert result.status == Status.FAIL
     assert len(result.findings) == 1
+
+
+def test_511_finding_locates_the_table(context_factory, run_rgaa):
+    html = (
+        '<p>Ventes</p>\n<table id="ventes">\n'
+        '<tr><th rowspan="2">Produit</th><th colspan="2">Semestre</th></tr>\n'
+        "<tr><th>S1</th><th>S2</th></tr>\n</table>"
+    )
+    result = run_rgaa(RGAA511(), context_factory(html))
+    assert result.status == Status.FAIL
+    assert result.findings[0].line == 2
+    assert result.findings[0].snippet.startswith('<table id="ventes"> <tr><th rowspan="2">Produit</th>')

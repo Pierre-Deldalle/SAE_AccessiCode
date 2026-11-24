@@ -187,6 +187,28 @@ async def test_suggestion_is_requested_only_for_kinds_that_ask_for_it() -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
+    ("kind", "requested"),
+    [
+        ("table_title", "propose dans suggestion un titre de tableau"),
+        ("table_summary", "propose dans suggestion un résumé court"),
+        ("layout_table_linearized", None),
+    ],
+)
+async def test_table_kinds_suggestion_request(kind, requested) -> None:
+    llm = FakeModel(batch(RELEVANT))
+    analyzer = OllamaTextRelevanceAnalyzer(llm)
+
+    await analyzer.analyze_relevance(kind, [RelevanceItem("Tableau")])
+
+    if requested:
+        assert requested in llm.prompts[0]
+        assert '"suggestion": null' in llm.prompts[0]
+    else:
+        assert "suggestion" not in llm.prompts[0]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
     ("value", "expected"),
     [
         ("  Plan d'accès   à l'agence ", "Plan d'accès à l'agence"),
