@@ -43,6 +43,7 @@ class DescriptionAnalysis:
     uncertainties: list[str] = field(default_factory=list)
 
     confidence: AIConfidence = "low"
+    suggestion: str | None = None
 
 
 @dataclass
@@ -137,6 +138,7 @@ class RelevanceAnalysis:
     uncertainties: list[str] = field(default_factory=list)
 
     confidence: AIConfidence = "low"
+    suggestion: str | None = None
 
 
 # ----------------------------------------------------------------------
@@ -185,6 +187,7 @@ class AlternativeAnalysis:
     uncertainties: list[str] = field(default_factory=list)
 
     confidence: AIConfidence = "low"
+    suggestion: str | None = None
 
 
 # ----------------------------------------------------------------------

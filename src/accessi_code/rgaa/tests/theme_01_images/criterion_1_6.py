@@ -21,6 +21,7 @@ from accessi_code.rgaa.tests.theme_01_images._common import (
     Evaluation,
     ImageTest,
     Outcome,
+    attribute_example,
     outcome,
     unresolved,
 )
@@ -79,6 +80,22 @@ def broken_describedby(element: ImageElement) -> bool:
     return any(
         description.source == "aria-describedby" and not description.available and description.reference != "desc"
         for description in element.descriptions
+    )
+
+
+def _describedby_recommendation(element: ImageElement) -> str:
+    recommendation = "Faire référencer par aria-describedby l'identifiant unique d'un passage de texte non vide."
+    valid_ids = [
+        description.reference
+        for description in element.descriptions
+        if description.source == "aria-describedby" and description.available and description.reference
+    ]
+    if not valid_ids:
+        return recommendation
+    return attribute_example(
+        "Si les passages déjà reliés donnent la description complète, retirer les identifiants invalides.",
+        element.tag,
+        {"aria-describedby": " ".join(valid_ids)},
     )
 
 
@@ -213,7 +230,7 @@ class _RestitutionTest(ImageTest):
                 TestStatus.FAIL,
                 element,
                 "aria-describedby référence un élément absent, dupliqué ou vide.",
-                "Faire référencer par aria-describedby l'identifiant unique d'un passage de texte non vide.",
+                _describedby_recommendation(element),
             )
         verified = evaluation.evidence(element, "correctly_exposed")
         if verified is True:

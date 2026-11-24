@@ -22,6 +22,7 @@ from accessi_code.ai.analyzers._base import (
 from accessi_code.ai.cache import AnalysisCache, make_key
 from accessi_code.ai.prompts.relevance import RELEVANCE_BATCH_PROMPT, RELEVANCE_KINDS
 from accessi_code.ai.schemas import RelevanceAnalysis, RelevanceItem
+from accessi_code.ai.text_safety import read_suggestion
 
 TEXT_LIMIT = 300
 HTML_LIMIT = 400
@@ -63,6 +64,7 @@ class OllamaTextRelevanceAnalyzer(JsonAnalyzer):
                 rule=spec.rule,
                 relevant_when=spec.relevant_when,
                 not_relevant_examples=spec.not_relevant_examples,
+                suggestion_rule=spec.suggestion_rule,
                 items=items_json,
             )
 
@@ -70,7 +72,7 @@ class OllamaTextRelevanceAnalyzer(JsonAnalyzer):
             keys=[make_key("relevance", kind, payload) for payload in payloads],
             payloads=payloads,
             build_prompt=build_prompt,
-            parse_item=_parse_relevance,
+            parse_item=lambda entry: _parse_relevance(entry, suggest=bool(spec.suggestion_rule)),
             missing_item=_unknown,
             cache=self.cache,
             batch_size=self.batch_size,
@@ -89,15 +91,19 @@ def _payload(item: RelevanceItem, text_limit: int = TEXT_LIMIT) -> dict[str, Any
     return payload
 
 
-def _parse_relevance(entry: dict[str, Any]) -> RelevanceAnalysis:
+def _parse_relevance(entry: dict[str, Any], *, suggest: bool) -> RelevanceAnalysis:
     relevant = read_tristate(entry, "relevant")
     explanation, corrupted = read_explanation(entry)
+    confidence = "low" if corrupted else read_confidence(entry.get("confidence"))
     return RelevanceAnalysis(
         relevant=None if corrupted else relevant,
         explanation=explanation,
         problems=read_strings(entry.get("problems")),
         uncertainties=read_strings(entry.get("uncertainties")),
-        confidence="low" if corrupted else read_confidence(entry.get("confidence")),
+        confidence=confidence,
+        suggestion=read_suggestion(entry.get("suggestion"))
+        if suggest and relevant is False and confidence != "low"
+        else None,
     )
 
 

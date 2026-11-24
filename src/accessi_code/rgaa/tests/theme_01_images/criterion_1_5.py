@@ -18,7 +18,7 @@ from bs4 import BeautifulSoup, Tag
 from accessi_code.ai.schemas import RelevanceAnalysis, RelevanceItem
 from accessi_code.analysis.image_elements import ImageElement
 from accessi_code.models.result import TestStatus
-from accessi_code.rgaa.ai_decision import get_analyzer, status_from_verdict
+from accessi_code.rgaa.ai_decision import Verdict, get_analyzer, status_from_verdict
 from accessi_code.rgaa.tests.theme_01_images._common import (
     NO_AI_MESSAGE,
     Evaluation,
@@ -136,11 +136,16 @@ class _CaptchaAccessTest(ImageTest):
             for tag, analysis in zip(candidates, analyses, strict=True)
         ]
         if all(status is TestStatus.FAIL for status in statuses):
+            recommendation = self.recommendation
+            for analysis in analyses:
+                recommendation = Verdict(TestStatus.FAIL, analysis=analysis).recommendation(self.recommendation)
+                if recommendation != self.recommendation:
+                    break
             return outcome(
                 TestStatus.FAIL,
                 element,
                 "Les liens et contenus trouvés ne constituent pas une alternative au CAPTCHA.",
-                self.recommendation,
+                recommendation,
                 candidates=details,
             )
         return outcome(

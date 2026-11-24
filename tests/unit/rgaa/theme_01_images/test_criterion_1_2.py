@@ -34,8 +34,12 @@ def test_121_correctly_ignored_decorative_image_passes_without_ai(html, context_
 
 def test_121_empty_alt_with_title_fails(context_factory, run_rgaa):
     ai = services(image_profile=DECORATIVE)
-    result = run_rgaa(Test121(), context_factory('<img src="d.png" alt="" title="Fleur">'), ai)
+    context = context_factory('<img src="d.png" alt="" title="Fleur">')
+    result = run_rgaa(Test121(), context, ai)
     assert result.status == Status.FAIL
+    assert 'Avant : <img alt="" src="d.png" title="Fleur"/>' in result.findings[0].recommendation
+    assert 'Après : <img alt="" src="d.png"/>' in result.findings[0].recommendation
+    assert context.dom.img["title"] == "Fleur"
 
 
 def test_121_decorative_image_with_filled_alt_fails(context_factory, run_rgaa):
@@ -93,6 +97,7 @@ def test_124_hidden_svg_with_title_fails(context_factory, run_rgaa):
     result = run_rgaa(Test124(), context_factory('<svg aria-hidden="true"><title>Icône</title></svg>'), services())
     assert result.status == Status.FAIL
     assert "<title>" in result.findings[0].message
+    assert 'Après : <svg aria-hidden="true"></svg>' in result.findings[0].recommendation
 
 
 def test_124_decorative_svg_without_aria_hidden_fails(context_factory, run_rgaa):

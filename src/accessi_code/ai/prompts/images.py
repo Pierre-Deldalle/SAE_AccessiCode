@@ -170,12 +170,16 @@ Retourne uniquement :
     "missing_information": [],
     "contradictions": [],
     "uncertainties": [],
+    "suggestion": null,
     "confidence": "high"
 }}
 
 is_detailed_description doit être true, false ou null.
 relevant doit être true, false ou null.
 Si is_detailed_description vaut false, relevant doit être null.
+Si relevant vaut false, propose dans suggestion une description détaillée corrigée en français.
+Appuie-toi sur les observations visuelles. N'invente aucune valeur ni information.
+Retourne suggestion à null si les données ne suffisent pas, si relevant n'est pas false ou si confidence vaut low.
 """
 
 
@@ -239,7 +243,7 @@ ALTERNATIVE_RULES = {
     "captcha": (
         "RGAA 1.4 : l'alternative textuelle d'un CAPTCHA ou d'une image-test doit permettre d'identifier "
         "la nature et la fonction de l'image (par exemple « Code de sécurité à recopier »), sans "
-        "nécessairement en donner le contenu."
+        "nécessairement en donner le contenu. Dans la suggestion, ne donne ni la réponse ni le code à recopier."
     ),
 }
 
@@ -268,6 +272,10 @@ Indique :
 - concise : true si l'alternative est courte et concise, false si elle est trop longue,
   null si tu ne peux pas conclure ;
 - missing_information : les informations de l'image absentes de l'alternative.
+- suggestion : si relevant ou concise vaut false, propose le texte de remplacement en français,
+  sans balise HTML. Conserve les informations utiles et n'ajoute aucun détail non établi.
+  Retourne null si les informations ne suffisent pas, si aucun des deux champs ne vaut false
+  ou si confidence vaut low.
 
 Utilise null si l'observation visuelle n'est pas disponible et que le HTML ne suffit pas.
 
@@ -279,6 +287,7 @@ Retourne uniquement :
     "explanation": "explication courte",
     "missing_information": [],
     "uncertainties": [],
+    "suggestion": null,
     "confidence": "high"
 }}
 

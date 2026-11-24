@@ -17,17 +17,19 @@ from __future__ import annotations
 
 import weakref
 from abc import abstractmethod
+from copy import copy
 from dataclasses import dataclass, field
 from typing import Any, ClassVar
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 
 from accessi_code.ai.schemas import AlternativeAnalysis, ImageProfile
 from accessi_code.analysis.image_elements import ImageElement, ImageKind, find_image_elements, has_image_file
 from accessi_code.analysis.images import make_local_resource_loader
+from accessi_code.analysis.location import html_opening_tag
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
-from accessi_code.models.result import Finding, TestResult, TestStatus
+from accessi_code.models.result import TestResult, TestStatus
 from accessi_code.rgaa.ai_decision import (
     ai_item_limit,
     count_statuses,
@@ -35,6 +37,7 @@ from accessi_code.rgaa.ai_decision import (
     worst_status,
 )
 from accessi_code.rgaa.base import RGAATest
+from accessi_code.rgaa.outcomes import Outcome, make_outcome
 
 NO_AI_MESSAGE = "L'analyse IA n'est pas disponible : la vérification doit être faite manuellement."
 
@@ -73,14 +76,6 @@ class Judgement:
 
 
 @dataclass
-class Outcome:
-    """Statut d'un élément et, si nécessaire, l'observation qui l'explique."""
-
-    status: TestStatus
-    finding: Finding | None = None
-
-
-@dataclass
 class AIBudget:
     """Nombre d'éléments qu'un test peut encore soumettre à l'IA."""
 
@@ -98,20 +93,37 @@ def outcome(
     element: ImageElement | None = None,
     message: str = "",
     recommendation: str | None = None,
+    *,
+    node: Tag | None = None,
     **evidence: Any,
 ) -> Outcome:
     """Outcome avec un Finding (sauf pour PASS et NOT_APPLICABLE sans message)."""
-    if element is None or (status in {TestStatus.PASS, TestStatus.NOT_APPLICABLE} and not message):
+    if element is None:
         return Outcome(status)
-    return Outcome(
+    return make_outcome(
         status,
-        Finding(
-            element=element.key,
-            message=message,
-            recommendation=recommendation,
-            evidence={"kind": element.kind, **evidence},
-        ),
+        element.key,
+        message,
+        recommendation,
+        node=node if node is not None else element.tag,
+        **{"kind": element.kind, **evidence},
     )
+
+
+def html_example(recommendation: str, before: str, after: str) -> str:
+    """Ajoute deux extraits courts et complets à une recommandation."""
+    example = f"{recommendation}\nAvant : {before}\nAprès : {after}"
+    # L'affichage des recommandations se limite à 300 caractères après normalisation.
+    if before == after or len(" ".join(example.split())) > 300:
+        return recommendation
+    return example
+
+
+def attribute_example(recommendation: str, tag: Tag, attributes: dict[str, str]) -> str:
+    """Illustre un changement d'attribut sur la balise analysée."""
+    corrected = copy(tag)
+    corrected.attrs.update(attributes)
+    return html_example(recommendation, html_opening_tag(str(tag)), html_opening_tag(str(corrected)))
 
 
 def unresolved(

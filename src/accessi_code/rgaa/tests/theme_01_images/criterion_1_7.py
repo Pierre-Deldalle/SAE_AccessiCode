@@ -15,7 +15,7 @@ from accessi_code.ai.schemas import DescriptionAnalysis
 from accessi_code.analysis.image_elements import ImageElement, has_image_file
 from accessi_code.analysis.images import DetailedDescription
 from accessi_code.models.result import TestStatus
-from accessi_code.rgaa.ai_decision import analysis_evidence, status_from_verdict, worst_status
+from accessi_code.rgaa.ai_decision import Verdict, analysis_evidence, status_from_verdict, worst_status
 from accessi_code.rgaa.tests.theme_01_images._common import (
     NO_AI_MESSAGE,
     Evaluation,
@@ -116,7 +116,7 @@ class _DescriptionRelevanceTest(ImageTest):
             status,
             element,
             f"{message} {analysis.explanation}".strip(),
-            RECOMMENDATION,
+            Verdict(status, analysis=analysis).recommendation(RECOMMENDATION),
             description=_summary(description),
             analysis=analysis_evidence(analysis),
         )

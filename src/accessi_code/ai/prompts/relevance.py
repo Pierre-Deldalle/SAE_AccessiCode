@@ -27,6 +27,7 @@ class RelevanceKind:
     not_relevant_examples: str
     # Longueur maximale du texte jugé (les contenus longs, comme un tableau linéarisé, en ont besoin).
     text_limit: int = 300
+    suggestion_rule: str = ""
 
 
 RELEVANCE_KINDS: dict[str, RelevanceKind] = {
@@ -249,6 +250,12 @@ RELEVANCE_KINDS: dict[str, RelevanceKind] = {
             "contact par un autre canal, validation humaine…)."
         ),
         not_relevant_examples="« Recharger l'image », « Nouvelle image », un lien sans rapport avec le CAPTCHA.",
+        suggestion_rule=(
+            '- ajoute le champ "suggestion" à chaque résultat : si relevant vaut false, propose un texte corrigé '
+            "en français lorsque la fonction et le moyen d'accès sont établis par les données. "
+            "N'invente aucun lien ni moyen d'accès. Retourne null si le texte seul ne suffit pas à corriger "
+            "le problème, si les informations manquent, si relevant n'est pas false ou si confidence vaut low.\n"
+        ),
     ),
     "text_language": RelevanceKind(
         subject="langue d'un passage de texte",
@@ -377,7 +384,7 @@ Règles :
 - ne déduis rien de la présence ou de l'absence d'attributs HTML ;
 - utilise null si les informations ne permettent pas de conclure ;
 - confidence vaut "low", "medium" ou "high" ;
-- retourne un résultat pour chaque id fourni, dans le même ordre ;
+{suggestion_rule}- retourne un résultat pour chaque id fourni, dans le même ordre ;
 - n'ajoute aucun texte en dehors du JSON.
 
 Éléments à évaluer (JSON) :

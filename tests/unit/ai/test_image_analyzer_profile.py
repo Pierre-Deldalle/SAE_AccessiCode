@@ -2,7 +2,7 @@ import pytest
 from fakes import FakeModel
 
 from accessi_code.ai.analyzers.image_analyzer import OllamaImageAnalyzer
-from accessi_code.analysis.images import ImageInfo
+from accessi_code.analysis.images import DetailedDescription, ImageInfo
 
 VISUAL = {"summary": "Graphique des ventes 2025", "important_information": ["hausse de 10 %"], "uncertainties": []}
 
@@ -127,8 +127,54 @@ async def test_analyze_alternative_without_image_uses_html_only() -> None:
     assert analysis.relevant is False
     assert analysis.concise is True
     assert analysis.missing_information == ["contenu du graphique"]
+    assert analysis.suggestion is None
     assert vlm.call_count == 0
     assert "RGAA 1.3" in llm.prompts[0]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("suggestion", "expected"),
+    [("Graphique des ventes", "Graphique des ventes"), (["Graphique"], None), (None, None)],
+)
+async def test_analyze_alternative_parses_optional_suggestion(suggestion, expected) -> None:
+    llm = FakeModel(
+        {
+            "relevant": False,
+            "concise": True,
+            "explanation": "Nom de fichier.",
+            "confidence": "high",
+            "suggestion": suggestion,
+        }
+    )
+    analyzer = OllamaImageAnalyzer(vlm=FakeModel(), llm=llm)
+
+    result = await analyzer.analyze_alternative(element_html="<svg></svg>", alternative="graph.svg", context="")
+
+    assert result.relevant is False
+    assert result.suggestion == expected
+    assert '"suggestion"' in llm.prompts[0]
+
+
+@pytest.mark.asyncio
+async def test_analyze_description_reads_the_corrected_text() -> None:
+    suggestion = "Les ventes ont augmenté de 10 % en 2025."
+    llm = FakeModel(
+        {
+            "is_detailed_description": True,
+            "relevant": False,
+            "explanation": "Le pourcentage est erroné.",
+            "confidence": "high",
+            "suggestion": suggestion,
+        }
+    )
+    analyzer = OllamaImageAnalyzer(vlm=FakeModel(VISUAL), llm=llm)
+
+    result = await analyzer.analyze(make_image(), DetailedDescription("aria-describedby", "Les ventes ont doublé."))
+
+    assert result.relevant is False
+    assert result.suggestion == suggestion
+    assert '"suggestion"' in llm.prompts[0]
 
 
 @pytest.mark.asyncio

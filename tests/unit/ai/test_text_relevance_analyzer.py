@@ -41,6 +41,32 @@ async def test_prompt_contains_rgaa_rule_and_items() -> None:
     assert "RGAA 6.1" in prompt
     assert "En savoir plus" in prompt
     assert "/horaires" in prompt
+    assert '"suggestion"' not in prompt
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("reply", "expected"),
+    [
+        ({"suggestion": " Écouter le code de sécurité. "}, "Écouter le code de sécurité."),
+        ({}, None),
+        ({"suggestion": {"texte": "Écouter le code"}}, None),
+        ({"suggestion": "   "}, None),
+        ({"suggestion": "Écouter le code", "relevant": True}, None),
+        ({"suggestion": "Écouter le code", "confidence": "low"}, None),
+    ],
+)
+async def test_captcha_relevance_suggestion_is_optional(reply, expected) -> None:
+    payload = NOT_RELEVANT | reply
+    llm = FakeModel(batch(payload))
+    analyzer = OllamaTextRelevanceAnalyzer(llm)
+
+    [analysis] = await analyzer.analyze_relevance("captcha_alternative", [RelevanceItem("Aide")])
+
+    assert analysis.suggestion == expected
+    assert analysis.relevant is payload["relevant"]
+    assert analysis.confidence == payload["confidence"]
+    assert '"suggestion"' in llm.prompts[0]
 
 
 @pytest.mark.asyncio

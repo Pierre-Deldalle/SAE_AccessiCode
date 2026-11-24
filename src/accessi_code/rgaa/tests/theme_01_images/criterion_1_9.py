@@ -11,6 +11,7 @@ légende). Image suivie ou précédée d'un texte qui ressemble à une légende 
 from __future__ import annotations
 
 import re
+from html import escape
 
 from bs4 import Tag
 
@@ -23,6 +24,8 @@ from accessi_code.rgaa.tests.theme_01_images._common import (
     ImageTest,
     Judgement,
     Outcome,
+    attribute_example,
+    html_example,
     outcome,
     unresolved,
 )
@@ -44,15 +47,19 @@ def _normalize(text: str) -> str:
     return " ".join(text.split()).casefold()
 
 
+def _caption_anchor(element: ImageElement) -> Tag:
+    # Image seule dans son paragraphe : la légende est à côté du paragraphe.
+    parent = element.tag.parent
+    if isinstance(parent, Tag) and parent.name in {"p", "div", "a"} and not parent.get_text(strip=True):
+        return parent
+    return element.tag
+
+
 def caption_candidate(element: ImageElement) -> Tag | None:
     """Texte adjacent qui ressemble à une légende, hors figure / figcaption."""
     if element.figure is not None:
         return None
-    anchor: Tag = element.tag
-    # Image seule dans son paragraphe : la légende est à côté du paragraphe.
-    parent = anchor.parent
-    if isinstance(parent, Tag) and parent.name in {"p", "div", "a"} and not parent.get_text(strip=True):
-        anchor = parent
+    anchor = _caption_anchor(element)
     for sibling in (anchor.find_next_sibling(), anchor.find_previous_sibling()):
         if not isinstance(sibling, Tag) or sibling.name not in _CAPTION_TAGS:
             continue
@@ -98,7 +105,11 @@ class _CaptionTest(ImageTest):
             TestStatus.FAIL,
             element,
             "La légende n'est pas correctement reliée à l'image : " + " ; ".join(problems) + ".",
-            RECOMMENDATION,
+            attribute_example(
+                'Donner à <figure> le rôle "figure" ou "group" et copier la légende dans aria-label.',
+                figure,
+                {"role": role if role in {"figure", "group"} else "figure", "aria-label": caption_text},
+            ),
             caption=caption_text[:200],
             aria_label=label[:200],
         )
@@ -112,7 +123,7 @@ class _CaptionTest(ImageTest):
         if verified is False:
             return outcome(TestStatus.NOT_APPLICABLE)
         if verified is True:
-            return self._unlinked(element, text, source="evidence")
+            return self._unlinked(element, candidate, text, source="evidence")
 
         analyzer = get_analyzer(evaluation.services, "structure_analyzer")
         if analyzer is None:
@@ -154,7 +165,7 @@ class _CaptionTest(ImageTest):
         if status is TestStatus.NOT_APPLICABLE:
             return outcome(TestStatus.NOT_APPLICABLE)
         if status is TestStatus.FAIL:
-            return self._unlinked(element, text, analysis=analysis_evidence(analysis))
+            return self._unlinked(element, candidate, text, analysis=analysis_evidence(analysis))
         return outcome(
             TestStatus.NEEDS_REVIEW,
             element,
@@ -164,12 +175,22 @@ class _CaptionTest(ImageTest):
         )
 
     @staticmethod
-    def _unlinked(element: ImageElement, text: str, **evidence) -> Outcome:
+    def _unlinked(element: ImageElement, candidate: Tag, text: str, **evidence) -> Outcome:
+        anchor = _caption_anchor(element)
+        caption_first = candidate is anchor.find_previous_sibling()
+        before = f"{candidate} {anchor}" if caption_first else f"{anchor} {candidate}"
+        caption = f"<figcaption>{candidate.decode_contents()}</figcaption>"
+        body = f"{caption}{anchor}" if caption_first else f"{anchor}{caption}"
+        corrected = f'<figure role="figure" aria-label="{escape(text)}">{body}</figure>'
         return outcome(
             TestStatus.FAIL,
             element,
             f"La légende « {text[:100]} » n'est pas reliée à l'image par <figure> et <figcaption>.",
-            RECOMMENDATION,
+            html_example(
+                "Relier la légende avec <figure> et <figcaption>.",
+                before,
+                corrected,
+            ),
             **evidence,
         )
 

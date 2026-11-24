@@ -31,8 +31,13 @@ def test_171_relevant_description_passes(context_factory, run_rgaa):
 
 
 def test_171_irrelevant_description_fails(context_factory, run_rgaa):
-    ai = services(description_analysis=description(relevant=False))
-    assert run_rgaa(Test171(), context_factory(WITH_DESCRIPTION), ai).status == Status.FAIL
+    ai = services(
+        description_analysis=description(relevant=False, suggestion="Les ventes ont augmenté de 10 % en 2025.")
+    )
+    result = run_rgaa(Test171(), context_factory(WITH_DESCRIPTION), ai)
+
+    assert result.status == Status.FAIL
+    assert "Proposition : Les ventes ont augmenté de 10 % en 2025." in result.findings[0].recommendation
 
 
 def test_171_low_confidence_needs_review(context_factory, run_rgaa):

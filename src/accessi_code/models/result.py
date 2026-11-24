@@ -25,6 +25,8 @@ class Finding:
     recommendation: str | None = None
     # Les preuves facilitent l'explication et la vérification du résultat.
     evidence: dict[str, Any] = field(default_factory=dict)
+    line: int | None = None
+    snippet: str | None = None
 
 
 @dataclass

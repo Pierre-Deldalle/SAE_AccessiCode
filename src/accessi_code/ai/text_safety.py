@@ -26,3 +26,11 @@ def clean_explanation(value: object, max_chars: int = 450) -> tuple[str, bool]:
     if repeated or len(text) > 1800:
         return "Réponse IA répétitive ou incohérente : vérification nécessaire.", True
     return text[:max_chars], False
+
+
+def read_suggestion(value: object) -> str | None:
+    """Lit un texte corrigé facultatif sans modifier le jugement de l'analyseur."""
+    if not isinstance(value, str):
+        return None
+    text, corrupted = clean_explanation(value, max_chars=1800)
+    return None if corrupted else text
