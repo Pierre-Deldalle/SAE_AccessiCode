@@ -3,10 +3,10 @@
 import asyncio
 
 import pytest
-from ai_fakes import relevance, text_services
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_07_scripts.criterion_7_3 import Test731, Test732
+from tests.ai_fakes import relevance, text_services
 
 LINK = '<a href="/accueil">Accueil</a>'
 

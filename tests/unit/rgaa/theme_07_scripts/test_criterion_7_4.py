@@ -3,10 +3,10 @@
 import asyncio
 
 import pytest
-from ai_fakes import relevance, text_services
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_07_scripts.criterion_7_4 import Test741
+from tests.ai_fakes import relevance, text_services
 
 LANGUAGES = (
     '<label for="l">Langue</label><select id="l" onchange="location.href=this.value"><option>FR</option></select>'
