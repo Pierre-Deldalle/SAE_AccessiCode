@@ -23,6 +23,11 @@ def test_iframe_without_title_fails(context_factory, run_rgaa):
     assert result.findings[0].element == "iframe#carte"
     assert result.findings[0].line == 2
     assert result.findings[0].snippet == '<iframe id="carte" src="m.html"></iframe>'
+    assert result.findings[0].recommendation == (
+        "Ajouter un attribut title décrivant le contenu ou la fonction du cadre. "
+        'Exemple : <iframe id="carte" src="m.html"> → '
+        '<iframe id="carte" src="m.html" title="[contenu ou fonction du cadre]">'
+    )
 
 
 def test_frame_without_title_fails(context_factory, run_rgaa):

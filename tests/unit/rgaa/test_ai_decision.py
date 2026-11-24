@@ -2,11 +2,12 @@ from dataclasses import dataclass
 
 import pytest
 
-from accessi_code.ai.schemas import SensoryAnalysis
+from accessi_code.ai.schemas import RelevanceAnalysis, SensoryAnalysis
 from accessi_code.models.result import TestStatus
 from accessi_code.rgaa.ai_decision import (
     AI_MAX_ITEMS_ENV,
     DEFAULT_AI_MAX_ITEMS,
+    Verdict,
     ai_item_limit,
     analysis_evidence,
     count_statuses,
@@ -100,3 +101,24 @@ def test_sensory_status(conveys, relies_only, alternative, confidence, expected,
     analysis = SensoryAnalysis(conveys, relies_only, alternative, "", confidence=confidence)
     assert sensory_status(analysis) is expected
     assert sensory_status(analysis, judge_alternative=True) is expected_alternative
+
+
+@pytest.mark.parametrize(
+    ("status", "suggestion", "expected"),
+    [
+        (TestStatus.FAIL, " Plan d'accès ", "Corriger. Proposition : « Plan d'accès »."),
+        (TestStatus.FAIL, None, "Corriger."),
+        (TestStatus.FAIL, "  ", "Corriger."),
+        (TestStatus.PASS, "Plan d'accès", "Corriger."),
+        (TestStatus.NEEDS_REVIEW, "Plan d'accès", "Corriger."),
+    ],
+)
+def test_verdict_adds_suggestion_only_to_a_fail(status, suggestion, expected) -> None:
+    analysis = RelevanceAnalysis(False, "x", confidence="high", suggestion=suggestion)
+    assert Verdict(status, analysis=analysis).recommendation("Corriger.") == expected
+
+
+def test_verdict_without_analysis_has_no_suggestion() -> None:
+    verdict = Verdict(TestStatus.FAIL, reason="error")
+    assert verdict.suggestion is None
+    assert verdict.recommendation("Corriger.") == "Corriger."

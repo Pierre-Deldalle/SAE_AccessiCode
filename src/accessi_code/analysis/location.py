@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from bs4 import Tag
+from bs4 import BeautifulSoup, Tag
 from bs4.dammit import EntitySubstitution
 from bs4.formatter import HTMLFormatter
 
@@ -51,6 +51,19 @@ def locate(tag: Tag | None) -> tuple[int | None, str | None]:
         return None, None
     line = tag.sourceline if isinstance(tag.sourceline, int) else None
     return line, element_snippet(tag)
+
+
+def opening_tag(tag: Tag, **changes: str | None) -> str:
+    """
+    Balise ouvrante de l'élément avec ses vrais attributs, modifiés par ``changes``
+    (une valeur None retire l'attribut), pour montrer une correction « avant / après ».
+    """
+    attrs = {name: changes.get(name, value) for name, value in tag.attrs.items()}
+    attrs.update({name: value for name, value in changes.items() if name not in attrs})
+    attrs = {name: value for name, value in attrs.items() if value is not None}
+    rebuilt = BeautifulSoup("", "html.parser").new_tag(tag.name, attrs=attrs)
+    html = _html(rebuilt)
+    return html[: html.find(">") + 1].replace("/>", ">")
 
 
 def source_file_name(context: AuditContext, path: Path | str | None) -> str | None:

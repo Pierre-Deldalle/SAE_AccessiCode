@@ -21,6 +21,7 @@ from accessi_code.models.result import TestResult, TestStatus
 from accessi_code.rgaa.ai_decision import judge_relevance
 from accessi_code.rgaa.base import RGAATest
 from accessi_code.rgaa.outcomes import Outcome, build_result, make_outcome, not_applicable
+from accessi_code.rgaa.tests.theme_02_frames.criterion_2_1 import title_example
 
 RECOMMENDATION = "Rédiger un titre de cadre qui décrit son contenu ou sa fonction."
 
@@ -56,7 +57,7 @@ class Test221(RGAATest):
                     TestStatus.FAIL,
                     self._identifier(frame, context.dom),
                     "Le titre du cadre est vide.",
-                    RECOMMENDATION,
+                    f"{RECOMMENDATION} {title_example(frame)}",
                     node=frame,
                 )
             else:
@@ -74,6 +75,9 @@ class Test221(RGAATest):
         verdicts = await judge_relevance(services, "frame_title", items)
 
         for position, item, verdict in zip(to_judge, items, verdicts, strict=True):
+            recommendation = verdict.recommendation(RECOMMENDATION)
+            if verdict.status is TestStatus.FAIL:
+                recommendation += " " + title_example(frames[position], verdict.suggestion)
             outcomes[position] = make_outcome(
                 verdict.status,
                 self._identifier(frames[position], context.dom),
@@ -81,7 +85,7 @@ class Test221(RGAATest):
                     f"Le titre du cadre « {item.text[:100]} » n'est pas pertinent.",
                     f"La pertinence du titre du cadre « {item.text[:100]} » reste à vérifier.",
                 ),
-                RECOMMENDATION,
+                recommendation,
                 node=frames[position],
                 title=item.text,
                 **verdict.evidence,

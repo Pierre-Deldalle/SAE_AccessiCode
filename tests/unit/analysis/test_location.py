@@ -2,7 +2,7 @@
 
 from bs4 import BeautifulSoup, Tag
 
-from accessi_code.analysis.location import SNIPPET_LIMIT, element_snippet, locate, source_file_name
+from accessi_code.analysis.location import SNIPPET_LIMIT, element_snippet, locate, opening_tag, source_file_name
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.audit_file import AuditFile
 from accessi_code.models.result import TestStatus as Status
@@ -52,6 +52,13 @@ def test_make_outcome_without_node_or_finding():
     assert outcome.finding is not None
     assert (outcome.finding.line, outcome.finding.snippet) == (None, None)
     assert make_outcome(Status.PASS, node=_iframe()).finding is None
+
+
+def test_opening_tag_keeps_real_attributes_and_applies_changes():
+    soup = BeautifulSoup('<iframe id="c" src="m.html" title="">texte</iframe>', "html.parser")
+    assert opening_tag(soup.iframe) == '<iframe id="c" src="m.html" title="">'
+    assert opening_tag(soup.iframe, title="Carte") == '<iframe id="c" src="m.html" title="Carte">'
+    assert opening_tag(soup.iframe, title=None, lang="fr") == '<iframe id="c" src="m.html" lang="fr">'
 
 
 def _context(tmp_path, *files: tuple[str, str]) -> AuditContext:
