@@ -36,8 +36,12 @@ def sensory(
     relies_only: bool | None = False,
     alternative: bool | None = True,
     confidence: str = "high",
+    *,
+    suggestion: str | None = None,
 ):
-    return SensoryAnalysis(conveys, relies_only, alternative, "Analyse simulée.", confidence=confidence)
+    return SensoryAnalysis(
+        conveys, relies_only, alternative, "Analyse simulée.", confidence=confidence, suggestion=suggestion
+    )
 
 
 def _responder(value: Any):

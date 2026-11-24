@@ -24,6 +24,7 @@ from accessi_code.ai.analyzers._base import (
 from accessi_code.ai.cache import AnalysisCache, make_key
 from accessi_code.ai.prompts.sensory import SENSORY_BATCH_PROMPT, SENSORY_IMAGE_PROMPT, SENSORY_RULES
 from accessi_code.ai.schemas import SensoryAnalysis, SensoryCandidate
+from accessi_code.ai.text_safety import read_suggestion
 from accessi_code.analysis.images import ImageInfo
 
 TEXT_LIMIT = 500
@@ -69,7 +70,7 @@ class OllamaSensoryAnalyzer(JsonAnalyzer):
             keys=[make_key("sensory", kind, payload) for payload in payloads],
             payloads=payloads,
             build_prompt=lambda items_json: SENSORY_BATCH_PROMPT.format(rule=rule, items=items_json),
-            parse_item=_parse_sensory,
+            parse_item=lambda entry: _parse_sensory(entry, suggest=kind == "shape_size_position"),
             missing_item=_unknown,
             cache=self.cache,
             batch_size=self.batch_size,
@@ -107,7 +108,7 @@ class OllamaSensoryAnalyzer(JsonAnalyzer):
             )
         )
 
-        analysis = _parse_sensory(data)
+        analysis = _parse_sensory(data, suggest=kind == "shape_size_position")
         self.cache.set(key, analysis)
         return analysis
 
@@ -119,20 +120,26 @@ def _rule(kind: str) -> str:
     return rule
 
 
-def _parse_sensory(entry: dict[str, Any]) -> SensoryAnalysis:
+def _parse_sensory(entry: dict[str, Any], *, suggest: bool) -> SensoryAnalysis:
     flags = {
         name: read_tristate(entry, name)
         for name in ("conveys_information", "relies_only_on_sensory", "alternative_relevant")
     }
     explanation, corrupted = read_explanation(entry)
+    confidence = "low" if corrupted else read_confidence(entry.get("confidence"))
     if corrupted:
         flags = dict.fromkeys(flags)
+    relies_only = flags["relies_only_on_sensory"]
+    needs_alternative = relies_only is True or (relies_only is False and flags["alternative_relevant"] is False)
     return SensoryAnalysis(
         **flags,
         explanation=explanation,
         characteristics=read_strings(entry.get("characteristics")),
         uncertainties=read_strings(entry.get("uncertainties")),
-        confidence="low" if corrupted else read_confidence(entry.get("confidence")),
+        confidence=confidence,
+        suggestion=read_suggestion(entry.get("suggestion"))
+        if suggest and confidence != "low" and flags["conveys_information"] is True and needs_alternative
+        else None,
     )
 
 

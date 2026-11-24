@@ -7,7 +7,7 @@ from accessi_code.rgaa.default_registry import build_default_registry
 from accessi_code.rgaa.themes import filter_registry_by_themes
 
 
-@pytest.mark.parametrize("theme", [1, 6, 8], ids=["images", "liens", "elements-obligatoires"])
+@pytest.mark.parametrize("theme", [1, 6, 8, 10], ids=["images", "liens", "elements-obligatoires", "presentation"])
 def test_criteria_info_covers_registered_criteria(theme):
     registry = filter_registry_by_themes(build_default_registry(), {theme})
     registered_ids = {test.criterion_id for test in registry}

@@ -19,7 +19,13 @@ SENSORY_RULES: dict[str, str] = {
         "RGAA 10.9 et 10.10 : une information ne doit pas être donnée uniquement par la forme, la taille "
         "ou la position. Exemples non conformes : « cliquez sur le bouton rond », « voir la colonne de "
         "droite », « les éléments en gros caractères sont importants ». Conforme si un autre moyen "
-        "(texte explicite, intitulé, titre de section) transmet aussi l'information, et si ce moyen est pertinent."
+        "(texte explicite, intitulé, titre de section) transmet aussi l'information, et si ce moyen est pertinent.\n\n"
+        'Ajoute un champ "suggestion" à chaque résultat. Si conveys_information vaut true et confidence vaut medium '
+        "ou high, propose une correction quand relies_only_on_sensory vaut true ou quand relies_only_on_sensory "
+        "et alternative_relevant valent tous les deux false. Donne le texte exact à écrire, en 120 caractères "
+        "maximum. Pour une image, il peut s'agir d'une légende ou d'une description. Reprends les noms, libellés "
+        "et faits fournis. Par exemple, si le bouton concerné porte le libellé « Payer », propose « Sélectionnez "
+        "Payer pour valider. » Retourne null dans les autres cas ou si les données ne suffisent pas."
     ),
 }
 

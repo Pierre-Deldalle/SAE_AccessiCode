@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import re
+from bisect import bisect_right
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
 from bs4 import BeautifulSoup, Tag
 
+from accessi_code.analysis.location import html_opening_tag
 from accessi_code.models.audit_context import AuditContext
 
 
@@ -17,6 +20,7 @@ class CSSRule:
     properties: dict[str, str]
     source: str  # "inline", "style_tag", "external"
     line_number: int | None = None
+    snippet: str | None = None
 
 
 @dataclass
@@ -77,12 +81,21 @@ def extract_css_from_context(context: AuditContext) -> list[CSSRule]:
     return rules
 
 
-def _parse_css_text(css_text: str, source: str, base_line: int | None = None) -> list[CSSRule]:
+_CSS_COMMENTS = re.compile(r"/\*.*?\*/", re.DOTALL)
+
+
+def _parse_css_text(
+    css_text: str,
+    source: str,
+    base_line: int | None = None,
+    *,
+    locate_rule: Callable[[int, int], tuple[int | None, str]] | None = None,
+) -> list[CSSRule]:
     """Parse un texte CSS et retourne les règles."""
     rules: list[CSSRule] = []
 
-    # Supprimer les commentaires
-    css_text = re.sub(r"/\*.*?\*/", "", css_text, flags=re.DOTALL)
+    if locate_rule is None:
+        css_text = _CSS_COMMENTS.sub("", css_text)
 
     # Pattern pour trouver les règles CSS: selector { properties }
     # Ce pattern est simplifié et ne gère pas tous les cas complexes
@@ -100,13 +113,17 @@ def _parse_css_text(css_text: str, source: str, base_line: int | None = None) ->
         if not properties:
             continue
 
-        for selector in selectors:
+        snippet = None
+        if locate_rule is not None:
+            selector_text = match.group(1)
+            prefix_length = len(selector_text) - len(selector_text.lstrip("} \t\r\n"))
+            line_num, snippet = locate_rule(match.start(1) + prefix_length, match.end() - 1)
+        else:
             # Calculer le numéro de ligne approximatif
-            line_num = None
-            if base_line is not None:
-                line_num = base_line + css_text[: match.start()].count("\n")
+            line_num = base_line + css_text[: match.start()].count("\n") if base_line is not None else None
 
-            rules.append(CSSRule(selector=selector, properties=properties, source=source, line_number=line_num))
+        for selector in selectors:
+            rules.append(CSSRule(selector, properties, source, line_num, snippet))
 
     return rules
 
@@ -513,7 +530,7 @@ def _find_matching_selectors(
     return matching
 
 
-def stylesheet_rules(context: AuditContext) -> list[CSSRule]:
+def stylesheet_rules(context: AuditContext, *, with_location: bool = False) -> list[CSSRule]:
     """
     Règles des feuilles de style : balises <style> puis fichiers CSS fournis
     (``context.css_sources``). Les attributs style en ligne sont exclus : ils
@@ -523,19 +540,59 @@ def stylesheet_rules(context: AuditContext) -> list[CSSRule]:
     if isinstance(context.dom, BeautifulSoup):
         for style_tag in context.dom.find_all("style"):
             if style_tag.string:
-                rules.extend(_parse_stylesheet(style_tag.string, "style_tag"))
+                base_line = _style_body_line(style_tag, context.html_source) if with_location else None
+                rules.extend(_parse_stylesheet(style_tag.string, "style_tag", with_location, base_line))
     for path, css_text in (context.css_sources or {}).items():
-        rules.extend(_parse_stylesheet(css_text, f"external:{path}"))
+        rules.extend(_parse_stylesheet(css_text, f"external:{path}", with_location, 1))
     return rules
 
 
 _GROUPING_AT_RULE = re.compile(r"@(?:media|supports|layer|container|document)[^{;]*\{", re.IGNORECASE)
 
 
-def _parse_stylesheet(css_text: str, source: str) -> list[CSSRule]:
+def _style_body_line(tag: Tag, html: str | None) -> int | None:
+    """Ligne de début du CSS, y compris si la balise <style> est multilignes."""
+    if html is None or tag.sourceline is None or tag.sourcepos is None:
+        return None
+    start = sum(len(line) + 1 for line in html.split("\n")[: tag.sourceline - 1]) + tag.sourcepos
+    opening = html_opening_tag(html[start:])
+    if not opening.lower().startswith("<style") or not html.startswith(str(tag.string), start + len(opening)):
+        return None
+    return tag.sourceline + opening.count("\n")
+
+
+def _strip_with_offsets(text: str, pattern: re.Pattern[str]) -> tuple[str, Callable[[int], int]]:
+    """Retire des segments, avec une table de correspondance vers les positions d'origine."""
+    positions: list[int] = []
+    removed = [0]
+    parts: list[str] = []
+    cursor = 0
+    for match in pattern.finditer(text):
+        parts.append(text[cursor : match.start()])
+        positions.append(match.start() - removed[-1])
+        removed.append(removed[-1] + match.end() - match.start())
+        cursor = match.end()
+    parts.append(text[cursor:])
+    return "".join(parts), lambda offset: offset + removed[bisect_right(positions, offset)]
+
+
+def _parse_stylesheet(css_text: str, source: str, with_location: bool, base_line: int | None) -> list[CSSRule]:
     """Règles d'une feuille, y compris celles placées dans @media / @supports."""
-    unwrapped = _GROUPING_AT_RULE.sub("", re.sub(r"/\*.*?\*/", "", css_text, flags=re.DOTALL))
-    rules = _parse_css_text(unwrapped, source)
+    locate_rule = None
+    if with_location:
+        uncommented, original_offset = _strip_with_offsets(css_text, _CSS_COMMENTS)
+        unwrapped, uncommented_offset = _strip_with_offsets(uncommented, _GROUPING_AT_RULE)
+        breaks = [match.start() for match in re.finditer("\n", css_text)]
+
+        def locate_rule(start: int, end: int) -> tuple[int | None, str]:
+            start = original_offset(uncommented_offset(start))
+            end = original_offset(uncommented_offset(end)) + 1
+            line = base_line + bisect_right(breaks, start - 1) if base_line is not None else None
+            snippet = css_text[start:end]
+            return line, snippet if len(snippet) <= 200 else snippet[:199] + "…"
+    else:
+        unwrapped = _GROUPING_AT_RULE.sub("", _CSS_COMMENTS.sub("", css_text))
+    rules = _parse_css_text(unwrapped, source, locate_rule=locate_rule)
     for rule in rules:
         rule.selector = rule.selector.lstrip("} \t\r\n")
     return [rule for rule in rules if rule.selector and not rule.selector.startswith("@")]

@@ -19,7 +19,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import Any, ClassVar
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 
 from accessi_code.ai.schemas import SensoryCandidate
 from accessi_code.analysis.image_elements import ImageElement, has_image_file
@@ -39,6 +39,7 @@ class SensoryTest(RGAATest):
 
     kind: ClassVar[str]
     judge_alternative: ClassVar[bool] = False
+    locate_findings: ClassVar[bool] = False
 
     noun: ClassVar[str] = "élément(s)"
     empty_summary: ClassVar[str]
@@ -53,12 +54,13 @@ class SensoryTest(RGAATest):
             raise ValueError(f"Le test {self.test_id} nécessite un DOM.")
         return context.dom
 
-    def _outcome(self, element: str, verdict: Verdict, **evidence: Any) -> Outcome:
+    def _outcome(self, element: str, verdict: Verdict, *, node: Tag, **evidence: Any) -> Outcome:
         return make_outcome(
             verdict.status,
             element,
             verdict.message(self.fail_message, self.uncertain_message),
-            self.recommendation,
+            verdict.recommendation(self.recommendation) if self.kind == "shape_size_position" else self.recommendation,
+            node=node if self.locate_findings else None,
             **evidence,
             **verdict.evidence,
         )
@@ -84,7 +86,7 @@ class SensoryTextTest(SensoryTest):
         verdicts = await judge_sensory(services, self.kind, items, judge_alternative=self.judge_alternative)
         return self._result(
             [
-                self._outcome(item.identifier, verdict, text=item.text[:300], **item.evidence)
+                self._outcome(item.identifier, verdict, node=item.tag, text=item.text[:300], **item.evidence)
                 for item, verdict in zip(candidates, verdicts, strict=True)
             ]
         )
@@ -144,6 +146,7 @@ class SensoryImageTest(SensoryTest):
                 self._outcome(
                     identifier(element.tag, index),
                     verdicts[id(element)],
+                    node=element.tag,
                     source="image" if has_image_file(element) else "code",
                     alternatives=element.alternatives_text(),
                 )
@@ -171,6 +174,7 @@ class SensoryMediaTest(SensoryTest):
                     identifier(tag, index),
                     self.uncertain_message,
                     self.recommendation,
+                    node=tag if self.locate_findings else None,
                     reason="media_not_analyzable",
                 )
                 for index, tag in enumerate(elements)

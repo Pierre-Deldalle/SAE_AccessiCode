@@ -5,6 +5,7 @@ from ai_fakes import sensory, text_services
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_10_presentation_information.criterion_10_10 import (
+    RECOMMENDATION,
     Test10101,
     Test10102,
     Test10103,
@@ -26,11 +27,17 @@ def test_relevant_alternative_passes(context_factory, run_rgaa):
     assert run_rgaa(Test10101(), context_factory(POSITION_TEXT), ai).status == Status.PASS
 
 
-def test_irrelevant_alternative_fails(context_factory, run_rgaa):
-    ai = text_services(sensory_answer=sensory(relies_only=False, alternative=False))
-    result = run_rgaa(Test10101(), context_factory(POSITION_TEXT), ai)
+@pytest.mark.parametrize("suggestion", [None, "Sélectionnez Confirmer la commande."])
+def test_irrelevant_alternative_fails(context_factory, run_rgaa, suggestion):
+    ai = text_services(sensory_answer=sensory(relies_only=False, alternative=False, suggestion=suggestion))
+    html = f"<form>\n{POSITION_TEXT}<button>Confirmer la commande</button></form>"
+    result = run_rgaa(Test10101(), context_factory(html), ai)
     assert result.status == Status.FAIL
-    assert "n'est pas pertinent" in result.findings[0].message
+    [finding] = result.findings
+    assert "n'est pas pertinent" in finding.message
+    assert (finding.line, finding.snippet) == (2, POSITION_TEXT)
+    expected = f"{RECOMMENDATION}\nProposition : {suggestion}" if suggestion else RECOMMENDATION
+    assert finding.recommendation == expected
 
 
 def test_without_alternative_is_left_to_10_9(context_factory, run_rgaa):

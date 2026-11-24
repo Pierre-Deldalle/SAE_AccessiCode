@@ -157,6 +157,105 @@ _CRITERIA_INFO = {
             "Sans indication du sens de lecture, les personnes qui lisent un passage en arabe ou en hébreu "
             "peuvent voir des mots, des nombres ou des signes de ponctuation apparaître dans un ordre déroutant.",
         ),
+        (
+            "10.1",
+            "Dans le site web, des feuilles de styles sont-elles utilisées pour contrôler la présentation "
+            "de l’information\u00a0?",
+            "Quand la mise en forme est inscrite directement dans le contenu, les personnes malvoyantes peuvent "
+            "avoir du mal à appliquer leurs propres réglages de taille de texte ou de couleurs.",
+        ),
+        (
+            "10.2",
+            "Dans chaque page web, le contenu visible porteur d’information reste-t-il présent lorsque les feuilles "
+            "de styles sont désactivées\u00a0?",
+            "Les personnes qui désactivent la mise en forme pour lire plus facilement peuvent perdre une information, "
+            "par exemple la mention indiquant qu’un champ de formulaire est obligatoire.",
+        ),
+        (
+            "10.3",
+            "Dans chaque page web, l’information reste-t-elle compréhensible lorsque les feuilles de styles "
+            "sont désactivées\u00a0?",
+            "Si la mise en forme change l’ordre des informations, une personne qui utilise un lecteur d’écran "
+            "ou désactive la mise en forme peut rencontrer une consigne après l’étape où elle en avait besoin.",
+        ),
+        (
+            "10.4",
+            "Dans chaque page web, le texte reste-t-il lisible lorsque la taille des caractères est augmentée "
+            "jusqu’à 200\u202f%, au moins (hors cas particuliers)\u00a0?",
+            "Lorsqu’une personne malvoyante agrandit le texte, des mots peuvent se chevaucher ou être coupés. "
+            "Elle peut alors avoir du mal à lire une consigne ou à identifier un bouton.",
+        ),
+        (
+            "10.5",
+            "Dans chaque page web, les déclarations CSS de couleurs de fond d’élément et de police sont-elles "
+            "correctement utilisées\u00a0?",
+            "Si une couleur ou une image de fond manque, le texte peut se confondre avec l’arrière-plan. "
+            "Les personnes malvoyantes peuvent alors avoir du mal à le lire.",
+        ),
+        (
+            "10.6",
+            "Dans chaque page web, chaque lien dont la nature n’est pas évidente est-il visible "
+            "par rapport au texte environnant\u00a0?",
+            "Si seule une différence de couleur signale un lien dans un paragraphe, les personnes daltoniennes "
+            "ou malvoyantes peuvent ne pas le repérer.",
+        ),
+        (
+            "10.7",
+            "Dans chaque page web, pour chaque élément recevant le focus, la prise de focus est-elle visible\u00a0?",
+            "Les personnes qui utilisent la touche Tab pour naviguer peuvent perdre leur place si aucun repère "
+            "visible n’indique quel lien, bouton ou champ est sélectionné.",
+        ),
+        (
+            "10.8",
+            "Pour chaque page web, les contenus cachés ont-ils vocation à être ignorés "
+            "par les technologies d’assistance\u00a0?",
+            "Un lecteur d’écran peut annoncer les liens d’un menu fermé et désorienter la personne qui l’utilise. "
+            "Il peut aussi passer sous silence une information utile qui devait seulement être cachée à l’écran.",
+        ),
+        (
+            "10.9",
+            "Dans chaque page web, l’information ne doit pas être donnée uniquement par la forme, taille ou position. "
+            "Cette règle est-elle respectée\u00a0?",
+            "Une personne qui utilise un lecteur d’écran peut ne pas savoir quel bouton activer si la consigne "
+            "dit seulement « cliquez sur le bouton rond ».",
+        ),
+        (
+            "10.10",
+            "Dans chaque page web, l’information ne doit pas être donnée par la forme, taille ou position uniquement. "
+            "Cette règle est-elle implémentée de façon pertinente\u00a0?",
+            "Une personne malvoyante peut encore hésiter entre plusieurs boutons si la consigne qui complète "
+            "« le bouton à droite » dit simplement « le bouton d’action ».",
+        ),
+        (
+            "10.11",
+            "Pour chaque page web, les contenus peuvent-ils être présentés sans perte d’information ou de "
+            "fonctionnalité et sans avoir recours soit à un défilement vertical pour une fenêtre ayant une hauteur "
+            "de 256\u202fpx, soit à un défilement horizontal pour une fenêtre ayant une largeur de 320\u202fpx "
+            "(hors cas particuliers)\u00a0?",
+            "Quand elles agrandissent la page, les personnes malvoyantes peuvent être obligées de faire défiler "
+            "la page de gauche à droite pour lire chaque ligne. Du texte ou des boutons peuvent aussi être coupés.",
+        ),
+        (
+            "10.12",
+            "Dans chaque page web, les propriétés d’espacement du texte peuvent-elles être redéfinies par "
+            "l’utilisateur sans perte de contenu ou de fonctionnalité (hors cas particuliers)\u00a0?",
+            "Certaines personnes dyslexiques augmentent l’espace entre les lettres, les mots ou les lignes "
+            "pour lire plus facilement. Si le texte se chevauche ou disparaît, elles peuvent perdre des informations.",
+        ),
+        (
+            "10.13",
+            "Dans chaque page web, les contenus additionnels apparaissant à la prise de focus ou au survol "
+            "d’un composant d’interface sont-ils contrôlables par l’utilisateur (hors cas particuliers)\u00a0?",
+            "Une infobulle impossible à fermer peut masquer le texte qu’une personne malvoyante essaie de lire. "
+            "Une personne qui déplace lentement la souris peut aussi voir l’infobulle disparaître trop tôt.",
+        ),
+        (
+            "10.14",
+            "Dans chaque page web, les contenus additionnels apparaissant via les styles CSS uniquement "
+            "peuvent-ils être rendus visibles au clavier et par tout dispositif de pointage\u00a0?",
+            "Une personne qui navigue au clavier peut manquer les consignes d’une infobulle ou les liens "
+            "d’un sous-menu si ceux-ci s’affichent seulement au survol de la souris.",
+        ),
     )
 }
 

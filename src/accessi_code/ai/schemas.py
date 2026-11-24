@@ -235,6 +235,7 @@ class SensoryAnalysis:
     uncertainties: list[str] = field(default_factory=list)
 
     confidence: AIConfidence = "low"
+    suggestion: str | None = None
 
 
 # ----------------------------------------------------------------------

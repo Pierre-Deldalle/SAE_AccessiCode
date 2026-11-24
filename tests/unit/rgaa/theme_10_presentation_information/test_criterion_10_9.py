@@ -57,17 +57,23 @@ def test_1091_common_words_and_colors_are_not_candidates(text, context_factory, 
 
 
 def test_1091_expressions_and_context_are_kept(context_factory, run_rgaa):
-    ai = text_services(sensory_answer=sensory(relies_only=True))
-    result = run_rgaa(Test1091(), context_factory("<h2>Paiement</h2>" + POSITION_TEXT), ai)
+    proposal = "Sélectionnez Payer pour valider."
+    ai = text_services(sensory_answer=sensory(relies_only=True, suggestion=proposal))
+    html = f"<form><h2>Paiement</h2>\n{POSITION_TEXT}<button>Payer</button></form>"
+    result = run_rgaa(Test1091(), context_factory(html), ai)
     assert "Titre de la section : Paiement" in submitted(ai)[0].context
     assert result.status == Status.FAIL
     assert result.findings[0].element == "p#consigne"
     assert result.findings[0].evidence["expressions"] == ["à droite"]
+    assert (result.findings[0].line, result.findings[0].snippet) == (2, POSITION_TEXT)
+    assert result.findings[0].recommendation.endswith(f"\nProposition : {proposal}")
 
 
 def test_1091_other_means_passes(context_factory, run_rgaa):
-    ai = text_services(sensory_answer=sensory(relies_only=False))
-    assert run_rgaa(Test1091(), context_factory(POSITION_TEXT), ai).status == Status.PASS
+    ai = text_services(sensory_answer=sensory(relies_only=False, suggestion="Sélectionnez Payer."))
+    result = run_rgaa(Test1091(), context_factory(POSITION_TEXT), ai)
+    assert result.status == Status.PASS
+    assert result.findings == []
 
 
 def test_1091_no_information_is_not_applicable(context_factory, run_rgaa):
@@ -81,18 +87,26 @@ def test_1091_hidden_text_is_ignored(context_factory, run_rgaa):
 
 
 def test_1092_image_goes_to_vlm(context_factory, run_rgaa):
-    ai = text_services(sensory_image_answer=sensory(relies_only=True))
-    result = run_rgaa(Test1092(), context_factory('<img src="plan.png" alt="Plan d\'accès">'), ai)
+    proposal = "Guichet des inscriptions à l’entrée nord."
+    ai = text_services(sensory_image_answer=sensory(relies_only=True, suggestion=proposal))
+    result = run_rgaa(Test1092(), context_factory('\n<img src="plan.png" alt="Plan d\'accès">'), ai)
     assert result.status == Status.FAIL
     kind, _image = ai.sensory_analyzer.analyze_image.call_args.args
     assert kind == "shape_size_position"
+    [finding] = result.findings
+    assert (finding.line, finding.snippet) == (2, '<img alt="Plan d\'accès" src="plan.png"/>')
+    assert finding.recommendation.endswith(f"\nProposition : {proposal}")
 
 
 def test_1093_audio_and_video_need_review(context_factory, run_rgaa):
-    html = '<video src="a.mp4"></video><audio src="b.mp3"></audio>'
+    html = '<video src="a.mp4"></video>\n<audio src="b.mp3"></audio>'
     result = run_rgaa(Test1093(), context_factory(html), text_services())
     assert result.status == Status.NEEDS_REVIEW
     assert result.tested_elements == 2
+    assert [(finding.line, finding.snippet) for finding in result.findings] == [
+        (1, '<video src="a.mp4"></video>'),
+        (2, '<audio src="b.mp3"></audio>'),
+    ]
 
 
 def test_1094_object_needs_review(context_factory, run_rgaa):
@@ -107,10 +121,17 @@ def test_without_ai_needs_review(context_factory, run_rgaa):
 
 
 def test_low_confidence_needs_review(context_factory, run_rgaa):
-    ai = text_services(sensory_answer=sensory(relies_only=True, confidence="low"))
-    assert run_rgaa(Test1091(), context_factory(POSITION_TEXT), ai).status == Status.NEEDS_REVIEW
+    ai = text_services(sensory_answer=sensory(relies_only=True, confidence="low", suggestion="Sélectionnez Payer."))
+    result = run_rgaa(Test1091(), context_factory(POSITION_TEXT), ai)
+    assert result.status == Status.NEEDS_REVIEW
+    [finding] = result.findings
+    assert "Proposition :" not in finding.recommendation
+    assert "suggestion" not in finding.evidence["analysis"]
 
 
 def test_ai_exception_gives_error(context_factory, run_rgaa):
     ai = text_services(sensory_answer=RuntimeError("panne"))
-    assert run_rgaa(Test1091(), context_factory(POSITION_TEXT), ai).status == Status.ERROR
+    result = run_rgaa(Test1091(), context_factory(f"\n{POSITION_TEXT}"), ai)
+    assert result.status == Status.ERROR
+    [finding] = result.findings
+    assert (finding.line, finding.snippet) == (2, POSITION_TEXT)

@@ -33,6 +33,7 @@ NON_TEMPORAL_MEDIA = ("object", "embed", "applet")
 class ShapeSizePositionTest:
     kind = "shape_size_position"
     criterion_id = "10.9"
+    locate_findings = True
     recommendation = RECOMMENDATION
 
 

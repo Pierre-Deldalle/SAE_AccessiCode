@@ -36,6 +36,7 @@ class RelevantAlternativeTest:
     kind = "shape_size_position"
     criterion_id = "10.10"
     judge_alternative = True
+    locate_findings = True
     recommendation = RECOMMENDATION
 
 
