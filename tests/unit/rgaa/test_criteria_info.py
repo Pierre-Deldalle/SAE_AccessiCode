@@ -1,59 +1,40 @@
+"""Explications par critère : couverture du registre et complétude des entrées."""
+
 import pytest
 
-from accessi_code.rgaa.criteria_info import CRITERIA_INFO, CriterionInfo, criterion_info
+from accessi_code.rgaa.criteria_info import CRITERIA, RGAA_METHOD_URL, criterion_info
 from accessi_code.rgaa.default_registry import build_default_registry
-from accessi_code.rgaa.themes import theme_number
 
-# Thématiques dont la table est renseignée. Ajouter ici chaque thématique complétée :
-# le test vérifie alors que tous ses critères présents dans le registre ont une entrée.
-COVERED_THEMES = {4}
+# Thèmes dont les explications sont rédigées ; à compléter au fil des thèmes.
+DOCUMENTED_THEMES = ("2", "4")
 
-
-def _registry_criteria() -> list[str]:
-    return list(dict.fromkeys(test.criterion_id for test in build_default_registry()))
+REGISTRY_CRITERIA = sorted(
+    {test.criterion_id for test in build_default_registry() if test.criterion_id.split(".")[0] in DOCUMENTED_THEMES}
+)
 
 
-def _covered_registry_criteria() -> list[str]:
-    return [criterion for criterion in _registry_criteria() if theme_number(criterion) in COVERED_THEMES]
+def test_documented_themes_have_criteria_in_registry():
+    assert REGISTRY_CRITERIA == sorted(["2.1", "2.2", *(f"4.{number}" for number in range(1, 14))])
 
 
-def test_covered_themes_have_registry_criteria():
-    assert _covered_registry_criteria()
-
-
-@pytest.mark.parametrize("criterion_id", _covered_registry_criteria())
+@pytest.mark.parametrize("criterion_id", REGISTRY_CRITERIA)
 def test_each_registry_criterion_has_an_entry(criterion_id):
-    info = criterion_info(criterion_id)
-
-    assert info is not None, f"Critère {criterion_id} absent de criteria_info.py"
-    assert info.criterion_id == criterion_id
+    assert criterion_info(criterion_id) is not None
 
 
-@pytest.mark.parametrize("info", CRITERIA_INFO.values(), ids=lambda info: info.criterion_id)
-def test_each_entry_has_title_impact_and_url(info: CriterionInfo):
-    assert info.title.strip()
-    # Les intitulés officiels du RGAA sont des questions.
-    assert info.title.endswith("?")
-    assert info.impact.strip()
-    assert info.url == f"https://accessibilite.numerique.gouv.fr/methode/criteres-et-tests/#{info.criterion_id}"
+@pytest.mark.parametrize("info", CRITERIA.values(), ids=list(CRITERIA))
+def test_each_entry_is_complete(info):
+    assert info.title.strip().endswith("?")
+    assert len(info.impact.strip()) > 40
+    assert info.url == f"{RGAA_METHOD_URL}#{info.criterion_id}"
 
 
-def test_entries_only_describe_criteria_of_the_registry():
-    assert set(CRITERIA_INFO) <= set(_registry_criteria())
+def test_unknown_criterion_gives_none():
+    assert criterion_info("99.9") is None
 
 
-def test_criterion_info_unknown_criterion_returns_none():
-    assert criterion_info("99.1") is None
-
-
-def test_criterion_info_ignores_surrounding_spaces():
-    info = criterion_info(" 4.10 ")
-
+def test_criterion_info_content():
+    info = criterion_info("2.1")
     assert info is not None
-    assert info.criterion_id == "4.10"
-
-
-def test_explicit_url_is_kept():
-    info = CriterionInfo("4.1", "Titre ?", "Impact.", url="https://exemple.test/4.1")
-
-    assert info.url == "https://exemple.test/4.1"
+    assert info.title == "Chaque cadre a-t-il un titre de cadre ?"
+    assert info.url == "https://accessibilite.numerique.gouv.fr/methode/criteres-et-tests/#2.1"

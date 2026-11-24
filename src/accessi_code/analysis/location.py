@@ -1,100 +1,65 @@
 """
-Localisation d'un élément HTML dans le fichier source.
+Emplacement d'un élément dans le fichier source, pour situer une observation.
 
-Ces fonctions servent uniquement à indiquer où se trouve un élément (numéro de
-ligne et extrait HTML) ; elles ne décident d'aucun statut RGAA.
+Ne décide d'aucun statut RGAA.
 """
 
 from __future__ import annotations
 
-import re
-from collections.abc import Iterable
-from html import escape
+from pathlib import Path
 
-from bs4 import Tag
+from bs4 import BeautifulSoup, Tag
 from bs4.dammit import EntitySubstitution
 from bs4.formatter import HTMLFormatter
 
-SNIPPET_MAX_LENGTH = 200
+from accessi_code.models.audit_context import AuditContext
 
-_WHITESPACE = re.compile(r"\s+")
-
-
-# Attributs booléens HTML : présents ou absents, sans valeur (``<video controls>``).
-BOOLEAN_ATTRIBUTES = frozenset(
-    {
-        "allowfullscreen",
-        "async",
-        "autofocus",
-        "autoplay",
-        "checked",
-        "controls",
-        "default",
-        "defer",
-        "disabled",
-        "formnovalidate",
-        "hidden",
-        "inert",
-        "ismap",
-        "loop",
-        "multiple",
-        "muted",
-        "nomodule",
-        "novalidate",
-        "open",
-        "playsinline",
-        "readonly",
-        "required",
-        "reversed",
-        "selected",
-    }
-)
-
-
-def _is_bare(name: str, value: object) -> bool:
-    return value is None or (value == "" and name in BOOLEAN_ATTRIBUTES)
+SNIPPET_LIMIT = 200
 
 
 class _SourceOrderFormatter(HTMLFormatter):
-    """
-    Rendu proche du fichier source : attributs dans leur ordre d'origine.
-
-    Les attributs booléens connus sont écrits sans valeur (``controls``) ; les autres
-    attributs vides gardent ``attr=""`` : le parseur ne distingue pas ``alt`` de ``alt=""``,
-    et la seconde forme est la plus parlante pour un audit.
-    """
+    """Formateur HTML qui garde les attributs dans l'ordre du code source (BeautifulSoup les trie)."""
 
     def attributes(self, tag: Tag):  # type: ignore[override]
-        return [(key, None if _is_bare(key, value) else value) for key, value in tag.attrs.items()]
+        return list(tag.attrs.items()) if tag.attrs else []
 
 
-_FORMATTER = _SourceOrderFormatter(
-    entity_substitution=EntitySubstitution.substitute_xml,
-    void_element_close_prefix=None,
-)
+_FORMATTER = _SourceOrderFormatter(entity_substitution=EntitySubstitution.substitute_xml)
+
+
+def _html(tag: Tag) -> str:
+    return tag.decode(formatter=_FORMATTER)
+
+
+def element_snippet(tag: Tag, limit: int = SNIPPET_LIMIT) -> str:
+    """
+    Extrait HTML de l'élément, espaces normalisés : l'élément entier s'il est court,
+    sinon sa seule balise ouvrante ; tronqué à ``limit`` caractères.
+    """
+    html = " ".join(_html(tag).split())
+    if len(html) > limit:
+        # BeautifulSoup échappe « > » dans les valeurs d'attributs : le premier « > » ferme la balise.
+        html = html[: html.find(">") + 1] or html
+    if len(html) > limit:
+        html = html[: limit - 1] + "…"
+    return html
 
 
 def locate(tag: Tag | None) -> tuple[int | None, str | None]:
-    """
-    Retourne la ligne de l'élément dans le fichier HTML et un extrait de son code.
-
-    La ligne provient de ``Tag.sourceline`` (renseignée par le parseur
-    ``html.parser`` ou ``lxml``) ; elle vaut None si le parseur ne la fournit pas.
-    L'extrait contient l'élément complet s'il est court, sinon sa seule balise
-    ouvrante, et ne dépasse jamais ``SNIPPET_MAX_LENGTH`` caractères.
-    """
+    """(numéro de ligne dans le fichier HTML, extrait HTML) ; (None, None) sans élément."""
     if not isinstance(tag, Tag):
         return None, None
-    return tag.sourceline, html_snippet(tag)
+    line = tag.sourceline if isinstance(tag.sourceline, int) else None
+    return line, element_snippet(tag)
 
 
 def locate_in_text(tag: Tag | None, offset: int) -> tuple[int | None, str | None]:
     """
-    Localise une position dans le contenu texte d'un élément inline (``<script>``, ``<style>``).
+    Emplacement d'une position dans le texte d'un élément de la page (``<script>``, ``<style>`` en ligne).
 
-    ``offset`` est un indice dans ``tag.get_text()``. La ligne retournée est celle du
-    fichier HTML (ligne de la balise ouvrante + retours à la ligne précédant l'offset) ;
-    l'extrait est la ligne de code correspondante. Ligne inconnue → None.
+    ``offset`` est un indice dans ``tag.get_text()``. La ligne est celle du fichier HTML
+    (ligne de la balise ouvrante + retours à la ligne avant ``offset``) ; l'extrait est la
+    ligne de code correspondante. Position invalide → emplacement de l'élément lui-même.
     """
     if not isinstance(tag, Tag):
         return None, None
@@ -103,65 +68,51 @@ def locate_in_text(tag: Tag | None, offset: int) -> tuple[int | None, str | None
         return locate(tag)
     start = text.rfind("\n", 0, offset) + 1
     end = text.find("\n", offset)
-    code_line = _truncate(_compact(text[start : end if end != -1 else len(text)]), SNIPPET_MAX_LENGTH)
-    line = None if tag.sourceline is None else tag.sourceline + text.count("\n", 0, offset)
-    return line, code_line or html_snippet(tag)
+    code = " ".join(text[start : end if end != -1 else len(text)].split())
+    if len(code) > SNIPPET_LIMIT:
+        code = code[: SNIPPET_LIMIT - 1] + "…"
+    line = tag.sourceline + text.count("\n", 0, offset) if isinstance(tag.sourceline, int) else None
+    return line, code or element_snippet(tag)
 
 
 def location_fields(tag: Tag | None, offset: int | None = None) -> dict[str, int | str | None]:
     """
-    Champs ``line`` et ``snippet`` d'un Finding, à déplier : ``Finding(..., **location_fields(tag))``.
+    Champs ``line`` et ``snippet`` pour un Finding construit à la main :
+    ``Finding(..., **location_fields(tag))``. Avec ``offset``, voir ``locate_in_text``.
 
-    Avec ``offset``, la position est cherchée dans le texte de l'élément (voir ``locate_in_text``).
+    ``file`` n'est pas renseigné : le runner y place la page auditée.
     """
     line, snippet = locate(tag) if offset is None else locate_in_text(tag, offset)
     return {"line": line, "snippet": snippet}
 
 
-def html_snippet(tag: Tag, max_length: int = SNIPPET_MAX_LENGTH) -> str:
-    """Extrait HTML lisible de l'élément, sur une seule ligne, tronqué à ``max_length`` caractères."""
-    full = _compact(tag.decode(formatter=_FORMATTER))
-    if len(full) <= max_length:
-        return full
-    return _truncate(opening_tag(tag), max_length)
-
-
-def opening_tag(tag: Tag) -> str:
-    """Balise ouvrante de l'élément, attributs compris (ex. ``<video src="a.mp4" controls>``)."""
-    return render_opening_tag(tag.name, tag.attrs.items())
-
-
-def render_opening_tag(
-    name: str,
-    attributes: Iterable[tuple[str, object]],
-    *,
-    value_limit: int | None = None,
-) -> str:
+def opening_tag(tag: Tag, **changes: str | None) -> str:
     """
-    Écrit une balise ouvrante à partir de son nom et de ses attributs, dans l'ordre fourni.
-
-    Une valeur None, ou vide pour un attribut booléen, donne un attribut sans valeur.
-    ``value_limit`` raccourcit les valeurs trop longues (utile pour un exemple court).
+    Balise ouvrante de l'élément avec ses vrais attributs, modifiés par ``changes``
+    (une valeur None retire l'attribut), pour montrer une correction « avant / après ».
     """
-    parts = [name]
-    for key, value in attributes:
-        if isinstance(value, list):
-            value = " ".join(str(item) for item in value)
-        if _is_bare(key, value):
-            parts.append(key)
-            continue
-        text = str(value)
-        if value_limit is not None:
-            text = _truncate(text, value_limit)
-        parts.append(f'{key}="{escape(text, quote=True)}"')
-    return _compact("<" + " ".join(parts) + ">")
+    attrs = {name: changes.get(name, value) for name, value in tag.attrs.items()}
+    attrs.update({name: value for name, value in changes.items() if name not in attrs})
+    attrs = {name: value for name, value in attrs.items() if value is not None}
+    rebuilt = BeautifulSoup("", "html.parser").new_tag(tag.name, attrs=attrs)
+    html = _html(rebuilt)
+    return html[: html.find(">") + 1].replace("/>", ">")
 
 
-def _compact(text: str) -> str:
-    return _WHITESPACE.sub(" ", text).strip()
-
-
-def _truncate(text: str, max_length: int) -> str:
-    if len(text) <= max_length:
-        return text
-    return text[: max_length - 1] + "…"
+def source_file_name(context: AuditContext, path: Path | str | None) -> str | None:
+    """
+    Nom d'un fichier de l'audit tel que l'utilisateur l'a fourni : chemin dans le
+    site importé (« pages/contact.html »), ou nom d'origine d'un fichier déposé seul
+    (sa copie de travail peut avoir été renommée pour éviter un doublon).
+    """
+    if path is None:
+        return None
+    path = Path(path)
+    original = next((item.original_name for item in context.files if Path(item.path) == path), None)
+    try:
+        relative = path.relative_to(context.workspace_path / "source").as_posix()
+    except ValueError:
+        relative = None
+    if relative and (original is None or Path(relative).name == original):
+        return relative
+    return original or path.name

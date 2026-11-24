@@ -27,15 +27,53 @@ def test_relevant_title_passes(context_factory, run_rgaa):
 
 def test_irrelevant_title_fails(context_factory, run_rgaa):
     ai = text_services(relevance_answer=relevance(False))
-    result = run_rgaa(Test221(), context_factory('<iframe src="m.html" title="iframe"></iframe>'), ai)
+    result = run_rgaa(Test221(), context_factory('<p>x</p>\n\n<iframe src="m.html" title="iframe"></iframe>'), ai)
     assert result.status == Status.FAIL
     assert "n'est pas pertinent" in result.findings[0].message
+    assert result.findings[0].line == 3
+    assert result.findings[0].snippet == '<iframe src="m.html" title="iframe"></iframe>'
+    assert result.findings[0].recommendation == (
+        "Rédiger un titre de cadre qui décrit son contenu ou sa fonction. "
+        'Exemple : <iframe src="m.html" title="iframe"> → '
+        '<iframe src="m.html" title="[contenu ou fonction du cadre]">'
+    )
+
+
+def test_irrelevant_title_with_ai_proposal(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=relevance(False, suggestion="Plan d'accès à l'agence"))
+    result = run_rgaa(Test221(), context_factory('<iframe src="plan.html" title="iframe"></iframe>'), ai)
+    assert result.status == Status.FAIL
+    assert result.findings[0].recommendation == (
+        "Rédiger un titre de cadre qui décrit son contenu ou sa fonction. "
+        "Proposition : « Plan d'accès à l'agence ». "
+        'Exemple : <iframe src="plan.html" title="iframe"> → '
+        '<iframe src="plan.html" title="Plan d\'accès à l\'agence">'
+    )
+
+
+def test_proposal_is_ignored_when_ai_is_unsure(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=relevance(False, confidence="low", suggestion="Plan d'accès"))
+    result = run_rgaa(Test221(), context_factory(FRAME), ai)
+    assert result.status == Status.NEEDS_REVIEW
+    assert "Proposition" not in result.findings[0].recommendation
+    assert "Exemple" not in result.findings[0].recommendation
+
+
+def test_proposal_is_ignored_on_pass(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=relevance(True, suggestion="Autre titre"))
+    result = run_rgaa(Test221(), context_factory(FRAME), ai)
+    assert result.status == Status.PASS
+    assert result.findings == []
 
 
 def test_empty_title_fails_without_ai_call(context_factory, run_rgaa):
     ai = text_services()
     result = run_rgaa(Test221(), context_factory('<iframe src="m.html" title="  "></iframe>'), ai)
     assert result.status == Status.FAIL
+    assert result.findings[0].line == 1
+    assert result.findings[0].recommendation.endswith(
+        'Exemple : <iframe src="m.html" title="  "> → <iframe src="m.html" title="[contenu ou fonction du cadre]">'
+    )
     ai.text_relevance_analyzer.analyze_relevance.assert_not_called()
 
 

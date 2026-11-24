@@ -159,7 +159,7 @@ class Test4101(RGAATest):
                         "de l'arrêter ou d'en contrôler le volume "
                         "indépendamment du volume système.",
                         # Les commandes natives permettent d'arrêter le son et d'en régler le volume.
-                        attribute_fix_example(tag, set_attributes={"controls": None})
+                        attribute_fix_example(tag, set_attributes={"controls": ""})
                         if tag.name in {"audio", "video"}
                         else None,
                     ),

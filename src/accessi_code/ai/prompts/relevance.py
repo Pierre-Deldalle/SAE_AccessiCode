@@ -27,6 +27,8 @@ class RelevanceKind:
     not_relevant_examples: str
     # Longueur maximale du texte jugé (les contenus longs, comme un tableau linéarisé, en ont besoin).
     text_limit: int = 300
+    # Texte à proposer lorsque l'élément n'est pas pertinent ; vide : aucune proposition demandée.
+    suggestion: str = ""
 
 
 RELEVANCE_KINDS: dict[str, RelevanceKind] = {
@@ -37,6 +39,7 @@ RELEVANCE_KINDS: dict[str, RelevanceKind] = {
         not_relevant_examples=(
             "« iframe », « cadre », « frame1 », un nom de fichier, un titre sans rapport avec la source."
         ),
+        suggestion="un titre de cadre court qui décrit son contenu ou sa fonction",
     ),
     "heading": RelevanceKind(
         subject="titre de section (h1 à h6 ou role=heading)",
@@ -377,11 +380,8 @@ Règles :
 - ne déduis rien de la présence ou de l'absence d'attributs HTML ;
 - utilise null si les informations ne permettent pas de conclure ;
 - confidence vaut "low", "medium" ou "high" ;
-- si relevant vaut false, propose dans suggestion le texte corrigé à écrire à la place,
-  court, en français, fondé uniquement sur les informations fournies (texte, contexte, détails) ;
-- sinon, ou si les informations ne suffisent pas pour proposer un texte, suggestion vaut null ;
 - retourne un résultat pour chaque id fourni, dans le même ordre ;
-- n'ajoute aucun texte en dehors du JSON.
+- n'ajoute aucun texte en dehors du JSON.{suggestion_rule}
 
 Éléments à évaluer (JSON) :
 {items}
@@ -396,9 +396,26 @@ Retourne uniquement :
       "explanation": "explication courte",
       "problems": [],
       "uncertainties": [],
-      "confidence": "high",
-      "suggestion": null
+      "confidence": "high"{suggestion_field}
     }}
   ]
 }}
 """.strip()
+
+# Ajoutés au prompt uniquement pour les types qui demandent une proposition (RelevanceKind.suggestion) :
+# le prompt des autres types reste inchangé.
+SUGGESTION_RULE = (
+    "\n- si relevant vaut false, propose dans suggestion {suggestion}, déduit uniquement des informations "
+    "fournies (source, contexte) ; sinon, ou si les informations ne suffisent pas, suggestion vaut null."
+)
+SUGGESTION_FIELD = ',\n      "suggestion": null'
+
+
+def suggestion_parts(kind: RelevanceKind) -> dict[str, str]:
+    """Consigne et champ JSON de la proposition, vides si le type n'en demande pas."""
+    if not kind.suggestion:
+        return {"suggestion_rule": "", "suggestion_field": ""}
+    return {
+        "suggestion_rule": SUGGESTION_RULE.format(suggestion=kind.suggestion),
+        "suggestion_field": SUGGESTION_FIELD,
+    }

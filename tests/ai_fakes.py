@@ -22,11 +22,7 @@ def relevance(
     suggestion: str | None = None,
 ):
     return RelevanceAnalysis(
-        relevant,
-        "Analyse simulée.",
-        problems=problems or [],
-        confidence=confidence,
-        suggestion=suggestion,
+        relevant, "Analyse simulée.", problems=problems or [], confidence=confidence, suggestion=suggestion
     )
 
 

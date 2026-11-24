@@ -25,10 +25,12 @@ class Finding:
     recommendation: str | None = None
     # Les preuves facilitent l'explication et la vérification du résultat.
     evidence: dict[str, Any] = field(default_factory=dict)
-    # Localisation dans le fichier source : numéro de ligne et extrait HTML de l'élément
-    # (balise ouvrante seule si l'élément est long, 200 caractères au maximum).
+    # Emplacement dans le fichier source : numéro de ligne et extrait HTML de l'élément.
     line: int | None = None
     snippet: str | None = None
+    # Fichier concerné, tel que l'utilisateur l'a fourni (par exemple « pages/contact.html »).
+    # Rempli par le runner avec la page auditée si le test ne l'a pas indiqué.
+    file: str | None = None
 
 
 @dataclass

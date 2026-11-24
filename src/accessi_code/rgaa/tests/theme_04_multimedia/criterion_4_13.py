@@ -130,7 +130,7 @@ class Test4131(RGAATest):
                             "ou fournir une alternative compatible.",
                             # Pour <audio>/<video>, les commandes natives suffisent ; ailleurs le
                             # nom à donner dépend du sens du média : pas d'exemple.
-                            attribute_fix_example(tag, set_attributes={"controls": None})
+                            attribute_fix_example(tag, set_attributes={"controls": ""})
                             if tag.name in {"audio", "video"}
                             else None,
                         )

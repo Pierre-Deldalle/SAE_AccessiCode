@@ -18,9 +18,16 @@ def test_empty_title_is_present_for_2_1_1(context_factory, run_rgaa):
 
 
 def test_iframe_without_title_fails(context_factory, run_rgaa):
-    result = run_rgaa(Test211(), context_factory('<iframe id="carte" src="m.html"></iframe>'))
+    result = run_rgaa(Test211(), context_factory('<p>Carte</p>\n<iframe id="carte" src="m.html"></iframe>'))
     assert result.status == Status.FAIL
     assert result.findings[0].element == "iframe#carte"
+    assert result.findings[0].line == 2
+    assert result.findings[0].snippet == '<iframe id="carte" src="m.html"></iframe>'
+    assert result.findings[0].recommendation == (
+        "Ajouter un attribut title décrivant le contenu ou la fonction du cadre. "
+        'Exemple : <iframe id="carte" src="m.html"> → '
+        '<iframe id="carte" src="m.html" title="[contenu ou fonction du cadre]">'
+    )
 
 
 def test_frame_without_title_fails(context_factory, run_rgaa):

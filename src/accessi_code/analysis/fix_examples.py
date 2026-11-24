@@ -14,10 +14,7 @@ from collections.abc import Callable, Iterable, Mapping
 
 from bs4 import Tag
 
-from accessi_code.analysis.location import render_opening_tag
-
-# Longueur maximale d'une valeur d'attribut dans un exemple, pour qu'il reste court.
-EXAMPLE_VALUE_LIMIT = 60
+from accessi_code.analysis.location import opening_tag
 
 # Éléments qui reçoivent le focus clavier sans tabindex.
 _NATIVELY_FOCUSABLE = frozenset({"a", "area", "button", "input", "select", "summary", "textarea"})
@@ -26,35 +23,27 @@ _NATIVELY_FOCUSABLE = frozenset({"a", "area", "button", "input", "select", "summ
 def attribute_fix_example(
     tag: Tag,
     *,
-    set_attributes: Mapping[str, str | None] | None = None,
+    set_attributes: Mapping[str, str] | None = None,
     remove_attributes: Iterable[str] = (),
 ) -> str | None:
     """
-    Exemple « <balise avant> → <balise après> » à partir de la balise ouvrante de ``tag``.
+    Exemple « <balise avant> → <balise après> » construit avec ``opening_tag`` (vrais attributs).
 
-    ``set_attributes`` ajoute ou remplace des attributs (None : attribut booléen sans valeur),
-    en conservant l'ordre d'origine ; ``remove_attributes`` en retire. Retourne None si
-    l'élément n'est pas une balise ou si la modification ne change rien.
+    ``set_attributes`` ajoute ou remplace des attributs (valeur "" pour un attribut booléen
+    comme ``controls``) ; ``remove_attributes`` en retire. Retourne None si l'élément n'est
+    pas une balise ou si la modification ne change rien.
     """
     if not isinstance(tag, Tag):
         return None
 
-    changes = dict(set_attributes or {})
-    removed = set(remove_attributes)
-    before = list(tag.attrs.items())
+    changes: dict[str, str | None] = dict(set_attributes or {})
+    changes.update({name: None for name in remove_attributes})
 
-    after: list[tuple[str, object]] = []
-    for name, value in before:
-        if name in removed:
-            continue
-        after.append((name, changes.pop(name)) if name in changes else (name, value))
-    after.extend(changes.items())
-
-    before_html = render_opening_tag(tag.name, before, value_limit=EXAMPLE_VALUE_LIMIT)
-    after_html = render_opening_tag(tag.name, after, value_limit=EXAMPLE_VALUE_LIMIT)
-    if before_html == after_html:
+    before = opening_tag(tag)
+    after = opening_tag(tag, **changes)
+    if before == after:
         return None
-    return f"{before_html} → {after_html}"
+    return f"{before} → {after}"
 
 
 def keyboard_focus_example(control: Tag, *, fixed_by: Callable[[Tag], bool] | None = None) -> str | None:

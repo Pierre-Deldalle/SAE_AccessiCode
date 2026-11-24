@@ -35,3 +35,13 @@ def test_criterion_44_tests_are_registered_in_official_order():
     test_ids = [test.test_id for test in build_default_registry().get_all() if test.criterion_id == "4.4"]
 
     assert test_ids == ["4.4.1"]
+
+
+def test_finding_indicates_media_line_and_snippet(context_factory, run_rgaa):
+    html = "<p>Film</p>\n<video src='v.mp4'><track kind='captions' src='fr.vtt'></video>"
+
+    result = run_rgaa(Test441(), context_factory(html))
+
+    assert result.status == Status.NEEDS_REVIEW
+    assert result.findings[0].line == 2
+    assert result.findings[0].snippet == '<video src="v.mp4"><track kind="captions" src="fr.vtt"/></video>'

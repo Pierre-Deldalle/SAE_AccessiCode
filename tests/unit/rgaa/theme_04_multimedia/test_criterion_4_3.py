@@ -75,7 +75,7 @@ def test_432_failure_points_to_wrong_track_line(context_factory, run_rgaa):
 
     assert result.status == Status.FAIL
     assert result.findings[0].line == 3
-    assert result.findings[0].snippet == '<track kind="subtitles" src="en.vtt">'
+    assert result.findings[0].snippet == '<track kind="subtitles" src="en.vtt"/>'
 
 
 def test_432_failure_recommendation_shows_corrected_track(context_factory, run_rgaa):

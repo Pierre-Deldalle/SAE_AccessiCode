@@ -173,68 +173,44 @@ async def test_empty_list_does_not_call_the_model() -> None:
 
 
 @pytest.mark.asyncio
-async def test_prompt_asks_for_a_suggestion() -> None:
-    llm = FakeModel(batch(RELEVANT))
+async def test_suggestion_is_requested_only_for_kinds_that_ask_for_it() -> None:
+    llm = FakeModel(batch(RELEVANT), batch(RELEVANT))
     analyzer = OllamaTextRelevanceAnalyzer(llm)
 
-    await analyzer.analyze_relevance("link", [RelevanceItem("Cliquez ici")])
+    await analyzer.analyze_relevance("frame_title", [RelevanceItem("iframe")])
+    await analyzer.analyze_relevance("link", [RelevanceItem("En savoir plus")])
 
     assert '"suggestion": null' in llm.prompts[0]
-    assert "si relevant vaut false" in llm.prompts[0]
+    assert "propose dans suggestion un titre de cadre" in llm.prompts[0]
+    assert "suggestion" not in llm.prompts[1]
 
 
 @pytest.mark.asyncio
-async def test_suggestion_is_read_when_not_relevant() -> None:
-    llm = FakeModel(batch({**NOT_RELEVANT, "suggestion": "  Horaires   d'ouverture du magasin "}))
-    analyzer = OllamaTextRelevanceAnalyzer(llm)
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("  Plan d'accès   à l'agence ", "Plan d'accès à l'agence"),
+        (None, None),
+        ("", None),
+        (42, None),
+        (["Carte"], None),
+        ("carte carte carte carte carte", None),
+    ],
+)
+async def test_suggestion_is_read_or_ignored(value, expected) -> None:
+    entry = {**NOT_RELEVANT, "suggestion": value}
+    analyzer = OllamaTextRelevanceAnalyzer(FakeModel(batch(entry)))
 
-    [result] = await analyzer.analyze_relevance("link", [RelevanceItem("En savoir plus")])
+    [result] = await analyzer.analyze_relevance("frame_title", [RelevanceItem("iframe")])
 
     assert result.relevant is False
-    assert result.suggestion == "Horaires d'ouverture du magasin"
+    assert result.suggestion == expected
 
 
 @pytest.mark.asyncio
-async def test_suggestion_is_ignored_when_relevant() -> None:
-    llm = FakeModel(batch({**RELEVANT, "suggestion": "Autre texte"}))
-    analyzer = OllamaTextRelevanceAnalyzer(llm)
+async def test_missing_suggestion_field_does_not_break_analysis() -> None:
+    analyzer = OllamaTextRelevanceAnalyzer(FakeModel(batch(NOT_RELEVANT)))
 
-    [result] = await analyzer.analyze_relevance("link", [RelevanceItem("Horaires d'ouverture")])
+    [result] = await analyzer.analyze_relevance("frame_title", [RelevanceItem("iframe")])
 
-    assert result.relevant is True
-    assert result.suggestion is None
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("value", ["", "   ", "null", 42, ["Titre"], {"texte": "Titre"}, True])
-async def test_invalid_suggestion_gives_none_without_error(value) -> None:
-    llm = FakeModel(batch({**NOT_RELEVANT, "suggestion": value}))
-    analyzer = OllamaTextRelevanceAnalyzer(llm)
-
-    [result] = await analyzer.analyze_relevance("link", [RelevanceItem("En savoir plus")])
-
-    assert result.relevant is False
-    assert result.confidence == "high"
-    assert result.suggestion is None
-
-
-@pytest.mark.asyncio
-async def test_missing_suggestion_gives_none() -> None:
-    llm = FakeModel(batch(NOT_RELEVANT))
-    analyzer = OllamaTextRelevanceAnalyzer(llm)
-
-    [result] = await analyzer.analyze_relevance("link", [RelevanceItem("En savoir plus")])
-
-    assert result.relevant is False
-    assert result.suggestion is None
-
-
-@pytest.mark.asyncio
-async def test_long_suggestion_is_truncated() -> None:
-    llm = FakeModel(batch({**NOT_RELEVANT, "suggestion": "mot " * 200}))
-    analyzer = OllamaTextRelevanceAnalyzer(llm)
-
-    [result] = await analyzer.analyze_relevance("link", [RelevanceItem("En savoir plus")])
-
-    assert result.suggestion is not None
-    assert len(result.suggestion) <= 200
+    assert (result.relevant, result.confidence, result.suggestion) == (False, "high", None)

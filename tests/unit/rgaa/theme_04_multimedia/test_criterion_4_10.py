@@ -301,14 +301,14 @@ def test_criterion_410_media_finding_points_to_media_line(context_factory, run_r
     result = run_rgaa(Test4101(), context_factory(html))
 
     assert result.findings[0].line == 2
-    assert result.findings[0].snippet == '<audio autoplay src="a.mp3"></audio>'
+    assert result.findings[0].snippet == '<audio autoplay="" src="a.mp3"></audio>'
 
 
 def test_criterion_410_uncontrolled_media_recommendation_shows_controls_example(context_factory, run_rgaa):
     result = run_rgaa(Test4101(), context_factory("<audio autoplay src='musique.mp3'></audio>"))
 
     assert result.findings[0].recommendation.endswith(
-        'Exemple : <audio autoplay src="musique.mp3"> → <audio autoplay src="musique.mp3" controls>'
+        'Exemple : <audio autoplay="" src="musique.mp3"> → <audio autoplay="" src="musique.mp3" controls="">'
     )
 
 

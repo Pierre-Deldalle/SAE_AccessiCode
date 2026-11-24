@@ -38,8 +38,7 @@ def make_outcome(
     """
     Outcome avec un Finding, sauf pour PASS et NOT_APPLICABLE sans message.
 
-    ``node`` est l'élément HTML concerné : s'il est fourni, la ligne et l'extrait
-    HTML du Finding sont renseignés automatiquement.
+    ``node`` : élément HTML concerné ; sa ligne et son extrait sont ajoutés au Finding.
     """
     if element is None or (status in {TestStatus.PASS, TestStatus.NOT_APPLICABLE} and not message):
         return Outcome(status)

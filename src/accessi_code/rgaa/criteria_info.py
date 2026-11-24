@@ -1,54 +1,49 @@
 """
-Explications par critère RGAA 4.1.2 : intitulé officiel, impact pour l'utilisateur et lien vers la fiche.
+Explications par critère RGAA 4.1.2, destinées à l'utilisateur final.
 
-Source unique des explications affichées à côté des résultats : les tests RGAA disent ce qui ne va
-pas, cette table dit pourquoi cela gêne. Elle ne dépend d'aucun test et n'en modifie aucun.
+Pour chaque critère : son intitulé officiel, ce qu'un défaut change concrètement
+pour les personnes concernées (sans jargon), et le lien vers sa fiche officielle.
+Les tests RGAA disent ce qui ne va pas ; cette table dit pourquoi cela gêne.
 
-Règles de rédaction :
-
-- ``title`` : intitulé officiel recopié fidèlement depuis
-  https://accessibilite.numerique.gouv.fr/methode/criteres-et-tests/ (ponctuation et apostrophes comprises) ;
-- ``impact`` : une à deux phrases simples, sans jargon, qui disent qui est gêné et comment.
-
-Thématiques renseignées pour l'instant : 4 (Multimédia).
+Pour ajouter un critère : ajouter une entrée dans ``CRITERIA``, avec l'intitulé
+recopié depuis la méthode officielle.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 
-RGAA_CRITERIA_URL = "https://accessibilite.numerique.gouv.fr/methode/criteres-et-tests/"
+RGAA_METHOD_URL = "https://accessibilite.numerique.gouv.fr/methode/criteres-et-tests/"
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True)
 class CriterionInfo:
-    """Explication d'un critère RGAA destinée à un public non spécialiste."""
+    """Intitulé, impact pour les utilisateurs et fiche officielle d'un critère."""
 
     criterion_id: str
     title: str
     impact: str
-    # Lien vers la fiche officielle ; déduit de criterion_id s'il n'est pas fourni.
-    url: str = ""
 
-    def __post_init__(self) -> None:
-        if not self.url:
-            object.__setattr__(self, "url", criterion_url(self.criterion_id))
+    @property
+    def url(self) -> str:
+        return f"{RGAA_METHOD_URL}#{self.criterion_id}"
 
 
-def criterion_url(criterion_id: str) -> str:
-    """
-    Lien vers la fiche officielle d'un critère.
-
-    Les critères sont des ancres de la page « Critères et tests » (…/criteres-et-tests/#4.1) :
-    la forme …/criteres-et-tests/4.1 renvoie une erreur 404.
-    """
-    return f"{RGAA_CRITERIA_URL}#{criterion_id}"
-
-
-_CRITERIA: tuple[CriterionInfo, ...] = (
-    # ------------------------------------------------------------------
-    # Thématique 4 : Multimédia
-    # ------------------------------------------------------------------
+_ENTRIES = (
+    # ---- Thème 2 : cadres ----
+    CriterionInfo(
+        "2.1",
+        "Chaque cadre a-t-il un titre de cadre ?",
+        "Une personne aveugle qui utilise un lecteur d'écran entend seulement « cadre » : sans titre, elle ne "
+        "sait pas ce que contient ce bloc (carte, vidéo, formulaire…) avant d'y entrer et de l'explorer.",
+    ),
+    CriterionInfo(
+        "2.2",
+        "Pour chaque cadre ayant un titre de cadre, ce titre de cadre est-il pertinent ?",
+        "Un titre vague comme « iframe » ou « cadre 1 » n'aide pas une personne qui utilise un lecteur d'écran : "
+        "elle doit ouvrir le cadre pour découvrir son contenu, et ne peut pas choisir rapidement où aller.",
+    ),
+    # ---- Thème 4 : multimédia ----
     CriterionInfo(
         "4.1",
         "Chaque média temporel pré-enregistré a-t-il, si nécessaire, une transcription textuelle "
@@ -139,9 +134,9 @@ _CRITERIA: tuple[CriterionInfo, ...] = (
     ),
 )
 
-CRITERIA_INFO: dict[str, CriterionInfo] = {info.criterion_id: info for info in _CRITERIA}
+CRITERIA: dict[str, CriterionInfo] = {entry.criterion_id: entry for entry in _ENTRIES}
 
 
 def criterion_info(criterion_id: str) -> CriterionInfo | None:
-    """Explication du critère (« 4.1 »), ou None si le critère n'est pas encore renseigné."""
-    return CRITERIA_INFO.get(str(criterion_id).strip())
+    """Explications du critère ``criterion_id`` (par exemple "2.1"), ou None s'il n'est pas renseigné."""
+    return CRITERIA.get(criterion_id)

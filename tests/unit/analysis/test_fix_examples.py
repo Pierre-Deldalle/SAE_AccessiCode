@@ -22,11 +22,11 @@ def test_attribute_fix_example_uses_real_values_and_keeps_order():
     )
 
 
-def test_attribute_fix_example_adds_boolean_attribute_without_value():
+def test_attribute_fix_example_adds_boolean_attribute():
     video = _tag("<video autoplay src='film.mp4'></video>")
 
-    assert attribute_fix_example(video, set_attributes={"controls": None}) == (
-        '<video autoplay src="film.mp4"> → <video autoplay src="film.mp4" controls>'
+    assert attribute_fix_example(video, set_attributes={"controls": ""}) == (
+        '<video autoplay="" src="film.mp4"> → <video autoplay="" src="film.mp4" controls="">'
     )
 
 
@@ -34,25 +34,15 @@ def test_attribute_fix_example_can_remove_attributes():
     audio = _tag("<audio autoplay src='a.mp3'></audio>")
 
     assert attribute_fix_example(audio, remove_attributes=["autoplay"]) == (
-        '<audio autoplay src="a.mp3"> → <audio src="a.mp3">'
+        '<audio autoplay="" src="a.mp3"> → <audio src="a.mp3">'
     )
 
 
 def test_attribute_fix_example_without_change_or_tag_is_none():
     video = _tag("<video controls src='f.mp4'></video>")
 
-    assert attribute_fix_example(video, set_attributes={"controls": None}) is None
-    assert attribute_fix_example(None, set_attributes={"controls": None}) is None
-
-
-def test_attribute_fix_example_shortens_long_values():
-    video = _tag(f"<video src='{'a' * 300}.mp4'></video>")
-
-    example = attribute_fix_example(video, set_attributes={"controls": None})
-
-    assert example is not None
-    assert len(example) < 200
-    assert "…" in example
+    assert attribute_fix_example(video, set_attributes={"controls": ""}) is None
+    assert attribute_fix_example(None, set_attributes={"controls": ""}) is None
 
 
 def test_keyboard_focus_example_for_negative_or_missing_tabindex():

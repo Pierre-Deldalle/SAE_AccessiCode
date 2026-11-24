@@ -148,26 +148,15 @@ class Verdict:
 
     @property
     def suggestion(self) -> str | None:
-        """
-        Texte corrigé proposé par l'IA, seulement pour un FAIL issu d'une réponse exploitable.
-
-        La proposition est lue après la décision : elle ne change jamais le statut. Une confiance
-        faible donne NEEDS_REVIEW, donc aucune proposition n'est affichée.
-        """
-        if self.status is not TestStatus.FAIL or self.reason != "ai":
+        """Texte corrigé proposé par l'IA, retenu uniquement pour une non-conformité (FAIL)."""
+        if self.status is not TestStatus.FAIL:
             return None
-        suggestion = getattr(self.analysis, "suggestion", None)
-        if not isinstance(suggestion, str) or not suggestion.strip():
-            return None
-        return " ".join(suggestion.split())
+        value = getattr(self.analysis, "suggestion", None)
+        return value.strip() if isinstance(value, str) and value.strip() else None
 
-    def recommendation(self, base: str | None) -> str | None:
-        """Recommandation du Finding, complétée par « Proposition : … » lorsque l'IA en fournit une sur un FAIL."""
-        suggestion = self.suggestion
-        if suggestion is None:
-            return base
-        proposal = f"Proposition : {suggestion}"
-        return f"{base} {proposal}" if base else proposal
+    def recommendation(self, base: str) -> str:
+        """Recommandation du test, complétée par la proposition de l'IA s'il y en a une."""
+        return f"{base} Proposition : « {self.suggestion} »." if self.suggestion else base
 
 
 async def judge_batch(

@@ -203,7 +203,7 @@ class Test4111(_Criterion411Test):
                 if status != TestStatus.PASS
                 else None,
                 # Les commandes natives du navigateur couvrent la lecture, la pause et le son.
-                attribute_fix_example(media.tag, set_attributes={"controls": None})
+                attribute_fix_example(media.tag, set_attributes={"controls": ""})
                 if status is TestStatus.FAIL
                 else None,
             ),

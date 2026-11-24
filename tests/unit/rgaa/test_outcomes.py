@@ -70,7 +70,7 @@ def test_theme_01_outcome_uses_image_tag_by_default():
 
     assert result.finding is not None
     assert result.finding.line == 2
-    assert result.finding.snippet == '<img src="logo.png">'
+    assert result.finding.snippet == '<img src="logo.png"/>'
 
 
 def test_theme_01_outcome_accepts_explicit_node():

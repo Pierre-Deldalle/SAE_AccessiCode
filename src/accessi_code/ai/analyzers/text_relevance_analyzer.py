@@ -20,8 +20,9 @@ from accessi_code.ai.analyzers._base import (
     truncate,
 )
 from accessi_code.ai.cache import AnalysisCache, make_key
-from accessi_code.ai.prompts.relevance import RELEVANCE_BATCH_PROMPT, RELEVANCE_KINDS
+from accessi_code.ai.prompts.relevance import RELEVANCE_BATCH_PROMPT, RELEVANCE_KINDS, suggestion_parts
 from accessi_code.ai.schemas import RelevanceAnalysis, RelevanceItem
+from accessi_code.ai.text_safety import clean_explanation
 
 TEXT_LIMIT = 300
 HTML_LIMIT = 400
@@ -65,6 +66,7 @@ class OllamaTextRelevanceAnalyzer(JsonAnalyzer):
                 relevant_when=spec.relevant_when,
                 not_relevant_examples=spec.not_relevant_examples,
                 items=items_json,
+                **suggestion_parts(spec),
             )
 
         return await self._run_batched(
@@ -93,26 +95,22 @@ def _payload(item: RelevanceItem, text_limit: int = TEXT_LIMIT) -> dict[str, Any
 def _parse_relevance(entry: dict[str, Any]) -> RelevanceAnalysis:
     relevant = read_tristate(entry, "relevant")
     explanation, corrupted = read_explanation(entry)
-    relevant = None if corrupted else relevant
     return RelevanceAnalysis(
-        relevant=relevant,
+        relevant=None if corrupted else relevant,
         explanation=explanation,
         problems=read_strings(entry.get("problems")),
         uncertainties=read_strings(entry.get("uncertainties")),
         confidence="low" if corrupted else read_confidence(entry.get("confidence")),
-        # Une proposition n'a de sens que pour un texte jugé non pertinent.
-        suggestion=_read_suggestion(entry.get("suggestion")) if relevant is False else None,
+        suggestion=None if corrupted else _read_suggestion(entry.get("suggestion")),
     )
 
 
 def _read_suggestion(value: Any) -> str | None:
-    """Texte proposé par le modèle ; absent, vide ou d'un autre type que texte → None, jamais d'erreur."""
-    if not isinstance(value, str):
+    """Proposition du modèle ; absente, vide, non textuelle ou incohérente → None."""
+    if not isinstance(value, str) or not value.strip():
         return None
-    text = truncate(value, SUGGESTION_LIMIT)
-    if not text or text.lower() in {"null", "none", "aucune", "n/a"}:
-        return None
-    return text
+    text, corrupted = clean_explanation(value, max_chars=SUGGESTION_LIMIT)
+    return None if corrupted else text
 
 
 def _unknown(reason: str) -> RelevanceAnalysis:
