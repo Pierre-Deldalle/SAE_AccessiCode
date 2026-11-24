@@ -1,7 +1,6 @@
 """Critère RGAA 11.2 : pertinence des étiquettes."""
 
 import pytest
-from ai_fakes import relevance, text_services
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_11_forms.criterion_11_2 import (
@@ -12,6 +11,7 @@ from accessi_code.rgaa.tests.theme_11_forms.criterion_11_2 import (
     Test1125,
     Test1126,
 )
+from tests.ai_fakes import relevance, text_services
 
 LABEL = '<form><label for="m">Adresse e-mail</label><input id="m" type="email" name="mail"></form>'
 

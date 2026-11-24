@@ -3,7 +3,6 @@
 from pathlib import Path
 
 import pytest
-from ai_fakes import sensory, text_services
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_03_colors.criterion_3_1 import (
@@ -14,6 +13,7 @@ from accessi_code.rgaa.tests.theme_03_colors.criterion_3_1 import (
     Test315,
     Test316,
 )
+from tests.ai_fakes import sensory, text_services
 
 COLORED_WORD = '<p>Statut : <span id="etat" style="color: red">indisponible</span></p>'
 COLOR_TEXT = '<p id="aide">Les champs en rouge sont obligatoires.</p>'

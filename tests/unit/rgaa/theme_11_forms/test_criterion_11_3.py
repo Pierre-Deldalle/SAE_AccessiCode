@@ -1,10 +1,10 @@
 """Critère RGAA 11.3 : cohérence des étiquettes de champs de même fonction."""
 
-from ai_fakes import relevance, text_services
 from bs4 import BeautifulSoup
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_11_forms.criterion_11_3 import Test1131, Test1132
+from tests.ai_fakes import relevance, text_services
 
 SAME = (
     '<label for="a">Courriel</label><input id="a" type="email" autocomplete="email">'

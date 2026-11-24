@@ -3,13 +3,13 @@
 import asyncio
 
 import pytest
-from ai_fakes import relevance, text_services
 from bs4 import BeautifulSoup
 
 from accessi_code.analysis.cryptic import ASCII_ART_KIND, EMOTICON_KIND, SYNTAX_KIND, find_cryptic_contents
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_13_consultation.criterion_13_5 import Test1351
 from accessi_code.rgaa.tests.theme_13_consultation.criterion_13_6 import Test1361
+from tests.ai_fakes import relevance, text_services
 
 ASCII_ART = "<pre>\n  /\\_/\\   ##\n ( o.o )  ==\n  > ^ <  ~~**\n /|   |\\ //\\\\\n</pre>"
 

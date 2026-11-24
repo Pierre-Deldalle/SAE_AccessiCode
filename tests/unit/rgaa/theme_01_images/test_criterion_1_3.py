@@ -1,7 +1,6 @@
 """Critère RGAA 1.3 : pertinence et concision des alternatives textuelles."""
 
 import pytest
-from image_fakes import alternative, profile, services
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_01_images.criterion_1_3 import (
@@ -15,6 +14,7 @@ from accessi_code.rgaa.tests.theme_01_images.criterion_1_3 import (
     Test138,
     Test139,
 )
+from tests.unit.rgaa.theme_01_images.image_fakes import alternative, profile, services
 
 ALL = [Test131, Test132, Test133, Test134, Test135, Test136, Test137, Test138, Test139]
 IMG = '<img src="ventes.png" alt="Ventes 2025">'

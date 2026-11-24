@@ -1,10 +1,9 @@
 from pathlib import Path
 
-from ai_fakes import relevance, text_services
-
 from accessi_code.input.context_builder import AuditContextBuilder
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_11_forms.criterion_11_3 import Test1132
+from tests.ai_fakes import relevance, text_services
 
 
 def test_builder_populates_page_doms_and_1132(tmp_path: Path, run_rgaa):

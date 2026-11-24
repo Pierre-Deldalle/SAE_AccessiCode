@@ -1,7 +1,6 @@
 """Critère RGAA 7.2 : alternatives aux scripts (7.2.1 jugé par l'IA)."""
 
 import pytest
-from ai_fakes import relevance, text_services
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_07_scripts.criterion_7_2 import (
@@ -9,6 +8,7 @@ from accessi_code.rgaa.tests.theme_07_scripts.criterion_7_2 import (
     Test722,
 )
 from accessi_code.service.audit_services import AuditServices
+from tests.ai_fakes import relevance, text_services
 
 NOSCRIPT = """
 <div id="carte">

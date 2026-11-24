@@ -1,0 +1,379 @@
+[
+  {
+    "id": "title_validation_001",
+    "input": {
+      "title": "Prendre rendez-vous - Cabinet Dupont",
+      "heading": "Prendre rendez-vous",
+      "content": "Choisissez le type de consultation, puis sélectionnez une date et un horaire disponibles pour réserver votre rendez-vous au cabinet Dupont."
+    },
+    "expected": {
+      "relevant": true
+    },
+    "metadata": {
+      "category": "relevant_service_action",
+      "description": "Le titre identifie précisément l'action principale proposée par la page."
+    }
+  },
+  {
+    "id": "title_validation_002",
+    "input": {
+      "title": "Installer Docker Desktop sous Windows",
+      "heading": "Installation de Docker sur Windows",
+      "content": "Ce guide explique comment télécharger Docker Desktop, lancer l'installation puis vérifier que Docker fonctionne correctement sous Windows."
+    },
+    "expected": {
+      "relevant": true
+    },
+    "metadata": {
+      "category": "relevant_rephrased",
+      "description": "Le titre et le heading sont formulés différemment mais décrivent précisément le même guide."
+    }
+  },
+  {
+    "id": "title_validation_003",
+    "input": {
+      "title": "Mes factures - Espace client",
+      "heading": "Mes factures",
+      "content": "Retrouvez vos dernières factures, leur montant, leur date d'émission et les liens permettant de les télécharger."
+    },
+    "expected": {
+      "relevant": true
+    },
+    "metadata": {
+      "category": "relevant_account_section",
+      "description": "Le titre identifie correctement une section précise de l'espace client."
+    }
+  },
+  {
+    "id": "title_validation_004",
+    "input": {
+      "title": "Accessibilité numérique : les obligations des services publics",
+      "heading": "Quelles obligations d'accessibilité pour les services publics ?",
+      "content": "Cette page présente les principales obligations relatives à l'accessibilité numérique applicables aux services publics."
+    },
+    "expected": {
+      "relevant": true
+    },
+    "metadata": {
+      "category": "relevant_article",
+      "description": "Le titre résume correctement le sujet traité malgré une reformulation du heading."
+    }
+  },
+  {
+    "id": "title_validation_005",
+    "input": {
+      "title": "Accès refusé - Erreur 403",
+      "heading": "Vous n'avez pas accès à cette page",
+      "content": "Votre compte ne dispose pas des autorisations nécessaires pour consulter cette ressource."
+    },
+    "expected": {
+      "relevant": true
+    },
+    "metadata": {
+      "category": "relevant_error_page",
+      "description": "Le titre décrit correctement la nature de l'erreur affichée."
+    }
+  },
+  {
+    "id": "title_validation_006",
+    "input": {
+      "title": "Commande n°78351 - En cours de livraison",
+      "heading": "Suivi de la commande n°78351",
+      "content": "Votre commande n°78351 a quitté l'entrepôt et est actuellement prise en charge par le transporteur."
+    },
+    "expected": {
+      "relevant": true
+    },
+    "metadata": {
+      "category": "relevant_specific_resource",
+      "description": "Le titre contient à la fois le bon identifiant et un état cohérent avec la commande."
+    }
+  },
+  {
+    "id": "title_validation_007",
+    "input": {
+      "title": "Résultats pour « ordinateur portable »",
+      "heading": "Résultats de recherche",
+      "content": "32 résultats ont été trouvés pour la recherche « ordinateur portable »."
+    },
+    "expected": {
+      "relevant": true
+    },
+    "metadata": {
+      "category": "relevant_search",
+      "description": "La requête affichée dans le titre correspond exactement à celle de la page."
+    }
+  },
+  {
+    "id": "title_validation_008",
+    "input": {
+      "title": "Profil de Marie Dupont",
+      "heading": "Marie Dupont",
+      "content": "Consultez les informations du profil de Marie Dupont, notamment sa biographie, ses publications et ses coordonnées professionnelles."
+    },
+    "expected": {
+      "relevant": true
+    },
+    "metadata": {
+      "category": "relevant_specific_resource",
+      "description": "Le titre permet d'identifier précisément le profil consulté."
+    }
+  },
+  {
+    "id": "title_validation_009",
+    "input": {
+      "title": "Résultats du semestre 1 - BUT Informatique",
+      "heading": "Résultats du semestre 1",
+      "content": "Consultez vos notes et moyennes obtenues au premier semestre de votre formation en BUT Informatique."
+    },
+    "expected": {
+      "relevant": true
+    },
+    "metadata": {
+      "category": "relevant_period",
+      "description": "La période indiquée dans le titre correspond exactement aux résultats affichés."
+    }
+  },
+  {
+    "id": "title_validation_010",
+    "input": {
+      "title": "Paramètres de notification - Mon compte",
+      "heading": "Gérer mes notifications",
+      "content": "Choisissez les notifications que vous souhaitez recevoir par e-mail ou directement dans l'application."
+    },
+    "expected": {
+      "relevant": true
+    },
+    "metadata": {
+      "category": "relevant_settings",
+      "description": "Le titre identifie précisément la catégorie de paramètres modifiée."
+    }
+  },
+
+  {
+    "id": "title_validation_011",
+    "input": {
+      "title": "Tableau de bord",
+      "heading": "Supprimer définitivement mon compte",
+      "content": "Cette page permet de demander la suppression définitive de votre compte et de toutes les données qui lui sont associées."
+    },
+    "expected": {
+      "relevant": false
+    },
+    "metadata": {
+      "category": "irrelevant_wrong_page",
+      "description": "Le titre désigne une autre page de l'espace utilisateur."
+    }
+  },
+  {
+    "id": "title_validation_012",
+    "input": {
+      "title": "Modifier mon adresse postale",
+      "heading": "Modifier mon adresse e-mail",
+      "content": "Saisissez votre nouvelle adresse e-mail afin de remplacer celle actuellement associée à votre compte."
+    },
+    "expected": {
+      "relevant": false
+    },
+    "metadata": {
+      "category": "irrelevant_same_section",
+      "description": "Le titre concerne bien les coordonnées du compte mais désigne une information différente."
+    }
+  },
+  {
+    "id": "title_validation_013",
+    "input": {
+      "title": "Suivi de la commande n°12084",
+      "heading": "Suivi de la commande n°12085",
+      "content": "Consultez le statut et la date de livraison prévue de la commande n°12085."
+    },
+    "expected": {
+      "relevant": false
+    },
+    "metadata": {
+      "category": "irrelevant_wrong_identifier",
+      "description": "Le type de page est correct mais le numéro de commande est incorrect."
+    }
+  },
+  {
+    "id": "title_validation_014",
+    "input": {
+      "title": "Météo à Lille",
+      "heading": "Météo à Calais",
+      "content": "Retrouvez les prévisions météorologiques de Calais pour aujourd'hui et demain."
+    },
+    "expected": {
+      "relevant": false
+    },
+    "metadata": {
+      "category": "irrelevant_wrong_location",
+      "description": "Le thème est identique mais la ville est une information distinctive incorrecte."
+    }
+  },
+  {
+    "id": "title_validation_015",
+    "input": {
+      "title": "Articles - Page 4",
+      "heading": "Articles",
+      "content": "Vous consultez actuellement la cinquième page de notre liste d'articles."
+    },
+    "expected": {
+      "relevant": false
+    },
+    "metadata": {
+      "category": "irrelevant_wrong_pagination",
+      "description": "Le numéro de pagination présent dans le titre est incorrect."
+    }
+  },
+  {
+    "id": "title_validation_016",
+    "input": {
+      "title": "Créer un compte",
+      "heading": "Connexion",
+      "content": "Entrez votre adresse e-mail et votre mot de passe pour vous connecter à un compte déjà existant."
+    },
+    "expected": {
+      "relevant": false
+    },
+    "metadata": {
+      "category": "irrelevant_wrong_action",
+      "description": "Créer un compte et se connecter sont deux actions différentes malgré leur proximité fonctionnelle."
+    }
+  },
+  {
+    "id": "title_validation_017",
+    "input": {
+      "title": "Rapport financier 2025",
+      "heading": "Rapport financier 2026",
+      "content": "Découvrez les revenus, dépenses et résultats financiers de l'organisation pour l'année 2026."
+    },
+    "expected": {
+      "relevant": false
+    },
+    "metadata": {
+      "category": "irrelevant_wrong_version",
+      "description": "L'année constitue une information distinctive importante et elle est incorrecte."
+    }
+  },
+  {
+    "id": "title_validation_018",
+    "input": {
+      "title": "Paiement validé",
+      "heading": "Paiement en attente",
+      "content": "Votre banque doit encore confirmer la transaction. La commande ne sera validée qu'après réception de cette confirmation."
+    },
+    "expected": {
+      "relevant": false
+    },
+    "metadata": {
+      "category": "irrelevant_wrong_status",
+      "description": "Le titre annonce un état différent de celui réellement présenté."
+    }
+  },
+  {
+    "id": "title_validation_019",
+    "input": {
+      "title": "Aide",
+      "heading": "Changer mon mot de passe",
+      "content": "Cette page explique comment modifier le mot de passe d'un compte lorsque l'utilisateur connaît encore son mot de passe actuel."
+    },
+    "expected": {
+      "relevant": false
+    },
+    "metadata": {
+      "category": "irrelevant_too_broad",
+      "description": "Le titre décrit une rubrique très générale et ne permet pas d'identifier cette page précise."
+    }
+  },
+  {
+    "id": "title_validation_020",
+    "input": {
+      "title": "MacBook Air M5 - Fiche produit",
+      "heading": "Lenovo ThinkPad X1 Carbon",
+      "content": "Découvrez les caractéristiques, le prix et la disponibilité du Lenovo ThinkPad X1 Carbon."
+    },
+    "expected": {
+      "relevant": false
+    },
+    "metadata": {
+      "category": "irrelevant_wrong_resource",
+      "description": "Le titre possède la bonne structure mais identifie un autre produit."
+    }
+  },
+
+  {
+    "id": "title_validation_021",
+    "input": {
+      "title": "Historique",
+      "heading": "",
+      "content": "Chargement en cours..."
+    },
+    "expected": {
+      "relevant": null
+    },
+    "metadata": {
+      "category": "undetermined_loading_state",
+      "description": "Le contenu réel n'est pas encore disponible pour déterminer ce que représente l'historique."
+    }
+  },
+  {
+    "id": "title_validation_022",
+    "input": {
+      "title": "Mon dossier",
+      "heading": "Mon dossier",
+      "content": "Statut :"
+    },
+    "expected": {
+      "relevant": null
+    },
+    "metadata": {
+      "category": "undetermined_truncated_content",
+      "description": "Le contenu est trop incomplet pour savoir précisément de quel dossier il s'agit."
+    }
+  },
+  {
+    "id": "title_validation_023",
+    "input": {
+      "title": "Mes documents",
+      "heading": "",
+      "content": "Accueil | Profil | Déconnexion | Paramètres | Cookies | Mentions légales"
+    },
+    "expected": {
+      "relevant": null
+    },
+    "metadata": {
+      "category": "undetermined_boilerplate_only",
+      "description": "Seule la navigation générique de l'application est disponible."
+    }
+  },
+  {
+    "id": "title_validation_024",
+    "input": {
+      "title": "Dashboard",
+      "heading": "Tableau",
+      "content": "Dashboard. Tableau. Data."
+    },
+    "expected": {
+      "relevant": null
+    },
+    "metadata": {
+      "category": "undetermined_short_multilingual",
+      "description": "Le texte est trop court et imprécis pour savoir quelle fonction réelle possède la page."
+    }
+  },
+  {
+    "id": "title_validation_025",
+    "input": {
+      "title": "Rapport",
+      "heading": "",
+      "content": "{{ component.data }} %%REPORT_WIDGET%% section_undefined 001"
+    },
+    "expected": {
+      "relevant": null
+    },
+    "metadata": {
+      "category": "undetermined_corrupted_content",
+      "description": "Le contenu disponible ressemble à une extraction corrompue et ne permet pas d'évaluer la pertinence du titre."
+    }
+  }
+]

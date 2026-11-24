@@ -1,11 +1,11 @@
 """Critère RGAA 1.5 : solution d'accès alternative aux CAPTCHA."""
 
 import pytest
-from image_fakes import profile, services
 
 from accessi_code.ai.schemas import RelevanceAnalysis
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_01_images.criterion_1_5 import Test151, Test152
+from tests.unit.rgaa.theme_01_images.image_fakes import profile, services
 
 CAPTCHA = '<form><img class="captcha" src="c.png" alt="Code de sécurité"></form>'
 WITH_AUDIO = (

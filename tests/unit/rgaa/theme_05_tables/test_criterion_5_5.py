@@ -1,9 +1,8 @@
 """Critère RGAA 5.5 : pertinence du titre des tableaux de données."""
 
-from ai_fakes import relevance, text_services
-
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_05_tables.criterion_5_5 import Test551
+from tests.ai_fakes import relevance, text_services
 
 ROWS = "<tr><th>Ville</th><th>Habitants</th></tr><tr><td>Lille</td><td>236 000</td></tr>"
 CAPTIONED = f"<table id='pop'><caption>Population des villes du Nord</caption>{ROWS}</table>"

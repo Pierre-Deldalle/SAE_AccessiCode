@@ -1,7 +1,6 @@
 """Critère RGAA 1.1 : présence d'une alternative textuelle."""
 
 import pytest
-from image_fakes import profile, services
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_01_images.criterion_1_1 import (
@@ -14,6 +13,7 @@ from accessi_code.rgaa.tests.theme_01_images.criterion_1_1 import (
     Test117,
     Test118,
 )
+from tests.unit.rgaa.theme_01_images.image_fakes import profile, services
 
 ALL = [Test111, Test112, Test113, Test114, Test115, Test116, Test117, Test118]
 

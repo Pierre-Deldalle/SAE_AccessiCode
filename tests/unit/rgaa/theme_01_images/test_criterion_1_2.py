@@ -1,7 +1,6 @@
 """Critère RGAA 1.2 : images de décoration ignorées par les technologies d'assistance."""
 
 import pytest
-from image_fakes import profile, services
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_01_images.criterion_1_2 import (
@@ -12,6 +11,7 @@ from accessi_code.rgaa.tests.theme_01_images.criterion_1_2 import (
     Test125,
     Test126,
 )
+from tests.unit.rgaa.theme_01_images.image_fakes import profile, services
 
 ALL = [Test121, Test122, Test123, Test124, Test125, Test126]
 DECORATIVE = profile(informative=False)

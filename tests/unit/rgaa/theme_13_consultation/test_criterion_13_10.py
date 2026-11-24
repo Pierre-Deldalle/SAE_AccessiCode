@@ -3,12 +3,12 @@
 import asyncio
 
 import pytest
-from ai_fakes import relevance, text_services
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_13_consultation.criterion_13_10 import Test13101, Test13102
 from accessi_code.rgaa.tests.theme_13_consultation.criterion_13_11 import Test13111
 from accessi_code.rgaa.tests.theme_13_consultation.criterion_13_12 import Test13121, Test13122, Test13123
+from tests.ai_fakes import relevance, text_services
 
 PINCH = "map.addEventListener('touchstart', e => { if (e.touches.length > 1) startZoom(e) });"
 SWIPE = "c.addEventListener('touchmove', e => { dx = e.touches[0].clientX - x0; });"

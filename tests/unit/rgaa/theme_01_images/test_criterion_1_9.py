@@ -1,7 +1,6 @@
 """Critère RGAA 1.9 : légendes d'images reliées à leur image."""
 
 import pytest
-from image_fakes import services
 
 from accessi_code.ai.schemas import StructureCandidateAnalysis
 from accessi_code.models.result import TestStatus as Status
@@ -12,6 +11,7 @@ from accessi_code.rgaa.tests.theme_01_images.criterion_1_9 import (
     Test194,
     Test195,
 )
+from tests.unit.rgaa.theme_01_images.image_fakes import services
 
 ALL = [Test191, Test192, Test193, Test194, Test195]
 GOOD_FIGURE = (

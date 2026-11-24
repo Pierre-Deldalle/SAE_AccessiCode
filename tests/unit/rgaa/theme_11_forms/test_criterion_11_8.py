@@ -1,10 +1,10 @@
 """Critère RGAA 11.8 : regroupement des items de listes de choix."""
 
 import pytest
-from ai_fakes import relevance, text_services
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_11_forms.criterion_11_8 import Test1181, Test1182, Test1183
+from tests.ai_fakes import relevance, text_services
 
 MIXED = "<select><option>Paris</option><option>Lyon</option><option>Madrid</option><option>Séville</option></select>"
 GROUPED = (

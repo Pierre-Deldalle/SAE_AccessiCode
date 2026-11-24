@@ -1,9 +1,8 @@
 """Critère RGAA 2.2 : pertinence du titre de cadre."""
 
-from ai_fakes import relevance, text_services
-
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_02_frames.criterion_2_2 import Test221
+from tests.ai_fakes import relevance, text_services
 
 FRAME = '<h2>Nous trouver</h2><iframe src="https://maps.example/agence" title="Plan d\'accès à l\'agence"></iframe>'
 

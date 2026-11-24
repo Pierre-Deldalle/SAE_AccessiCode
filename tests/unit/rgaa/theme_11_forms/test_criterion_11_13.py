@@ -1,10 +1,10 @@
 """Critère RGAA 11.13 : finalité des champs concernant l'utilisateur (autocomplete)."""
 
 import pytest
-from ai_fakes import relevance, text_services
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_11_forms.criterion_11_13 import Test11131, parse_autocomplete
+from tests.ai_fakes import relevance, text_services
 
 
 def field(label: str, attributes: str = "") -> str:

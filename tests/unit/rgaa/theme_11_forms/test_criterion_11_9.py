@@ -3,11 +3,11 @@
 from unittest.mock import AsyncMock
 
 import pytest
-from ai_fakes import relevance, text_services
 
 from accessi_code.ai.schemas import ImageProfile
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_11_forms.criterion_11_9 import Test1191, Test1192
+from tests.ai_fakes import relevance, text_services
 
 BUTTON = "<form><input aria-label='Recherche'><button>Rechercher</button></form>"
 

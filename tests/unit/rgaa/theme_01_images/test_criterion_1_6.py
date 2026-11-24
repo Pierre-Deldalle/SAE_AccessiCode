@@ -1,7 +1,6 @@
 """Critère RGAA 1.6 : description détaillée si nécessaire."""
 
 import pytest
-from image_fakes import profile, services
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_01_images.criterion_1_6 import (
@@ -16,6 +15,7 @@ from accessi_code.rgaa.tests.theme_01_images.criterion_1_6 import (
     Test169,
     Test1610,
 )
+from tests.unit.rgaa.theme_01_images.image_fakes import profile, services
 
 ALL = [Test161, Test162, Test163, Test164, Test165, Test166, Test167, Test168, Test169, Test1610]
 COMPLEX = profile(informative=True, needs_description=True)

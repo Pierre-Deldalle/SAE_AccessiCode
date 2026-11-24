@@ -1,7 +1,6 @@
 """Critère RGAA 6.1 : liens explicites (6.1.1 à 6.1.4 jugés par l'IA, 6.1.5 déterministe)."""
 
 import pytest
-from ai_fakes import relevance, text_services
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_06_links.criterion_6_1 import (
@@ -19,6 +18,7 @@ from accessi_code.rgaa.tests.theme_06_links.criterion_6_1 import (
 from accessi_code.rgaa.tests.theme_06_links.criterion_6_1 import (
     Test615 as RGAA615,
 )
+from tests.ai_fakes import relevance, text_services
 
 TEXT_LINK = '<p>Nos tarifs 2024 : <a id="tarifs" href="/tarifs.pdf">télécharger la grille</a>.</p>'
 IMAGE_LINK = '<a href="/"><img src="logo.png" alt="Accueil de la médiathèque"></a>'
