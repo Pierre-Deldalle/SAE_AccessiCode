@@ -20,11 +20,12 @@ from abc import abstractmethod
 from dataclasses import dataclass, field
 from typing import Any, ClassVar
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 
 from accessi_code.ai.schemas import AlternativeAnalysis, ImageProfile
 from accessi_code.analysis.image_elements import ImageElement, ImageKind, find_image_elements, has_image_file
 from accessi_code.analysis.images import make_local_resource_loader
+from accessi_code.analysis.location import locate
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
 from accessi_code.models.result import Finding, TestResult, TestStatus
@@ -98,11 +99,19 @@ def outcome(
     element: ImageElement | None = None,
     message: str = "",
     recommendation: str | None = None,
+    *,
+    node: Tag | None = None,
     **evidence: Any,
 ) -> Outcome:
-    """Outcome avec un Finding (sauf pour PASS et NOT_APPLICABLE sans message)."""
+    """
+    Outcome avec un Finding (sauf pour PASS et NOT_APPLICABLE sans message).
+
+    La ligne et l'extrait HTML sont pris sur ``node`` s'il est fourni, sinon sur
+    la balise de l'image elle-même.
+    """
     if element is None or (status in {TestStatus.PASS, TestStatus.NOT_APPLICABLE} and not message):
         return Outcome(status)
+    line, snippet = locate(node if node is not None else element.tag)
     return Outcome(
         status,
         Finding(
@@ -110,6 +119,8 @@ def outcome(
             message=message,
             recommendation=recommendation,
             evidence={"kind": element.kind, **evidence},
+            line=line,
+            snippet=snippet,
         ),
     )
 

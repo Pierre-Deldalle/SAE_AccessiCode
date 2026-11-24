@@ -182,3 +182,34 @@ def test_4122_external_control_with_aria_controls(
     result = run_rgaa(Test4122(), context)
 
     assert result.status == TestStatus.NEEDS_REVIEW
+
+
+def test_4121_failure_points_to_unreachable_control(context_factory, run_rgaa):
+    html = '<svg id="carte" aria-label="Carte">\n<div role="button" onclick="zoom()">Zoom</div>\n</svg>'
+
+    result = run_rgaa(Test4121(), context_factory(html))
+
+    assert result.status == TestStatus.FAIL
+    assert result.findings[0].line == 2
+    assert result.findings[0].snippet == '<div role="button" onclick="zoom()">Zoom</div>'
+
+
+def test_4121_failure_recommendation_shows_tabindex_example(context_factory, run_rgaa):
+    html = '<svg id="carte" aria-label="Carte"><div role="button" onclick="zoom()">Zoom</div></svg>'
+
+    result = run_rgaa(Test4121(), context_factory(html))
+
+    assert result.status == TestStatus.FAIL
+    assert result.findings[0].recommendation.endswith(
+        'Exemple : <div role="button" onclick="zoom()"> → <div role="button" onclick="zoom()" tabindex="0">'
+    )
+
+
+def test_4122_no_example_when_tabindex_would_not_be_enough(context_factory, run_rgaa):
+    # Un lien sans href n'est pas activable : sa destination dépend du site, pas d'exemple.
+    html = '<svg id="carte" aria-label="Carte"><a onclick="zoom()">Zoom</a></svg>'
+
+    result = run_rgaa(Test4122(), context_factory(html))
+
+    assert result.status == TestStatus.FAIL
+    assert "Exemple" not in result.findings[0].recommendation

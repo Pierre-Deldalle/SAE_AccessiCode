@@ -4,6 +4,7 @@ from typing import Any
 
 from bs4 import BeautifulSoup, Tag
 
+from accessi_code.analysis.location import location_fields
 from accessi_code.analysis.media import (
     find_adjacent_media_alternatives,
     find_temporal_media,
@@ -95,6 +96,7 @@ class _Criterion45Test(RGAATest):
                         "track_sources": [str(track.get("src", "")) for track in tracks],
                         "adjacent_audio_description_alternatives": len(description_links),
                     },
+                    **location_fields(item.tag),
                 )
             )
 

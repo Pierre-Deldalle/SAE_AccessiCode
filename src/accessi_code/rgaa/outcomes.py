@@ -11,6 +11,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from bs4 import Tag
+
+from accessi_code.analysis.location import locate
 from accessi_code.models.result import Finding, TestResult, TestStatus
 from accessi_code.rgaa.ai_decision import count_statuses, worst_status
 
@@ -28,12 +31,30 @@ def make_outcome(
     element: str | None = None,
     message: str = "",
     recommendation: str | None = None,
+    *,
+    node: Tag | None = None,
     **evidence: Any,
 ) -> Outcome:
-    """Outcome avec un Finding, sauf pour PASS et NOT_APPLICABLE sans message."""
+    """
+    Outcome avec un Finding, sauf pour PASS et NOT_APPLICABLE sans message.
+
+    ``node`` est l'élément HTML concerné : s'il est fourni, la ligne et l'extrait
+    HTML du Finding sont renseignés automatiquement.
+    """
     if element is None or (status in {TestStatus.PASS, TestStatus.NOT_APPLICABLE} and not message):
         return Outcome(status)
-    return Outcome(status, Finding(element=element, message=message, recommendation=recommendation, evidence=evidence))
+    line, snippet = locate(node)
+    return Outcome(
+        status,
+        Finding(
+            element=element,
+            message=message,
+            recommendation=recommendation,
+            evidence=evidence,
+            line=line,
+            snippet=snippet,
+        ),
+    )
 
 
 def build_result(

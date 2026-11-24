@@ -4,6 +4,8 @@ from typing import Any
 
 from bs4 import BeautifulSoup, Tag
 
+from accessi_code.analysis.fix_examples import attribute_fix_example, with_example
+from accessi_code.analysis.location import location_fields
 from accessi_code.analysis.media import find_adjacent_media_alternatives, is_media_exempt, media_identifier
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
@@ -123,9 +125,14 @@ class Test4131(RGAATest):
                     recommendation=(
                         None
                         if accessible
-                        else (
+                        else with_example(
                             "Exposer l'interface du média aux technologies d'assistance "
-                            "ou fournir une alternative compatible."
+                            "ou fournir une alternative compatible.",
+                            # Pour <audio>/<video>, les commandes natives suffisent ; ailleurs le
+                            # nom à donner dépend du sens du média : pas d'exemple.
+                            attribute_fix_example(tag, set_attributes={"controls": None})
+                            if tag.name in {"audio", "video"}
+                            else None,
                         )
                     ),
                     evidence={
@@ -135,6 +142,7 @@ class Test4131(RGAATest):
                         "accessible_name": _has_accessible_name(tag, context.dom),
                         "accessible_alternative": accessible_alternative,
                     },
+                    **location_fields(tag),
                 )
             )
 
@@ -217,6 +225,7 @@ class Test4132(RGAATest):
                         "referenced_alternative": _referenced_alternative(tag, context.dom),
                         "alternative_adjacent": adjacent,
                     },
+                    **location_fields(tag),
                 )
             )
 

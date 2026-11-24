@@ -146,6 +146,29 @@ class Verdict:
         head = fail if self.status is TestStatus.FAIL else uncertain
         return f"{head} {self.explanation}".strip()
 
+    @property
+    def suggestion(self) -> str | None:
+        """
+        Texte corrigé proposé par l'IA, seulement pour un FAIL issu d'une réponse exploitable.
+
+        La proposition est lue après la décision : elle ne change jamais le statut. Une confiance
+        faible donne NEEDS_REVIEW, donc aucune proposition n'est affichée.
+        """
+        if self.status is not TestStatus.FAIL or self.reason != "ai":
+            return None
+        suggestion = getattr(self.analysis, "suggestion", None)
+        if not isinstance(suggestion, str) or not suggestion.strip():
+            return None
+        return " ".join(suggestion.split())
+
+    def recommendation(self, base: str | None) -> str | None:
+        """Recommandation du Finding, complétée par « Proposition : … » lorsque l'IA en fournit une sur un FAIL."""
+        suggestion = self.suggestion
+        if suggestion is None:
+            return base
+        proposal = f"Proposition : {suggestion}"
+        return f"{base} {proposal}" if base else proposal
+
 
 async def judge_batch(
     services: Any | None,

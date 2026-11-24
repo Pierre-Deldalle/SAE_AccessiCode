@@ -5,6 +5,8 @@ from typing import Any
 
 from bs4 import BeautifulSoup, NavigableString, Tag
 
+from accessi_code.analysis.fix_examples import attribute_fix_example, first_keyboard_fix_example, with_example
+from accessi_code.analysis.location import location_fields
 from accessi_code.analysis.media import (
     TemporalMedia,
     find_temporal_media,
@@ -194,12 +196,16 @@ class Test4111(_Criterion411Test):
         return status, Finding(
             element=element,
             message=message,
-            recommendation=(
+            recommendation=with_example(
                 "Vérifier la présence des commandes de lecture/pause/arrêt "
                 "et, selon le média, du son, des sous-titres et "
                 "de l'audiodescription."
                 if status != TestStatus.PASS
-                else None
+                else None,
+                # Les commandes natives du navigateur couvrent la lecture, la pause et le son.
+                attribute_fix_example(media.tag, set_attributes={"controls": None})
+                if status is TestStatus.FAIL
+                else None,
             ),
             evidence={
                 "native_controls": native_controls,
@@ -208,6 +214,7 @@ class Test4111(_Criterion411Test):
                 "missing_actions": sorted(missing_actions),
                 "track_kinds": sorted(tracks),
             },
+            **location_fields(media.tag),
         )
 
 
@@ -251,7 +258,7 @@ class Test4112(_Criterion411Test):
         return status, Finding(
             element=element,
             message=message,
-            recommendation=(
+            recommendation=with_example(
                 "Vérifier que chaque fonctionnalité de contrôle est "
                 "atteignable au clavier et avec un dispositif de pointage."
                 if status
@@ -259,13 +266,15 @@ class Test4112(_Criterion411Test):
                     TestStatus.FAIL,
                     TestStatus.NEEDS_REVIEW,
                 }
-                else None
+                else None,
+                first_keyboard_fix_example(controls, _is_keyboard_reachable) if status is TestStatus.FAIL else None,
             ),
             evidence={
                 "native_controls": native_controls,
                 "custom_control_count": len(controls),
                 "keyboard_reachable": all(_is_keyboard_reachable(control) for control in controls),
             },
+            **location_fields(media.tag),
         )
 
 
@@ -309,20 +318,22 @@ class Test4113(_Criterion411Test):
         return status, Finding(
             element=element,
             message=message,
-            recommendation=(
+            recommendation=with_example(
                 "Tester l'activation de chaque fonctionnalité au clavier et avec un dispositif de pointage."
                 if status
                 in {
                     TestStatus.FAIL,
                     TestStatus.NEEDS_REVIEW,
                 }
-                else None
+                else None,
+                first_keyboard_fix_example(controls, _is_keyboard_activatable) if status is TestStatus.FAIL else None,
             ),
             evidence={
                 "native_controls": native_controls,
                 "custom_control_count": len(controls),
                 "keyboard_activatable": all(_is_keyboard_activatable(control) for control in controls),
             },
+            **location_fields(media.tag),
         )
 
 

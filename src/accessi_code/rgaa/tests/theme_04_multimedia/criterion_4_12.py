@@ -5,6 +5,8 @@ from typing import Any
 
 from bs4 import BeautifulSoup, Tag
 
+from accessi_code.analysis.fix_examples import first_keyboard_fix_example, with_example
+from accessi_code.analysis.location import location_fields
 from accessi_code.analysis.media import is_media_exempt, media_identifier
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
@@ -402,6 +404,7 @@ class Test4121(RGAATest):
                             "control_count": 0,
                             "keyboard_reachable": None,
                         },
+                        **location_fields(element),
                     )
                 )
 
@@ -418,10 +421,11 @@ class Test4121(RGAATest):
                         message=(
                             "Une ou plusieurs fonctionnalités de contrôle ne semblent pas accessibles au clavier."
                         ),
-                        recommendation=(
+                        recommendation=with_example(
                             "Rendre chaque fonctionnalité de contrôle "
                             "accessible au clavier et avec tout "
-                            "dispositif de pointage."
+                            "dispositif de pointage.",
+                            first_keyboard_fix_example(unreachable, _is_keyboard_reachable),
                         ),
                         evidence={
                             "control_count": len(controls),
@@ -430,6 +434,8 @@ class Test4121(RGAATest):
                                 _control_label(control) or control.name or "contrôle" for control in unreachable
                             ],
                         },
+                        # La ligne indiquée est celle du premier contrôle à corriger.
+                        **location_fields(unreachable[0]),
                     )
                 )
 
@@ -456,6 +462,7 @@ class Test4121(RGAATest):
                         "keyboard_reachable": True,
                         "controls": [_control_label(control) or control.name or "contrôle" for control in controls],
                     },
+                    **location_fields(element),
                 )
             )
 
@@ -552,6 +559,7 @@ class Test4122(RGAATest):
                             "control_count": 0,
                             "keyboard_activatable": None,
                         },
+                        **location_fields(element),
                     )
                 )
 
@@ -566,8 +574,9 @@ class Test4122(RGAATest):
                     Finding(
                         element=identifier,
                         message=("Une ou plusieurs fonctionnalités de contrôle ne semblent pas activables au clavier."),
-                        recommendation=(
-                            "Rendre chaque fonctionnalité activable au clavier et avec tout dispositif de pointage."
+                        recommendation=with_example(
+                            "Rendre chaque fonctionnalité activable au clavier et avec tout dispositif de pointage.",
+                            first_keyboard_fix_example(non_activatable, _is_keyboard_activatable),
                         ),
                         evidence={
                             "control_count": len(controls),
@@ -576,6 +585,8 @@ class Test4122(RGAATest):
                                 _control_label(control) or control.name or "contrôle" for control in non_activatable
                             ],
                         },
+                        # La ligne indiquée est celle du premier contrôle à corriger.
+                        **location_fields(non_activatable[0]),
                     )
                 )
 
@@ -599,6 +610,7 @@ class Test4122(RGAATest):
                         "keyboard_activatable": True,
                         "controls": [_control_label(control) or control.name or "contrôle" for control in controls],
                     },
+                    **location_fields(element),
                 )
             )
 

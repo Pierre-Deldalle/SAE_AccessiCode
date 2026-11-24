@@ -61,3 +61,37 @@ def test_criterion_43_tests_are_registered_in_official_order():
     test_ids = [test.test_id for test in build_default_registry().get_all() if test.criterion_id == "4.3"]
 
     assert test_ids == ["4.3.1", "4.3.2"]
+
+
+def test_432_failure_points_to_wrong_track_line(context_factory, run_rgaa):
+    html = (
+        "<video src='film.mp4'>\n"
+        "  <track kind='captions' src='fr.vtt'>\n"
+        "  <track kind='subtitles' src='en.vtt'>\n"
+        "</video>"
+    )
+
+    result = run_rgaa(Test432(), context_factory(html))
+
+    assert result.status == Status.FAIL
+    assert result.findings[0].line == 3
+    assert result.findings[0].snippet == '<track kind="subtitles" src="en.vtt">'
+
+
+def test_432_failure_recommendation_shows_corrected_track(context_factory, run_rgaa):
+    html = "<video src='film.mp4'><track kind='subtitles' src='en.vtt' srclang='en'></video>"
+
+    result = run_rgaa(Test432(), context_factory(html))
+
+    assert result.findings[0].recommendation.endswith(
+        'Exemple : <track kind="subtitles" src="en.vtt" srclang="en"> '
+        '→ <track kind="captions" src="en.vtt" srclang="en">'
+    )
+
+
+def test_432_pass_has_no_example(context_factory, run_rgaa):
+    html = "<video src='film.mp4'><track kind='captions' src='fr.vtt'></video>"
+
+    result = run_rgaa(Test432(), context_factory(html))
+
+    assert result.findings[0].recommendation is None

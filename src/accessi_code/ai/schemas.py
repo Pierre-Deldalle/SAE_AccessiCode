@@ -138,6 +138,10 @@ class RelevanceAnalysis:
 
     confidence: AIConfidence = "low"
 
+    # Texte corrigé proposé par le modèle, seulement quand relevant vaut false.
+    # Une simple proposition : elle ne modifie jamais le statut RGAA.
+    suggestion: str | None = None
+
 
 # ----------------------------------------------------------------------
 # Images

@@ -27,6 +27,7 @@ TEXT_LIMIT = 300
 HTML_LIMIT = 400
 CONTEXT_LIMIT = 600
 DETAIL_LIMIT = 300
+SUGGESTION_LIMIT = 200
 
 
 class OllamaTextRelevanceAnalyzer(JsonAnalyzer):
@@ -92,13 +93,26 @@ def _payload(item: RelevanceItem, text_limit: int = TEXT_LIMIT) -> dict[str, Any
 def _parse_relevance(entry: dict[str, Any]) -> RelevanceAnalysis:
     relevant = read_tristate(entry, "relevant")
     explanation, corrupted = read_explanation(entry)
+    relevant = None if corrupted else relevant
     return RelevanceAnalysis(
-        relevant=None if corrupted else relevant,
+        relevant=relevant,
         explanation=explanation,
         problems=read_strings(entry.get("problems")),
         uncertainties=read_strings(entry.get("uncertainties")),
         confidence="low" if corrupted else read_confidence(entry.get("confidence")),
+        # Une proposition n'a de sens que pour un texte jugé non pertinent.
+        suggestion=_read_suggestion(entry.get("suggestion")) if relevant is False else None,
     )
+
+
+def _read_suggestion(value: Any) -> str | None:
+    """Texte proposé par le modèle ; absent, vide ou d'un autre type que texte → None, jamais d'erreur."""
+    if not isinstance(value, str):
+        return None
+    text = truncate(value, SUGGESTION_LIMIT)
+    if not text or text.lower() in {"null", "none", "aucune", "n/a"}:
+        return None
+    return text
 
 
 def _unknown(reason: str) -> RelevanceAnalysis:

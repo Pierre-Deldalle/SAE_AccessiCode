@@ -5,6 +5,8 @@ from typing import Any
 
 from bs4 import BeautifulSoup, Tag
 
+from accessi_code.analysis.fix_examples import attribute_fix_example, with_example
+from accessi_code.analysis.location import location_fields
 from accessi_code.analysis.media import is_media_exempt, media_identifier
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
@@ -79,6 +81,8 @@ class Test4101(RGAATest):
                             "independent_volume_control_detected": False,
                             "manual_review_required": True,
                         },
+                        # Ligne du code détecté dans le script inline.
+                        **location_fields(tag, candidate.get("match_offset")),
                     )
                 )
                 continue
@@ -108,6 +112,7 @@ class Test4101(RGAATest):
                             "duration_verified": False,
                             "manual_review_required": False,
                         },
+                        **location_fields(tag),
                     )
                 )
                 continue
@@ -135,6 +140,7 @@ class Test4101(RGAATest):
                             "duration_verified": False,
                             "manual_review_required": True,
                         },
+                        **location_fields(tag),
                     )
                 )
                 continue
@@ -147,11 +153,15 @@ class Test4101(RGAATest):
                         "automatiquement a été détectée sans contrôle "
                         "utilisateur identifiable."
                     ),
-                    recommendation=(
+                    recommendation=with_example(
                         "Vérifier que la séquence dure au maximum "
                         "3 secondes ou ajouter un dispositif permettant "
                         "de l'arrêter ou d'en contrôler le volume "
-                        "indépendamment du volume système."
+                        "indépendamment du volume système.",
+                        # Les commandes natives permettent d'arrêter le son et d'en régler le volume.
+                        attribute_fix_example(tag, set_attributes={"controls": None})
+                        if tag.name in {"audio", "video"}
+                        else None,
                     ),
                     evidence={
                         "source_type": tag.name,
@@ -164,6 +174,7 @@ class Test4101(RGAATest):
                         "duration_verified": False,
                         "manual_review_required": True,
                     },
+                    **location_fields(tag),
                 )
             )
 
@@ -473,11 +484,14 @@ def _find_javascript_sound_candidates(
         if not script_text:
             continue
 
-        if _contains_automatic_audio_code(script_text):
+        match_offset = _automatic_audio_code_offset(script_text)
+
+        if match_offset is not None:
             candidates.append(
                 {
                     "kind": "javascript",
                     "tag": script,
+                    "match_offset": match_offset,
                     "element": f"script[index={index}]",
                     "autoplay": True,
                     "muted": False,
@@ -490,13 +504,9 @@ def _find_javascript_sound_candidates(
     return candidates
 
 
-def _contains_automatic_audio_code(script: str) -> bool:
-    """
-    Détecte quelques formes courantes de lecture automatique
-    via JavaScript / Web Audio API.
-    """
-
-    patterns = (
+_AUTOMATIC_AUDIO_PATTERNS = tuple(
+    re.compile(pattern, flags=re.IGNORECASE)
+    for pattern in (
         r"\.play\s*\(",
         r"\.start\s*\(",
         r"AudioContext",
@@ -504,5 +514,21 @@ def _contains_automatic_audio_code(script: str) -> bool:
         r"createBufferSource",
         r"createMediaElementSource",
     )
+)
 
-    return any(re.search(pattern, script, flags=re.IGNORECASE) for pattern in patterns)
+
+def _contains_automatic_audio_code(script: str) -> bool:
+    """
+    Détecte quelques formes courantes de lecture automatique
+    via JavaScript / Web Audio API.
+    """
+
+    return _automatic_audio_code_offset(script) is not None
+
+
+def _automatic_audio_code_offset(script: str) -> int | None:
+    """Position du premier appel susceptible de lancer un son dans le script, None si aucun."""
+
+    offsets = [match.start() for pattern in _AUTOMATIC_AUDIO_PATTERNS if (match := pattern.search(script))]
+
+    return min(offsets) if offsets else None

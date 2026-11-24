@@ -15,8 +15,19 @@ from accessi_code.ai.schemas import RelevanceAnalysis, SensoryAnalysis, Structur
 from accessi_code.service.audit_services import AuditServices
 
 
-def relevance(relevant: bool | None = True, confidence: str = "high", problems: list[str] | None = None):
-    return RelevanceAnalysis(relevant, "Analyse simulée.", problems=problems or [], confidence=confidence)
+def relevance(
+    relevant: bool | None = True,
+    confidence: str = "high",
+    problems: list[str] | None = None,
+    suggestion: str | None = None,
+):
+    return RelevanceAnalysis(
+        relevant,
+        "Analyse simulée.",
+        problems=problems or [],
+        confidence=confidence,
+        suggestion=suggestion,
+    )
 
 
 def structure(marked: bool | None = True, confidence: str = "high"):

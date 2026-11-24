@@ -377,6 +377,9 @@ Règles :
 - ne déduis rien de la présence ou de l'absence d'attributs HTML ;
 - utilise null si les informations ne permettent pas de conclure ;
 - confidence vaut "low", "medium" ou "high" ;
+- si relevant vaut false, propose dans suggestion le texte corrigé à écrire à la place,
+  court, en français, fondé uniquement sur les informations fournies (texte, contexte, détails) ;
+- sinon, ou si les informations ne suffisent pas pour proposer un texte, suggestion vaut null ;
 - retourne un résultat pour chaque id fourni, dans le même ordre ;
 - n'ajoute aucun texte en dehors du JSON.
 
@@ -393,7 +396,8 @@ Retourne uniquement :
       "explanation": "explication courte",
       "problems": [],
       "uncertainties": [],
-      "confidence": "high"
+      "confidence": "high",
+      "suggestion": null
     }}
   ]
 }}
