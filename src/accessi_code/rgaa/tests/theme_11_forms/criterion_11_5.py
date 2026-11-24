@@ -32,6 +32,7 @@ from accessi_code.models.result import TestResult, TestStatus
 from accessi_code.rgaa.ai_decision import judge_relevance
 from accessi_code.rgaa.base import RGAATest
 from accessi_code.rgaa.outcomes import build_result, make_outcome, not_applicable
+from accessi_code.rgaa.tests.theme_11_forms._examples import fieldset_example
 
 RECOMMENDATION = 'Regrouper les champs de même nature dans un fieldset avec legend (ou role="group" avec aria-label).'
 
@@ -67,7 +68,8 @@ class Test1151(RGAATest):
                     TestStatus.FAIL,
                     identifier(group[0], soup),
                     f"Les {len(group)} boutons radio « {group[0].get('name')} » ne sont pas regroupés.",
-                    RECOMMENDATION,
+                    RECOMMENDATION + fieldset_example(group[0]),
+                    node=group[0],
                     name=group[0].get("name"),
                 )
             )
@@ -98,18 +100,18 @@ class Test1151(RGAATest):
         verdicts = await judge_relevance(services, "field_grouping", items)
         for (form, loose), verdict in zip(pending, verdicts, strict=True):
             problems = getattr(verdict.analysis, "problems", []) if verdict.analysis is not None else []
+            target = form if isinstance(form, Tag) and form.name == "form" else loose[0]
             outcomes.append(
                 make_outcome(
                     verdict.status,
-                    identifier(form, soup)
-                    if isinstance(form, Tag) and form.name == "form"
-                    else identifier(loose[0], soup),
+                    identifier(target, soup),
                     verdict.message(
                         "Des champs de même nature ne sont pas regroupés"
                         + (f" : {' ; '.join(problems)}." if problems else "."),
                         "Des champs de ce formulaire pourraient devoir être regroupés.",
                     ),
                     RECOMMENDATION,
+                    node=target,
                     ungrouped_fields=len(loose),
                     **verdict.evidence,
                 )

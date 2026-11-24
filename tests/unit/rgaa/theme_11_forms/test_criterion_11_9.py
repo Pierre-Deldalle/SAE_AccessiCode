@@ -119,3 +119,28 @@ def test_1192_image_button_uncertain_or_error(context_factory, run_rgaa):
     assert run_rgaa(Test1192(), context_factory(html), low).status == Status.NEEDS_REVIEW
     assert run_rgaa(Test1192(), context_factory(html)).status == Status.NEEDS_REVIEW
     assert run_rgaa(Test1192(), context_factory(html), image_services(RuntimeError("x"))).status == Status.ERROR
+
+
+def test_fail_gives_line_and_snippet(context_factory, run_rgaa):
+    html = '<form>\n<button id="b"></button>\n</form>'
+    finding = run_rgaa(Test1191(), context_factory(html), text_services()).findings[0]
+    assert (finding.line, finding.snippet) == (2, '<button id="b"></button>')
+
+
+def test_ai_suggestion_is_proposed_on_fail(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=relevance(False, suggestion="Envoyer le message"))
+    finding = run_rgaa(Test1191(), context_factory("<form><button>OK</button></form>"), ai).findings[0]
+    assert finding.recommendation.endswith("Proposition : « Envoyer le message ».")
+
+
+def test_visible_label_missing_from_name_shows_an_example(context_factory, run_rgaa):
+    html = '<form><button aria-label="Valider">Envoyer</button></form>'
+    finding = run_rgaa(Test1192(), context_factory(html)).findings[0]
+    assert finding.recommendation.endswith('Exemple : <button aria-label="Valider"> → <button aria-label="Envoyer">')
+
+
+def test_labelledby_name_has_no_example(context_factory, run_rgaa):
+    html = '<form><span id="n">Valider</span><button aria-labelledby="n">Envoyer</button></form>'
+    result = run_rgaa(Test1192(), context_factory(html))
+    assert result.status == Status.FAIL
+    assert "Exemple" not in result.findings[0].recommendation

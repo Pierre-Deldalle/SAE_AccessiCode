@@ -6,7 +6,7 @@ from accessi_code.rgaa.criteria_info import CRITERIA, RGAA_METHOD_URL, criterion
 from accessi_code.rgaa.default_registry import build_default_registry
 
 # Thèmes dont les explications sont rédigées ; à compléter au fil des thèmes.
-DOCUMENTED_THEMES = ("2", "7")
+DOCUMENTED_THEMES = ("2", "7", "11")
 
 REGISTRY_CRITERIA = sorted(
     {test.criterion_id for test in build_default_registry() if test.criterion_id.split(".")[0] in DOCUMENTED_THEMES}
@@ -14,7 +14,8 @@ REGISTRY_CRITERIA = sorted(
 
 
 def test_documented_themes_have_criteria_in_registry():
-    assert REGISTRY_CRITERIA == ["2.1", "2.2", "7.1", "7.2", "7.3", "7.4", "7.5"]
+    forms = [f"11.{number}" for number in range(1, 14)]
+    assert REGISTRY_CRITERIA == sorted(["2.1", "2.2", "7.1", "7.2", "7.3", "7.4", "7.5", *forms])
 
 
 @pytest.mark.parametrize("criterion_id", REGISTRY_CRITERIA)

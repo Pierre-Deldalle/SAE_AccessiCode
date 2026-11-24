@@ -80,6 +80,98 @@ _ENTRIES = (
         "pas lu par le lecteur d'écran s'il n'est pas signalé : une personne aveugle ne sait pas si son action "
         "a réussi.",
     ),
+    # ---- Thème 11 : formulaires ----
+    CriterionInfo(
+        "11.1",
+        "Chaque champ de formulaire a-t-il une étiquette ?",
+        "Une personne aveugle qui utilise un lecteur d'écran entend seulement « zone de saisie » : sans étiquette, "
+        "elle ne sait pas s'il faut y écrire son nom, son adresse ou son numéro de téléphone.",
+    ),
+    CriterionInfo(
+        "11.2",
+        "Chaque étiquette associée à un champ de formulaire est-elle pertinente (hors cas particuliers) ?",
+        "Une étiquette vague comme « Champ 1 » ou « Saisir » ne dit pas ce qu'il faut écrire : une personne qui "
+        "utilise un lecteur d'écran, ou qui a des difficultés de compréhension, risque de se tromper. Une personne "
+        "qui commande l'ordinateur à la voix doit aussi pouvoir dire le mot affiché pour atteindre le champ.",
+    ),
+    CriterionInfo(
+        "11.3",
+        "Dans chaque formulaire, chaque étiquette associée à un champ de formulaire ayant la même fonction et "
+        "répétée plusieurs fois dans une même page ou dans un ensemble de pages est-elle cohérente ?",
+        "Si la même information s'appelle « Courriel » à un endroit et « Adresse électronique » ailleurs, une "
+        "personne qui a des difficultés de compréhension ou de mémoire peut croire qu'on lui demande deux choses "
+        "différentes.",
+    ),
+    CriterionInfo(
+        "11.4",
+        "Dans chaque formulaire, chaque étiquette de champ et son champ associé sont-ils accolés (hors cas "
+        "particuliers) ?",
+        "Une personne malvoyante qui agrandit fortement l'écran ne voit qu'une petite partie de la page à la fois : "
+        "si l'étiquette est loin de son champ, elle ne sait plus quel texte correspond à quelle zone de saisie.",
+    ),
+    CriterionInfo(
+        "11.5",
+        "Dans chaque formulaire, les champs de même nature sont-ils regroupés, si nécessaire ?",
+        "Sans regroupement, une personne qui utilise un lecteur d'écran entend « Oui », « Non » ou « Jour », "
+        "« Mois », « Année » sans savoir à quelle question ces champs se rapportent.",
+    ),
+    CriterionInfo(
+        "11.6",
+        "Dans chaque formulaire, chaque regroupement de champs de même nature a-t-il une légende ?",
+        "Un groupe de champs sans titre ne dit pas à quoi il sert : une personne qui utilise un lecteur d'écran "
+        "entend les choix proposés (« Madame », « Monsieur ») sans entendre la question posée.",
+    ),
+    CriterionInfo(
+        "11.7",
+        "Dans chaque formulaire, chaque légende associée à un regroupement de champs de même nature est-elle "
+        "pertinente ?",
+        "Un titre de groupe vague comme « Informations » ou « Choix » n'aide pas : une personne qui utilise un "
+        "lecteur d'écran ne sait toujours pas ce que ce groupe de champs lui demande.",
+    ),
+    CriterionInfo(
+        "11.8",
+        "Dans chaque formulaire, les items de même nature d'une liste de choix sont-ils regroupés de manière "
+        "pertinente ?",
+        "Dans une longue liste déroulante sans catégories, une personne qui utilise un lecteur d'écran doit écouter "
+        "les options une par une, sans repère pour trouver rapidement la bonne.",
+    ),
+    CriterionInfo(
+        "11.9",
+        "Dans chaque formulaire, l'intitulé de chaque bouton est-il pertinent (hors cas particuliers) ?",
+        "Un bouton sans texte, ou intitulé « OK », ne dit pas ce qu'il va faire : une personne qui utilise un "
+        "lecteur d'écran ne sait pas s'il envoie, efface ou annule le formulaire, et une personne qui commande "
+        "l'ordinateur à la voix ne peut l'activer que si son nom reprend le texte affiché.",
+    ),
+    CriterionInfo(
+        "11.10",
+        "Dans chaque formulaire, le contrôle de saisie est-il utilisé de manière pertinente (hors cas particuliers) ?",
+        "Si les champs obligatoires ne sont pas signalés, ou si un message d'erreur n'indique pas quel champ "
+        "corriger, une personne aveugle ou qui a des difficultés de compréhension ne peut pas savoir ce qui "
+        "empêche l'envoi du formulaire.",
+    ),
+    CriterionInfo(
+        "11.11",
+        "Dans chaque formulaire, le contrôle de saisie est-il accompagné, si nécessaire, de suggestions facilitant "
+        "la correction des erreurs de saisie ?",
+        "Un message comme « Saisie incorrecte », sans exemple ni format attendu, oblige à deviner : une personne qui "
+        "a des difficultés de lecture ou de compréhension peut rester bloquée sans pouvoir terminer sa démarche.",
+    ),
+    CriterionInfo(
+        "11.12",
+        "Pour chaque formulaire qui modifie ou supprime des données, ou qui transmet des réponses à un test ou à un "
+        "examen, ou dont la validation a des conséquences financières ou juridiques, les données saisies "
+        "peuvent-elles être modifiées, mises à jour ou récupérées par l'utilisateur ?",
+        "Une personne qui fait plus facilement des erreurs de saisie (tremblements, vue réduite, troubles de "
+        "l'attention) doit pouvoir vérifier, corriger ou annuler avant qu'un paiement, une commande ou une "
+        "suppression devienne définitif.",
+    ),
+    CriterionInfo(
+        "11.13",
+        "La finalité d'un champ de saisie peut-elle être déduite pour faciliter le remplissage automatique des "
+        "champs avec les données de l'utilisateur ?",
+        "Quand le navigateur reconnaît un champ (nom, adresse, téléphone), il peut le remplir tout seul : c'est une "
+        "aide précieuse pour les personnes qui ont du mal à taper au clavier ou à retenir ces informations.",
+    ),
 )
 
 CRITERIA: dict[str, CriterionInfo] = {entry.criterion_id: entry for entry in _ENTRIES}

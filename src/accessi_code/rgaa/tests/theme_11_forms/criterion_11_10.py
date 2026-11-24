@@ -40,14 +40,41 @@ from accessi_code.analysis.forms import (
     referenced_text,
     required,
 )
+from accessi_code.analysis.location import opening_tag
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
 from accessi_code.models.result import TestResult, TestStatus
 from accessi_code.rgaa.ai_decision import judge_relevance
 from accessi_code.rgaa.base import RGAATest
 from accessi_code.rgaa.outcomes import Outcome, build_result, make_outcome, not_applicable
+from accessi_code.rgaa.tests.theme_11_forms._examples import example, free_id
 
 _ERROR_WORDS = ("erreur", "incorrect", "invalide", "veuillez", "obligatoire", "requis", "manquant")
+
+
+INVALID_RECOMMENDATION = 'Nommer le champ dans le message d\'erreur, ou ajouter aria-invalid="true" au champ.'
+
+
+def _mandatory_example(field: Tag, soup: BeautifulSoup) -> str:
+    """Mention « (obligatoire) » ajoutée au texte du label for du champ, s'il en a un seul."""
+    field_id = field.get("id")
+    labels = soup.find_all("label", attrs={"for": field_id}) if isinstance(field_id, str) and field_id else []
+    if len(labels) != 1 or not labels[0].get_text(strip=True):
+        return ""
+    label, text = labels[0], labels[0].get_text(" ", strip=True)
+    return example(f"{opening_tag(label)}{text}</label>", f"{opening_tag(label)}{text} (obligatoire)</label>")
+
+
+def _invalid_example(field: Tag) -> str:
+    return example(opening_tag(field), opening_tag(field, **{"aria-invalid": "true"}))
+
+
+def _describedby_example(field: Tag, soup: BeautifulSoup) -> str:
+    """Message d'erreur relié au champ par aria-describedby (identifiant du message tiré de celui du champ)."""
+    message_id = f"{free_id(field, soup)}-erreur"
+    references = " ".join(filter(None, [str(field.get("aria-describedby") or "").strip(), message_id]))
+    after = opening_tag(field, **{"aria-describedby": references})
+    return example(opening_tag(field), f'{after} et <p id="{message_id}">[message d\'erreur]</p>')
 
 
 def _dom(context: AuditContext, test_id: str) -> BeautifulSoup:
@@ -109,6 +136,7 @@ class Test11101(RGAATest):
                     identifier(field, soup),
                     "Aucun champ n'est signalé comme obligatoire : vérifier qu'aucun ne l'est réellement.",
                     "Signaler les champs obligatoires (required ou aria-required, et mention visible).",
+                    node=field,
                 )
             )
         return build_result(
@@ -144,7 +172,9 @@ class Test11102(RGAATest):
                     identifier(field, soup),
                     "Le champ est obligatoire (required / aria-required) mais aucune mention visible ne le signale "
                     "dans son étiquette ou un texte associé.",
-                    "Ajouter « (obligatoire) » ou un astérisque expliqué dans l'étiquette du champ.",
+                    "Ajouter « (obligatoire) » ou un astérisque expliqué dans l'étiquette du champ."
+                    + _mandatory_example(field, soup),
+                    node=field,
                     associated_text=text.strip()[:200],
                 )
             )
@@ -191,7 +221,9 @@ class _ErrorIdentificationTest(RGAATest):
                         f"Le message d'erreur « {message[:100]} » n'identifie pas le champ concerné.",
                         f"Le message d'erreur « {message[:100]} » doit identifier le champ : à vérifier.",
                     ),
-                    'Nommer le champ dans le message d\'erreur, ou ajouter aria-invalid="true" au champ.',
+                    verdict.recommendation(INVALID_RECOMMENDATION)
+                    + (_invalid_example(field) if verdict.status is TestStatus.FAIL else ""),
+                    node=field,
                     error_message=message,
                     **verdict.evidence,
                 )
@@ -242,7 +274,9 @@ class Test11104(RGAATest):
                     TestStatus.FAIL,
                     identifier(field, soup),
                     "Le champ est en erreur mais aucun message n'est placé dans son étiquette ou un passage associé.",
-                    "Associer le message d'erreur au champ avec aria-describedby ou aria-errormessage.",
+                    "Associer le message d'erreur au champ avec aria-describedby ou aria-errormessage."
+                    + _describedby_example(field, soup),
+                    node=field,
                     separate_message=field_error_message(field, soup)[:200],
                 )
             )
@@ -283,7 +317,10 @@ class _FormatInstructionTest(RGAATest):
                     "Le type ou le format attendu n'est pas indiqué dans l'étiquette ni dans un texte associé.",
                     "La présence d'une instruction de format pertinente reste à vérifier.",
                 ),
-                "Indiquer le format attendu dans l'étiquette (ex. « Date de naissance (jj/mm/aaaa) »).",
+                verdict.recommendation(
+                    "Indiquer le format attendu dans l'étiquette (ex. « Date de naissance (jj/mm/aaaa) »)."
+                ),
+                node=field,
                 associated_text=item.text[:200],
                 **verdict.evidence,
             )

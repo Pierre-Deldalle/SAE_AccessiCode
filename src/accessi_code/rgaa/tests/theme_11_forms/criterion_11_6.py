@@ -31,6 +31,7 @@ from accessi_code.models.capabilities import Capability
 from accessi_code.models.result import TestResult, TestStatus
 from accessi_code.rgaa.base import RGAATest
 from accessi_code.rgaa.outcomes import build_result, make_outcome, not_applicable
+from accessi_code.rgaa.tests.theme_11_forms._examples import fieldset_example, legend_example
 
 
 def group_membership_text(field: Tag, soup: BeautifulSoup) -> str:
@@ -75,7 +76,9 @@ class Test1161(RGAATest):
                     TestStatus.FAIL,
                     identifier(tag, soup),
                     "Le regroupement de champs n'a pas de légende.",
-                    "Ajouter une balise legend au fieldset, ou aria-label / aria-labelledby au groupe ARIA.",
+                    "Ajouter une balise legend au fieldset, ou aria-label / aria-labelledby au groupe ARIA."
+                    + legend_example(tag),
+                    node=tag,
                     role=tag.get("role") or tag.name,
                 )
             )
@@ -91,7 +94,8 @@ class Test1161(RGAATest):
                     f"Les boutons radio « {group[0].get('name')} » ne sont pas regroupés et "
                     f"{len(missing)} n'indiquent pas leur appartenance au groupe.",
                     "Regrouper les champs dans un fieldset avec legend, ou ajouter sur chacun un title, "
-                    "aria-label, aria-labelledby ou aria-describedby indiquant le groupe.",
+                    "aria-label, aria-labelledby ou aria-describedby indiquant le groupe." + fieldset_example(group[0]),
+                    node=group[0],
                 )
             )
         return build_result(self, outcomes, empty_summary="Aucun regroupement de champs.", noun="regroupement(s)")

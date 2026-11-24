@@ -53,3 +53,23 @@ def test_low_confidence_no_ai_and_error(context_factory, run_rgaa):
     assert run_rgaa(Test1151(), context_factory(DATE)).status == Status.NEEDS_REVIEW
     broken = text_services(relevance_answer=RuntimeError("panne"))
     assert run_rgaa(Test1151(), context_factory(DATE), broken).status == Status.ERROR
+
+
+def test_fail_gives_line_and_snippet(context_factory, run_rgaa):
+    finding = run_rgaa(Test1151(), context_factory(f"<p>Intro</p>\n{RADIOS}"), text_services()).findings[0]
+    assert (finding.line, finding.snippet) == (2, '<input type="radio" name="civ" aria-label="M.">')
+
+
+def test_ai_fail_points_to_the_form(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=relevance(False))
+    finding = run_rgaa(Test1151(), context_factory(f"<p>Intro</p>\n{DATE}"), ai).findings[0]
+    assert finding.line == 2
+    assert finding.snippet.startswith("<form>")
+
+
+def test_radio_fail_shows_a_fieldset_example(context_factory, run_rgaa):
+    finding = run_rgaa(Test1151(), context_factory(RADIOS), text_services()).findings[0]
+    assert finding.recommendation.endswith(
+        'Exemple : <input type="radio" name="civ" aria-label="M."> → <fieldset><legend>[nature commune des champs]'
+        '</legend><input type="radio" name="civ" aria-label="M."> … </fieldset>'
+    )

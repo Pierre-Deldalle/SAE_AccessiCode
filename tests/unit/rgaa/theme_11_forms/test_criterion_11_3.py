@@ -86,3 +86,36 @@ def test_1132_single_page_site_is_not_applicable(context_factory, run_rgaa):
     context.page_doms = {"index.html": context.dom}
     context.site_inventory_complete = True
     assert run_rgaa(Test1132(), context, text_services()).status == Status.NOT_APPLICABLE
+
+
+def test_1131_fail_gives_line_and_snippet(context_factory, run_rgaa):
+    html = f"<p>Intro</p>\n{DIFFERENT}"
+    finding = run_rgaa(Test1131(), context_factory(html), text_services(relevance_answer=relevance(False))).findings[0]
+    assert (finding.line, finding.snippet, finding.file) == (2, '<input id="a" autocomplete="email">', None)
+
+
+def test_1132_fail_points_to_the_file_of_the_other_page(context_factory, run_rgaa):
+    context = context_factory("<p>Accueil</p>")
+    context.page_doms = {
+        "pages/contact.html": dom(
+            '<p>Contact</p>\n<label for="b">Téléphone</label><input id="b" autocomplete="email">'
+        ),
+        "index.html": dom('<label for="a">Courriel</label><input id="a" autocomplete="email">'),
+    }
+    result = run_rgaa(Test1132(), context, text_services(relevance_answer=relevance(False)))
+    finding = result.findings[0]
+    assert (finding.file, finding.line, finding.snippet) == (
+        "pages/contact.html",
+        2,
+        '<input id="b" autocomplete="email">',
+    )
+    assert [(entry["file"], entry["line"]) for entry in finding.evidence["labels"]] == [
+        ("pages/contact.html", 2),
+        ("index.html", 1),
+    ]
+
+
+def test_1131_ai_suggestion_is_proposed_on_fail(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=relevance(False, suggestion="Adresse e-mail"))
+    finding = run_rgaa(Test1131(), context_factory(DIFFERENT), ai).findings[0]
+    assert finding.recommendation.endswith("Proposition : « Adresse e-mail ».")

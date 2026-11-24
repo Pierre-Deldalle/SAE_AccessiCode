@@ -30,12 +30,14 @@ from accessi_code.analysis.forms import (
     label_text,
     normalize,
 )
+from accessi_code.analysis.location import opening_tag
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
 from accessi_code.models.result import TestResult, TestStatus
 from accessi_code.rgaa.ai_decision import judge_relevance
 from accessi_code.rgaa.base import RGAATest
 from accessi_code.rgaa.outcomes import build_result, make_outcome, not_applicable
+from accessi_code.rgaa.tests.theme_11_forms._examples import example
 
 # WCAG 2.1 — Identify Input Purpose : valeurs de finalité utilisateur.
 PURPOSES = {
@@ -96,6 +98,28 @@ def parse_autocomplete(value: str) -> str | None:
     return tokens[0]
 
 
+# Finalité déduite du type du champ quand l'étiquette ne suffit pas.
+_TYPE_PURPOSES = {"email": "email", "tel": "tel", "url": "url"}
+
+
+def _deduced_purpose(field: Tag, raw: str, expected: str | None) -> str | None:
+    """
+    Finalité certaine sans IA : celle de l'étiquette (lexique), sinon le dernier mot d'une
+    valeur mal formée s'il est une finalité valide (« work given-name » → given-name),
+    sinon celle du type du champ (email, tel, url).
+    """
+    if expected:
+        return expected
+    tokens = raw.lower().split()
+    if tokens and parse_autocomplete(tokens[-1]):
+        return tokens[-1]
+    return _TYPE_PURPOSES.get(clean(field.get("type")).lower())
+
+
+def _autocomplete_example(field: Tag, purpose: str | None) -> str:
+    return example(opening_tag(field), opening_tag(field, autocomplete=purpose)) if purpose else ""
+
+
 class Test11131(RGAATest):
     """11.13.1 : chaque champ concernant l'utilisateur a-t-il un autocomplete valide et pertinent ?"""
 
@@ -138,6 +162,7 @@ class Test11131(RGAATest):
                         identifier(field, soup),
                         verdict.message("", "Impossible d'établir si le champ concerne l'utilisateur."),
                         "Si le champ recueille une donnée de l'utilisateur, ajouter l'attribut autocomplete adapté.",
+                        node=field,
                         **verdict.evidence,
                     )
                 )
@@ -153,9 +178,9 @@ class Test11131(RGAATest):
                         TestStatus.FAIL,
                         identifier(field, soup),
                         "Le champ concerne l'utilisateur mais n'a pas d'attribut autocomplete exploitable.",
-                        f'Ajouter autocomplete="{expected}".'
-                        if expected
-                        else "Ajouter l'attribut autocomplete adapté.",
+                        "Ajouter l'attribut autocomplete qui correspond à la donnée demandée."
+                        + _autocomplete_example(field, _deduced_purpose(field, raw, expected)),
+                        node=field,
                         autocomplete=raw,
                     )
                 )
@@ -165,7 +190,9 @@ class Test11131(RGAATest):
                         TestStatus.FAIL,
                         identifier(field, soup),
                         f"La valeur autocomplete « {raw} » ne fait pas partie des valeurs autorisées.",
-                        "Utiliser une valeur de la liste WCAG (ex. email, given-name, postal-code).",
+                        "Utiliser une valeur de la liste WCAG (ex. email, given-name, postal-code)."
+                        + _autocomplete_example(field, _deduced_purpose(field, raw, expected)),
+                        node=field,
                         autocomplete=raw,
                     )
                 )
@@ -188,7 +215,11 @@ class Test11131(RGAATest):
                         f"La valeur autocomplete « {raw} » ne correspond pas à l'information demandée.",
                         f"La pertinence de autocomplete « {raw} » reste à vérifier.",
                     ),
-                    "Choisir la valeur autocomplete qui correspond exactement à la donnée demandée.",
+                    verdict.recommendation(
+                        "Choisir la valeur autocomplete qui correspond exactement à la donnée demandée."
+                    )
+                    + _autocomplete_example(field, parse_autocomplete(verdict.suggestion or "")),
+                    node=field,
                     autocomplete=raw,
                     **verdict.evidence,
                 )

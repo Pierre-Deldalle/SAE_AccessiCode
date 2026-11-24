@@ -64,7 +64,8 @@ class _SuggestionTest(RGAATest):
                         f"{self.fail_message} (« {message[:100]} »).",
                         f"La suggestion de correction du message « {message[:100]} » reste à vérifier.",
                     ),
-                    self.recommendation,
+                    verdict.recommendation(self.recommendation),
+                    node=field,
                     error_message=message,
                     **verdict.evidence,
                 )

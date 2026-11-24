@@ -13,7 +13,7 @@ from __future__ import annotations
 import re
 import unicodedata
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from bs4 import BeautifulSoup, Tag
@@ -25,6 +25,7 @@ from accessi_code.analysis.dom import (
     get_labelledby_text,
     get_wrapping_label,
 )
+from accessi_code.analysis.location import source_file_name
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
 from accessi_code.models.result import TestResult, TestStatus
@@ -40,6 +41,9 @@ class _FieldLabel:
     function: str
     mechanism: str
     label: str
+    # Champ dans le DOM de sa page, et fichier de cette page s'il n'est pas la page auditée.
+    node: Tag | None = field(default=None, compare=False)
+    file: str | None = None
 
 
 def _clean(value: Any) -> str:
@@ -99,23 +103,32 @@ def _label_text(field: Tag, soup: BeautifulSoup) -> tuple[str, str]:
     return "missing", ""
 
 
-def _extract(page: str, soup: BeautifulSoup) -> list[_FieldLabel]:
+def _extract(page: str, soup: BeautifulSoup, file: str | None = None) -> list[_FieldLabel]:
     result = []
-    for index, field in enumerate(find_form_fields(soup)):
-        key = _function_key(field)
+    for index, tag in enumerate(find_form_fields(soup)):
+        key = _function_key(tag)
         if key is None:
             continue
-        mechanism, label = _label_text(field, soup)
+        mechanism, label = _label_text(tag, soup)
         result.append(
             _FieldLabel(
                 page=page,
-                identifier=get_element_identifier(field, index),
+                identifier=get_element_identifier(tag, index),
                 function=key,
                 mechanism=mechanism,
                 label=label,
+                node=tag,
+                file=file,
             )
         )
     return result
+
+
+def _page_file(context: AuditContext, page: str) -> str:
+    """Fichier d'une page de context.page_doms (clé : chemin relatif dans le site importé)."""
+    if context.workspace_path is None:
+        return page
+    return source_file_name(context, context.workspace_path / "source" / page) or page
 
 
 async def _compare(
@@ -168,9 +181,20 @@ async def _compare(
                     f"Les étiquettes des champs de même fonction ne sont pas cohérentes : {item.text}.",
                     f"La cohérence des étiquettes {item.text} reste à vérifier.",
                 ),
-                "Harmoniser les étiquettes des champs qui ont la même fonction.",
+                verdict.recommendation("Harmoniser les étiquettes des champs qui ont la même fonction."),
+                node=target.node,
+                file=target.file,
                 function_key=target.function,
-                labels=[{"page": entry.page, "element": entry.identifier, "label": entry.label} for entry in group],
+                labels=[
+                    {
+                        "page": entry.page,
+                        "element": entry.identifier,
+                        "label": entry.label,
+                        "file": entry.file,
+                        "line": entry.node.sourceline if entry.node is not None else None,
+                    }
+                    for entry in group
+                ],
                 **verdict.evidence,
             )
         )
@@ -242,5 +266,5 @@ class Test1132(RGAATest):
                 tested_elements=0,
             )
 
-        entries = [entry for page, dom in page_doms.items() for entry in _extract(page, dom)]
+        entries = [entry for page, dom in page_doms.items() for entry in _extract(page, dom, _page_file(context, page))]
         return await _compare(self, entries, services, cross_page=True, pages_count=len(page_doms))

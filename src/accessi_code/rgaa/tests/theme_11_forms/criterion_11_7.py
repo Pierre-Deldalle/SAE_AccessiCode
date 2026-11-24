@@ -62,7 +62,8 @@ class Test1171(RGAATest):
                     f"La légende « {legend[:100]} » ne décrit pas la nature des champs du groupe.",
                     f"La pertinence de la légende « {legend[:100]} » reste à vérifier.",
                 ),
-                "Rédiger une légende qui décrit la nature commune des champs du groupe.",
+                verdict.recommendation("Rédiger une légende qui décrit la nature commune des champs du groupe."),
+                node=tag,
                 legend=legend,
                 **verdict.evidence,
             )

@@ -72,12 +72,14 @@ RELEVANCE_KINDS: dict[str, RelevanceKind] = {
         rule="RGAA 11.2 : chaque étiquette associée à un champ de formulaire doit être pertinente.",
         relevant_when="elle indique clairement la donnée attendue dans ce champ (en tenant compte du type de champ).",
         not_relevant_examples="« Champ 1 », « Texte », « Saisir », une étiquette sans rapport avec la donnée attendue.",
+        suggestion="une étiquette courte qui indique la donnée attendue dans le champ",
     ),
     "fieldset_legend": RelevanceKind(
         subject="légende d'un regroupement de champs (legend, aria-label ou aria-labelledby du groupe)",
         rule="RGAA 11.7 : chaque légende associée à un regroupement de champs de même nature doit être pertinente.",
         relevant_when="elle décrit la nature commune des champs du groupe (par exemple « Adresse de livraison »).",
         not_relevant_examples="« Groupe », « Formulaire », « Informations » quand elle ne distingue pas le groupe.",
+        suggestion="une légende courte qui décrit la nature commune des champs du groupe",
     ),
     "button": RelevanceKind(
         subject="intitulé de bouton",
@@ -86,6 +88,7 @@ RELEVANCE_KINDS: dict[str, RelevanceKind] = {
         not_relevant_examples=(
             "« Bouton », « OK » quand l'action n'est pas déductible, « Cliquez », une icône décrite."
         ),
+        suggestion="un intitulé de bouton court qui indique l'action déclenchée",
     ),
     "component_name": RelevanceKind(
         subject="nom accessible et rôle d'un composant d'interface géré par script",
@@ -147,6 +150,7 @@ RELEVANCE_KINDS: dict[str, RelevanceKind] = {
             "(« Courriel » et « Adresse e-mail » sont cohérentes ; « Nom » et « Identifiant » ne le sont pas)."
         ),
         not_relevant_examples="deux étiquettes qui laissent croire à des données différentes pour la même fonction.",
+        suggestion="une étiquette unique à utiliser pour tous ces champs",
     ),
     "field_grouping": RelevanceKind(
         subject="liste des champs d'un formulaire qui ne sont dans aucun regroupement (fieldset ou role=group)",
@@ -174,6 +178,7 @@ RELEVANCE_KINDS: dict[str, RelevanceKind] = {
         rule="RGAA 11.8 : le label de chaque optgroup doit être pertinent.",
         relevant_when="il décrit la catégorie commune des options du groupe (fournies en contexte).",
         not_relevant_examples="« Groupe 1 », « Options », un label sans rapport avec les options.",
+        suggestion="un label court qui décrit la catégorie commune des options du groupe",
     ),
     "error_identification": RelevanceKind(
         subject="message d'erreur affiché pour un champ de formulaire",
@@ -182,6 +187,7 @@ RELEVANCE_KINDS: dict[str, RelevanceKind] = {
             "le message permet de savoir sans ambiguïté quel champ est en erreur (étiquette fournie en contexte)."
         ),
         not_relevant_examples="« Erreur », « Champ invalide », « Veuillez corriger le formulaire ».",
+        suggestion="un message d'erreur qui nomme le champ concerné et dit quoi corriger",
     ),
     "format_instruction": RelevanceKind(
         subject="texte associé à un champ dont la saisie impose un type ou un format",
@@ -196,18 +202,21 @@ RELEVANCE_KINDS: dict[str, RelevanceKind] = {
         not_relevant_examples=(
             "« Date » sans format alors que jj/mm/aaaa est exigé ; « Code » pour un pattern de 5 chiffres."
         ),
+        suggestion="le texte de l'étiquette complété par le format attendu (par exemple « Date (jj/mm/aaaa) »)",
     ),
     "error_suggestion_format": RelevanceKind(
         subject="message d'erreur de saisie",
         rule="RGAA 11.11 : le message d'erreur suggère, si nécessaire, le type et le format de données attendus.",
         relevant_when="le message indique le type ou le format attendu, ou aucune suggestion n'est nécessaire.",
         not_relevant_examples="« Date invalide » sans indiquer le format attendu.",
+        suggestion="le message d'erreur complété par le type ou le format attendu",
     ),
     "error_suggestion_example": RelevanceKind(
         subject="message d'erreur de saisie",
         rule="RGAA 11.11 : le message d'erreur suggère, si nécessaire, des exemples de valeurs attendues.",
         relevant_when="le message propose un exemple de valeur attendue, ou aucun exemple n'est nécessaire.",
         not_relevant_examples="« Numéro invalide » pour un format complexe sans exemple.",
+        suggestion="le message d'erreur complété par un exemple de valeur attendue",
     ),
     "transaction_scope": RelevanceKind(
         subject="formulaire (intitulé, champs et boutons fournis)",
@@ -244,6 +253,7 @@ RELEVANCE_KINDS: dict[str, RelevanceKind] = {
         rule="RGAA 11.13 : la valeur autocomplete doit correspondre à l'information attendue dans le champ.",
         relevant_when="la valeur (fournie dans autocomplete) correspond à la donnée demandée par l'étiquette.",
         not_relevant_examples='autocomplete="email" sur un champ « Téléphone », « given-name » sur « Nom de famille ».',
+        suggestion="la seule valeur autocomplete qui correspond à la donnée demandée (par exemple « tel »)",
     ),
     "captcha_alternative": RelevanceKind(
         subject="moyen proposé à la place d'un CAPTCHA graphique (lien, bouton, CAPTCHA audio…)",
