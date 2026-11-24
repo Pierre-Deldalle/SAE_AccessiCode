@@ -1,8 +1,8 @@
 import pytest
-from tests.unit.ai.fakes import FakeModel
 
 from accessi_code.ai.analyzers.image_analyzer import OllamaImageAnalyzer
 from accessi_code.analysis.images import ImageInfo
+from tests.unit.ai.fakes import FakeModel
 
 VISUAL = {"summary": "Graphique des ventes 2025", "important_information": ["hausse de 10 %"], "uncertainties": []}
 

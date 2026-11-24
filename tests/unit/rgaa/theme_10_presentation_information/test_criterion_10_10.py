@@ -1,7 +1,6 @@
 """Critère RGAA 10.10 : pertinence du moyen qui complète la forme, la taille ou la position (jugée par l'IA)."""
 
 import pytest
-from tests.ai_fakes import sensory, text_services
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_10_presentation_information.criterion_10_10 import (
@@ -10,6 +9,7 @@ from accessi_code.rgaa.tests.theme_10_presentation_information.criterion_10_10 i
     Test10103,
     Test10104,
 )
+from tests.ai_fakes import sensory, text_services
 
 POSITION_TEXT = '<p id="consigne">Cliquez sur le bouton « Valider », à droite.</p>'
 

@@ -1,7 +1,6 @@
 """Critère RGAA 1.7 : pertinence des descriptions détaillées."""
 
 import pytest
-from tests.unit.rgaa.theme_01_images.image_fakes import description, services
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_01_images.criterion_1_7 import (
@@ -12,6 +11,7 @@ from accessi_code.rgaa.tests.theme_01_images.criterion_1_7 import (
     Test175,
     Test176,
 )
+from tests.unit.rgaa.theme_01_images.image_fakes import description, services
 
 ALL = [Test171, Test172, Test173, Test174, Test175, Test176]
 WITH_DESCRIPTION = '<img src="g.png" alt="Ventes" aria-describedby="d"><p id="d">Les ventes ont doublé en 2025.</p>'

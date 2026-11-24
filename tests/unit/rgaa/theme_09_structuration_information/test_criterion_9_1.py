@@ -1,10 +1,10 @@
 """Critère RGAA 9.1 : titres."""
 
 import pytest
-from tests.ai_fakes import relevance, structure, text_services
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_09_structuration_information.criterion_9_1 import Test911, Test912, Test913
+from tests.ai_fakes import relevance, structure, text_services
 
 GOOD = "<h1>Accueil</h1><h2>Services</h2><p>Texte</p><h3>Audit</h3><h2>Contact</h2>"
 JUMP = "<h1>Accueil</h1><h2>Offres</h2><h4>Tarifs</h4><p>10 €</p>"

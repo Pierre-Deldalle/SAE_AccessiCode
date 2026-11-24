@@ -1,10 +1,10 @@
 """Critère RGAA 8.8 : code de langue valide (sans IA) et pertinent (IA)."""
 
 import pytest
-from tests.ai_fakes import relevance, text_services
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_08_mandatory.criterion_8_8 import Test881
+from tests.ai_fakes import relevance, text_services
 
 
 def page(body: str) -> str:

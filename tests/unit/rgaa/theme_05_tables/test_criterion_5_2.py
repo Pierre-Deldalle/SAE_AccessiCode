@@ -1,9 +1,8 @@
 """Critère RGAA 5.2 : pertinence du résumé des tableaux de données complexes."""
 
-from tests.ai_fakes import relevance, text_services
-
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_05_tables.criterion_5_2 import Test521
+from tests.ai_fakes import relevance, text_services
 
 HEADERS = """
     <thead>

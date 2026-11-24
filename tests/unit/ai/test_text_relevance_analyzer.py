@@ -1,9 +1,9 @@
 import aiohttp
 import pytest
-from tests.unit.ai.fakes import FakeModel, batch
 
 from accessi_code.ai.analyzers.text_relevance_analyzer import OllamaTextRelevanceAnalyzer
 from accessi_code.ai.schemas import RelevanceItem
+from tests.unit.ai.fakes import FakeModel, batch
 
 RELEVANT = {"relevant": True, "explanation": "Titre explicite.", "confidence": "high"}
 NOT_RELEVANT = {"relevant": False, "explanation": "Titre générique.", "problems": ["générique"], "confidence": "high"}

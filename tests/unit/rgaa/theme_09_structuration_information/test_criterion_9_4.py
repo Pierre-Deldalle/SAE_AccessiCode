@@ -1,10 +1,10 @@
 """Critère RGAA 9.4 : citations."""
 
 import pytest
-from tests.ai_fakes import structure, text_services
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_09_structuration_information.criterion_9_4 import Test941, Test942
+from tests.ai_fakes import structure, text_services
 
 INLINE = "<p>Comme le disait la directrice, « l'accessibilité profite à tout le monde », lors du salon.</p>"
 BLOCK = "<p>« Nous avons rendu notre site accessible en trois mois grâce à un audit complet et une formation. »</p>"

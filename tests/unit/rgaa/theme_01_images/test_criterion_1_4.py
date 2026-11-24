@@ -1,7 +1,6 @@
 """Critère RGAA 1.4 : alternative des CAPTCHA et images-tests."""
 
 import pytest
-from tests.unit.rgaa.theme_01_images.image_fakes import alternative, profile, services
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_01_images.criterion_1_4 import (
@@ -13,6 +12,7 @@ from accessi_code.rgaa.tests.theme_01_images.criterion_1_4 import (
     Test146,
     Test147,
 )
+from tests.unit.rgaa.theme_01_images.image_fakes import alternative, profile, services
 
 ALL = [Test141, Test142, Test143, Test144, Test145, Test146, Test147]
 CAPTCHA = '<img id="captcha" src="captcha.png" alt="Code de sécurité à recopier">'

@@ -1,9 +1,8 @@
 """Critère RGAA 8.7 : changements de langue indiqués (segments jugés par l'IA)."""
 
-from tests.ai_fakes import relevance, text_services
-
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_08_mandatory.criterion_8_7 import Test871
+from tests.ai_fakes import relevance, text_services
 
 PAGE = """<html lang="fr"><body>
 <h1>Contact</h1>

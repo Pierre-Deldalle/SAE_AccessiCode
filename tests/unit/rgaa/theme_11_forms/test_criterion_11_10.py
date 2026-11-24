@@ -1,7 +1,6 @@
 """Critère RGAA 11.10 : contrôle de saisie."""
 
 import pytest
-from tests.ai_fakes import relevance, text_services
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_11_forms.criterion_11_10 import (
@@ -13,6 +12,7 @@ from accessi_code.rgaa.tests.theme_11_forms.criterion_11_10 import (
     Test11106,
     Test11107,
 )
+from tests.ai_fakes import relevance, text_services
 
 ALL = [Test11101, Test11102, Test11103, Test11104, Test11105, Test11106, Test11107]
 TWO_FIELDS = "<form><label for='a'>Nom (obligatoire)</label><input id='a' required>{second}</form>"

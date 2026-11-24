@@ -1,9 +1,8 @@
 """Critère RGAA 11.7 : pertinence des légendes de regroupement."""
 
-from tests.ai_fakes import relevance, text_services
-
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_11_forms.criterion_11_7 import Test1171
+from tests.ai_fakes import relevance, text_services
 
 GROUP = (
     "<fieldset><legend>Adresse de livraison</legend>"

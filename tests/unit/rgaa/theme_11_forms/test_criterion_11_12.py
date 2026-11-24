@@ -1,10 +1,10 @@
 """Critère RGAA 11.12 : confirmation, correction ou récupération des données."""
 
 import pytest
-from tests.ai_fakes import relevance, text_services
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_11_forms.criterion_11_12 import Test11121, Test11122
+from tests.ai_fakes import relevance, text_services
 
 ORDER = "<h2>Paiement</h2><form><label for='c'>Numéro de carte</label><input id='c'><button>Payer</button></form>"
 ORDER_CONFIRMED = (

@@ -1,11 +1,11 @@
 from unittest.mock import AsyncMock
 
 import pytest
-from tests.unit.ai.fakes import FakeModel, batch
 
 from accessi_code.ai.analyzers.sensory_analyzer import OllamaSensoryAnalyzer
 from accessi_code.ai.schemas import SensoryCandidate, VisualObservation
 from accessi_code.analysis.images import ImageInfo
+from tests.unit.ai.fakes import FakeModel, batch
 
 ONLY_COLOR = {
     "conveys_information": True,
