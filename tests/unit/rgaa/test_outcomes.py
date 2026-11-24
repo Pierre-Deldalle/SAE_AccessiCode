@@ -29,3 +29,9 @@ def test_make_outcome_with_node_keeps_pass_without_message():
     soup = BeautifulSoup('<img src="x.png" alt="Description">', "html.parser")
 
     assert make_outcome(Status.PASS, "img[index=0]", node=soup.img).finding is None
+
+
+def test_make_outcome_can_set_an_explicit_file_and_line():
+    result = make_outcome(Status.FAIL, "img[index=0]", "Description erronée.", file="pages/ventes.txt", line=3)
+
+    assert (result.finding.file, result.finding.line, result.finding.snippet) == ("pages/ventes.txt", 3, None)

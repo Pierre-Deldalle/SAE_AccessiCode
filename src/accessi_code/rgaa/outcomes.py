@@ -33,12 +33,14 @@ def make_outcome(
     recommendation: str | None = None,
     *,
     node: Tag | None = None,
+    file: str | None = None,
+    line: int | None = None,
     **evidence: Any,
 ) -> Outcome:
     """Outcome avec un Finding, sauf pour PASS et NOT_APPLICABLE sans message."""
     if element is None or (status in {TestStatus.PASS, TestStatus.NOT_APPLICABLE} and not message):
         return Outcome(status)
-    line, snippet = locate(node)
+    node_line, snippet = locate(node)
     return Outcome(
         status,
         Finding(
@@ -46,8 +48,9 @@ def make_outcome(
             message=message,
             recommendation=recommendation,
             evidence=evidence,
-            line=line,
+            line=line if line is not None else node_line,
             snippet=snippet,
+            file=file,
         ),
     )
 

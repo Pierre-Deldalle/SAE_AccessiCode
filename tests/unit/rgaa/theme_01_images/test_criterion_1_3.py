@@ -38,10 +38,11 @@ def test_131_relevant_alternative_passes(context_factory, run_rgaa):
 
 def test_131_irrelevant_alternative_fails(context_factory, run_rgaa):
     ai = services(alternative_analysis=alternative(relevant=False))
-    result = run_rgaa(Test131(), context_factory('<img src="ventes.png" alt="image1.png">'), ai)
+    result = run_rgaa(Test131(), context_factory('<p>Ventes</p>\n<img src="ventes.png" alt="image1.png">'), ai)
     assert result.status == Status.FAIL
     assert result.findings[0].evidence["alternatives"] == {"alt": "image1.png"}
     assert "Proposition :" not in result.findings[0].recommendation
+    assert (result.findings[0].line, result.findings[0].snippet) == (2, '<img alt="image1.png" src="ventes.png"/>')
 
 
 def test_131_irrelevant_alternative_includes_the_proposed_text(context_factory, run_rgaa):

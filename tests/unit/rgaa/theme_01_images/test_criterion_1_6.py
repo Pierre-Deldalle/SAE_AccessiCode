@@ -97,9 +97,12 @@ def test_168_canvas_content_description_restitution(context_factory, run_rgaa):
 
 
 def test_169_broken_aria_describedby_fails(context_factory, run_rgaa):
-    result = run_rgaa(Test169(), context_factory('<img src="g.png" alt="x" aria-describedby="absent">'), services())
+    html = '<p>Ventes</p>\n<img src="g.png" alt="x" aria-describedby="absent">'
+    result = run_rgaa(Test169(), context_factory(html), services())
     assert result.status == Status.FAIL
     assert "Avant :" not in result.findings[0].recommendation
+    assert result.findings[0].line == 2
+    assert result.findings[0].snippet == '<img alt="x" aria-describedby="absent" src="g.png"/>'
 
 
 def test_169_example_keeps_existing_description_reference(context_factory, run_rgaa):

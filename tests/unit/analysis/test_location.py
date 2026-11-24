@@ -2,7 +2,9 @@
 
 from bs4 import BeautifulSoup
 
-from accessi_code.analysis.location import locate
+from accessi_code.analysis.location import locate, source_file_name
+from accessi_code.models.audit_context import AuditContext
+from accessi_code.models.audit_file import AuditFile
 
 
 def test_locate_returns_line_and_short_html():
@@ -33,3 +35,19 @@ def test_locate_keeps_html_when_source_line_is_unknown():
 
     assert locate(tag) == (None, "<img/>")
     assert locate(None) == (None, None)
+
+
+def test_source_file_name_keeps_the_site_path_and_the_original_name(tmp_path):
+    renamed = tmp_path / "source" / "index_1.html"
+    contact = tmp_path / "source" / "pages" / "contact.html"
+    context = AuditContext(
+        audit_id="test",
+        workspace_path=tmp_path,
+        files=[
+            AuditFile("index.html", renamed, ".html"),
+            AuditFile("contact.html", contact, ".html"),
+        ],
+    )
+
+    assert source_file_name(context, renamed) == "index.html"
+    assert source_file_name(context, contact) == "pages/contact.html"

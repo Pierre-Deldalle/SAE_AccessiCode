@@ -22,7 +22,10 @@ def test_no_captcha_is_not_applicable(cls, context_factory, run_rgaa):
 
 def test_151_captcha_without_any_alternative_fails(context_factory, run_rgaa):
     ai = services()
-    assert run_rgaa(Test151(), context_factory(CAPTCHA), ai).status == Status.FAIL
+    result = run_rgaa(Test151(), context_factory(f"<p>Vérification</p>\n{CAPTCHA}"), ai)
+    assert result.status == Status.FAIL
+    assert result.findings[0].line == 2
+    assert result.findings[0].snippet == '<img alt="Code de sécurité" class="captcha" src="c.png"/>'
     ai.text_relevance_analyzer.analyze_relevance.assert_not_called()
 
 

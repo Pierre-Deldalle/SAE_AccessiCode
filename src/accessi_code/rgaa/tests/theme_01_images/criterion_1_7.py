@@ -11,9 +11,15 @@ est impossible : vérification humaine.
 
 from __future__ import annotations
 
+from pathlib import Path
+from urllib.parse import unquote, urlparse
+
+from bs4 import Tag
+
 from accessi_code.ai.schemas import DescriptionAnalysis
 from accessi_code.analysis.image_elements import ImageElement, has_image_file
 from accessi_code.analysis.images import DetailedDescription
+from accessi_code.analysis.location import source_file_name
 from accessi_code.models.result import TestStatus
 from accessi_code.rgaa.ai_decision import Verdict, analysis_evidence, status_from_verdict, worst_status
 from accessi_code.rgaa.tests.theme_01_images._common import (
@@ -41,11 +47,19 @@ class _DescriptionRelevanceTest(ImageTest):
         verified = evaluation.evidence(element, "description_relevant")
         if verified is True:
             return outcome(TestStatus.PASS)
-        if verified is False:
-            return outcome(TestStatus.FAIL, element, "La description détaillée n'est pas pertinente.", RECOMMENDATION)
 
         mechanisms = present_mechanisms(element)
         descriptions = [item for item in element.available_descriptions if item.source in mechanisms]
+        primary = descriptions[0] if descriptions else None
+        if verified is False:
+            return _description_outcome(
+                TestStatus.FAIL,
+                element,
+                evaluation,
+                primary,
+                "La description détaillée n'est pas pertinente.",
+                RECOMMENDATION,
+            )
         if not descriptions:
             return outcome(
                 TestStatus.NEEDS_REVIEW,
@@ -58,9 +72,11 @@ class _DescriptionRelevanceTest(ImageTest):
         analyzer = evaluation.image_analyzer
         if analyzer is None or not has_image_file(element):
             reason = NO_AI_MESSAGE if analyzer is None else "Le contenu visuel de l'image n'est pas analysable."
-            return outcome(
+            return _description_outcome(
                 TestStatus.NEEDS_REVIEW,
                 element,
+                evaluation,
+                primary,
                 f"La pertinence de la description détaillée doit être vérifiée. {reason}",
                 "Comparer la description au contenu de l'image.",
                 descriptions=[_summary(description) for description in descriptions],
@@ -79,9 +95,11 @@ class _DescriptionRelevanceTest(ImageTest):
 
     async def _judge(self, element: ImageElement, description: DetailedDescription, evaluation: Evaluation) -> Outcome:
         if not evaluation.budget.take():
-            return outcome(
+            return _description_outcome(
                 TestStatus.NEEDS_REVIEW,
                 element,
+                evaluation,
+                description,
                 "Limite d'éléments analysés par l'IA atteinte pour ce test.",
                 "Comparer la description au contenu de l'image.",
             )
@@ -91,9 +109,11 @@ class _DescriptionRelevanceTest(ImageTest):
             if not isinstance(analysis, DescriptionAnalysis):
                 raise TypeError("DescriptionAnalysis attendu.")
         except Exception as error:
-            return outcome(
+            return _description_outcome(
                 TestStatus.ERROR,
                 element,
+                evaluation,
+                description,
                 "L'analyse IA de la description détaillée a échoué.",
                 "Relancer l'audit ou vérifier manuellement.",
                 error=f"{type(error).__name__}: {error}",
@@ -112,14 +132,90 @@ class _DescriptionRelevanceTest(ImageTest):
             if status is TestStatus.FAIL
             else "La pertinence de la description détaillée reste incertaine."
         )
-        return outcome(
+        return _description_outcome(
             status,
             element,
+            evaluation,
+            description,
             f"{message} {analysis.explanation}".strip(),
             Verdict(status, analysis=analysis).recommendation(RECOMMENDATION),
             description=_summary(description),
             analysis=analysis_evidence(analysis),
         )
+
+
+def _description_outcome(
+    status: TestStatus,
+    element: ImageElement,
+    evaluation: Evaluation,
+    source_description: DetailedDescription | None,
+    message: str,
+    recommendation: str,
+    **evidence,
+) -> Outcome:
+    node, file, line = _description_location(element, evaluation, source_description)
+    return outcome(status, element, message, recommendation, node=node, file=file, line=line, **evidence)
+
+
+def _description_location(
+    element: ImageElement, evaluation: Evaluation, description: DetailedDescription | None
+) -> tuple[Tag | None, str | None, int | None]:
+    if description is None:
+        return element.tag, None, None
+    reference = description.reference or ""
+    if description.source in {"longdesc", "adjacent_link"}:
+        return _linked_location(element, evaluation, reference)
+    if description.source == "svg-desc":
+        return element.tag.find("desc", recursive=False) or element.tag, None, None
+    if description.source in {"aria-describedby", "aria-labelledby", "adjacent_button"}:
+        identifiers = reference.split() if description.source == "aria-labelledby" else [reference]
+        for identifier in identifiers:
+            target = evaluation.soup.find(id=identifier)
+            if isinstance(target, Tag) and target.get_text(" ", strip=True):
+                return target, None, None
+    return element.tag, None, None
+
+
+def _linked_location(
+    element: ImageElement, evaluation: Evaluation, reference: str
+) -> tuple[Tag | None, str | None, int | None]:
+    context = evaluation.context
+    parsed = urlparse(reference)
+    if parsed.scheme or parsed.netloc:
+        return element.tag, None, None
+    if not parsed.path:
+        return evaluation.soup.find(id=parsed.fragment) or element.tag, None, None
+    if context.html_path is None:
+        return element.tag, None, None
+
+    path = (context.html_path.parent / unquote(parsed.path)).resolve()
+    if path == context.html_path.resolve():
+        return _document_target(evaluation.soup, parsed.fragment), None, None
+
+    file = source_file_name(context, path)
+    if path.suffix.lower() in {".html", ".htm"}:
+        source_root = (context.workspace_path / "source").resolve()
+        page = (
+            context.page_doms.get(path.relative_to(source_root).as_posix())
+            if path.is_relative_to(source_root)
+            else None
+        )
+        return _document_target(page, parsed.fragment) if page is not None else None, file, None
+    line = _first_text_line(path) if path.is_relative_to(context.workspace_path.resolve()) else None
+    return None, file, line
+
+
+def _document_target(document: Tag, fragment: str) -> Tag | None:
+    target = document.find(id=fragment) if fragment else None
+    return target or document.find("body") or document.find(True)
+
+
+def _first_text_line(path: Path) -> int | None:
+    try:
+        with path.open(encoding="utf-8") as source:
+            return next((line for line, text in enumerate(source, start=1) if text.strip()), None)
+    except OSError, UnicodeError:
+        return None
 
 
 def _summary(description: DetailedDescription) -> dict[str, str | None]:

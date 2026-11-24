@@ -95,6 +95,8 @@ def outcome(
     recommendation: str | None = None,
     *,
     node: Tag | None = None,
+    file: str | None = None,
+    line: int | None = None,
     **evidence: Any,
 ) -> Outcome:
     """Outcome avec un Finding (sauf pour PASS et NOT_APPLICABLE sans message)."""
@@ -105,7 +107,9 @@ def outcome(
         element.key,
         message,
         recommendation,
-        node=node if node is not None else element.tag,
+        node=element.tag if node is None and file is None else node,
+        file=file,
+        line=line,
         **{"kind": element.kind, **evidence},
     )
 
@@ -131,6 +135,8 @@ def unresolved(
     judgement: Judgement,
     message: str,
     recommendation: str,
+    *,
+    node: Tag | None = None,
 ) -> Outcome:
     """Question restée sans réponse fiable : ERROR si l'IA a échoué, sinon NEEDS_REVIEW."""
     if judgement.source == "error":
@@ -139,6 +145,7 @@ def unresolved(
             element,
             "L'analyse IA de l'élément a échoué.",
             "Relancer l'audit ou vérifier manuellement.",
+            node=node,
             judgement=judgement.evidence,
         )
     detail = judgement.explanation if judgement.source == "ai" and judgement.explanation else ""
@@ -147,7 +154,9 @@ def unresolved(
     if judgement.source == "budget":
         detail = "Limite d'éléments analysés par l'IA atteinte pour ce test."
     full_message = f"{message} {detail}".strip()
-    return outcome(TestStatus.NEEDS_REVIEW, element, full_message, recommendation, judgement=judgement.evidence)
+    return outcome(
+        TestStatus.NEEDS_REVIEW, element, full_message, recommendation, node=node, judgement=judgement.evidence
+    )
 
 
 # ----------------------------------------------------------------------

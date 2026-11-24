@@ -27,6 +27,7 @@ class Finding:
     evidence: dict[str, Any] = field(default_factory=dict)
     line: int | None = None
     snippet: str | None = None
+    file: str | None = None
 
 
 @dataclass

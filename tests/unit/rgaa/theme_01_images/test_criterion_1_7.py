@@ -1,9 +1,14 @@
 """Critère RGAA 1.7 : pertinence des descriptions détaillées."""
 
+import asyncio
+
 import pytest
 from image_fakes import description, services
 
+from accessi_code.input.context_builder import AuditContextBuilder
 from accessi_code.models.result import TestStatus as Status
+from accessi_code.rgaa.registry import TestRegistry as Registry
+from accessi_code.rgaa.runner import TestRunner as Runner
 from accessi_code.rgaa.tests.theme_01_images.criterion_1_7 import (
     Test171,
     Test172,
@@ -14,7 +19,7 @@ from accessi_code.rgaa.tests.theme_01_images.criterion_1_7 import (
 )
 
 ALL = [Test171, Test172, Test173, Test174, Test175, Test176]
-WITH_DESCRIPTION = '<img src="g.png" alt="Ventes" aria-describedby="d"><p id="d">Les ventes ont doublé en 2025.</p>'
+WITH_DESCRIPTION = '<img src="g.png" alt="Ventes" aria-describedby="d">\n<p id="d">Les ventes ont doublé en 2025.</p>'
 
 
 @pytest.mark.parametrize("cls", ALL)
@@ -38,6 +43,8 @@ def test_171_irrelevant_description_fails(context_factory, run_rgaa):
 
     assert result.status == Status.FAIL
     assert "Proposition : Les ventes ont augmenté de 10 % en 2025." in result.findings[0].recommendation
+    assert result.findings[0].line == 2
+    assert result.findings[0].snippet == '<p id="d">Les ventes ont doublé en 2025.</p>'
 
 
 def test_171_low_confidence_needs_review(context_factory, run_rgaa):
@@ -67,6 +74,67 @@ def test_171_longdesc_is_loaded_from_local_file(context_factory, run_rgaa):
     )
     assert run_rgaa(Test171(), context, ai).status == Status.PASS
     assert ai.image_analyzer.analyze.await_args.args[1].content == "Description complète des ventes."
+
+
+@pytest.mark.parametrize(
+    ("relative", "fragment", "content", "snippet", "adjacent"),
+    [
+        (
+            "pages/ventes.html",
+            "#details",
+            '<h1>Ventes</h1>\n<p>Introduction</p>\n<p id="details">Description des ventes.</p>',
+            '<p id="details">Description des ventes.</p>',
+            False,
+        ),
+        (
+            "pages/ventes.html",
+            "#details",
+            '<h1>Ventes</h1>\n<p>Introduction</p>\n<p id="details">Description des ventes.</p>',
+            '<p id="details">Description des ventes.</p>',
+            True,
+        ),
+        ("pages/ventes.txt", "", "\n\nDescription des ventes.", None, False),
+    ],
+)
+def test_171_external_description_keeps_its_own_file_and_line(tmp_path, relative, fragment, content, snippet, adjacent):
+    site = tmp_path / "site"
+    description_path = site / relative
+    description_path.parent.mkdir(parents=True)
+    description_path.write_text(content, encoding="utf-8")
+    image_path = site / "g.png"
+    image_path.write_bytes(b"image-test")
+    page = site / "index.html"
+    reference = relative + fragment
+    image = '<img src="g.png" alt="Ventes"'
+    if adjacent:
+        image += f'><a href="{reference}">Description détaillée</a>'
+    else:
+        image += f' longdesc="{reference}">'
+    page.write_text(f"<h1>Ventes</h1>\n{image}", encoding="utf-8")
+    context = AuditContextBuilder(tmp_path / "workspace").build(
+        [page, image_path, description_path],
+        site_root=site,
+    )
+    runner = Runner(Registry([Test171()]), services=services(description_analysis=description(relevant=False)))
+
+    [result] = asyncio.run(runner.run_all(context))
+
+    assert result.status == Status.FAIL
+    [finding] = result.findings
+    assert (finding.file, finding.line, finding.snippet) == (relative, 3, snippet)
+
+
+def test_171_external_html_without_dom_keeps_unknown_line(context_factory, run_rgaa):
+    context = context_factory(
+        '<img src="g.png" alt="Ventes" longdesc="ventes.html">',
+        resources={"ventes.html": "<p>Description des ventes.</p>"},
+    )
+
+    result = run_rgaa(Test171(), context, services(description_analysis=description(relevant=False)))
+
+    assert result.status == Status.FAIL
+    [finding] = result.findings
+    assert (finding.file, finding.line, finding.snippet) == ("ventes.html", None, None)
 
 
 def test_171_unreadable_description_needs_review(context_factory, run_rgaa):

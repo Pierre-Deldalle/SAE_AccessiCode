@@ -33,10 +33,12 @@ def test_191_correct_figure_passes_without_ai(context_factory, run_rgaa):
 
 
 def test_191_figure_without_role_fails(context_factory, run_rgaa):
-    html = '<figure aria-label="Ventes"><img src="g.png" alt="G"><figcaption>Ventes</figcaption></figure>'
+    figure = '<figure aria-label="Ventes">\n<img alt="G" src="g.png"/>\n<figcaption>Ventes</figcaption></figure>'
+    html = f"<p>Ventes</p>\n{figure}"
     result = run_rgaa(Test191(), context_factory(html), services())
     assert result.status == Status.FAIL
     assert 'role="figure"' in result.findings[0].message
+    assert (result.findings[0].line, result.findings[0].snippet) == (2, figure)
 
 
 def test_191_aria_label_different_from_caption_fails(context_factory, run_rgaa):

@@ -110,6 +110,7 @@ class _CaptionTest(ImageTest):
                 figure,
                 {"role": role if role in {"figure", "group"} else "figure", "aria-label": caption_text},
             ),
+            node=figure,
             caption=caption_text[:200],
             aria_label=label[:200],
         )
@@ -132,9 +133,10 @@ class _CaptionTest(ImageTest):
                 Judgement(None, "unavailable"),
                 "Un texte adjacent ressemble à une légende non reliée.",
                 RECOMMENDATION,
+                node=candidate,
             )
         if not evaluation.budget.take():
-            return unresolved(element, Judgement(None, "budget"), "", RECOMMENDATION)
+            return unresolved(element, Judgement(None, "budget"), "", RECOMMENDATION, node=candidate)
 
         evaluation.ai_calls += 1
         try:
@@ -153,7 +155,11 @@ class _CaptionTest(ImageTest):
                 raise TypeError("StructureCandidateAnalysis attendu.")
         except Exception as error:
             return unresolved(
-                element, Judgement(None, "error", error=f"{type(error).__name__}: {error}"), "", RECOMMENDATION
+                element,
+                Judgement(None, "error", error=f"{type(error).__name__}: {error}"),
+                "",
+                RECOMMENDATION,
+                node=candidate,
             )
 
         status = status_from_verdict(
@@ -171,6 +177,7 @@ class _CaptionTest(ImageTest):
             element,
             f"Le texte adjacent « {text[:100]} » pourrait être une légende non reliée. {analysis.explanation}".strip(),
             RECOMMENDATION,
+            node=candidate,
             analysis=analysis_evidence(analysis),
         )
 
@@ -191,6 +198,7 @@ class _CaptionTest(ImageTest):
                 before,
                 corrected,
             ),
+            node=candidate,
             **evidence,
         )
 

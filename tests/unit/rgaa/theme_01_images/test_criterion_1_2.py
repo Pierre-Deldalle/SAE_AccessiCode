@@ -94,10 +94,12 @@ def test_124_svg_hidden_without_alternatives_passes(context_factory, run_rgaa):
 
 
 def test_124_hidden_svg_with_title_fails(context_factory, run_rgaa):
-    result = run_rgaa(Test124(), context_factory('<svg aria-hidden="true"><title>Icône</title></svg>'), services())
+    svg = '<svg aria-hidden="true"><title>Icône</title></svg>'
+    result = run_rgaa(Test124(), context_factory(f"<p>Décoration</p>\n{svg}"), services())
     assert result.status == Status.FAIL
     assert "<title>" in result.findings[0].message
     assert 'Après : <svg aria-hidden="true"></svg>' in result.findings[0].recommendation
+    assert (result.findings[0].line, result.findings[0].snippet) == (2, svg)
 
 
 def test_124_decorative_svg_without_aria_hidden_fails(context_factory, run_rgaa):
