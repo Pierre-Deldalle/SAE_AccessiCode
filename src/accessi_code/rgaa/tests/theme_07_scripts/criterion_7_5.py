@@ -27,6 +27,7 @@ from typing import Any, ClassVar
 from bs4 import BeautifulSoup, NavigableString, Tag
 
 from accessi_code.ai.schemas import StructureCandidate
+from accessi_code.analysis.location import opening_tag
 from accessi_code.analysis.structure import HEADING_TAGS
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
@@ -130,6 +131,8 @@ class StatusMessageTest(RGAATest):
     kind: ClassVar[str]
     keywords: ClassVar[re.Pattern[str]]
     expected: ClassVar[str]
+    # Rôle utilisé dans l'exemple « avant → après » d'une non-conformité.
+    example_role: ClassVar[str]
     empty_summary: ClassVar[str]
     fail_message: ClassVar[str]
     uncertain_message: ClassVar[str]
@@ -181,11 +184,16 @@ class StatusMessageTest(RGAATest):
         verdicts = await judge_structure(services, self.kind, items)
         for index, item, verdict in zip(to_judge, items, verdicts, strict=True):
             role, live, atomic = live_markers(elements[index])
+            recommendation = self.recommendation
+            if verdict.status is TestStatus.FAIL:
+                element = elements[index]
+                recommendation += f" Exemple : {opening_tag(element)} → {opening_tag(element, role=self.example_role)}"
             outcomes[index] = make_outcome(
                 verdict.status,
                 element_identifier(elements[index], index),
                 verdict.message(self.fail_message, self.uncertain_message),
-                self.recommendation,
+                recommendation,
+                node=elements[index],
                 text=item.text,
                 role=role,
                 aria_live=live,
@@ -225,6 +233,7 @@ class Test751(StatusMessageTest):
     kind = "status_success"
     keywords = SUCCESS_WORDS
     expected = 'role="status"'
+    example_role = "status"
     empty_summary = "Aucun message de statut de réussite, de résultat ou d'état."
     fail_message = "Ce message de statut (réussite, résultat ou état) n'a pas le rôle status."
     uncertain_message = (
@@ -243,6 +252,7 @@ class Test752(StatusMessageTest):
     kind = "status_error"
     keywords = ERROR_WORDS
     expected = 'role="alert"'
+    example_role = "alert"
     empty_summary = "Aucun message de statut de suggestion ou d'erreur."
     fail_message = "Ce message de statut (suggestion ou erreur) n'a pas le rôle alert."
     uncertain_message = (
@@ -263,6 +273,7 @@ class Test753(StatusMessageTest):
     kind = "status_progress"
     keywords = PROGRESS_WORDS
     expected = 'role="log", role="progressbar" ou role="status"'
+    example_role = "status"
     empty_summary = "Aucun message de statut de progression."
     fail_message = "Ce message de progression n'a ni le rôle log, ni progressbar, ni status."
     uncertain_message = "Vérifier si ce passage indique la progression d'un processus et s'il a le rôle adapté."

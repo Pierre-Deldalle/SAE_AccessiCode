@@ -27,6 +27,8 @@ class RelevanceKind:
     not_relevant_examples: str
     # Longueur maximale du texte jugé (les contenus longs, comme un tableau linéarisé, en ont besoin).
     text_limit: int = 300
+    # Texte à proposer lorsque l'élément n'est pas pertinent ; vide : aucune proposition demandée.
+    suggestion: str = ""
 
 
 RELEVANCE_KINDS: dict[str, RelevanceKind] = {
@@ -37,6 +39,7 @@ RELEVANCE_KINDS: dict[str, RelevanceKind] = {
         not_relevant_examples=(
             "« iframe », « cadre », « frame1 », un nom de fichier, un titre sans rapport avec la source."
         ),
+        suggestion="un titre de cadre court qui décrit son contenu ou sa fonction",
     ),
     "heading": RelevanceKind(
         subject="titre de section (h1 à h6 ou role=heading)",
@@ -95,6 +98,10 @@ RELEVANCE_KINDS: dict[str, RelevanceKind] = {
         not_relevant_examples=(
             "« div », « composant », « icon », un nom de classe CSS, un nom sans rapport avec l'action, "
             "un rôle link sur un composant qui ouvre un panneau, un rôle button sur un onglet."
+        ),
+        suggestion=(
+            "un nom accessible court qui décrit la fonction du composant et commence par son intitulé visible "
+            "(« visible_label ») s'il en a un"
         ),
     ),
     "table_title": RelevanceKind(
@@ -283,6 +290,49 @@ RELEVANCE_KINDS: dict[str, RelevanceKind] = {
         rule="RGAA 7.2 : chaque alternative à un script doit être pertinente.",
         relevant_when="elle donne accès au même contenu ou à la même fonctionnalité que le script.",
         not_relevant_examples="« Activez JavaScript » seul, un texte sans rapport avec la fonctionnalité.",
+        suggestion=(
+            "une phrase courte qui indique ce que l'alternative doit proposer à la place du script "
+            "(contenu équivalent ou lien vers ce contenu), sans inventer d'adresse"
+        ),
+    ),
+    "keyboard_equivalent": RelevanceKind(
+        subject=(
+            "composant utilisable seulement à la souris (son texte, son code HTML et l'action de son script sont "
+            "fournis) ; le contexte liste les contrôles de la page utilisables au clavier"
+        ),
+        rule=(
+            "RGAA 7.3.1 : un composant contrôlé par un script doit être utilisable au clavier, ou un autre "
+            "élément utilisable au clavier et à la souris doit permettre de réaliser la même action."
+        ),
+        relevant_when=(
+            "un des contrôles listés réalise la même action que le composant (par exemple un lien « Aide » "
+            "qui ouvre la même page qu'un texte cliquable « Aide »)."
+        ),
+        not_relevant_examples=(
+            "aucun contrôle ne réalise cette action, un contrôle au nom proche qui fait autre chose."
+        ),
+    ),
+    "context_change_warning": RelevanceKind(
+        subject=(
+            "texte présenté à l'utilisateur avant un composant dont le script provoque un changement de contexte "
+            "(type fourni dans « change » : nouvelle page, nouvelle fenêtre, envoi de formulaire)"
+        ),
+        rule=(
+            "RGAA 7.4.1 : lorsqu'un script initie un changement de contexte sans bouton ni lien explicite, "
+            "l'utilisateur doit être averti par un texte de l'action du script et du type de changement, "
+            "avant son déclenchement."
+        ),
+        relevant_when=(
+            "le texte annonce clairement ce qui va se passer (par exemple « Choisir une langue ouvre la page "
+            "dans cette langue » pour une liste qui change de page)."
+        ),
+        not_relevant_examples=(
+            "une simple étiquette « Langue », « Note : prix TTC », un texte sans rapport avec le changement."
+        ),
+        suggestion=(
+            "un court texte d'avertissement à placer avant le composant, qui décrit l'action et le changement "
+            "de contexte (par exemple « La sélection ouvre la page correspondante »)"
+        ),
     ),
     # ---- Consultation (thème 13) ----
     "cryptic_context": RelevanceKind(
@@ -378,7 +428,7 @@ Règles :
 - utilise null si les informations ne permettent pas de conclure ;
 - confidence vaut "low", "medium" ou "high" ;
 - retourne un résultat pour chaque id fourni, dans le même ordre ;
-- n'ajoute aucun texte en dehors du JSON.
+- n'ajoute aucun texte en dehors du JSON.{suggestion_rule}
 
 Éléments à évaluer (JSON) :
 {items}
@@ -393,8 +443,26 @@ Retourne uniquement :
       "explanation": "explication courte",
       "problems": [],
       "uncertainties": [],
-      "confidence": "high"
+      "confidence": "high"{suggestion_field}
     }}
   ]
 }}
 """.strip()
+
+# Ajoutés au prompt uniquement pour les types qui demandent une proposition (RelevanceKind.suggestion) :
+# le prompt des autres types reste inchangé.
+SUGGESTION_RULE = (
+    "\n- si relevant vaut false, propose dans suggestion {suggestion}, déduit uniquement des informations "
+    "fournies (source, contexte) ; sinon, ou si les informations ne suffisent pas, suggestion vaut null."
+)
+SUGGESTION_FIELD = ',\n      "suggestion": null'
+
+
+def suggestion_parts(kind: RelevanceKind) -> dict[str, str]:
+    """Consigne et champ JSON de la proposition, vides si le type n'en demande pas."""
+    if not kind.suggestion:
+        return {"suggestion_rule": "", "suggestion_field": ""}
+    return {
+        "suggestion_rule": SUGGESTION_RULE.format(suggestion=kind.suggestion),
+        "suggestion_field": SUGGESTION_FIELD,
+    }

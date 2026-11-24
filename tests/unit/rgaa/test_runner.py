@@ -10,6 +10,9 @@ from accessi_code.models.capabilities import (
     Capability,
 )
 from accessi_code.models.result import (
+    Finding,
+)
+from accessi_code.models.result import (
     TestResult as Result,
 )
 from accessi_code.models.result import (
@@ -330,3 +333,32 @@ async def test_services_are_forwarded_to_tests(
     await runner.run_all(create_context(tmp_path))
 
     assert test.received_services is expected_services
+
+
+class LocatedFindingsTest(RGAATest):
+    test_id = "fake.located"
+    criterion_id = "fake"
+
+    async def run(self, context, services=None):
+        return Result(
+            test_id=self.test_id,
+            criterion_id=self.criterion_id,
+            status=Status.FAIL,
+            summary="Observations situées.",
+            findings=[
+                Finding("img[index=0]", "Dans la page.", line=12),
+                Finding("pub.js", "Dans un script.", line=3, file="js/pub.js"),
+                Finding("page", "Sans ligne."),
+            ],
+        )
+
+
+@pytest.mark.asyncio
+async def test_runner_adds_audited_page_to_located_findings(tmp_path: Path) -> None:
+    page = tmp_path / "source" / "pages" / "contact.html"
+    context = create_context(tmp_path)
+    context.html_path = page
+
+    [result] = await Runner(Registry([LocatedFindingsTest()])).run_all(context)
+
+    assert [finding.file for finding in result.findings] == ["pages/contact.html", "js/pub.js", None]

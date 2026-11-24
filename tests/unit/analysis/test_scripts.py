@@ -7,6 +7,7 @@ from accessi_code.analysis.scripts import (
     ScriptSource,
     Trigger,
     event_listeners,
+    listener_target,
     mask_code,
     numeric_value,
     page_scripts,
@@ -100,3 +101,32 @@ def test_page_scripts_reads_inline_and_local_files(context_factory):
     html = '<script src="app.js"></script><script>inline()</script><script type="application/json">{}</script>'
     context = context_factory(html, resources={"app.js": "fichier()"})
     assert [source.label for source in page_scripts(context)] == ["app.js", "script[index=1]"]
+
+
+def test_listener_target_resolves_ids_selectors_and_variables():
+    soup = BeautifulSoup('<div id="a"></div><div class="b"></div>', "html.parser")
+    code = (
+        'const x = document.getElementById("a");\n'
+        'x.addEventListener("keydown", k);\n'
+        'document.querySelector(".b").onclick = go;\n'
+        'document.addEventListener("keyup", f);\n'
+        'foo().bar.addEventListener("click", g);'
+    )
+    source = ScriptSource("s", code)
+    listeners = event_listeners([source], soup, {"keydown", "click", "keyup"})
+    targets = [(listener.event, listener_target([source], soup, listener)) for listener in listeners]
+    assert targets == [
+        ("keydown", soup.find(id="a")),
+        ("keyup", "document"),
+        ("click", None),
+        ("click", soup.find(class_="b")),
+    ]
+
+
+def test_line_of_in_page_and_in_file(tmp_path):
+    soup = BeautifulSoup("<p>x</p>\n<script>\na();\nb();</script>", "html.parser")
+    inline = ScriptSource("s", soup.script.string, tag=soup.script)
+    assert inline.line_of(inline.code.index("b()")) == 4
+    in_file = ScriptSource("app.js", "a();\nb();", path=tmp_path / "app.js")
+    assert in_file.line_of(in_file.code.index("b()")) == 2
+    assert ScriptSource("s", "a();").line_of(0) is None

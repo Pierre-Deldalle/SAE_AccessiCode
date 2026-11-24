@@ -4,14 +4,24 @@ from __future__ import annotations
 
 from typing import Any
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 
 from accessi_code.analysis.dom import get_element_identifier
+from accessi_code.analysis.location import opening_tag
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
 from accessi_code.models.result import TestResult, TestStatus
 from accessi_code.rgaa.base import RGAATest
 from accessi_code.rgaa.outcomes import build_result, make_outcome, not_applicable
+
+RECOMMENDATION = "Ajouter un attribut title décrivant le contenu ou la fonction du cadre."
+# Texte à remplacer dans l'exemple : le titre lui-même dépend du contenu du cadre.
+TITLE_PLACEHOLDER = "[contenu ou fonction du cadre]"
+
+
+def title_example(frame: Tag, title: str | None = None) -> str:
+    """Correction « avant → après » de la balise du cadre, avec ses vrais attributs."""
+    return f"Exemple : {opening_tag(frame)} → {opening_tag(frame, title=title or TITLE_PLACEHOLDER)}"
 
 
 class Test211(RGAATest):
@@ -37,7 +47,8 @@ class Test211(RGAATest):
                 TestStatus.FAIL,
                 get_element_identifier(frame, index),
                 "Le cadre ne possède pas d'attribut title.",
-                "Ajouter un attribut title décrivant le contenu ou la fonction du cadre.",
+                f"{RECOMMENDATION} {title_example(frame)}",
+                node=frame,
                 src=str(frame.get("src") or ""),
             )
             for index, frame in enumerate(frames)
