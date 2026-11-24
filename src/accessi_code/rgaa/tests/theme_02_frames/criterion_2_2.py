@@ -53,7 +53,11 @@ class Test221(RGAATest):
         for position, frame in enumerate(frames):
             if not str(frame.get("title") or "").strip():
                 outcomes[position] = make_outcome(
-                    TestStatus.FAIL, self._identifier(frame, context.dom), "Le titre du cadre est vide.", RECOMMENDATION
+                    TestStatus.FAIL,
+                    self._identifier(frame, context.dom),
+                    "Le titre du cadre est vide.",
+                    RECOMMENDATION,
+                    node=frame,
                 )
             else:
                 to_judge.append(position)
@@ -78,6 +82,7 @@ class Test221(RGAATest):
                     f"La pertinence du titre du cadre « {item.text[:100]} » reste à vérifier.",
                 ),
                 RECOMMENDATION,
+                node=frames[position],
                 title=item.text,
                 **verdict.evidence,
             )

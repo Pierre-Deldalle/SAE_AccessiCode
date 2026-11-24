@@ -27,15 +27,18 @@ def test_relevant_title_passes(context_factory, run_rgaa):
 
 def test_irrelevant_title_fails(context_factory, run_rgaa):
     ai = text_services(relevance_answer=relevance(False))
-    result = run_rgaa(Test221(), context_factory('<iframe src="m.html" title="iframe"></iframe>'), ai)
+    result = run_rgaa(Test221(), context_factory('<p>x</p>\n\n<iframe src="m.html" title="iframe"></iframe>'), ai)
     assert result.status == Status.FAIL
     assert "n'est pas pertinent" in result.findings[0].message
+    assert result.findings[0].line == 3
+    assert result.findings[0].snippet == '<iframe src="m.html" title="iframe"></iframe>'
 
 
 def test_empty_title_fails_without_ai_call(context_factory, run_rgaa):
     ai = text_services()
     result = run_rgaa(Test221(), context_factory('<iframe src="m.html" title="  "></iframe>'), ai)
     assert result.status == Status.FAIL
+    assert result.findings[0].line == 1
     ai.text_relevance_analyzer.analyze_relevance.assert_not_called()
 
 

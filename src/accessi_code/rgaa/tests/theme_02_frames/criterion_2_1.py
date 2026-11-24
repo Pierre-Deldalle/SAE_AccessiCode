@@ -38,6 +38,7 @@ class Test211(RGAATest):
                 get_element_identifier(frame, index),
                 "Le cadre ne possède pas d'attribut title.",
                 "Ajouter un attribut title décrivant le contenu ou la fonction du cadre.",
+                node=frame,
                 src=str(frame.get("src") or ""),
             )
             for index, frame in enumerate(frames)
