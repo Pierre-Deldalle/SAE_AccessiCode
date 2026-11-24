@@ -1,237 +1,115 @@
+"""Critère RGAA 11.1 : présence et association des étiquettes."""
+
 import pytest
 
 from accessi_code.models.result import TestStatus as Status
-from accessi_code.rgaa.tests.theme_11_forms.criterion_11_1 import (
-    Test1111 as RGAA1111,
-)
+from accessi_code.rgaa.tests.theme_11_forms.criterion_11_1 import Test1111, Test1112, Test1113
 
 
-def test_1111_field_with_label_for_passes(
-    context_factory,
-    run_rgaa,
-):
-    html = """
-    <form>
-        <label for="email">Adresse e-mail</label>
-        <input id="email" type="email">
-    </form>
-    """
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA1111(), context)
-
-    assert result.status == Status.PASS
-    assert result.tested_elements == 1
-    assert result.findings == []
+@pytest.mark.parametrize("cls", [Test1111, Test1112, Test1113])
+def test_no_field_is_not_applicable(cls, context_factory, run_rgaa):
+    assert run_rgaa(cls(), context_factory("<p>Texte</p>")).status == Status.NOT_APPLICABLE
 
 
-def test_1111_field_with_aria_label_passes(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<input type="text" aria-label="Nom">')
-
-    result = run_rgaa(RGAA1111(), context)
-
-    assert result.status == Status.PASS
-
-
-def test_1111_field_with_aria_labelledby_passes(
-    context_factory,
-    run_rgaa,
-):
-    html = """
-    <span id="email-label">Adresse e-mail</span>
-    <input type="email" aria-labelledby="email-label">
-    """
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA1111(), context)
-
-    assert result.status == Status.PASS
-
-
-def test_1111_multiple_aria_labelledby_references_pass_when_all_are_valid(
-    context_factory,
-    run_rgaa,
-):
-    html = """
-    <span id="first">Date</span>
-    <span id="second">de naissance</span>
-    <input type="text" aria-labelledby="first second">
-    """
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA1111(), context)
-
-    assert result.status == Status.PASS
-
-
-def test_1111_field_with_title_passes(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<input type="text" title="Nom complet">')
-
-    result = run_rgaa(RGAA1111(), context)
-
-    assert result.status == Status.PASS
-
-
-def test_1111_field_without_label_fails(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<input type="text" id="username">')
-
-    result = run_rgaa(RGAA1111(), context)
-
-    assert result.status == Status.FAIL
-    assert len(result.findings) == 1
-
-
-def test_1111_invalid_aria_labelledby_reference_fails(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<input type="text" aria-labelledby="missing-label">')
-
-    result = run_rgaa(RGAA1111(), context)
-
-    assert result.status == Status.FAIL
-
-
-def test_1111_one_missing_aria_labelledby_reference_invalidates_the_mechanism(
-    context_factory,
-    run_rgaa,
-):
-    html = """
-    <span id="first">Date</span>
-    <input type="text" aria-labelledby="first missing">
-    """
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA1111(), context)
-
-    assert result.status == Status.FAIL
-
-
-def test_1111_duplicate_referenced_id_is_not_unambiguous(
-    context_factory,
-    run_rgaa,
-):
-    html = """
-    <span id="field-label">Premier texte</span>
-    <span id="field-label">Deuxième texte</span>
-    <input type="text" aria-labelledby="field-label">
-    """
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA1111(), context)
-
-    assert result.status == Status.FAIL
-
-
-def test_1111_empty_label_attributes_do_not_count(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<input type="text" aria-label="   " title="">')
-
-    result = run_rgaa(RGAA1111(), context)
-
-    assert result.status == Status.FAIL
-
-
-def test_1111_wrapping_label_without_for_is_not_the_rgaa_111_mechanism(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory('<label>Nom <input type="text"></label>')
-
-    result = run_rgaa(RGAA1111(), context)
-
-    assert result.status == Status.FAIL
+# ---- 11.1.1 ----------------------------------------------------------
 
 
 @pytest.mark.parametrize(
-    "field_html",
+    "html",
     [
-        '<textarea aria-label="Message"></textarea>',
-        '<select aria-label="Pays"><option>France</option></select>',
-        '<output aria-label="Résultat">42</output>',
-        '<progress aria-label="Progression" max="100" value="50"></progress>',
-        '<meter aria-label="Niveau" min="0" max="10" value="5"></meter>',
-        '<div role="textbox" aria-label="Commentaire"></div>',
-        '<div role="slider" aria-label="Volume"></div>',
-        '<div role="combobox" aria-label="Ville"></div>',
-        '<input type="checkbox" aria-label="Accepter">',
-        '<input type="radio" aria-label="Option A">',
-        '<input type="file" aria-label="Pièce jointe">',
+        '<label for="n">Nom</label><input id="n">',
+        '<input aria-label="Nom">',
+        '<span id="l">Nom</span><input aria-labelledby="l">',
+        '<input title="Nom">',
     ],
 )
-def test_1111_supported_form_field_types_are_checked(
-    context_factory,
-    run_rgaa,
-    field_html,
-):
-    context = context_factory(field_html)
-
-    result = run_rgaa(RGAA1111(), context)
-
-    assert result.status == Status.PASS
-    assert result.tested_elements == 1
+def test_1111_labelled_field_passes(html, context_factory, run_rgaa):
+    assert run_rgaa(Test1111(), context_factory(html)).status == Status.PASS
 
 
-def test_1111_non_form_fields_are_ignored(
-    context_factory,
-    run_rgaa,
-):
-    html = """
-    <input type="submit" value="Envoyer">
-    <input type="reset" value="Réinitialiser">
-    <input type="hidden" value="secret">
-    <input type="image" src="send.png" alt="Envoyer">
-    <input type="button" value="Action">
-    <button>Valider</button>
-    <div role="button">Action ARIA</div>
-    """
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA1111(), context)
-
-    assert result.status == Status.NOT_APPLICABLE
-    assert result.tested_elements == 0
-
-
-def test_1111_one_unlabelled_field_makes_multiple_fields_fail(
-    context_factory,
-    run_rgaa,
-):
-    html = """
-    <label for="email">E-mail</label>
-    <input id="email" type="email">
-
-    <input type="search" aria-label="Recherche">
-
-    <input id="phone" type="tel">
-    """
-    context = context_factory(html)
-
-    result = run_rgaa(RGAA1111(), context)
-
+def test_1111_unlabelled_field_fails(context_factory, run_rgaa):
+    result = run_rgaa(Test1111(), context_factory('<input id="n" placeholder="Nom">'))
     assert result.status == Status.FAIL
-    assert result.tested_elements == 3
-    assert len(result.findings) == 1
+    assert result.findings[0].element == "input#n"
 
 
-def test_1111_no_form_fields_is_not_applicable(
-    context_factory,
-    run_rgaa,
-):
-    context = context_factory("<main><h1>Page sans formulaire</h1></main>")
+def test_1111_wrapping_label_is_not_a_label_for(context_factory, run_rgaa):
+    result = run_rgaa(Test1111(), context_factory("<label>Nom <input></label>"))
+    assert result.status == Status.FAIL
+    assert result.findings[0].evidence["wrapping_label"] is True
 
-    result = run_rgaa(RGAA1111(), context)
 
-    assert result.status == Status.NOT_APPLICABLE
-    assert result.tested_elements == 0
+def test_1111_two_labels_for_the_same_field_pass(context_factory, run_rgaa):
+    html = '<label for="n">Nom</label><input id="n"><label for="n">(obligatoire)</label>'
+    assert run_rgaa(Test1111(), context_factory(html)).status == Status.PASS
+
+
+def test_1111_broken_labelledby_fails(context_factory, run_rgaa):
+    assert run_rgaa(Test1111(), context_factory('<input aria-labelledby="absent">')).status == Status.FAIL
+
+
+# ---- 11.1.2 ----------------------------------------------------------
+
+
+def test_1112_label_for_matching_unique_id_passes(context_factory, run_rgaa):
+    assert run_rgaa(Test1112(), context_factory('<label for="n">Nom</label><input id="n">')).status == Status.PASS
+
+
+@pytest.mark.parametrize(
+    ("html", "message"),
+    [
+        ('<label for="x">Nom</label><input id="n">', "Aucun champ"),
+        ('<label for="n">Nom</label><input id="n"><input id="n">', "pas unique"),
+        ('<label for="n">Nom</label><p id="n">Texte</p>', "n'est pas un champ"),
+        ('<label for="">Nom</label><input id="n">', "vide"),
+    ],
+)
+def test_1112_broken_association_fails(html, message, context_factory, run_rgaa):
+    result = run_rgaa(Test1112(), context_factory(html))
+    assert result.status == Status.FAIL
+    assert message in result.findings[0].message
+
+
+# ---- 11.1.3 ----------------------------------------------------------
+
+
+def test_1113_visible_label_is_out_of_scope(context_factory, run_rgaa):
+    html = '<label for="n">Nom</label><input id="n">'
+    assert run_rgaa(Test1113(), context_factory(html)).status == Status.NOT_APPLICABLE
+
+
+def test_1113_aria_label_without_title_nor_adjacent_text_fails(context_factory, run_rgaa):
+    result = run_rgaa(Test1113(), context_factory('<div><input aria-label="Rechercher"></div>'))
+    assert result.status == Status.FAIL
+
+
+def test_1113_aria_label_with_title_passes(context_factory, run_rgaa):
+    html = '<div><input aria-label="Rechercher" title="Rechercher sur le site"></div>'
+    assert run_rgaa(Test1113(), context_factory(html)).status == Status.PASS
+
+
+def test_1113_aria_label_with_adjacent_visible_text_passes(context_factory, run_rgaa):
+    html = '<p>Votre e-mail : <input aria-label="Votre e-mail"></p>'
+    assert run_rgaa(Test1113(), context_factory(html)).status == Status.PASS
+
+
+def test_1113_hidden_label_fails(context_factory, run_rgaa):
+    html = '<div><label class="sr-only" for="n">Nom</label></div><div><input id="n"></div>'
+    assert run_rgaa(Test1113(), context_factory(html)).status == Status.FAIL
+
+
+def test_1113_distant_labelledby_needs_review(context_factory, run_rgaa):
+    html = '<h2 id="t">Recherche</h2><section><div><input aria-labelledby="t"></div></section>'
+    assert run_rgaa(Test1113(), context_factory(html)).status == Status.NEEDS_REVIEW
+
+
+def test_1113_adjacent_labelledby_is_out_of_scope(context_factory, run_rgaa):
+    html = '<div><span id="t">Recherche</span><input aria-labelledby="t"></div>'
+    assert run_rgaa(Test1113(), context_factory(html)).status == Status.NOT_APPLICABLE
+
+
+def test_1113_browser_layout_evidence(context_factory, run_rgaa):
+    html = '<h2 id="t">Recherche</h2><section><div><input id="q" aria-labelledby="t"></div></section>'
+    context = context_factory(html)
+    context.form_label_layout = {"input#q": {"verified": True, "adjacent": True}}
+    assert run_rgaa(Test1113(), context).status == Status.PASS

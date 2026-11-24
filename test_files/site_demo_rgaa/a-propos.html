@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>À propos — AccessiCode, site de démonstration RGAA</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <a href="#contenu">Aller au contenu principal</a>
+
+    <header>
+        <p>AccessiCode</p>
+        <h1>À propos du projet</h1>
+        <nav aria-label="Navigation principale">
+            <h2>Navigation principale</h2>
+            <ul>
+                <li><a href="index.html#presentation">Présentation</a></li>
+                <li><a href="index.html#resultats">Résultats</a></li>
+                <li><a href="index.html#contact">Contact</a></li>
+                <li><a href="plan-du-site.html">Plan du site</a></li>
+                <li><a href="a-propos.html" aria-current="page">À propos</a></li>
+            </ul>
+        </nav>
+        <form action="index.html" method="get" role="search">
+            <label for="recherche">Rechercher sur le site</label>
+            <input id="recherche" name="q" type="text" autocomplete="off">
+            <button type="submit">Rechercher</button>
+        </form>
+    </header>
+
+    <main id="contenu">
+        <h2>Le projet</h2>
+        <p>
+            AccessiCode est une application de pré-audit d'accessibilité réalisée par des
+            étudiants de BUT Informatique. Ce site de démonstration sert à vérifier que
+            chaque test RGAA de l'application détecte bien les cas conformes et non conformes.
+        </p>
+
+        <h2 id="contact-sans-captcha">Nous contacter sans CAPTCHA</h2>
+        <form action="index.html#confirmation" method="post">
+            <div>
+                <label for="nom">Nom</label>
+                <input id="nom" name="nom" type="text" autocomplete="name">
+            </div>
+            <div>
+                <label for="email">Adresse email</label>
+                <input id="email" name="email" type="email" autocomplete="email">
+            </div>
+            <button type="submit">Envoyer le message</button>
+        </form>
+    </main>
+
+    <footer>
+        <h2>Informations complémentaires</h2>
+        <p>AccessiCode est un projet pédagogique consacré à l'accessibilité numérique.</p>
+        <p><a href="plan-du-site.html">Consulter le plan du site</a></p>
+        <p><a href="#contenu">Retour au contenu principal</a></p>
+    </footer>
+</body>
+</html>

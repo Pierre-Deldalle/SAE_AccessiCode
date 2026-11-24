@@ -33,4 +33,7 @@ Thumbs.db
 # Workspace d'audits
 workspace/audits/*
 
+# Durées mesurées des audits (propres à chaque machine)
+workspace/audit_timings.json
+
 evals/prompts/title/generated/*
