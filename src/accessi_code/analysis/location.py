@@ -75,6 +75,21 @@ def locate_in_text(tag: Tag | None, offset: int) -> tuple[int | None, str | None
     return line, code or element_snippet(tag)
 
 
+def locate_in_source(text: str, offset: int) -> tuple[int | None, str | None]:
+    """
+    Emplacement d'une position dans le texte d'un fichier (script ``.js``, feuille ``.css``) :
+    (numéro de ligne dans ce fichier, ligne de code correspondante). Position invalide → (None, None).
+    """
+    if not 0 <= offset <= len(text):
+        return None, None
+    start = text.rfind("\n", 0, offset) + 1
+    end = text.find("\n", offset)
+    code = " ".join(text[start : end if end != -1 else len(text)].split())
+    if len(code) > SNIPPET_LIMIT:
+        code = code[: SNIPPET_LIMIT - 1] + "…"
+    return text.count("\n", 0, offset) + 1, code or None
+
+
 def location_fields(tag: Tag | None, offset: int | None = None) -> dict[str, int | str | None]:
     """
     Champs ``line`` et ``snippet`` pour un Finding construit à la main :

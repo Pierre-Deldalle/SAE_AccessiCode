@@ -302,6 +302,100 @@ _ENTRIES = (
         "clavier. Sinon, une personne qui ne peut pas utiliser de souris n'accède pas aux liens ou boutons qu'il "
         "contient.",
     ),
+    # ---- Thème 13 : consultation ----
+    CriterionInfo(
+        "13.1",
+        "Pour chaque page web, l’utilisateur a-t-il le contrôle de chaque limite de temps modifiant le contenu "
+        "(hors cas particuliers) ?",
+        "Une personne qui lit lentement, qui a du mal à se concentrer ou qui écoute la page avec un lecteur d'écran "
+        "met plus de temps que les autres. Si la page se recharge ou si la session expire avant qu'elle ait fini, "
+        "elle perd sa lecture ou ce qu'elle avait saisi.",
+    ),
+    CriterionInfo(
+        "13.2",
+        "Dans chaque page web, l’ouverture d’une nouvelle fenêtre ne doit pas être déclenchée sans action de "
+        "l’utilisateur. Cette règle est-elle respectée ?",
+        "Une personne aveugle ne voit pas qu'une nouvelle fenêtre s'est ouverte : elle se retrouve sur une autre "
+        "page sans comprendre pourquoi, et le bouton « Retour » ne la ramène plus. Cela désoriente aussi les "
+        "personnes qui se repèrent difficilement.",
+    ),
+    CriterionInfo(
+        "13.3",
+        "Dans chaque page web, chaque document bureautique en téléchargement possède-t-il, si nécessaire, une "
+        "version accessible (hors cas particuliers) ?",
+        "Un document PDF ou Word mal conçu peut être illisible pour un lecteur d'écran, ou lu dans le désordre. "
+        "Sans autre version, une personne aveugle ou malvoyante n'a pas accès à son contenu.",
+    ),
+    CriterionInfo(
+        "13.4",
+        "Pour chaque document bureautique ayant une version accessible, cette version offre-t-elle la même "
+        "information ?",
+        "Les personnes aveugles ou malvoyantes lisent la version accessible à la place du document. S'il y manque "
+        "des passages, des chiffres ou des liens, elles disposent de moins d'informations que les autres.",
+    ),
+    CriterionInfo(
+        "13.5",
+        "Dans chaque page web, chaque contenu cryptique (art ASCII, émoticône, syntaxe cryptique) a-t-il une "
+        "alternative ?",
+        "Un lecteur d'écran lit une émoticône comme « deux-points tiret parenthèse » et un dessin fait de "
+        "caractères comme une suite de signes sans fin. Sans explication, une personne aveugle n'en comprend pas "
+        "le sens.",
+    ),
+    CriterionInfo(
+        "13.6",
+        "Dans chaque page web, pour chaque contenu cryptique (art ASCII, émoticône, syntaxe cryptique) ayant une "
+        "alternative, cette alternative est-elle pertinente ?",
+        "Une personne aveugle ne connaît le sens d'une émoticône ou d'un dessin en caractères que par son "
+        "explication. Si celle-ci est vague ou fausse, elle comprend mal le message, par exemple une ironie ou un "
+        "avertissement.",
+    ),
+    CriterionInfo(
+        "13.7",
+        "Dans chaque page web, les changements brusques de luminosité ou les effets de flash sont-ils "
+        "correctement utilisés ?",
+        "Des flashs ou des clignotements rapides de lumière peuvent déclencher une crise chez une personne "
+        "épileptique, même si elle ne regarde l'écran que quelques secondes. Ils provoquent aussi des maux de tête "
+        "ou des malaises chez d'autres personnes.",
+    ),
+    CriterionInfo(
+        "13.8",
+        "Dans chaque page web, chaque contenu en mouvement ou clignotant est-il contrôlable par l’utilisateur ?",
+        "Un texte qui défile ou un élément qui clignote sans arrêt empêche de se concentrer, notamment les "
+        "personnes qui ont des troubles de l'attention, et un texte qui bouge est difficile à lire pour les "
+        "personnes malvoyantes ou qui lisent lentement. Sans bouton pour l'arrêter, elles ne peuvent pas s'en "
+        "protéger.",
+    ),
+    CriterionInfo(
+        "13.9",
+        "Dans chaque page web, le contenu proposé est-il consultable quelle que soit l’orientation de l’écran "
+        "(portrait ou paysage) (hors cas particuliers) ?",
+        "Certaines personnes ne peuvent pas tourner leur appareil, par exemple quand leur tablette est fixée à un "
+        "fauteuil roulant. Si la page ne s'affiche que dans un sens, elles ne peuvent pas la consulter.",
+    ),
+    CriterionInfo(
+        "13.10",
+        "Dans chaque page web, les fonctionnalités utilisables ou disponibles au moyen d’un geste complexe "
+        "peuvent-elles être également disponibles au moyen d’un geste simple (hors cas particuliers) ?",
+        "Pincer l'écran avec deux doigts ou faire glisser un doigt selon un tracé précis est difficile, voire "
+        "impossible, pour une personne qui a des tremblements ou qui n'utilise qu'un doigt ou un stylet. Sans "
+        "bouton qui fait la même chose, elle ne peut pas utiliser la fonctionnalité.",
+    ),
+    CriterionInfo(
+        "13.11",
+        "Dans chaque page web, les actions déclenchées au moyen d’un dispositif de pointage sur un point unique "
+        "de l’écran peuvent-elles faire l’objet d’une annulation (hors cas particuliers) ?",
+        "Une personne qui a des gestes imprécis touche souvent le mauvais bouton. Si l'action se lance dès le "
+        "contact, avant que le doigt ou le bouton de la souris soit relâché, elle ne peut pas se rattraper et "
+        "subit une action qu'elle n'a pas voulue, comme une suppression.",
+    ),
+    CriterionInfo(
+        "13.12",
+        "Dans chaque page web, les fonctionnalités qui impliquent un mouvement de l’appareil ou vers l’appareil "
+        "peuvent-elles être satisfaites de manière alternative (hors cas particuliers) ?",
+        "Secouer ou incliner le téléphone est impossible pour une personne dont l'appareil est fixé, ou qui ne "
+        "peut pas bouger les mains facilement. À l'inverse, une personne qui a des tremblements peut déclencher "
+        "l'action sans le vouloir : il faut un bouton qui fasse la même chose et un moyen de couper la détection.",
+    ),
 )
 
 CRITERIA: dict[str, CriterionInfo] = {entry.criterion_id: entry for entry in _ENTRIES}

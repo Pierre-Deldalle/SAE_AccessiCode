@@ -47,6 +47,7 @@ class Test1341(RGAATest):
                         f"document {document.format} « {document.name or document.href} ».",
                         "Comparer les deux versions : textes, tableaux, images informatives et liens doivent "
                         "être présents dans la version accessible.",
+                        node=document.link,
                         href=document.href,
                         alternative_href=link_href(alternative),
                     )

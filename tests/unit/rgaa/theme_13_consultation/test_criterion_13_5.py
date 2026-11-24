@@ -116,6 +116,80 @@ def test_1361_without_ai_needs_review(context_factory, run_rgaa):
     assert run_rgaa(Test1361(), context_factory(html)).status == Status.NEEDS_REVIEW
 
 
+def test_1351_failure_is_located_on_the_cryptic_content(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=relevance(False))
+    result = run_rgaa(Test1351(), context_factory("<h1>Messages</h1>\n\n<p>@+</p>"), ai)
+    assert result.status == Status.FAIL
+    assert (result.findings[0].line, result.findings[0].snippet) == (3, "<p>@+</p>")
+
+
+def test_1361_failure_is_located_on_the_cryptic_content(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=relevance(False))
+    html = '<p>Messages</p>\n<span title="banane">:-)</span>'
+    result = run_rgaa(Test1361(), context_factory(html), ai)
+    assert result.status == Status.FAIL
+    assert (result.findings[0].line, result.findings[0].snippet) == (2, '<span title="banane">:-)</span>')
+
+
+# Propositions de l'IA et exemples de correction -------------------------------
+
+
+def test_1351_fail_shows_the_ai_proposal_in_the_example(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=relevance(False, suggestion="à plus tard"))
+    result = run_rgaa(Test1351(), context_factory("<p>Bonne soirée @+</p>"), ai)
+    assert result.status == Status.FAIL
+    assert result.findings[0].recommendation.endswith(
+        'Proposition : « à plus tard ». Exemple : @+ → <span title="à plus tard">@+</span>'
+    )
+
+
+def test_1351_fail_without_proposal_uses_a_placeholder(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=relevance(False))
+    result = run_rgaa(Test1351(), context_factory("<p>Bonne soirée @+</p>"), ai)
+    assert "Proposition" not in result.findings[0].recommendation
+    assert result.findings[0].recommendation.endswith('Exemple : @+ → <span title="[sens du contenu]">@+</span>')
+
+
+def test_1351_ascii_art_example_becomes_an_image(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=relevance(False, suggestion="Un chat"))
+    result = run_rgaa(Test1351(), context_factory(ASCII_ART.replace("<pre>", '<pre class="art">')), ai)
+    assert result.findings[0].recommendation.endswith(
+        'Exemple : <pre class="art"> → <pre class="art" role="img" aria-label="Un chat">'
+    )
+
+
+@pytest.mark.parametrize("test", [Test1351(), Test1361()])
+def test_proposal_is_ignored_on_pass_and_low_confidence(test, context_factory, run_rgaa):
+    html = '<p>À demain <span title="bof">@+</span></p>' if isinstance(test, Test1361) else "<p>Bravo ^^</p>"
+    on_pass = run_rgaa(test, context_factory(html), text_services(relevance_answer=relevance(True, suggestion="x")))
+    assert on_pass.status == Status.PASS
+    assert on_pass.findings == []
+    unsure = text_services(relevance_answer=relevance(False, confidence="low", suggestion="à plus tard"))
+    result = run_rgaa(test, context_factory(html), unsure)
+    assert result.status == Status.NEEDS_REVIEW
+    assert "Proposition" not in result.findings[0].recommendation
+    assert "Exemple" not in result.findings[0].recommendation
+
+
+def test_1361_fail_corrects_the_attribute_that_carries_the_alternative(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=relevance(False, suggestion="à plus tard"))
+    html = '<p>À demain <abbr class="c" title="bof"><b>@+</b></abbr></p>'
+    result = run_rgaa(Test1361(), context_factory(html), ai)
+    assert result.status == Status.FAIL
+    assert result.findings[0].recommendation.endswith(
+        'Proposition : « à plus tard ». Exemple : <abbr class="c" title="bof"> → <abbr class="c" title="à plus tard">'
+    )
+
+
+def test_1361_aria_label_alternative_is_corrected_in_place(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=relevance(False))
+    html = ASCII_ART.replace("<pre>", '<pre role="img" aria-label="Dessin">')
+    result = run_rgaa(Test1361(), context_factory(html), ai)
+    assert result.findings[0].recommendation.endswith(
+        'Exemple : <pre role="img" aria-label="Dessin"> → <pre role="img" aria-label="[sens du contenu]">'
+    )
+
+
 @pytest.mark.parametrize("test", [Test1351(), Test1361()])
 def test_13_5_missing_dom_raises_error(test, context_factory):
     context = context_factory("<p>x</p>")

@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import ast
 import operator
+import os
 import re
 from dataclasses import dataclass, field
 from enum import Enum
@@ -22,6 +23,7 @@ from urllib.parse import urlparse
 
 from bs4 import BeautifulSoup, Tag
 
+from accessi_code.analysis.location import locate_in_source, locate_in_text, source_file_name
 from accessi_code.models.audit_context import AuditContext
 
 _JS_TYPES = {"", "text/javascript", "application/javascript", "module", "text/ecmascript", "application/ecmascript"}
@@ -87,6 +89,10 @@ class ScriptSource:
     # Comme ``masked``, avec tout le contenu des chaînes effacé (recherche d'identifiants).
     bare: str = ""
     pairs: list[tuple[int, int]] = field(default_factory=list)
+    # Origine du code : balise <script> en ligne de la page auditée, ou fichier fourni
+    # (nom tel que l'utilisateur l'a fourni, voir ``location.source_file_name``).
+    element: Tag | None = None
+    file: str | None = None
 
     def __post_init__(self) -> None:
         self.masked = mask_code(self.code)
@@ -95,6 +101,18 @@ class ScriptSource:
 
     def snippet(self, position: int, before: int = 120, after: int = 220) -> str:
         return " ".join(self.code[max(0, position - before) : position + after].split())
+
+    def location(self, position: int) -> dict[str, int | str | None]:
+        """
+        Champs ``file``, ``line`` et ``snippet`` d'un Finding situé à ``position`` dans le code :
+        ligne de la page auditée pour un script en ligne (``file`` laissé à None, le runner
+        l'indique), ligne du fichier pour un script fourni à part.
+        """
+        if self.element is not None:
+            line, snippet = locate_in_text(self.element, position)
+            return {"file": None, "line": line, "snippet": snippet}
+        line, snippet = locate_in_source(self.code, position)
+        return {"file": self.file, "line": line, "snippet": snippet}
 
 
 @dataclass
@@ -194,21 +212,25 @@ def page_scripts(context: AuditContext) -> list[ScriptSource]:
                 parsed = urlparse(src)
                 if parsed.scheme or parsed.netloc:
                     continue
-                path = (base / parsed.path.lstrip("/")).resolve()
-                if path.is_file() and path not in seen:
-                    seen.add(path)
-                    sources.append(ScriptSource(path.name, _read(path)))
+                path = Path(os.path.normpath(base / parsed.path.lstrip("/")))
+                if path.is_file() and path.resolve() not in seen:
+                    seen.add(path.resolve())
+                    sources.append(_file_source(context, path))
                 continue
             code = script.string or script.get_text()
             if code and code.strip():
-                sources.append(ScriptSource(f"script[index={index}]", code))
+                sources.append(ScriptSource(f"script[index={index}]", code, element=script))
 
     for audit_file in context.files:
-        path = Path(audit_file.path).resolve()
-        if audit_file.extension == ".js" and path.is_file() and path not in seen:
-            seen.add(path)
-            sources.append(ScriptSource(path.name, _read(path)))
+        path = Path(audit_file.path)
+        if audit_file.extension == ".js" and path.is_file() and path.resolve() not in seen:
+            seen.add(path.resolve())
+            sources.append(_file_source(context, path))
     return sources
+
+
+def _file_source(context: AuditContext, path: Path) -> ScriptSource:
+    return ScriptSource(path.name, _read(path), file=source_file_name(context, path))
 
 
 def _read(path: Path) -> str:

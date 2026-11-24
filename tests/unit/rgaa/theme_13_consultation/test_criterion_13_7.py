@@ -164,6 +164,114 @@ def test_1382_script_blink_needs_review(context_factory, run_rgaa):
     assert run_rgaa(Test1382(), context_factory(html)).status == Status.NEEDS_REVIEW
 
 
+# Emplacement des observations (13.7 et 13.8.2 n'ont pas de FAIL automatique) -----
+
+
+def test_1371_review_is_located_on_the_media(context_factory, run_rgaa):
+    finding = run_rgaa(Test1371(), context_factory('<p>Vidéo</p>\n<video src="v.mp4"></video>')).findings[0]
+    assert (finding.line, finding.snippet) == (2, '<video src="v.mp4"></video>')
+
+
+def test_1372_review_in_script_file_is_located_in_that_file(context_factory, run_rgaa):
+    code = "// Alerte\nsetInterval(() => {\n  el.classList.toggle('on')\n}, 100);\n"
+    context = context_factory('<script src="alerte.js"></script>', resources={"alerte.js": code})
+    finding = run_rgaa(Test1372(), context).findings[0]
+    assert (finding.file, finding.line, finding.snippet) == ("alerte.js", 2, "setInterval(() => {")
+
+
+def test_1373_review_is_located_on_the_css_rule(context_factory, run_rgaa, tmp_path):
+    context = context_factory(_styled(BLINK, '<p class="x">Promo</p>'))
+    context.css_sources[tmp_path / "flash.css"] = "/* flash */\n\n.x {\n  animation: blink 0.1s infinite;\n}\n"
+    finding = run_rgaa(Test1373(), context).findings[0]
+    assert (finding.file, finding.line, finding.snippet) == ("flash.css", 3, ".x {")
+
+
+def test_1381_marquee_failure_is_located_on_the_marquee(context_factory, run_rgaa):
+    result = run_rgaa(Test1381(), context_factory("<h1>Infos</h1>\n<marquee>Promo</marquee>"))
+    assert result.status == Status.FAIL
+    assert (result.findings[0].line, result.findings[0].snippet) == (2, "<marquee>Promo</marquee>")
+
+
+def test_1381_video_failure_is_located_on_the_video(context_factory, run_rgaa):
+    result = run_rgaa(Test1381(), context_factory('<p>x</p>\n\n<video src="v.mp4" autoplay loop></video>'))
+    assert result.status == Status.FAIL
+    assert result.findings[0].line == 3
+    assert result.findings[0].snippet == '<video src="v.mp4" autoplay="" loop=""></video>'
+
+
+def test_1382_review_in_style_tag_is_located_in_the_page(context_factory, run_rgaa):
+    html = f"<html><head>\n<style>\n{BLINK}\n.x {{ animation: blink 1s infinite }}\n</style></head>"
+    html += '<body><p class="x">Promo</p></body></html>'
+    finding = run_rgaa(Test1382(), context_factory(html)).findings[0]
+    assert (finding.file, finding.line, finding.snippet) == (None, 4, ".x { animation: blink 1s infinite }")
+
+
+# Exemples de correction --------------------------------------------------------
+
+
+def test_1372_example_slows_the_real_timer(context_factory, run_rgaa):
+    html = "<script>setInterval(() => { el.classList.toggle('on') }, 100);</script>"
+    finding = run_rgaa(Test1372(), context_factory(html)).findings[0]
+    assert finding.recommendation.endswith(
+        "Exemple si l'effet doit être ralenti : setInterval(…, 100) → setInterval(…, 167)"
+    )
+
+
+@pytest.mark.parametrize(
+    ("animation", "expected"),
+    [
+        # Un flash par cycle : 0.1 s → 0.4 s (2,5 flashs par seconde).
+        ("blink 0.1s infinite", "dans la règle .x, animation-duration: 0.1s → animation-duration: 0.4s"),
+        # Durée exactement au seuil de 3 par seconde : on passe au dixième supérieur.
+        ("blink 0.2s infinite", "dans la règle .x, animation-duration: 0.2s → animation-duration: 0.4s"),
+    ],
+)
+def test_1373_example_slows_the_real_animation(animation, expected, context_factory, run_rgaa):
+    finding = run_rgaa(Test1373(), context_factory(_styled(f"{BLINK} .x {{ animation: {animation} }}"))).findings[0]
+    assert finding.recommendation.endswith(expected)
+
+
+def test_1381_marquee_example_keeps_the_real_text(context_factory, run_rgaa):
+    finding = run_rgaa(Test1381(), context_factory('<marquee class="info">Soldes &amp; promos</marquee>')).findings[0]
+    assert finding.recommendation.endswith(
+        'Exemple : <marquee class="info">Soldes &amp; promos</marquee> → <p>Soldes &amp; promos</p>'
+    )
+
+
+@pytest.mark.parametrize(
+    ("html", "expected"),
+    [
+        # FAIL : lecture automatique en boucle, aucun bouton.
+        (
+            '<video src="v.mp4" autoplay loop></video>',
+            'Exemple : <video src="v.mp4" autoplay="" loop=""> → <video src="v.mp4" autoplay="" loop="" controls="">',
+        ),
+        # NEEDS_REVIEW : un bouton existe, mais la vidéo n'a pas de contrôles.
+        (
+            '<video src="v.mp4" autoplay></video><button>Pause</button>',
+            'Exemple : <video src="v.mp4" autoplay=""> → <video src="v.mp4" autoplay="" controls="">',
+        ),
+    ],
+)
+def test_1381_video_example_adds_controls(html, expected, context_factory, run_rgaa):
+    finding = run_rgaa(Test1381(), context_factory(html)).findings[0]
+    assert finding.recommendation.endswith(expected)
+
+
+def test_138_css_example_limits_repetitions_to_five_seconds(context_factory, run_rgaa):
+    html = _styled(f"{SPIN} .x {{ animation: spin 2s 1s infinite }}")
+    finding = run_rgaa(Test1381(), context_factory(html)).findings[0]
+    assert finding.recommendation.endswith(
+        "Exemple pour limiter l'animation à 5 secondes : dans la règle .x, "
+        "animation-iteration-count: infinite → animation-iteration-count: 2"
+    )
+
+
+def test_138_no_iteration_example_when_one_cycle_is_too_long(context_factory, run_rgaa):
+    finding = run_rgaa(Test1382(), context_factory(_styled(f"{BLINK} .x {{ animation: blink 6s infinite }}")))
+    assert "Exemple" not in finding.findings[0].recommendation
+
+
 @pytest.mark.parametrize("test", [Test1371(), Test1372(), Test1373(), Test1381(), Test1382()])
 def test_13_7_missing_dom_raises_error(test, context_factory):
     context = context_factory("<p>x</p>")

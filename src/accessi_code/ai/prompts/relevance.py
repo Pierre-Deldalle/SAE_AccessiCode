@@ -308,12 +308,14 @@ RELEVANCE_KINDS: dict[str, RelevanceKind] = {
             "« @+ » seul en fin de message sans explication, un dessin en art ASCII sans légende, "
             "une émoticône qui porte seule une information (« Résultat : :( »)."
         ),
+        suggestion="une alternative courte (texte d'un attribut title) qui donne le sens du contenu cryptique",
     ),
     "cryptic_alternative": RelevanceKind(
         subject="alternative (attribut title ou aria-label) d'un contenu cryptique fourni dans « cryptic_content »",
         rule="RGAA 13.6 : l'alternative de chaque contenu cryptique doit être pertinente.",
         relevant_when="elle donne le sens du contenu cryptique (« sourire » pour :-), « à plus tard » pour @+).",
         not_relevant_examples="« émoticône », « image », « art ASCII », un texte sans rapport avec le contenu.",
+        suggestion="une alternative courte qui donne le sens du contenu cryptique",
     ),
     "gesture_alternative": RelevanceKind(
         subject=(

@@ -2,7 +2,14 @@
 
 from bs4 import BeautifulSoup, Tag
 
-from accessi_code.analysis.location import SNIPPET_LIMIT, element_snippet, locate, opening_tag, source_file_name
+from accessi_code.analysis.location import (
+    SNIPPET_LIMIT,
+    element_snippet,
+    locate,
+    locate_in_source,
+    opening_tag,
+    source_file_name,
+)
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.audit_file import AuditFile
 from accessi_code.models.result import TestStatus as Status
@@ -81,3 +88,32 @@ def test_source_file_name_outside_the_workspace(tmp_path):
     context = _context(tmp_path)
     assert source_file_name(context, tmp_path / "ailleurs" / "page.html") == "page.html"
     assert source_file_name(context, None) is None
+
+
+def test_locate_in_source_gives_line_and_code_of_a_file():
+    code = "// minuteur\n\n  setTimeout(go, 500);\nfin();"
+    assert locate_in_source(code, code.index("setTimeout")) == (3, "setTimeout(go, 500);")
+    assert locate_in_source(code, 0) == (1, "// minuteur")
+    assert locate_in_source(code, len(code) + 1) == (None, None)
+
+
+def test_locate_in_source_truncates_long_lines():
+    line, snippet = locate_in_source("x" * 300, 10)
+    assert line == 1
+    assert len(snippet) == SNIPPET_LIMIT
+
+
+def test_make_outcome_with_location_in_another_file():
+    outcome = make_outcome(
+        Status.FAIL, "app.js", "Problème.", "Corriger.", file="js/app.js", line=12, snippet="go();", code="x"
+    )
+    assert outcome.finding is not None
+    assert (outcome.finding.file, outcome.finding.line, outcome.finding.snippet) == ("js/app.js", 12, "go();")
+    assert outcome.finding.evidence == {"code": "x"}
+
+
+def test_make_outcome_explicit_location_wins_over_node():
+    outcome = make_outcome(Status.FAIL, "iframe[index=0]", "Problème.", node=_iframe(), line=9)
+    assert outcome.finding is not None
+    assert (outcome.finding.file, outcome.finding.line) == (None, 9)
+    assert outcome.finding.snippet == '<iframe src="carte.html" title="Carte"></iframe>'

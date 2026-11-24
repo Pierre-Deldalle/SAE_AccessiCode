@@ -24,9 +24,10 @@ from __future__ import annotations
 
 import math
 import re
+from html import escape
 from typing import Any
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 
 from accessi_code.analysis.animations import (
     LIGHT_PROPERTIES,
@@ -38,13 +39,15 @@ from accessi_code.analysis.animations import (
     local_file,
     pause_controls,
 )
-from accessi_code.analysis.components import component_identifier
+from accessi_code.analysis.components import component_identifier, normalize
+from accessi_code.analysis.location import opening_tag
 from accessi_code.analysis.scripts import page_scripts, timer_calls
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
 from accessi_code.models.result import TestResult, TestStatus
 from accessi_code.rgaa.base import RGAATest
 from accessi_code.rgaa.outcomes import Outcome, build_result, make_outcome
+from accessi_code.rgaa.tests.theme_13_consultation.criterion_13_7 import animation_place
 
 CAROUSEL_SCRIPT = re.compile(
     r"slide|carousel|carrousel|slider|scroll(?:Left|By|To)|translate|\.style\s*\.\s*(?:left|marginLeft|transform)",
@@ -62,14 +65,53 @@ def _recommendation(kind: str) -> str:
     )
 
 
-def _review(element: str, message: str, controls: list[str], kind: str, **evidence: Any) -> Outcome:
+def marquee_example(marquee: Tag) -> str:
+    """Texte défilant remplacé par un paragraphe fixe, avec le vrai texte."""
+    text = escape(normalize(marquee.get_text(" ", strip=True))[:80], quote=False)
+    return f"Exemple : {opening_tag(marquee)}{text}</marquee> → <p>{text}</p>"
+
+
+def video_example(video: Tag) -> str:
+    """Attribut controls ajouté à la vidéo."""
+    return f"Exemple : {opening_tag(video)} → {opening_tag(video, controls='')}"
+
+
+def iterations_example(animation: CSSAnimation) -> str:
+    """Nombre de répétitions qui limite l'animation à 5 secondes ; vide si un seul cycle dépasse déjà 5 secondes."""
+    if animation.duration_s <= 0:
+        return ""
+    count = math.floor((MOTION_DURATION_LIMIT - animation.delay_s) / animation.duration_s + 1e-9)
+    if count < 1:
+        return ""
+    before = "infinite" if math.isinf(animation.iterations) else f"{animation.iterations:g}"
+    return (
+        f" Exemple pour limiter l'animation à 5 secondes : {animation_place(animation.selector)}, "
+        f"animation-iteration-count: {before} → animation-iteration-count: {count}"
+    )
+
+
+def _review(
+    element: str,
+    message: str,
+    controls: list[str],
+    kind: str,
+    location: dict[str, Any],
+    example: str = "",
+    **evidence: Any,
+) -> Outcome:
     found = (
         f" Bouton(s) trouvé(s) : {', '.join(controls[:5])} — vérifier qu'ils arrêtent ce contenu."
         if controls
         else " Aucun bouton pause ou arrêt trouvé : vérifier s'il s'agit d'une exception (indicateur de chargement)."
     )
     return make_outcome(
-        TestStatus.NEEDS_REVIEW, element, message + found, _recommendation(kind), pause_controls=controls, **evidence
+        TestStatus.NEEDS_REVIEW,
+        element,
+        message + found,
+        f"{_recommendation(kind)} {example}".strip(),
+        **location,
+        pause_controls=controls,
+        **evidence,
     )
 
 
@@ -82,6 +124,8 @@ def _animation_outcome(animation: CSSAnimation, controls: list[str], kind: str) 
         f"L'animation CSS « {animation.keyframes.name} » produit un {kind} automatique {duration}.",
         controls,
         kind,
+        animation.location,
+        iterations_example(animation).strip(),
         keyframes=animation.keyframes.name,
         total_s=None if math.isinf(animation.total_s) else animation.total_s,
     )
@@ -116,6 +160,8 @@ class Test1381(MotionTest):
                         "Le texte défile en continu (balise marquee).",
                         controls,
                         "mouvement",
+                        {"node": marquee},
+                        marquee_example(marquee),
                     )
                 )
             else:
@@ -124,7 +170,8 @@ class Test1381(MotionTest):
                         TestStatus.FAIL,
                         component_identifier(marquee, index),
                         "Le texte défile en continu (balise marquee) et aucun bouton ne permet de l'arrêter.",
-                        _recommendation("mouvement"),
+                        f"{_recommendation('mouvement')} {marquee_example(marquee)}",
+                        node=marquee,
                     )
                 )
 
@@ -139,7 +186,9 @@ class Test1381(MotionTest):
                         TestStatus.FAIL,
                         component_identifier(video, index),
                         "La vidéo se lance automatiquement en boucle, sans contrôles ni bouton pour l'arrêter.",
-                        "Ajouter l'attribut controls ou un bouton pause, ou supprimer la lecture automatique.",
+                        "Ajouter l'attribut controls ou un bouton pause, ou supprimer la lecture automatique. "
+                        + video_example(video),
+                        node=video,
                     )
                 )
             else:
@@ -149,6 +198,8 @@ class Test1381(MotionTest):
                         "La vidéo se lance automatiquement sans l'attribut controls.",
                         controls,
                         "mouvement",
+                        {"node": video},
+                        video_example(video),
                     )
                 )
 
@@ -161,6 +212,7 @@ class Test1381(MotionTest):
                         "L'image est animée : sa durée d'animation est inconnue.",
                         controls,
                         "mouvement",
+                        {"node": image},
                     )
                 )
 
@@ -176,6 +228,7 @@ class Test1381(MotionTest):
                         "Un script fait défiler un contenu automatiquement (carrousel).",
                         controls,
                         "mouvement",
+                        call.source.location(call.position),
                         code=call.source.snippet(call.position),
                     )
                 )
@@ -207,6 +260,7 @@ class Test1382(MotionTest):
                         "Un script fait apparaître et disparaître un élément de façon répétée.",
                         controls,
                         "clignotement",
+                        call.source.location(call.position),
                         code=call.source.snippet(call.position),
                     )
                 )

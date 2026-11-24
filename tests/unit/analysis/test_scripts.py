@@ -100,3 +100,24 @@ def test_page_scripts_reads_inline_and_local_files(context_factory):
     html = '<script src="app.js"></script><script>inline()</script><script type="application/json">{}</script>'
     context = context_factory(html, resources={"app.js": "fichier()"})
     assert [source.label for source in page_scripts(context)] == ["app.js", "script[index=1]"]
+
+
+def test_inline_script_location_is_a_line_of_the_page(context_factory):
+    html = "<html><body>\n<p>x</p>\n<script>\nvar a = 1;\nwindow.open('pub.html');\n</script></body></html>"
+    [source] = page_scripts(context_factory(html))
+    assert source.location(source.code.index("window.open")) == {
+        "file": None,
+        "line": 5,
+        "snippet": "window.open('pub.html');",
+    }
+
+
+def test_script_file_location_is_a_line_of_that_file(context_factory):
+    code = "// Publicité\n\nwindow.open('pub.html');\n"
+    context = context_factory('<script src="js/pub.js"></script>', resources={"js/pub.js": code})
+    [source] = page_scripts(context)
+    assert source.location(source.code.index("window.open")) == {
+        "file": "pub.js",
+        "line": 3,
+        "snippet": "window.open('pub.html');",
+    }
