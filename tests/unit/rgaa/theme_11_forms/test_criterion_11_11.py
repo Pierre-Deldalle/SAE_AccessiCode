@@ -1,7 +1,7 @@
 """Critère RGAA 11.11 : suggestions de correction des erreurs de saisie."""
 
 import pytest
-from ai_fakes import relevance, text_services
+from tests.ai_fakes import relevance, text_services
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_11_forms.criterion_11_11 import Test11111, Test11112

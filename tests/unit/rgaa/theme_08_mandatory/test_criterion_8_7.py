@@ -1,6 +1,6 @@
 """Critère RGAA 8.7 : changements de langue indiqués (segments jugés par l'IA)."""
 
-from ai_fakes import relevance, text_services
+from tests.ai_fakes import relevance, text_services
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_08_mandatory.criterion_8_7 import Test871

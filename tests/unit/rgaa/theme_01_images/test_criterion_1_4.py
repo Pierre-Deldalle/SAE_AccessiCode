@@ -1,7 +1,7 @@
 """Critère RGAA 1.4 : alternative des CAPTCHA et images-tests."""
 
 import pytest
-from image_fakes import alternative, profile, services
+from tests.unit.rgaa.theme_01_images.image_fakes import alternative, profile, services
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_01_images.criterion_1_4 import (

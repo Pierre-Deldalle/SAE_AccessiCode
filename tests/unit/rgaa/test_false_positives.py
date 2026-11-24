@@ -5,7 +5,7 @@ Chaque cas est une construction conforme au RGAA qui était signalée à tort.
 """
 
 import pytest
-from ai_fakes import structure, text_services
+from tests.ai_fakes import structure, text_services
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_05_tables.criterion_5_7 import Test574

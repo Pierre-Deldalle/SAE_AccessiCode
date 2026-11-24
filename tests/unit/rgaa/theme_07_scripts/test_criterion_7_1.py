@@ -1,7 +1,7 @@
 """Critère RGAA 7.1 : composants contrôlés par script (7.1.1 et 7.1.2 sans IA, 7.1.3 jugé par l'IA)."""
 
 import pytest
-from ai_fakes import relevance, text_services
+from tests.ai_fakes import relevance, text_services
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_07_scripts.criterion_7_1 import Test711, Test712, Test713

@@ -1,6 +1,6 @@
 import aiohttp
 import pytest
-from fakes import FakeModel, batch
+from tests.unit.ai.fakes import FakeModel, batch
 
 from accessi_code.ai.analyzers.text_relevance_analyzer import OllamaTextRelevanceAnalyzer
 from accessi_code.ai.schemas import RelevanceItem

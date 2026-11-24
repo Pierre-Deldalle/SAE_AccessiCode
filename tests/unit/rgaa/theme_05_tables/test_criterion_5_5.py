@@ -1,6 +1,6 @@
 """Critère RGAA 5.5 : pertinence du titre des tableaux de données."""
 
-from ai_fakes import relevance, text_services
+from tests.ai_fakes import relevance, text_services
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_05_tables.criterion_5_5 import Test551

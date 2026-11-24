@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from ai_fakes import relevance, text_services
+from tests.ai_fakes import relevance, text_services
 
 from accessi_code.input.context_builder import AuditContextBuilder
 from accessi_code.models.result import TestStatus as Status

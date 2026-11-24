@@ -1,5 +1,5 @@
 import pytest
-from fakes import FakeModel
+from tests.unit.ai.fakes import FakeModel
 
 from accessi_code.ai.analyzers.image_analyzer import OllamaImageAnalyzer
 from accessi_code.analysis.images import ImageInfo

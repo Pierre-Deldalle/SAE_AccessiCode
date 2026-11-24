@@ -1,6 +1,6 @@
 """Critère RGAA 5.3 : tableaux de mise en forme (role="presentation" et contenu linéarisé)."""
 
-from ai_fakes import relevance, text_services
+from tests.ai_fakes import relevance, text_services
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_05_tables.criterion_5_3 import Test531

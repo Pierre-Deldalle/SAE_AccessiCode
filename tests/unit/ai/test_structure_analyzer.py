@@ -1,5 +1,5 @@
 import pytest
-from fakes import FakeModel, batch
+from tests.unit.ai.fakes import FakeModel, batch
 
 from accessi_code.ai.analyzers.structure_analyzer import OllamaStructureAnalyzer
 from accessi_code.ai.schemas import StructureCandidate

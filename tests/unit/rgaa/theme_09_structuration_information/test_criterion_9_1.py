@@ -1,7 +1,7 @@
 """Critère RGAA 9.1 : titres."""
 
 import pytest
-from ai_fakes import relevance, structure, text_services
+from tests.ai_fakes import relevance, structure, text_services
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_09_structuration_information.criterion_9_1 import Test911, Test912, Test913

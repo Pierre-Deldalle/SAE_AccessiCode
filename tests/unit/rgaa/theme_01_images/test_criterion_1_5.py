@@ -1,7 +1,7 @@
 """Critère RGAA 1.5 : solution d'accès alternative aux CAPTCHA."""
 
 import pytest
-from image_fakes import profile, services
+from tests.unit.rgaa.theme_01_images.image_fakes import profile, services
 
 from accessi_code.ai.schemas import RelevanceAnalysis
 from accessi_code.models.result import TestStatus as Status

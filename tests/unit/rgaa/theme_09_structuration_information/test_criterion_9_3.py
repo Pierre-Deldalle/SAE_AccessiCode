@@ -1,7 +1,7 @@
 """Critère RGAA 9.3 : listes."""
 
 import pytest
-from ai_fakes import structure, text_services
+from tests.ai_fakes import structure, text_services
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_09_structuration_information.criterion_9_3 import Test931, Test932, Test933

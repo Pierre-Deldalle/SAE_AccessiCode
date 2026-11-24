@@ -1,6 +1,6 @@
 """Critère RGAA 11.7 : pertinence des légendes de regroupement."""
 
-from ai_fakes import relevance, text_services
+from tests.ai_fakes import relevance, text_services
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_11_forms.criterion_11_7 import Test1171

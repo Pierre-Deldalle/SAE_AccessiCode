@@ -1,7 +1,7 @@
 from unittest.mock import AsyncMock
 
 import pytest
-from fakes import FakeModel, batch
+from tests.unit.ai.fakes import FakeModel, batch
 
 from accessi_code.ai.analyzers.sensory_analyzer import OllamaSensoryAnalyzer
 from accessi_code.ai.schemas import SensoryCandidate, VisualObservation

@@ -3,7 +3,7 @@
 import asyncio
 
 import pytest
-from ai_fakes import relevance, text_services
+from tests.ai_fakes import relevance, text_services
 from bs4 import BeautifulSoup
 
 from accessi_code.analysis.cryptic import ASCII_ART_KIND, EMOTICON_KIND, SYNTAX_KIND, find_cryptic_contents

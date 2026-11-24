@@ -1,7 +1,7 @@
 """Critère RGAA 7.5 : messages de statut (catégorie confirmée par l'IA, rôle vérifié sans IA)."""
 
 import pytest
-from ai_fakes import structure, text_services
+from tests.ai_fakes import structure, text_services
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_07_scripts.criterion_7_5 import Test751, Test752, Test753

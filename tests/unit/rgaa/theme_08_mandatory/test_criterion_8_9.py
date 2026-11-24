@@ -1,7 +1,7 @@
 """Critère RGAA 8.9 : balises utilisées uniquement pour la présentation."""
 
 import pytest
-from ai_fakes import structure, text_services
+from tests.ai_fakes import structure, text_services
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_08_mandatory.criterion_8_9 import Test891

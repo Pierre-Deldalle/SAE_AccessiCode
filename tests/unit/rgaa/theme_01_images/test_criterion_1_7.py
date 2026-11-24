@@ -1,7 +1,7 @@
 """Critère RGAA 1.7 : pertinence des descriptions détaillées."""
 
 import pytest
-from image_fakes import description, services
+from tests.unit.rgaa.theme_01_images.image_fakes import description, services
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_01_images.criterion_1_7 import (

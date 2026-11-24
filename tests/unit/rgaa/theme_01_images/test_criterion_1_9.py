@@ -1,7 +1,7 @@
 """Critère RGAA 1.9 : légendes d'images reliées à leur image."""
 
 import pytest
-from image_fakes import services
+from tests.unit.rgaa.theme_01_images.image_fakes import services
 
 from accessi_code.ai.schemas import StructureCandidateAnalysis
 from accessi_code.models.result import TestStatus as Status

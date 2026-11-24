@@ -1,7 +1,7 @@
 """Critère RGAA 6.1 : liens explicites (6.1.1 à 6.1.4 jugés par l'IA, 6.1.5 déterministe)."""
 
 import pytest
-from ai_fakes import relevance, text_services
+from tests.ai_fakes import relevance, text_services
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_06_links.criterion_6_1 import (

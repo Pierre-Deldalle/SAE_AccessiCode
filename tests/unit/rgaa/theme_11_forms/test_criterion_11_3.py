@@ -1,6 +1,6 @@
 """Critère RGAA 11.3 : cohérence des étiquettes de champs de même fonction."""
 
-from ai_fakes import relevance, text_services
+from tests.ai_fakes import relevance, text_services
 from bs4 import BeautifulSoup
 
 from accessi_code.models.result import TestStatus as Status

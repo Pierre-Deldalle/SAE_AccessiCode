@@ -1,6 +1,6 @@
 """Critère RGAA 2.2 : pertinence du titre de cadre."""
 
-from ai_fakes import relevance, text_services
+from tests.ai_fakes import relevance, text_services
 
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_02_frames.criterion_2_2 import Test221
