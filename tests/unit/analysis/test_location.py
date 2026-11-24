@@ -25,7 +25,7 @@ def test_locate_without_element():
 
 def test_element_built_in_code_has_no_line():
     tag = BeautifulSoup("", "html.parser").new_tag("img", src="x.png")
-    assert locate(tag) == (None, '<img src="x.png"/>')
+    assert locate(tag) == (None, '<img src="x.png">')
 
 
 def test_long_element_keeps_only_its_opening_tag():
@@ -81,3 +81,12 @@ def test_source_file_name_outside_the_workspace(tmp_path):
     context = _context(tmp_path)
     assert source_file_name(context, tmp_path / "ailleurs" / "page.html") == "page.html"
     assert source_file_name(context, None) is None
+
+
+def test_make_outcome_accepts_file_and_line_of_another_file():
+    outcome = make_outcome(Status.FAIL, "app.js", "Problème.", file="js/app.js", line=12, code="x.blur()")
+    assert outcome.finding is not None
+    assert (outcome.finding.file, outcome.finding.line, outcome.finding.snippet) == ("js/app.js", 12, None)
+    assert outcome.finding.evidence == {"code": "x.blur()"}
+    explicit = make_outcome(Status.FAIL, "iframe[index=0]", "Problème.", node=_iframe(), line=99)
+    assert explicit.finding is not None and explicit.finding.line == 99

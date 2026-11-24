@@ -24,7 +24,8 @@ class _SourceOrderFormatter(HTMLFormatter):
         return list(tag.attrs.items()) if tag.attrs else []
 
 
-_FORMATTER = _SourceOrderFormatter(entity_substitution=EntitySubstitution.substitute_xml)
+# Balises vides écrites comme en HTML (<input …>), sans la barre oblique de XHTML.
+_FORMATTER = _SourceOrderFormatter(entity_substitution=EntitySubstitution.substitute_xml, void_element_close_prefix="")
 
 
 def _html(tag: Tag) -> str:

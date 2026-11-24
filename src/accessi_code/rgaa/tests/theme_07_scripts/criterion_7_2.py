@@ -104,6 +104,7 @@ class Test721(RGAATest):
                     noscript_identifier(noscript, index),
                     "L'alternative <noscript> est vide : elle ne donne accès à aucun contenu.",
                     RECOMMENDATION,
+                    node=noscript,
                 )
                 continue
             to_judge.append(
@@ -126,7 +127,8 @@ class Test721(RGAATest):
                     "L'alternative au script ne donne pas accès à des contenus et fonctionnalités similaires.",
                     "La pertinence de l'alternative au script reste à vérifier.",
                 ),
-                RECOMMENDATION,
+                verdict.recommendation(RECOMMENDATION),
+                node=alternatives[index],
                 alternative=item.text[:300],
                 **verdict.evidence,
             )
