@@ -1,6 +1,10 @@
+import asyncio
+
 from bs4 import BeautifulSoup
 
 from accessi_code.models.result import TestStatus as Status
+from accessi_code.rgaa.registry import TestRegistry
+from accessi_code.rgaa.runner import TestRunner
 from accessi_code.rgaa.tests.theme_12_navigation.criterion_12_3 import Test1231, Test1232, Test1233
 
 
@@ -58,3 +62,20 @@ def test_no_sitemap_na(context_factory, run_rgaa):
     c = context_factory("<main>Accueil</main>")
     c.site_inventory_complete = True
     assert run_rgaa(Test1232(), c).status == Status.NOT_APPLICABLE
+
+
+def test_1232_fail_is_located_in_the_sitemap_file(context_factory, run_rgaa):
+    c = context_factory("<html><h1>Accueil</h1></html>")
+    c.page_doms["plan.html"] = BeautifulSoup(
+        '<html>\n<h1>Plan du site</h1>\n<ul>\n<li><a href="#absent">Absent</a></li>\n</ul>\n</html>', "html.parser"
+    )
+    result = run_rgaa(Test1232(), c)
+    assert result.status == Status.FAIL
+    note = result.findings[0]
+    assert (note.file, note.line, note.snippet) == ("plan.html", 4, '<a href="#absent">Absent</a>')
+
+
+def test_runner_keeps_the_sitemap_file(context_factory):
+    c = ctx(context_factory, "#missing")
+    [result] = asyncio.run(TestRunner(TestRegistry([Test1232()])).run_all(c))
+    assert [note.file for note in result.findings] == ["plan.html"]

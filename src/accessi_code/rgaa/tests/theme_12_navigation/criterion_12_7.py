@@ -1,6 +1,19 @@
 """12.7 — lien d'évitement / accès rapide au contenu principal."""
 
-from accessi_code.analysis.navigation import evidence, finding, local_target, pages, proof_check, relative_order, result
+from accessi_code.analysis.fix_examples import with_example
+from accessi_code.analysis.location import element_snippet
+from accessi_code.analysis.navigation import (
+    body_start_example,
+    evidence,
+    finding,
+    local_target,
+    page_file,
+    pages,
+    proof_check,
+    relative_order,
+    result,
+    skip_link_example,
+)
 from accessi_code.models.capabilities import Capability
 from accessi_code.rgaa.base import RGAATest
 
@@ -52,7 +65,10 @@ class Test1271(RGAATest):
                         mains[0],
                         soup,
                         "Aucun lien d'accès rapide local vers main.",
-                        "Ajouter un lien href='#id-du-main' avant la navigation.",
+                        with_example(
+                            "Ajouter un lien href='#id-du-main' avant la navigation.",
+                            skip_link_example(soup, mains[0]),
+                        ),
                     )
                 ],
             )
@@ -66,7 +82,10 @@ class Test1271(RGAATest):
                         links[0],
                         soup,
                         "Le lien est placé après la zone main.",
-                        "Placer le lien d’accès rapide avant le contenu principal.",
+                        with_example(
+                            "Placer le lien d’accès rapide avant le contenu principal, au début de la page.",
+                            body_start_example(soup, element_snippet(links[0])),
+                        ),
                     )
                 ],
             )
@@ -100,14 +119,18 @@ class Test1272(RGAATest):
         failures, reviews = [], []
         signatures = []
         for key, soup in all_pages.items():
-            _, links = skip_links(soup)
+            mains, links = skip_links(soup)
             if not links:
                 failures.append(
                     finding(
                         soup.html or soup,
                         soup,
                         "Lien d'accès rapide au main manquant.",
-                        "Ajouter un lien d'évitement valide.",
+                        with_example(
+                            "Ajouter un lien d'évitement valide.",
+                            skip_link_example(soup, mains[0]) if mains else None,
+                        ),
+                        file=page_file(context, soup),
                         page=key,
                     )
                 )
@@ -115,7 +138,11 @@ class Test1272(RGAATest):
             link = links[0]
             signatures.append(relative_order(soup, link))
             if local_target(link.get("href"), key, all_pages, soup) is not True:
-                failures.append(finding(link, soup, "Cible du lien invalide.", "Corriger href et id."))
+                failures.append(
+                    finding(
+                        link, soup, "Cible du lien invalide.", "Corriger href et id.", file=page_file(context, soup)
+                    )
+                )
         if len(set(signatures)) > 1:
             failures.append(
                 finding(

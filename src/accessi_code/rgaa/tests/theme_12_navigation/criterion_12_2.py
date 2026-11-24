@@ -19,11 +19,14 @@ class Test1221(RGAATest):
         snapshots = [(soup, navs(soup)) for soup in all_pages.values()]
         if not any(items for _, items in snapshots):
             return result(self, 0, empty="Aucun menu de navigation.")
+        # Premier menu de la page auditée, pour situer les observations.
+        own = navs(context.dom)
+        node = own[0] if own else context.dom.html
         failures, reviews = [], []
         if any(len(items) != len(snapshots[0][1]) for _, items in snapshots):
             reviews.append(
                 finding(
-                    context.dom.html,
+                    node,
                     context.dom,
                     "Le nombre de menus varie entre les pages.",
                     "Vérifier la constance des menus et les exceptions de processus.",
@@ -34,13 +37,11 @@ class Test1221(RGAATest):
             if any(signature != signatures[0] for signature in signatures[1:]):
                 failures.append(
                     finding(
-                        context.dom.html,
+                        node,
                         context.dom,
                         "L'ordre relatif des menus varie dans le DOM.",
                         "Conserver l'ordre relatif des barres de navigation.",
                     )
                 )
-        f, r = proof_check(
-            context, self, "same_visual_position", context.dom.html, context.dom, "Position visuelle des menus"
-        )
+        f, r = proof_check(context, self, "same_visual_position", node, context.dom, "Position visuelle des menus")
         return result(self, len(all_pages), failures + f, reviews + r)

@@ -216,6 +216,92 @@ _ENTRIES = (
         "signalent une citation. Si elle n'est pas indiquée comme telle, elle peut prendre les paroles d'une autre "
         "personne pour celles de l'auteur de la page.",
     ),
+    # ---- Thème 12 : navigation ----
+    CriterionInfo(
+        "12.1",
+        "Chaque ensemble de pages dispose-t-il de deux systèmes de navigation différents, au moins "
+        "(hors cas particuliers) ?",
+        "Chacun ne trouve pas une page de la même façon : une personne qui a du mal avec les menus, qui se repère "
+        "difficilement ou qui utilise un lecteur d'écran peut préférer un plan du site ou un moteur de recherche. "
+        "Avec un seul moyen de navigation, certaines personnes ne trouvent pas ce qu'elles cherchent.",
+    ),
+    CriterionInfo(
+        "12.2",
+        "Dans chaque ensemble de pages, le menu et les barres de navigation sont-ils toujours à la même place "
+        "(hors cas particuliers) ?",
+        "Une personne malvoyante qui agrandit fortement l'écran, ou qui a des difficultés de mémoire ou de "
+        "concentration, retient où se trouve le menu. S'il change de place d'une page à l'autre, elle doit le "
+        "rechercher à chaque fois et risque de se perdre.",
+    ),
+    CriterionInfo(
+        "12.3",
+        "La page « plan du site » est-elle pertinente ?",
+        "Le plan du site sert de sommaire à ceux qui se perdent dans les menus, notamment les personnes qui "
+        "utilisent un lecteur d'écran. S'il est incomplet ou contient des liens cassés ou mal nommés, il les mène "
+        "au mauvais endroit ou nulle part.",
+    ),
+    CriterionInfo(
+        "12.4",
+        "Dans chaque ensemble de pages, la page « plan du site » est-elle accessible à partir d’une "
+        "fonctionnalité identique ?",
+        "Une personne qui se repère difficilement, ou qui navigue au clavier ou avec un lecteur d'écran, apprend "
+        "où se trouve le lien vers le plan du site. S'il change de forme ou de place selon les pages, ou s'il "
+        "manque sur certaines, elle ne le retrouve plus.",
+    ),
+    CriterionInfo(
+        "12.5",
+        "Dans chaque ensemble de pages, le moteur de recherche est-il atteignable de manière identique ?",
+        "Une personne qui se repère difficilement, ou qui navigue au clavier ou avec un lecteur d'écran, apprend "
+        "où se trouve la recherche. Si elle change de forme ou de place selon les pages, ou disparaît sur "
+        "certaines, elle perd du temps à la chercher, voire y renonce.",
+    ),
+    CriterionInfo(
+        "12.6",
+        "Les zones de regroupement de contenus présentes dans plusieurs pages web (zones d’en-tête, de navigation "
+        "principale, de contenu principal, de pied de page et de moteur de recherche) peuvent-elles être atteintes "
+        "ou évitées ?",
+        "Une personne qui utilise un lecteur d'écran ou le clavier doit pouvoir sauter directement au menu, au "
+        "contenu ou à la recherche. Sinon, elle doit traverser le haut de page, identique sur chaque page, avant "
+        "d'arriver à ce qui l'intéresse.",
+    ),
+    CriterionInfo(
+        "12.7",
+        "Dans chaque page web, un lien d’évitement ou d’accès rapide à la zone de contenu principal est-il présent "
+        "(hors cas particuliers) ?",
+        "Une personne qui navigue au clavier passe d'un lien à l'autre avec la touche Tab. Sans lien « Aller au "
+        "contenu » en haut de page, elle doit parcourir tout le menu, sur chaque page, avant d'atteindre le contenu.",
+    ),
+    CriterionInfo(
+        "12.8",
+        "Dans chaque page web, l’ordre de tabulation est-il cohérent ?",
+        "Une personne qui navigue au clavier avance d'élément en élément avec la touche Tab. Si cet ordre saute "
+        "d'un bout à l'autre de la page, elle perd le fil, peut oublier un champ d'un formulaire et ne comprend "
+        "plus où elle se trouve.",
+    ),
+    CriterionInfo(
+        "12.9",
+        "Dans chaque page web, la navigation ne doit pas contenir de piège au clavier. Cette règle est-elle "
+        "respectée ?",
+        "Une personne qui ne peut pas utiliser de souris peut rester bloquée dans un élément (lecteur vidéo, carte, "
+        "fenêtre) qu'elle ne parvient plus à quitter au clavier. Elle ne peut alors plus utiliser le reste de la "
+        "page.",
+    ),
+    CriterionInfo(
+        "12.10",
+        "Dans chaque page web, les raccourcis clavier n’utilisant qu’une seule touche (lettre minuscule ou "
+        "majuscule, ponctuation, chiffre ou symbole) sont-ils contrôlables par l’utilisateur ?",
+        "Une personne qui dicte à voix haute peut déclencher sans le vouloir un raccourci d'une seule lettre, et "
+        "une personne qui a des tremblements peut l'activer en frôlant une touche. Si on ne peut ni le désactiver "
+        "ni le modifier, des actions se lancent sans qu'elle l'ait voulu.",
+    ),
+    CriterionInfo(
+        "12.11",
+        "Dans chaque page web, les contenus additionnels apparaissant au survol, à la prise de focus ou à "
+        "l’activation d’un composant d’interface sont-ils si nécessaire atteignables au clavier ?",
+        "Un sous-menu ou une bulle qui apparaît au passage de la souris doit aussi pouvoir être parcouru au "
+        "clavier. Sinon, une personne qui ne peut pas utiliser de souris n'accède pas aux liens ou boutons qu'il "
+        "contient.",
+    ),
 )
 
 CRITERIA: dict[str, CriterionInfo] = {entry.criterion_id: entry for entry in _ENTRIES}

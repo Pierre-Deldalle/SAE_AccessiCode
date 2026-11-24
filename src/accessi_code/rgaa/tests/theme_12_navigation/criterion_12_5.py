@@ -1,6 +1,15 @@
 """12.5 — constance de la fonctionnalité de recherche."""
 
-from accessi_code.analysis.navigation import finding, kind, pages, proof_check, relative_order, result, search_access
+from accessi_code.analysis.navigation import (
+    finding,
+    kind,
+    page_file,
+    pages,
+    proof_check,
+    relative_order,
+    result,
+    search_access,
+)
 from accessi_code.models.capabilities import Capability
 from accessi_code.rgaa.base import RGAATest
 
@@ -15,6 +24,9 @@ class _SearchAccess(RGAATest):
         if len(all_pages) < 2:
             return result(self, 0, empty="Comparaison entre pages non applicable : page unique.")
         snapshots = [(soup, search_access(soup)) for soup in all_pages.values()]
+        # Élément d'accès de la page auditée, pour situer les observations qui la concernent.
+        own = next((tag for soup, tag in snapshots if soup is context.dom and tag is not None), None)
+        node = own or context.dom.html
         if all(tag is None for _, tag in snapshots):
             if context.site_inventory_complete:
                 return result(self, 0, empty="Aucun moteur de recherche dans l'ensemble inventorié.")
@@ -23,7 +35,7 @@ class _SearchAccess(RGAATest):
                 len(snapshots),
                 reviews=[
                     finding(
-                        context.dom.html,
+                        node,
                         context.dom,
                         "Moteur de recherche non identifié.",
                         "Importer l'ensemble des pages.",
@@ -31,20 +43,25 @@ class _SearchAccess(RGAATest):
                 ],
             )
         failures, reviews = [], []
-        if any(tag is None for _, tag in snapshots):
+        lacking = [(key, soup) for key, soup in all_pages.items() if search_access(soup) is None]
+        if lacking:
+            # Situé sur la première page où l'accès manque (page auditée ou autre page).
+            key, soup = lacking[0]
             failures.append(
                 finding(
-                    context.dom.html,
-                    context.dom,
+                    soup.html or soup,
+                    soup,
                     "Moteur de recherche absent sur certaines pages.",
                     "Conserver le même accès à la recherche.",
+                    file=page_file(context, soup),
+                    pages=[key for key, _ in lacking],
                 )
             )
         elif self.test_id == "12.5.1":
             if len({kind(tag) for _, tag in snapshots}) != 1:
                 failures.append(
                     finding(
-                        context.dom.html,
+                        node,
                         context.dom,
                         "Le type de contrôle d'accès à la recherche varie.",
                         "Utiliser la même fonctionnalité de recherche.",
@@ -55,7 +72,7 @@ class _SearchAccess(RGAATest):
                 context,
                 self,
                 "same_visual_position",
-                context.dom.html,
+                node,
                 context.dom,
                 "Position visuelle de la recherche",
             )
@@ -66,7 +83,7 @@ class _SearchAccess(RGAATest):
             if len(set(signatures)) != 1:
                 failures.append(
                     finding(
-                        context.dom.html,
+                        node,
                         context.dom,
                         "L'ordre relatif de la recherche varie dans le DOM.",
                         "Conserver l'ordre relatif de la recherche.",

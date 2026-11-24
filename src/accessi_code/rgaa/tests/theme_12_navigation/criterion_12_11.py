@@ -17,17 +17,19 @@ class Test12111(RGAATest):
         proof = evidence(context, self.test_id)
         panels = proof.get("interactive_additional_contents")
         if panels is None:
-            if (
-                soup.find_all("script")
+            # Situé sur le premier déclencheur de contenu additionnel, sinon sur le premier script ou style.
+            sources = (
+                soup.select("[aria-haspopup], [popover], [onmouseover]")
+                or soup.find_all("script")
                 or soup.find_all("style")
-                or soup.select("[aria-haspopup], [popover], [onmouseover]")
-            ):
+            )
+            if sources:
                 return result(
                     self,
                     1,
                     reviews=[
                         finding(
-                            soup.html or soup,
+                            sources[0],
                             soup,
                             "Les contenus révélés au survol/focus ne sont pas inventoriés.",
                             "Tester les composants interactifs révélés et documenter leur accès clavier.",
