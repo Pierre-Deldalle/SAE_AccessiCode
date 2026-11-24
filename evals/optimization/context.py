@@ -18,22 +18,14 @@ class OptimizationContextBuilder:
         max_anchor_cases: int = 3,
     ):
         if max_problem_cases < 1:
-            raise ValueError(
-                "max_problem_cases doit être supérieur ou égal à 1."
-            )
+            raise ValueError("max_problem_cases doit être supérieur ou égal à 1.")
 
         if max_anchor_cases < 0:
-            raise ValueError(
-                "max_anchor_cases doit être supérieur ou égal à 0."
-            )
+            raise ValueError("max_anchor_cases doit être supérieur ou égal à 0.")
 
-        self.max_problem_cases = (
-            max_problem_cases
-        )
+        self.max_problem_cases = max_problem_cases
 
-        self.max_anchor_cases = (
-            max_anchor_cases
-        )
+        self.max_anchor_cases = max_anchor_cases
 
     def build(
         self,
@@ -44,49 +36,26 @@ class OptimizationContextBuilder:
         results: list[EvalResult],
         report: EvalReport,
     ) -> dict[str, Any]:
-        cases_by_id = {
-            case.id: case
-            for case in cases
-        }
+        cases_by_id = {case.id: case for case in cases}
 
         usable_results = [
-            result
-            for result in results
-            if (
-                result.status
-                is not EvalStatus.ERROR
-                and result.case_id
-                in cases_by_id
-            )
+            result for result in results if (result.status is not EvalStatus.ERROR and result.case_id in cases_by_id)
         ]
 
         problematic_results = [
             result
             for result in usable_results
-            if (
-                result.status
-                is EvalStatus.INCORRECT
-                or bool(
-                    result.decision_issues
-                )
-                or bool(
-                    result.integrity_issues
-                )
-            )
+            if (result.status is EvalStatus.INCORRECT or bool(result.decision_issues) or bool(result.integrity_issues))
         ]
 
-        problematic_results.sort(
-            key=self._problem_priority
-        )
+        problematic_results.sort(key=self._problem_priority)
 
         protected_results = [
             result
             for result in usable_results
             if (
-                result.status
-                is EvalStatus.CORRECT
-                and result.decision_score
-                == 100.0
+                result.status is EvalStatus.CORRECT
+                and result.decision_score == 100.0
                 and not result.decision_issues
                 and not result.integrity_issues
             )
@@ -97,11 +66,7 @@ class OptimizationContextBuilder:
                 cases_by_id[result.case_id],
                 result,
             )
-            for result in (
-                problematic_results[
-                    : self.max_problem_cases
-                ]
-            )
+            for result in (problematic_results[: self.max_problem_cases])
         ]
 
         protected_examples = [
@@ -109,37 +74,19 @@ class OptimizationContextBuilder:
                 cases_by_id[result.case_id],
                 result,
             )
-            for result in (
-                protected_results[
-                    : self.max_anchor_cases
-                ]
-            )
+            for result in (protected_results[: self.max_anchor_cases])
         ]
 
         return {
             "task": task_name,
-            "production_prompt": (
-                production_prompt
-            ),
+            "production_prompt": (production_prompt),
             "baseline_metrics": {
-                "accuracy": (
-                    report.accuracy
-                ),
-                "average_decision_score": (
-                    report.average_decision_score
-                ),
-                "critical_errors": (
-                    report.critical_errors
-                ),
-                "forced_verdicts": (
-                    report.forced_verdicts
-                ),
-                "unnecessary_abstentions": (
-                    report.unnecessary_abstentions
-                ),
-                "unnecessary_low_confidence": (
-                    report.unnecessary_low_confidence
-                ),
+                "accuracy": (report.accuracy),
+                "average_decision_score": (report.average_decision_score),
+                "critical_errors": (report.critical_errors),
+                "forced_verdicts": (report.forced_verdicts),
+                "unnecessary_abstentions": (report.unnecessary_abstentions),
+                "unnecessary_low_confidence": (report.unnecessary_low_confidence),
                 "true_accuracy": (
                     self._ratio(
                         report.true_correct,
@@ -159,28 +106,18 @@ class OptimizationContextBuilder:
                     )
                 ),
             },
-            "problematic_cases": (
-                problematic_cases
-            ),
-            "protected_examples": (
-                protected_examples
-            ),
+            "problematic_cases": (problematic_cases),
+            "protected_examples": (protected_examples),
         }
 
     @staticmethod
     def _problem_priority(
         result: EvalResult,
     ) -> tuple[int, str]:
-        if (
-            "critical_confidence_error"
-            in result.decision_issues
-        ):
+        if "critical_confidence_error" in result.decision_issues:
             priority = 0
 
-        elif (
-            result.status
-            is EvalStatus.INCORRECT
-        ):
+        elif result.status is EvalStatus.INCORRECT:
             priority = 1
 
         elif result.decision_issues:
@@ -203,40 +140,19 @@ class OptimizationContextBuilder:
         result: EvalResult,
     ) -> dict[str, Any]:
         serialized: dict[str, Any] = {
-            "input": (
-                OptimizationContextBuilder
-                ._sanitize_input(
-                    case.input_data
-                )
-            ),
-            "expected": (
-                result.expected_decision
-            ),
-            "actual": (
-                result.actual_decision
-            ),
-            "confidence": (
-                result.confidence
-            ),
-            "decision_score": (
-                result.decision_score
-            ),
-            "decision_issues": list(
-                result.decision_issues
-            ),
-            "integrity_issues": list(
-                result.integrity_issues
-            ),
+            "input": (OptimizationContextBuilder._sanitize_input(case.input_data)),
+            "expected": (result.expected_decision),
+            "actual": (result.actual_decision),
+            "confidence": (result.confidence),
+            "decision_score": (result.decision_score),
+            "decision_issues": list(result.decision_issues),
+            "integrity_issues": list(result.integrity_issues),
         }
 
-        category = case.metadata.get(
-            "category"
-        )
+        category = case.metadata.get("category")
 
         if category is not None:
-            serialized["category"] = (
-                category
-            )
+            serialized["category"] = category
 
         return serialized
 
@@ -246,19 +162,14 @@ class OptimizationContextBuilder:
     ) -> dict[str, Any]:
         sanitized: dict[str, Any] = {}
 
-        for key, value in (
-            input_data.items()
-        ):
+        for key, value in input_data.items():
             if isinstance(
                 value,
                 str,
             ):
-                sanitized[key] = (
-                    OptimizationContextBuilder
-                    ._truncate(
-                        value,
-                        700,
-                    )
+                sanitized[key] = OptimizationContextBuilder._truncate(
+                    value,
+                    700,
                 )
 
             else:
@@ -274,10 +185,7 @@ class OptimizationContextBuilder:
         if len(value) <= limit:
             return value
 
-        return (
-            value[:limit]
-            + "..."
-        )
+        return value[:limit] + "..."
 
     @staticmethod
     def _ratio(
@@ -287,7 +195,4 @@ class OptimizationContextBuilder:
         if total == 0:
             return None
 
-        return (
-            correct
-            / total
-        )
+        return correct / total

@@ -36,15 +36,10 @@ class RankedPromptCandidate:
 
 @dataclass(frozen=True, slots=True)
 class PromptSelectionResult:
-    recommended_candidate: (
-        RankedPromptCandidate | None
-    )
+    recommended_candidate: RankedPromptCandidate | None
 
     keep_production: bool
 
-    ranking: tuple[
-        RankedPromptCandidate,
-        ...
-    ]
+    ranking: tuple[RankedPromptCandidate, ...]
 
     summary: str

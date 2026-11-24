@@ -25,9 +25,7 @@ from evals.tasks.base import EvalTask
 class FakeOptimizationTask(EvalTask):
     name = "fake_optimization"
 
-    production_prompt_template = (
-        "PROMPT PRODUCTION"
-    )
+    production_prompt_template = "PROMPT PRODUCTION"
 
     async def execute(
         self,
@@ -36,29 +34,19 @@ class FakeOptimizationTask(EvalTask):
         prompt_template: str | None = None,
     ) -> dict[str, Any]:
         if prompt_template is None:
-            decision = case.input_data[
-                "production_actual"
-            ]
+            decision = case.input_data["production_actual"]
 
-            confidence = case.input_data[
-                "production_confidence"
-            ]
+            confidence = case.input_data["production_confidence"]
 
         else:
-            decision = case.input_data[
-                "candidate_actual"
-            ]
+            decision = case.input_data["candidate_actual"]
 
-            confidence = case.input_data[
-                "candidate_confidence"
-            ]
+            confidence = case.input_data["candidate_confidence"]
 
         return {
             "relevant": decision,
             "confidence": confidence,
-            "explanation": (
-                "Explication correcte."
-            ),
+            "explanation": ("Explication correcte."),
             "contradictions": [],
             "uncertainties": [],
         }
@@ -67,9 +55,7 @@ class FakeOptimizationTask(EvalTask):
 class FakeGenerator:
     def __init__(
         self,
-        candidates: list[
-            GeneratedPromptCandidate
-        ],
+        candidates: list[GeneratedPromptCandidate],
     ):
         self.candidates = candidates
         self.received_context = None
@@ -80,13 +66,9 @@ class FakeGenerator:
         optimization_context,
         candidate_count: int,
     ):
-        self.received_context = (
-            optimization_context
-        )
+        self.received_context = optimization_context
 
-        return self.candidates[
-            :candidate_count
-        ]
+        return self.candidates[:candidate_count]
 
 
 def create_case(
@@ -101,18 +83,10 @@ def create_case(
     return EvalCase(
         id=case_id,
         input_data={
-            "production_actual": (
-                production_actual
-            ),
-            "candidate_actual": (
-                candidate_actual
-            ),
-            "production_confidence": (
-                production_confidence
-            ),
-            "candidate_confidence": (
-                candidate_confidence
-            ),
+            "production_actual": (production_actual),
+            "candidate_actual": (candidate_actual),
+            "production_confidence": (production_confidence),
+            "candidate_confidence": (candidate_confidence),
         },
         expected={
             "relevant": expected,
@@ -158,12 +132,8 @@ async def test_optimizer_generates_saves_and_evaluates_candidate(
         [
             GeneratedPromptCandidate(
                 name="candidate_001",
-                template=(
-                    "PROMPT CANDIDAT GENERIQUE"
-                ),
-                rationale=(
-                    "Corriger les erreurs."
-                ),
+                template=("PROMPT CANDIDAT GENERIQUE"),
+                rationale=("Corriger les erreurs."),
             )
         ]
     )
@@ -171,58 +141,29 @@ async def test_optimizer_generates_saves_and_evaluates_candidate(
     optimizer = PromptOptimizer(
         runner=EvalRunner(),
         comparator=PromptComparator(),
-        context_builder=(
-            OptimizationContextBuilder()
-        ),
+        context_builder=(OptimizationContextBuilder()),
         generator=generator,
-        store=PromptCandidateStore(
-            root_directory=(
-                tmp_path
-                / "prompts"
-            )
-        ),
+        store=PromptCandidateStore(root_directory=(tmp_path / "prompts")),
     )
 
     result = await optimizer.optimize(
         task=FakeOptimizationTask(),
         train_cases=train_cases,
-        validation_cases=(
-            validation_cases
-        ),
+        validation_cases=(validation_cases),
         candidate_count=1,
     )
 
-    assert (
-        result.baseline_train_report.accuracy
-        == 0.5
-    )
+    assert result.baseline_train_report.accuracy == 0.5
 
-    assert (
-        result.candidates[0]
-        .train_report.accuracy
-        == 1.0
-    )
+    assert result.candidates[0].train_report.accuracy == 1.0
 
-    assert (
-        result.baseline_validation_report.accuracy
-        == 0.0
-    )
+    assert result.baseline_validation_report.accuracy == 0.0
 
-    assert (
-        result.candidates[0]
-        .validation_report.accuracy
-        == 1.0
-    )
+    assert result.candidates[0].validation_report.accuracy == 1.0
 
-    assert (
-        result.candidates[0]
-        .prompt_path.exists()
-    )
+    assert result.candidates[0].prompt_path.exists()
 
-    assert (
-        result.output_directory
-        / "evaluation.json"
-    ).exists()
+    assert (result.output_directory / "evaluation.json").exists()
 
 
 @pytest.mark.asyncio
@@ -240,9 +181,7 @@ async def test_optimizer_never_exposes_validation_to_generator(
         ),
     ]
 
-    train_cases[0].input_data[
-        "title"
-    ] = "TRAIN_VISIBLE_CONTENT"
+    train_cases[0].input_data["title"] = "TRAIN_VISIBLE_CONTENT"
 
     validation_cases = [
         create_case(
@@ -255,11 +194,7 @@ async def test_optimizer_never_exposes_validation_to_generator(
         ),
     ]
 
-    validation_cases[0].input_data[
-        "title"
-    ] = (
-        "VALIDATION_MUST_NOT_BE_VISIBLE"
-    )
+    validation_cases[0].input_data["title"] = "VALIDATION_MUST_NOT_BE_VISIBLE"
 
     generator = FakeGenerator(
         [
@@ -274,69 +209,44 @@ async def test_optimizer_never_exposes_validation_to_generator(
     optimizer = PromptOptimizer(
         runner=EvalRunner(),
         comparator=PromptComparator(),
-        context_builder=(
-            OptimizationContextBuilder()
-        ),
+        context_builder=(OptimizationContextBuilder()),
         generator=generator,
-        store=PromptCandidateStore(
-            root_directory=(
-                tmp_path
-                / "prompts"
-            )
-        ),
+        store=PromptCandidateStore(root_directory=(tmp_path / "prompts")),
     )
 
     await optimizer.optimize(
         task=FakeOptimizationTask(),
         train_cases=train_cases,
-        validation_cases=(
-            validation_cases
-        ),
+        validation_cases=(validation_cases),
         candidate_count=1,
     )
 
-    assert (
-        generator.received_context
-        is not None
-    )
+    assert generator.received_context is not None
 
-    context_as_text = str(
-        generator.received_context
-    )
+    context_as_text = str(generator.received_context)
 
     #
     # TRAIN doit être visible par l'optimiseur.
     #
-    assert (
-        "TRAIN_VISIBLE_CONTENT"
-        in context_as_text
-    )
+    assert "TRAIN_VISIBLE_CONTENT" in context_as_text
 
     #
     # VALIDATION ne doit jamais être exposé.
     #
-    assert (
-        "VALIDATION_MUST_NOT_BE_VISIBLE"
-        not in context_as_text
-    )
+    assert "VALIDATION_MUST_NOT_BE_VISIBLE" not in context_as_text
 
 
 @pytest.mark.asyncio
 async def test_optimizer_never_changes_production_prompt(
     tmp_path,
 ):
-    original_prompt = (
-        FakeOptimizationTask
-        .production_prompt_template
-    )
+    original_prompt = FakeOptimizationTask.production_prompt_template
 
     generator = FakeGenerator(
         [
             GeneratedPromptCandidate(
                 name="candidate_001",
-                template=(
-                    "AUTRE PROMPT"
-                ),
+                template=("AUTRE PROMPT"),
                 rationale="Test",
             )
         ]
@@ -345,16 +255,9 @@ async def test_optimizer_never_changes_production_prompt(
     optimizer = PromptOptimizer(
         runner=EvalRunner(),
         comparator=PromptComparator(),
-        context_builder=(
-            OptimizationContextBuilder()
-        ),
+        context_builder=(OptimizationContextBuilder()),
         generator=generator,
-        store=PromptCandidateStore(
-            root_directory=(
-                tmp_path
-                / "prompts"
-            )
-        ),
+        store=PromptCandidateStore(root_directory=(tmp_path / "prompts")),
     )
 
     case = create_case(
@@ -373,11 +276,7 @@ async def test_optimizer_never_changes_production_prompt(
         candidate_count=1,
     )
 
-    assert (
-        FakeOptimizationTask
-        .production_prompt_template
-        == original_prompt
-    )
+    assert FakeOptimizationTask.production_prompt_template == original_prompt
 
 
 @pytest.mark.asyncio
@@ -399,14 +298,8 @@ async def test_optimizer_rejects_candidate_containing_train_case_id(
         [
             GeneratedPromptCandidate(
                 name="candidate_001",
-                template=(
-                    "Si le cas est "
-                    "train_case_123, "
-                    "réponds false."
-                ),
-                rationale=(
-                    "Overfitting volontaire."
-                ),
+                template=("Si le cas est train_case_123, réponds false."),
+                rationale=("Overfitting volontaire."),
             )
         ]
     )
@@ -414,24 +307,14 @@ async def test_optimizer_rejects_candidate_containing_train_case_id(
     optimizer = PromptOptimizer(
         runner=EvalRunner(),
         comparator=PromptComparator(),
-        context_builder=(
-            OptimizationContextBuilder()
-        ),
+        context_builder=(OptimizationContextBuilder()),
         generator=generator,
-        store=PromptCandidateStore(
-            root_directory=(
-                tmp_path
-                / "prompts"
-            )
-        ),
+        store=PromptCandidateStore(root_directory=(tmp_path / "prompts")),
     )
 
     with pytest.raises(
         RuntimeError,
-        match=(
-            "Tous les prompts générés "
-            "ont été rejetés"
-        ),
+        match=("Tous les prompts générés ont été rejetés"),
     ):
         await optimizer.optimize(
             task=FakeOptimizationTask(),

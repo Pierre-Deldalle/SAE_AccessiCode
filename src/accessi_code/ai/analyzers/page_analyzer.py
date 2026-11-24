@@ -74,11 +74,7 @@ class OllamaPageAnalyzer:
         """
         Analyse la pertinence d'un titre par rapport à la page.
         """
-        template = (
-            TITLE_PROMPT
-            if prompt_template is None
-            else prompt_template
-        )
+        template = TITLE_PROMPT if prompt_template is None else prompt_template
 
         prompt = template.format(
             title=title,
@@ -99,15 +95,9 @@ class OllamaPageAnalyzer:
                 data.get("explanation"),
                 fallback="La pertinence du titre n'a pas pu être déterminée.",
             ),
-            contradictions=self._get_strings(
-                data.get("contradictions")
-            ),
-            uncertainties=self._get_strings(
-                data.get("uncertainties")
-            ),
-            confidence=self._get_confidence(
-                data.get("confidence")
-            ),
+            contradictions=self._get_strings(data.get("contradictions")),
+            uncertainties=self._get_strings(data.get("uncertainties")),
+            confidence=self._get_confidence(data.get("confidence")),
         )
 
     async def _generate_json(

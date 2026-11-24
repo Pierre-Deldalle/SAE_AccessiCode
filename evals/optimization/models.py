@@ -37,6 +37,7 @@ class PromptOptimizationResult:
 
     candidates: list[CandidateEvaluation]
 
+
 @dataclass(frozen=True, slots=True)
 class CandidateRejection:
     candidate_name: str

@@ -62,11 +62,7 @@ def create_result(
         confidence=confidence,
         decision_score=score,
         decision_issues=decision_issues,
-        integrity_score=(
-            100.0
-            if not integrity_issues
-            else 70.0
-        ),
+        integrity_score=(100.0 if not integrity_issues else 70.0),
         integrity_issues=integrity_issues,
     )
 
@@ -98,9 +94,7 @@ def test_context_contains_problematic_cases_and_protected_examples():
             actual=True,
             confidence="low",
             score=20.0,
-            decision_issues=(
-                "wrong_verdict",
-            ),
+            decision_issues=("wrong_verdict",),
         ),
         create_result(
             "low_confidence_case",
@@ -109,9 +103,7 @@ def test_context_contains_problematic_cases_and_protected_examples():
             actual=True,
             confidence="low",
             score=75.0,
-            decision_issues=(
-                "unnecessary_low_confidence",
-            ),
+            decision_issues=("unnecessary_low_confidence",),
         ),
         create_result(
             "anchor_case",
@@ -139,39 +131,17 @@ def test_context_contains_problematic_cases_and_protected_examples():
 
     assert context["task"] == "title"
 
-    assert (
-        context["production_prompt"]
-        == "PROMPT DE PRODUCTION"
-    )
+    assert context["production_prompt"] == "PROMPT DE PRODUCTION"
 
-    problematic_categories = {
-        case["category"]
-        for case in context[
-            "problematic_cases"
-        ]
-    }
+    problematic_categories = {case["category"] for case in context["problematic_cases"]}
 
-    assert (
-        "wrong_verdict"
-        in problematic_categories
-    )
+    assert "wrong_verdict" in problematic_categories
 
-    assert (
-        "low_confidence"
-        in problematic_categories
-    )
+    assert "low_confidence" in problematic_categories
 
-    protected_categories = {
-        case["category"]
-        for case in context[
-            "protected_examples"
-        ]
-    }
+    protected_categories = {case["category"] for case in context["protected_examples"]}
 
-    assert (
-        "easy"
-        in protected_categories
-    )
+    assert "easy" in protected_categories
 
 
 def test_context_prioritizes_critical_errors():
@@ -196,9 +166,7 @@ def test_context_prioritizes_critical_errors():
             actual=True,
             confidence="low",
             score=20.0,
-            decision_issues=(
-                "wrong_verdict",
-            ),
+            decision_issues=("wrong_verdict",),
         ),
         create_result(
             "critical_error",
@@ -228,21 +196,11 @@ def test_context_prioritizes_critical_errors():
         report=report,
     )
 
-    first_problem = (
-        context["problematic_cases"][0]
-    )
+    first_problem = context["problematic_cases"][0]
 
-    assert (
-        first_problem["category"]
-        == "critical"
-    )
+    assert first_problem["category"] == "critical"
 
-    assert (
-        "critical_confidence_error"
-        in first_problem[
-            "decision_issues"
-        ]
-    )
+    assert "critical_confidence_error" in first_problem["decision_issues"]
 
 
 def test_context_does_not_include_model_explanation():
@@ -259,12 +217,8 @@ def test_context_does_not_include_model_explanation():
         actual=True,
         confidence="low",
         score=20.0,
-        decision_issues=(
-            "wrong_verdict",
-        ),
-        explanation=(
-            "Mismatch-" * 500
-        ),
+        decision_issues=("wrong_verdict",),
+        explanation=("Mismatch-" * 500),
     )
 
     report = EvalReport.from_results(
@@ -273,32 +227,19 @@ def test_context_does_not_include_model_explanation():
         results=[result],
     )
 
-    context = (
-        OptimizationContextBuilder()
-        .build(
-            task_name="title",
-            production_prompt="PROMPT",
-            cases=[case],
-            results=[result],
-            report=report,
-        )
+    context = OptimizationContextBuilder().build(
+        task_name="title",
+        production_prompt="PROMPT",
+        cases=[case],
+        results=[result],
+        report=report,
     )
 
-    problematic = (
-        context[
-            "problematic_cases"
-        ][0]
-    )
+    problematic = context["problematic_cases"][0]
 
-    assert (
-        "explanation"
-        not in problematic
-    )
+    assert "explanation" not in problematic
 
-    assert (
-        "Mismatch"
-        not in str(problematic)
-    )
+    assert "Mismatch" not in str(problematic)
 
 
 def test_context_contains_baseline_metrics():
@@ -331,15 +272,10 @@ def test_context_contains_baseline_metrics():
         report=report,
     )
 
-    metrics = context[
-        "baseline_metrics"
-    ]
+    metrics = context["baseline_metrics"]
 
     assert metrics["accuracy"] == 1.0
 
-    assert (
-        metrics["average_decision_score"]
-        == 100.0
-    )
+    assert metrics["average_decision_score"] == 100.0
 
     assert metrics["true_accuracy"] == 1.0

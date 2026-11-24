@@ -17,9 +17,7 @@ class PromptCandidateStore:
         self,
         root_directory: Path,
     ):
-        self.root_directory = (
-            root_directory
-        )
+        self.root_directory = root_directory
 
     def create_run_directory(
         self,
@@ -28,16 +26,9 @@ class PromptCandidateStore:
         run_id: str | None = None,
     ) -> tuple[str, Path]:
         if run_id is None:
-            run_id = datetime.now().strftime(
-                "%Y%m%d_%H%M%S"
-            )
+            run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-        directory = (
-            self.root_directory
-            / task_name
-            / "generated"
-            / run_id
-        )
+        directory = self.root_directory / task_name / "generated" / run_id
 
         directory.mkdir(
             parents=True,
@@ -54,9 +45,7 @@ class PromptCandidateStore:
         *,
         directory: Path,
         task_name: str,
-        candidates: list[
-            GeneratedPromptCandidate
-        ],
+        candidates: list[GeneratedPromptCandidate],
     ) -> dict[str, Path]:
         paths: dict[str, Path] = {}
 
@@ -66,15 +55,9 @@ class PromptCandidateStore:
         }
 
         for candidate in candidates:
-            prompt_path = (
-                directory
-                / f"{candidate.name}.txt"
-            )
+            prompt_path = directory / f"{candidate.name}.txt"
 
-            metadata_path = (
-                directory
-                / f"{candidate.name}.json"
-            )
+            metadata_path = directory / f"{candidate.name}.json"
 
             prompt_path.write_text(
                 candidate.template,
@@ -85,12 +68,8 @@ class PromptCandidateStore:
                 json.dumps(
                     {
                         "name": candidate.name,
-                        "rationale": (
-                            candidate.rationale
-                        ),
-                        "prompt_file": (
-                            prompt_path.name
-                        ),
+                        "rationale": (candidate.rationale),
+                        "prompt_file": (prompt_path.name),
                     },
                     ensure_ascii=False,
                     indent=2,
@@ -98,28 +77,17 @@ class PromptCandidateStore:
                 encoding="utf-8",
             )
 
-            paths[
-                candidate.name
-            ] = prompt_path
+            paths[candidate.name] = prompt_path
 
-            manifest[
-                "candidates"
-            ].append(
+            manifest["candidates"].append(
                 {
                     "name": candidate.name,
-                    "rationale": (
-                        candidate.rationale
-                    ),
-                    "prompt_file": (
-                        prompt_path.name
-                    ),
+                    "rationale": (candidate.rationale),
+                    "prompt_file": (prompt_path.name),
                 }
             )
 
-        (
-            directory
-            / "manifest.json"
-        ).write_text(
+        (directory / "manifest.json").write_text(
             json.dumps(
                 manifest,
                 ensure_ascii=False,
@@ -134,47 +102,28 @@ class PromptCandidateStore:
     def save_evaluations(
         *,
         directory: Path,
-        evaluations: list[
-            CandidateEvaluation
-        ],
+        evaluations: list[CandidateEvaluation],
     ) -> None:
         payload = []
 
         for evaluation in evaluations:
             payload.append(
                 {
-                    "candidate": (
-                        evaluation.candidate.name
-                    ),
-                    "rationale": (
-                        evaluation.candidate.rationale
-                    ),
-                    "prompt_file": (
-                        evaluation.prompt_path.name
-                    ),
+                    "candidate": (evaluation.candidate.name),
+                    "rationale": (evaluation.candidate.rationale),
+                    "prompt_file": (evaluation.prompt_path.name),
                     "train": {
-                        "report": asdict(
-                            evaluation.train_report
-                        ),
-                        "comparison": asdict(
-                            evaluation.train_comparison
-                        ),
+                        "report": asdict(evaluation.train_report),
+                        "comparison": asdict(evaluation.train_comparison),
                     },
                     "validation": {
-                        "report": asdict(
-                            evaluation.validation_report
-                        ),
-                        "comparison": asdict(
-                            evaluation.validation_comparison
-                        ),
+                        "report": asdict(evaluation.validation_report),
+                        "comparison": asdict(evaluation.validation_comparison),
                     },
                 }
             )
 
-        (
-            directory
-            / "evaluation.json"
-        ).write_text(
+        (directory / "evaluation.json").write_text(
             json.dumps(
                 payload,
                 ensure_ascii=False,
@@ -182,19 +131,14 @@ class PromptCandidateStore:
             ),
             encoding="utf-8",
         )
-    
+
     @staticmethod
     def save_raw_candidates(
         *,
         directory: Path,
-        candidates: list[
-            GeneratedPromptCandidate
-        ],
+        candidates: list[GeneratedPromptCandidate],
     ) -> None:
-        raw_directory = (
-            directory
-            / "raw"
-        )
+        raw_directory = directory / "raw"
 
         raw_directory.mkdir(
             parents=True,
@@ -202,50 +146,35 @@ class PromptCandidateStore:
         )
 
         for candidate in candidates:
-            (
-                raw_directory
-                / f"{candidate.name}.txt"
-            ).write_text(
+            (raw_directory / f"{candidate.name}.txt").write_text(
                 candidate.template,
                 encoding="utf-8",
             )
 
-            (
-                raw_directory
-                / f"{candidate.name}.json"
-            ).write_text(
+            (raw_directory / f"{candidate.name}.json").write_text(
                 json.dumps(
                     {
                         "name": candidate.name,
-                        "rationale": (
-                            candidate.rationale
-                        ),
+                        "rationale": (candidate.rationale),
                     },
                     ensure_ascii=False,
                     indent=2,
                 ),
                 encoding="utf-8",
             )
-    
+
     @staticmethod
     def save_rejections(
         *,
         directory: Path,
         rejections,
     ) -> None:
-        (
-            directory
-            / "rejections.json"
-        ).write_text(
+        (directory / "rejections.json").write_text(
             json.dumps(
                 [
                     {
-                        "candidate": (
-                            rejection.candidate_name
-                        ),
-                        "reason": (
-                            rejection.reason
-                        ),
+                        "candidate": (rejection.candidate_name),
+                        "reason": (rejection.reason),
                     }
                     for rejection in rejections
                 ],
@@ -254,7 +183,7 @@ class PromptCandidateStore:
             ),
             encoding="utf-8",
         )
-    
+
     @staticmethod
     def save_generation_failure(
         *,
@@ -263,19 +192,13 @@ class PromptCandidateStore:
         parsed_data: dict | None,
         rejection_reasons: list[str],
     ) -> None:
-        (
-            directory
-            / "optimizer_raw_response.txt"
-        ).write_text(
+        (directory / "optimizer_raw_response.txt").write_text(
             raw_response,
             encoding="utf-8",
         )
 
         if parsed_data is not None:
-            (
-                directory
-                / "optimizer_parsed_response.json"
-            ).write_text(
+            (directory / "optimizer_parsed_response.json").write_text(
                 json.dumps(
                     parsed_data,
                     ensure_ascii=False,
@@ -284,32 +207,24 @@ class PromptCandidateStore:
                 encoding="utf-8",
             )
 
-        (
-            directory
-            / "generation_failure.json"
-        ).write_text(
+        (directory / "generation_failure.json").write_text(
             json.dumps(
                 {
-                    "rejection_reasons": (
-                        rejection_reasons
-                    ),
+                    "rejection_reasons": (rejection_reasons),
                 },
                 ensure_ascii=False,
                 indent=2,
             ),
             encoding="utf-8",
         )
-    
+
     @staticmethod
     def save_optimization_context(
         *,
         directory: Path,
         context: dict,
     ) -> None:
-        (
-            directory
-            / "optimization_context.json"
-        ).write_text(
+        (directory / "optimization_context.json").write_text(
             json.dumps(
                 context,
                 ensure_ascii=False,

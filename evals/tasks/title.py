@@ -6,9 +6,9 @@ from typing import Any
 from accessi_code.ai.analyzers.page_analyzer import (
     OllamaPageAnalyzer,
 )
+from accessi_code.ai.prompts.page import TITLE_PROMPT
 from evals.models.case import EvalCase
 from evals.tasks.base import EvalTask
-from accessi_code.ai.prompts.page import TITLE_PROMPT
 
 
 class TitleEvalTask(EvalTask):
@@ -79,9 +79,7 @@ class TitleEvalTask(EvalTask):
         self,
         prompt_template: str,
     ) -> None:
-        super().validate_prompt_template(
-            prompt_template
-        )
+        super().validate_prompt_template(prompt_template)
 
         try:
             formatted = prompt_template.format(
@@ -109,20 +107,9 @@ class TitleEvalTask(EvalTask):
             "content": "__CONTENT_VALUE__",
         }
 
-        missing = [
-            name
-            for name, value in required_values.items()
-            if value not in formatted
-        ]
+        missing = [name for name, value in required_values.items() if value not in formatted]
 
         if missing:
-            missing_text = ", ".join(
-                f"{{{name}}}"
-                for name in missing
-            )
+            missing_text = ", ".join(f"{{{name}}}" for name in missing)
 
-            raise ValueError(
-                "Le prompt title n'utilise pas correctement "
-                "les variables obligatoires : "
-                f"{missing_text}."
-            )
+            raise ValueError(f"Le prompt title n'utilise pas correctement les variables obligatoires : {missing_text}.")

@@ -35,36 +35,26 @@ def parse_args() -> argparse.Namespace:
         default="train",
         help="Dataset à utiliser : train, validation ou test.",
     )
-    
+
     parser.add_argument(
         "--concurrency",
         type=int,
         default=2,
-        help=(
-            "Nombre maximal d'appels IA "
-            "exécutés simultanément."
-        ),
+        help=("Nombre maximal d'appels IA exécutés simultanément."),
     )
-    
+
     parser.add_argument(
         "--prompt-file",
         type=Path,
         default=None,
-        help=(
-            "Prompt candidat à utiliser à la place "
-            "du prompt de production."
-        ),
+        help=("Prompt candidat à utiliser à la place du prompt de production."),
     )
-    
+
     parser.add_argument(
         "--llm-model",
         type=str,
         default=None,
-        help=(
-            "Modèle textuel Ollama à utiliser "
-            "pour l'évaluation. "
-            "Par défaut, utilise settings.LLM_MODEL."
-        ),
+        help=("Modèle textuel Ollama à utiliser pour l'évaluation. Par défaut, utilise settings.LLM_MODEL."),
     )
 
     return parser.parse_args()
@@ -78,25 +68,14 @@ def load_prompt_template(
     if prompt_file is None:
         return None
 
-    prompt_path = (
-        prompt_file.resolve()
-    )
+    prompt_path = prompt_file.resolve()
 
     if not prompt_path.exists():
-        raise FileNotFoundError(
-            f"Prompt introuvable : "
-            f"{prompt_path}"
-        )
+        raise FileNotFoundError(f"Prompt introuvable : {prompt_path}")
 
-    prompt_template = (
-        prompt_path.read_text(
-            encoding="utf-8"
-        )
-    )
+    prompt_template = prompt_path.read_text(encoding="utf-8")
 
-    task.validate_prompt_template(
-        prompt_template
-    )
+    task.validate_prompt_template(prompt_template)
 
     return prompt_template
 
@@ -236,17 +215,11 @@ def print_summary(
 
 async def main() -> None:
     args = parse_args()
-    
-    evaluation_model = (
-        args.llm_model
-        if args.llm_model is not None
-        else settings.LLM_MODEL
-    )
-    
+
+    evaluation_model = args.llm_model if args.llm_model is not None else settings.LLM_MODEL
+
     if args.concurrency < 1:
-        raise SystemExit(
-            "--concurrency doit être supérieur ou égal à 1."
-        )
+        raise SystemExit("--concurrency doit être supérieur ou égal à 1.")
 
     services = build_default_audit_services(
         ollama_host=settings.OLLAMA_HOST,
@@ -263,26 +236,20 @@ async def main() -> None:
 
     except KeyError as error:
         raise SystemExit(str(error)) from error
-    
+
     prompt_template: str | None = None
 
     try:
-        prompt_template = (
-            load_prompt_template(
-                task=task,
-                prompt_file=(
-                    args.prompt_file
-                ),
-            )
+        prompt_template = load_prompt_template(
+            task=task,
+            prompt_file=(args.prompt_file),
         )
 
     except (
         FileNotFoundError,
         ValueError,
     ) as error:
-        raise SystemExit(
-            str(error)
-        ) from error
+        raise SystemExit(str(error)) from error
 
     dataset_path = get_dataset_path(
         task_name=task.name,
@@ -312,20 +279,15 @@ async def main() -> None:
     print(f"File       : {dataset_path}")
 
     print(f"Cases      : {len(cases)}")
-    
+
     print(f"Concurrency: {args.concurrency}")
-    
-    print(
-        "Modèle textuel évalué : "
-        f"{evaluation_model}"
-    )
+
+    print(f"Modèle textuel évalué : {evaluation_model}")
 
     print("=" * 60)
     print()
 
-    runner = EvalRunner(
-        max_concurrency=args.concurrency
-    )
+    runner = EvalRunner(max_concurrency=args.concurrency)
 
     results = await runner.run(
         task=task,

@@ -25,58 +25,27 @@ def make_evaluation(
         candidate=SimpleNamespace(
             name=name,
         ),
-        prompt_path=Path(
-            f"{name}.txt"
-        ),
+        prompt_path=Path(f"{name}.txt"),
         validation_report=SimpleNamespace(
             accuracy=validation_accuracy,
-            average_decision_score=(
-                validation_score
-            ),
-            critical_errors=(
-                validation_critical_errors
-            ),
+            average_decision_score=(validation_score),
+            critical_errors=(validation_critical_errors),
             errors=validation_errors,
         ),
         validation_comparison=SimpleNamespace(
-            accuracy_delta=(
-                validation_accuracy_delta
-            ),
-            score_delta=(
-                validation_score_delta
-            ),
-            improvements=[
-                object()
-                for _ in range(
-                    validation_improvements
-                )
-            ],
-            regressions=[
-                object()
-                for _ in range(
-                    validation_regressions
-                )
-            ],
+            accuracy_delta=(validation_accuracy_delta),
+            score_delta=(validation_score_delta),
+            improvements=[object() for _ in range(validation_improvements)],
+            regressions=[object() for _ in range(validation_regressions)],
         ),
         train_report=SimpleNamespace(
             accuracy=train_accuracy,
-            average_decision_score=(
-                train_score
-            ),
+            average_decision_score=(train_score),
         ),
         train_comparison=SimpleNamespace(
-            accuracy_delta=(
-                train_accuracy_delta
-            ),
-            score_delta=(
-                train_score_delta
-            ),
-            regressions=[
-                object()
-                for _ in range(
-                    train_regressions
-                )
-            ],
+            accuracy_delta=(train_accuracy_delta),
+            score_delta=(train_score_delta),
+            regressions=[object() for _ in range(train_regressions)],
         ),
     )
 
@@ -86,16 +55,8 @@ def make_result(
     baseline_critical_errors: int = 1,
 ):
     return SimpleNamespace(
-        baseline_validation_report=(
-            SimpleNamespace(
-                critical_errors=(
-                    baseline_critical_errors
-                )
-            )
-        ),
-        candidates=list(
-            candidates
-        ),
+        baseline_validation_report=(SimpleNamespace(critical_errors=(baseline_critical_errors))),
+        candidates=list(candidates),
     )
 
 
@@ -115,29 +76,15 @@ def test_selector_recommends_improved_candidate():
         baseline_critical_errors=1,
     )
 
-    selection = PromptSelector().select(
-        result
-    )
+    selection = PromptSelector().select(result)
 
-    assert (
-        selection.keep_production
-        is False
-    )
+    assert selection.keep_production is False
 
-    assert (
-        selection.recommended_candidate
-        is not None
-    )
+    assert selection.recommended_candidate is not None
 
-    assert (
-        selection.recommended_candidate.name
-        == "candidate_001"
-    )
+    assert selection.recommended_candidate.name == "candidate_001"
 
-    assert (
-        selection.ranking[0].eligible
-        is True
-    )
+    assert selection.ranking[0].eligible is True
 
 
 def test_selector_rejects_candidate_with_more_critical_errors():
@@ -155,29 +102,17 @@ def test_selector_rejects_candidate_with_more_critical_errors():
         baseline_critical_errors=1,
     )
 
-    selection = PromptSelector().select(
-        result
-    )
+    selection = PromptSelector().select(result)
 
-    assert (
-        selection.keep_production
-        is True
-    )
+    assert selection.keep_production is True
 
-    assert (
-        selection.recommended_candidate
-        is None
-    )
+    assert selection.recommended_candidate is None
 
     ranked = selection.ranking[0]
 
     assert ranked.eligible is False
 
-    assert any(
-        "critical errors"
-        in reason
-        for reason in ranked.reasons
-    )
+    assert any("critical errors" in reason for reason in ranked.reasons)
 
 
 def test_selector_keeps_production_when_no_candidate_is_eligible():
@@ -201,24 +136,13 @@ def test_selector_keeps_production_when_no_candidate_is_eligible():
         baseline_critical_errors=1,
     )
 
-    selection = PromptSelector().select(
-        result
-    )
+    selection = PromptSelector().select(result)
 
-    assert (
-        selection.keep_production
-        is True
-    )
+    assert selection.keep_production is True
 
-    assert (
-        selection.recommended_candidate
-        is None
-    )
+    assert selection.recommended_candidate is None
 
-    assert all(
-        not candidate.eligible
-        for candidate in selection.ranking
-    )
+    assert all(not candidate.eligible for candidate in selection.ranking)
 
 
 def test_selector_prioritizes_fewer_critical_errors():
@@ -231,15 +155,13 @@ def test_selector_prioritizes_fewer_critical_errors():
         validation_critical_errors=0,
     )
 
-    higher_accuracy_candidate = (
-        make_evaluation(
-            "candidate_accuracy",
-            validation_accuracy=0.90,
-            validation_accuracy_delta=0.10,
-            validation_score=90.0,
-            validation_score_delta=19.0,
-            validation_critical_errors=1,
-        )
+    higher_accuracy_candidate = make_evaluation(
+        "candidate_accuracy",
+        validation_accuracy=0.90,
+        validation_accuracy_delta=0.10,
+        validation_score=90.0,
+        validation_score_delta=19.0,
+        validation_critical_errors=1,
     )
 
     result = make_result(
@@ -248,24 +170,13 @@ def test_selector_prioritizes_fewer_critical_errors():
         baseline_critical_errors=1,
     )
 
-    selection = PromptSelector().select(
-        result
-    )
+    selection = PromptSelector().select(result)
 
-    assert (
-        selection.ranking[0].name
-        == "candidate_safe"
-    )
+    assert selection.ranking[0].name == "candidate_safe"
 
-    assert (
-        selection.recommended_candidate
-        is not None
-    )
+    assert selection.recommended_candidate is not None
 
-    assert (
-        selection.recommended_candidate.name
-        == "candidate_safe"
-    )
+    assert selection.recommended_candidate.name == "candidate_safe"
 
 
 def test_selector_prioritizes_fewer_validation_regressions():
@@ -277,14 +188,12 @@ def test_selector_prioritizes_fewer_validation_regressions():
         validation_regressions=0,
     )
 
-    more_accuracy_but_regressions = (
-        make_evaluation(
-            "candidate_with_regressions",
-            validation_accuracy_delta=0.08,
-            validation_score_delta=10.0,
-            validation_critical_errors=1,
-            validation_regressions=2,
-        )
+    more_accuracy_but_regressions = make_evaluation(
+        "candidate_with_regressions",
+        validation_accuracy_delta=0.08,
+        validation_score_delta=10.0,
+        validation_critical_errors=1,
+        validation_regressions=2,
     )
 
     result = make_result(
@@ -293,14 +202,9 @@ def test_selector_prioritizes_fewer_validation_regressions():
         baseline_critical_errors=1,
     )
 
-    selection = PromptSelector().select(
-        result
-    )
+    selection = PromptSelector().select(result)
 
-    assert (
-        selection.ranking[0].name
-        == "candidate_no_regression"
-    )
+    assert selection.ranking[0].name == "candidate_no_regression"
 
 
 def test_selector_uses_validation_before_train_performance():
@@ -330,14 +234,9 @@ def test_selector_uses_validation_before_train_performance():
         baseline_critical_errors=1,
     )
 
-    selection = PromptSelector().select(
-        result
-    )
+    selection = PromptSelector().select(result)
 
-    assert (
-        selection.ranking[0].name
-        == "candidate_validation"
-    )
+    assert selection.ranking[0].name == "candidate_validation"
 
 
 def test_selector_rejects_candidate_with_evaluation_errors():
@@ -354,27 +253,13 @@ def test_selector_rejects_candidate_with_evaluation_errors():
         baseline_critical_errors=1,
     )
 
-    selection = PromptSelector().select(
-        result
-    )
+    selection = PromptSelector().select(result)
 
-    assert (
-        selection.keep_production
-        is True
-    )
+    assert selection.keep_production is True
 
-    assert (
-        selection.ranking[0].eligible
-        is False
-    )
+    assert selection.ranking[0].eligible is False
 
-    assert any(
-        "erreurs techniques"
-        in reason
-        for reason in (
-            selection.ranking[0].reasons
-        )
-    )
+    assert any("erreurs techniques" in reason for reason in (selection.ranking[0].reasons))
 
 
 def test_selector_rejects_candidate_without_improvement():
@@ -390,27 +275,13 @@ def test_selector_rejects_candidate_without_improvement():
         baseline_critical_errors=1,
     )
 
-    selection = PromptSelector().select(
-        result
-    )
+    selection = PromptSelector().select(result)
 
-    assert (
-        selection.keep_production
-        is True
-    )
+    assert selection.keep_production is True
 
-    assert (
-        selection.ranking[0].eligible
-        is False
-    )
+    assert selection.ranking[0].eligible is False
 
-    assert any(
-        "aucune amélioration"
-        in reason
-        for reason in (
-            selection.ranking[0].reasons
-        )
-    )
+    assert any("aucune amélioration" in reason for reason in (selection.ranking[0].reasons))
 
 
 def test_selector_handles_empty_candidate_list():
@@ -418,18 +289,10 @@ def test_selector_handles_empty_candidate_list():
         baseline_critical_errors=1,
     )
 
-    selection = PromptSelector().select(
-        result
-    )
+    selection = PromptSelector().select(result)
 
-    assert (
-        selection.keep_production
-        is True
-    )
+    assert selection.keep_production is True
 
-    assert (
-        selection.recommended_candidate
-        is None
-    )
+    assert selection.recommended_candidate is None
 
     assert selection.ranking == ()

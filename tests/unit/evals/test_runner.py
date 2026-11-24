@@ -144,9 +144,7 @@ class ConcurrencyTask(EvalTask):
             self.active,
         )
 
-        await asyncio.sleep(
-            0.03
-        )
+        await asyncio.sleep(0.03)
 
         self.active -= 1
 
@@ -383,9 +381,7 @@ def test_runner_uses_no_alternative_prompt_by_default():
 
 
 def test_runner_limits_parallel_execution():
-    runner = EvalRunner(
-        max_concurrency=3
-    )
+    runner = EvalRunner(max_concurrency=3)
 
     task = ConcurrencyTask()
 
@@ -407,15 +403,9 @@ def test_runner_limits_parallel_execution():
 
     assert len(results) == 10
 
-    assert (
-        task.max_active
-        <= 3
-    )
+    assert task.max_active <= 3
 
-    assert (
-        task.max_active
-        >= 2
-    )
+    assert task.max_active >= 2
 
 
 def test_runner_rejects_invalid_concurrency():
@@ -423,6 +413,4 @@ def test_runner_rejects_invalid_concurrency():
         ValueError,
         match="max_concurrency",
     ):
-        EvalRunner(
-            max_concurrency=0
-        )
+        EvalRunner(max_concurrency=0)

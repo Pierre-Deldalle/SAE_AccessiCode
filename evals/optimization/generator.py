@@ -8,11 +8,9 @@ import aiohttp
 
 from accessi_code.ai.clients.llm import OllamaLLM
 from accessi_code.ai.json_utils import parse_ai_json
-
 from evals.optimization.models import (
     GeneratedPromptCandidate,
 )
-
 
 CANDIDATE_STRATEGIES = (
     """
@@ -25,7 +23,6 @@ Cherche à améliorer globalement :
 
 Évite de surcorriger une catégorie d'erreurs au détriment des autres.
 """.strip(),
-
     """
 Concentre particulièrement ce candidat sur la gestion des preuves
 insuffisantes.
@@ -39,7 +36,6 @@ Le prompt doit aider le modèle à distinguer :
 corrompu, principalement constitué de navigation ou encore en chargement,
 sans pour autant utiliser null lorsqu'une conclusion est clairement possible.
 """.strip(),
-
     """
 Concentre particulièrement ce candidat sur la calibration de confidence
 et la prévention des erreurs critiques.
@@ -208,22 +204,13 @@ class PromptGenerationError(ValueError):
         parsed_data: dict[str, Any] | None = None,
         rejection_reasons: list[str] | None = None,
     ):
-        super().__init__(
-            message
-        )
+        super().__init__(message)
 
-        self.raw_response = (
-            raw_response
-        )
+        self.raw_response = raw_response
 
-        self.parsed_data = (
-            parsed_data
-        )
+        self.parsed_data = parsed_data
 
-        self.rejection_reasons = (
-            rejection_reasons
-            or []
-        )
+        self.rejection_reasons = rejection_reasons or []
 
 
 def normalize_prompt_template(
@@ -267,13 +254,9 @@ def normalize_prompt_template(
     #
     # 2. Protéger les accolades littérales déjà échappées.
     #
-    left_brace_sentinel = (
-        "__ACCESSICODE_LEFT_BRACE__"
-    )
+    left_brace_sentinel = "__ACCESSICODE_LEFT_BRACE__"
 
-    right_brace_sentinel = (
-        "__ACCESSICODE_RIGHT_BRACE__"
-    )
+    right_brace_sentinel = "__ACCESSICODE_RIGHT_BRACE__"
 
     normalized = normalized.replace(
         "{{",
@@ -337,14 +320,9 @@ class PromptCandidateGenerator:
         candidate_count: int = 3,
     ) -> list[GeneratedPromptCandidate]:
         if candidate_count < 1:
-            raise ValueError(
-                "candidate_count doit être "
-                "supérieur ou égal à 1."
-            )
+            raise ValueError("candidate_count doit être supérieur ou égal à 1.")
 
-        candidates: list[
-            GeneratedPromptCandidate
-        ] = []
+        candidates: list[GeneratedPromptCandidate] = []
 
         seen_templates: set[str] = set()
 
@@ -363,18 +341,10 @@ class PromptCandidateGenerator:
             indent=2,
         )
 
-        for index in range(
-            candidate_count
-        ):
-            candidate_name = (
-                f"candidate_{index + 1:03d}"
-            )
+        for index in range(candidate_count):
+            candidate_name = f"candidate_{index + 1:03d}"
 
-            strategy = (
-                self._get_strategy(
-                    index
-                )
-            )
+            strategy = self._get_strategy(index)
 
             candidate_created = False
 
@@ -403,54 +373,28 @@ class PromptCandidateGenerator:
 
                 prompt = OPTIMIZER_PROMPT.format(
                     strategy=strategy,
-                    optimization_context=(
-                        context_json
-                    ),
-                    retry_instruction=(
-                        retry_instruction
-                    ),
+                    optimization_context=(context_json),
+                    retry_instruction=(retry_instruction),
                 )
 
                 try:
-                    data, raw_response = (
-                        await self._generate_json(
-                            prompt,
-                            max_tokens=1500,
-                        )
+                    data, raw_response = await self._generate_json(
+                        prompt,
+                        max_tokens=1500,
                     )
 
                 except RuntimeError as error:
-                    rejection_reasons.append(
-                        (
-                            f"{candidate_name} "
-                            f"(tentative "
-                            f"{candidate_attempt + 1}) : "
-                            f"{error}"
-                        )
-                    )
+                    rejection_reasons.append((f"{candidate_name} (tentative {candidate_attempt + 1}) : {error}"))
 
                     continue
 
                 raw_responses.append(
-                    (
-                        f"===== {candidate_name} "
-                        f"/ tentative "
-                        f"{candidate_attempt + 1} =====\n"
-                        f"{raw_response}"
-                    )
+                    (f"===== {candidate_name} / tentative {candidate_attempt + 1} =====\n{raw_response}")
                 )
 
-                parsed_responses[
-                    (
-                        f"{candidate_name}_"
-                        f"attempt_"
-                        f"{candidate_attempt + 1}"
-                    )
-                ] = data
+                parsed_responses[(f"{candidate_name}_attempt_{candidate_attempt + 1}")] = data
 
-                template = data.get(
-                    "prompt"
-                )
+                template = data.get("prompt")
 
                 if not isinstance(
                     template,
@@ -472,37 +416,21 @@ class PromptCandidateGenerator:
 
                 if not template:
                     rejection_reasons.append(
-                        (
-                            f"{candidate_name} "
-                            f"(tentative "
-                            f"{candidate_attempt + 1}) : "
-                            "le prompt est vide."
-                        )
+                        (f"{candidate_name} (tentative {candidate_attempt + 1}) : le prompt est vide.")
                     )
 
                     continue
 
-                template = (
-                    normalize_prompt_template(
-                        template
-                    )
-                )
+                template = normalize_prompt_template(template)
 
                 if template in seen_templates:
                     rejection_reasons.append(
-                        (
-                            f"{candidate_name} "
-                            f"(tentative "
-                            f"{candidate_attempt + 1}) : "
-                            "prompt dupliqué."
-                        )
+                        (f"{candidate_name} (tentative {candidate_attempt + 1}) : prompt dupliqué.")
                     )
 
                     continue
 
-                seen_templates.add(
-                    template
-                )
+                seen_templates.add(template)
 
                 candidates.append(
                     GeneratedPromptCandidate(
@@ -517,34 +445,18 @@ class PromptCandidateGenerator:
                 break
 
             if not candidate_created:
-                details = "\n".join(
-                    f"- {reason}"
-                    for reason in rejection_reasons
-                )
+                details = "\n".join(f"- {reason}" for reason in rejection_reasons)
 
                 raise PromptGenerationError(
                     (
                         "L'optimiseur n'a pas réussi "
                         "à produire tous les prompts "
                         "candidats demandés.\n"
-                        f"Échec sur {candidate_name}."
-                        + (
-                            f"\n{details}"
-                            if details
-                            else ""
-                        )
+                        f"Échec sur {candidate_name}." + (f"\n{details}" if details else "")
                     ),
-                    raw_response=(
-                        "\n\n".join(
-                            raw_responses
-                        )
-                    ),
-                    parsed_data=(
-                        parsed_responses
-                    ),
-                    rejection_reasons=(
-                        rejection_reasons
-                    ),
+                    raw_response=("\n\n".join(raw_responses)),
+                    parsed_data=(parsed_responses),
+                    rejection_reasons=(rejection_reasons),
                 )
 
         return candidates
@@ -569,9 +481,7 @@ class PromptCandidateGenerator:
                     temperature=0,
                 )
 
-                data = parse_ai_json(
-                    response
-                )
+                data = parse_ai_json(response)
 
                 return (
                     data,
@@ -587,26 +497,18 @@ class PromptCandidateGenerator:
                 last_error = error
 
                 if attempt == 0:
-                    await asyncio.sleep(
-                        0.5
-                    )
+                    await asyncio.sleep(0.5)
 
         raise RuntimeError(
-            "Impossible d'obtenir une réponse JSON "
-            "exploitable de l'optimiseur : "
-            f"{last_error}"
+            f"Impossible d'obtenir une réponse JSON exploitable de l'optimiseur : {last_error}"
         ) from last_error
-    
+
     @staticmethod
     def _get_strategy(
         index: int,
     ) -> str:
-        if index < len(
-            CANDIDATE_STRATEGIES
-        ):
-            return (
-                CANDIDATE_STRATEGIES[index]
-            )
+        if index < len(CANDIDATE_STRATEGIES):
+            return CANDIDATE_STRATEGIES[index]
 
         return (
             "Propose une stratégie complémentaire "
