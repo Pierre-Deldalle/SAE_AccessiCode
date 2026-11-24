@@ -24,6 +24,7 @@ from typing import Any
 
 from bs4 import BeautifulSoup, Tag
 
+from accessi_code.analysis.fix_examples import attribute_fix_example, rename_example, with_example, wrap_example
 from accessi_code.analysis.page import is_html5_doctype
 from accessi_code.analysis.structure import is_hidden
 from accessi_code.models.audit_context import AuditContext
@@ -63,6 +64,18 @@ def unstructured_zones(soup: BeautifulSoup, zone: str) -> list[Tag]:
     return [tag for tag in zones if not any(other is not tag and tag in other.descendants for other in zones)]
 
 
+def zone_example(tag: Tag, zone: str) -> str | None:
+    """
+    Zone balisée avec ``zone`` : un div, span ou section change de balise (son rôle ARIA
+    équivalent devient inutile) ; une autre balise (liste, aside) est entourée de ``zone``.
+    """
+    if tag.name not in {"div", "span", "section"}:
+        return wrap_example(tag, zone)
+    role = _ZONE_MARKERS[zone][1]
+    redundant = ["role"] if str(tag.get("role") or "").strip().lower() == role else []
+    return rename_example(tag, zone, remove_attributes=redundant)
+
+
 class Test921(RGAATest):
     """9.2.1 : structure du document (header, nav, main, footer)."""
 
@@ -89,7 +102,8 @@ class Test921(RGAATest):
                         TestStatus.FAIL,
                         f"{tag.name}{'#' + tag['id'] if tag.get('id') else ''}",
                         f"La zone {label} n'est pas structurée avec la balise <{zone}>.",
-                        f"Utiliser la balise <{zone}> pour la zone {label}.",
+                        with_example(f"Utiliser la balise <{zone}> pour la zone {label}.", zone_example(tag, zone)),
+                        node=tag,
                         markers=_markers(tag),
                     )
                 )
@@ -101,7 +115,12 @@ class Test921(RGAATest):
                         TestStatus.FAIL,
                         f"nav#{nav['id']}" if nav.get("id") else f"nav[index={index}]",
                         "La balise <nav> ne contient aucun lien : elle ne structure pas une zone de navigation.",
-                        "Réserver <nav> aux zones de navigation principales et secondaires.",
+                        with_example(
+                            "Réserver <nav> aux zones de navigation principales et secondaires.",
+                            # Un nom accessible n'a pas sa place sur un simple <div>.
+                            rename_example(nav, "div", remove_attributes=("aria-label", "aria-labelledby")),
+                        ),
+                        node=nav,
                     )
                 )
 
@@ -113,6 +132,8 @@ class Test921(RGAATest):
                     "main",
                     "La zone de contenu principal n'est pas structurée avec la balise <main>.",
                     "Encadrer le contenu principal de la page avec une balise <main>.",
+                    # Pas de <main> : l'observation est située à l'élément où il doit être ajouté.
+                    node=soup.body or soup.find("html"),
                 )
             )
         elif len(visible_mains) > 1:
@@ -121,7 +142,13 @@ class Test921(RGAATest):
                     TestStatus.FAIL,
                     "main",
                     f"{len(visible_mains)} balises <main> sont visibles ; une seule doit l'être.",
-                    "Conserver un seul <main> visible et ajouter l'attribut hidden aux autres.",
+                    with_example(
+                        "Conserver un seul <main> visible et ajouter l'attribut hidden aux autres.",
+                        attribute_fix_example(visible_mains[1], set_attributes={"hidden": ""}),
+                    ),
+                    # Situé au deuxième <main> visible, celui qui est en trop ; toutes les lignes en preuve.
+                    node=visible_mains[1],
+                    lines=[main.sourceline for main in visible_mains],
                 )
             )
         else:

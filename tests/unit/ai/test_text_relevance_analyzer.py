@@ -208,6 +208,18 @@ async def test_table_kinds_suggestion_request(kind, requested) -> None:
 
 
 @pytest.mark.asyncio
+async def test_heading_kind_requests_a_suggestion() -> None:
+    llm = FakeModel(batch({**NOT_RELEVANT, "suggestion": "Horaires d'ouverture"}))
+    analyzer = OllamaTextRelevanceAnalyzer(llm)
+
+    [result] = await analyzer.analyze_relevance("heading", [RelevanceItem("Titre")])
+
+    assert "propose dans suggestion un titre court qui décrit le contenu de la section" in llm.prompts[0]
+    assert '"suggestion": null' in llm.prompts[0]
+    assert result.suggestion == "Horaires d'ouverture"
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("value", "expected"),
     [

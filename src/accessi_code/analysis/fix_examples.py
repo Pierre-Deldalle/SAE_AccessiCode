@@ -88,6 +88,64 @@ def first_keyboard_fix_example(controls: Iterable[Tag], rule: Callable[[Tag], bo
     return keyboard_focus_example(failing, fixed_by=rule) if failing is not None else None
 
 
+CONTENT_LIMIT = 60
+
+
+def shorten(text: str, limit: int = CONTENT_LIMIT) -> str:
+    """Texte aux espaces normalisés, coupé à ``limit`` caractères (« … » final)."""
+    text = " ".join(text.split())
+    return text if len(text) <= limit else text[: limit - 1].rstrip() + "…"
+
+
+def _content(tag: Tag, limit: int = CONTENT_LIMIT) -> str:
+    """Contenu HTML de l'élément s'il est court, sinon « … »."""
+    html = " ".join(tag.decode_contents().split())
+    return html if len(html) <= limit else "…"
+
+
+def _renamed(opening: str, old: str, new: str) -> str:
+    return f"<{new}{opening[len(old) + 1 :]}"
+
+
+def rename_example(
+    tag: Tag,
+    name: str,
+    *,
+    set_attributes: Mapping[str, str] | None = None,
+    remove_attributes: Iterable[str] = (),
+    text: str | None = None,
+) -> str | None:
+    """
+    Exemple « <div id="x">Logo</div> → <header id="x">Logo</header> » : l'élément change de balise
+    (``name``) en gardant ses vrais attributs, modifiés comme dans ``attribute_fix_example``.
+
+    ``text`` remplace le contenu (par exemple un titre proposé par l'IA). Un contenu long est
+    remplacé par « … ». Retourne None si l'élément n'est pas une balise ou si rien ne change.
+    """
+    if not isinstance(tag, Tag):
+        return None
+    changes: dict[str, str | None] = dict(set_attributes or {})
+    changes.update({attribute: None for attribute in remove_attributes})
+    content = _content(tag)
+    new_content = content if text is None else shorten(text)
+    before = f"{opening_tag(tag)}{content}</{tag.name}>"
+    after = f"{_renamed(opening_tag(tag, **changes), tag.name, name)}{new_content}</{name}>"
+    return None if before == after else f"{before} → {after}"
+
+
+def wrap_example(tag: Tag, wrapper: str, *, text: str | None = None) -> str | None:
+    """
+    Exemple « <ul class="menu">…</ul> → <nav><ul class="menu">…</ul></nav> » : élément entouré de ``wrapper``.
+
+    ``text`` : texte de l'élément à montrer (raccourci) à la place de son contenu HTML.
+    """
+    if not isinstance(tag, Tag):
+        return None
+    content = _content(tag) if text is None else shorten(text)
+    element = f"{opening_tag(tag)}{content}</{tag.name}>"
+    return f"{element} → <{wrapper}>{element}</{wrapper}>"
+
+
 def with_example(recommendation: str | None, example: str | None) -> str | None:
     """Ajoute « Exemple : … » à une recommandation ; inchangée s'il n'y a pas de recommandation ou d'exemple."""
     if not recommendation or not example:

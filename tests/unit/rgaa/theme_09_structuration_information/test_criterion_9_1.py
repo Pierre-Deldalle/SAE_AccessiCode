@@ -148,3 +148,124 @@ def test_913_ai_exception_gives_error(context_factory, run_rgaa):
     html = "<p><strong>Nos services</strong></p>"
     ai = text_services(structure_answer=RuntimeError("panne"))
     assert run_rgaa(Test913(), context_factory(html), ai).status == Status.ERROR
+
+
+# ---- Emplacement des observations ------------------------------------
+
+
+def test_911_finding_is_located_at_the_first_heading_concerned(context_factory, run_rgaa):
+    html = "<h1>Accueil</h1>\n<h2>Offres</h2>\n<h4>Tarifs</h4>\n<p>10 €</p>\n<h2>Contact</h2>\n<h4>Plan</h4>"
+    ai = text_services(hierarchy_answer=relevance(False, problems=["h4 rattaché à aucun h3"]))
+    result = run_rgaa(Test911(), context_factory(html), ai)
+    assert result.status == Status.FAIL
+    finding = result.findings[0]
+    assert (finding.line, finding.snippet) == (3, "<h4>Tarifs</h4>")
+    assert finding.evidence["lines"] == [3, 6]
+
+
+def test_911_without_ai_finding_is_located(context_factory, run_rgaa):
+    finding = run_rgaa(Test911(), context_factory("<p>Intro</p>\n<h2>Actualités</h2>")).findings[0]
+    assert (finding.line, finding.snippet) == (2, "<h2>Actualités</h2>")
+
+
+def test_912_empty_heading_is_located(context_factory, run_rgaa):
+    result = run_rgaa(Test912(), context_factory('<h1>Accueil</h1>\n<h2 id="vide"></h2>'), text_services())
+    finding = next(item for item in result.findings if item.message == "Le titre est vide.")
+    assert (finding.line, finding.snippet) == (2, '<h2 id="vide"></h2>')
+
+
+def test_912_irrelevant_heading_is_located(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=[relevance(True), relevance(False)])
+    html = "<h1>Accueil</h1>\n<h2>Titre</h2>\n<p>Nos horaires</p>"
+    finding = run_rgaa(Test912(), context_factory(html), ai).findings[0]
+    assert (finding.line, finding.snippet) == (2, "<h2>Titre</h2>")
+
+
+def test_913_aria_heading_without_level_is_located(context_factory, run_rgaa):
+    html = '<h1>Accueil</h1>\n<div role="heading">Contact</div>'
+    finding = run_rgaa(Test913(), context_factory(html), text_services()).findings[0]
+    assert (finding.line, finding.snippet) == (2, '<div role="heading">Contact</div>')
+
+
+def test_913_unmarked_heading_is_located(context_factory, run_rgaa):
+    html = "<h1>Accueil</h1>\n<p><strong>Nos services</strong></p>\n<p>Nous proposons des audits.</p>"
+    finding = run_rgaa(Test913(), context_factory(html), text_services(structure_answer=structure(True))).findings[0]
+    assert (finding.line, finding.snippet) == (2, "<p><strong>Nos services</strong></p>")
+
+
+# ---- Corrections proposées -------------------------------------------
+
+HIERARCHY_RECOMMENDATION = "Organiser les niveaux de titres selon la structure réelle du contenu."
+HEADING_RECOMMENDATION = "Rédiger un titre qui décrit le contenu de la section qu'il introduit."
+IRRELEVANT = '<h1>Accueil</h1><h2 id="s">Titre</h2><p>Nos horaires</p>'
+
+
+def test_911_fail_gives_the_level_that_removes_the_jump(context_factory, run_rgaa):
+    ai = text_services(hierarchy_answer=relevance(False))
+    result = run_rgaa(Test911(), context_factory('<h1>A</h1><h2>Offres</h2><h4 class="t">Tarifs</h4>'), ai)
+    assert result.findings[0].recommendation == (
+        f'{HIERARCHY_RECOMMENDATION} Exemple : <h4 class="t">Tarifs</h4> → <h3 class="t">Tarifs</h3>'
+    )
+
+
+def test_911_fail_on_first_heading_suggests_level_one(context_factory, run_rgaa):
+    ai = text_services(hierarchy_answer=relevance(False))
+    result = run_rgaa(Test911(), context_factory("<h2>Actualités</h2><h3>Brève</h3>"), ai)
+    assert result.findings[0].recommendation.endswith("Exemple : <h2>Actualités</h2> → <h1>Actualités</h1>")
+
+
+def test_911_no_example_when_unsure(context_factory, run_rgaa):
+    low = text_services(hierarchy_answer=relevance(False, confidence="low"))
+    assert run_rgaa(Test911(), context_factory(JUMP), low).findings[0].recommendation == HIERARCHY_RECOMMENDATION
+    assert run_rgaa(Test911(), context_factory(JUMP)).findings[0].recommendation == HIERARCHY_RECOMMENDATION
+
+
+def test_912_fail_shows_the_ai_proposal(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=[relevance(True), relevance(False, suggestion="Horaires d'ouverture")])
+    result = run_rgaa(Test912(), context_factory(IRRELEVANT), ai)
+    assert result.status == Status.FAIL
+    assert result.findings[0].recommendation == (
+        f"{HEADING_RECOMMENDATION} Proposition : « Horaires d'ouverture ». "
+        'Exemple : <h2 id="s">Titre</h2> → <h2 id="s">Horaires d\'ouverture</h2>'
+    )
+
+
+def test_912_proposal_ignored_when_unsure_or_relevant(context_factory, run_rgaa):
+    low = text_services(relevance_answer=relevance(False, confidence="low", suggestion="Horaires"))
+    result = run_rgaa(Test912(), context_factory(IRRELEVANT), low)
+    assert result.status == Status.NEEDS_REVIEW
+    assert all(finding.recommendation == HEADING_RECOMMENDATION for finding in result.findings)
+
+    relevant = text_services(relevance_answer=relevance(True, suggestion="Horaires"))
+    result = run_rgaa(Test912(), context_factory(IRRELEVANT), relevant)
+    assert (result.status, result.findings) == (Status.PASS, [])
+
+
+def test_912_fail_without_proposal_keeps_the_recommendation(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=[relevance(True), relevance(False)])
+    result = run_rgaa(Test912(), context_factory(IRRELEVANT), ai)
+    assert result.status == Status.FAIL
+    assert result.findings[0].recommendation == HEADING_RECOMMENDATION
+
+
+def test_913_aria_heading_example_uses_level_below_previous_heading(context_factory, run_rgaa):
+    html = '<h1>Accueil</h1><h2>Services</h2><div role="heading" class="t">Audit</div>'
+    finding = run_rgaa(Test913(), context_factory(html), text_services()).findings[0]
+    assert finding.recommendation.endswith(
+        'Exemple : <div role="heading" class="t">Audit</div> → <div role="heading" class="t" aria-level="3">Audit</div>'
+    )
+
+
+def test_913_unmarked_heading_example(context_factory, run_rgaa):
+    html = '<h1>Accueil</h1><p class="intro"><strong>Nos services</strong></p><p>Nous proposons des audits.</p>'
+    ai = text_services(structure_answer=structure(True))
+    finding = run_rgaa(Test913(), context_factory(html), ai).findings[0]
+    assert finding.recommendation.endswith(
+        'Exemple : <p class="intro"><strong>Nos services</strong></p> → <h2 class="intro">Nos services</h2>'
+    )
+
+
+def test_913_no_example_for_an_uncertain_candidate(context_factory, run_rgaa):
+    html = "<p><strong>Nos services</strong></p><p>Texte</p>"
+    finding = run_rgaa(Test913(), context_factory(html)).findings[0]
+    assert "Exemple" not in finding.recommendation

@@ -46,6 +46,7 @@ RELEVANCE_KINDS: dict[str, RelevanceKind] = {
         rule="RGAA 9.1 : le contenu de chaque titre doit être pertinent.",
         relevant_when="il décrit correctement le contenu de la section qu'il introduit.",
         not_relevant_examples="« Titre », « Section 1 », « Lorem ipsum », un titre sans rapport avec la section.",
+        suggestion="un titre court qui décrit le contenu de la section",
     ),
     "link": RelevanceKind(
         subject="intitulé de lien (nom accessible), éventuellement complété par son contexte",

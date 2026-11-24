@@ -13,12 +13,15 @@ citation (et pas d'un simple usage de guillemets).
 
 from __future__ import annotations
 
+import re
+from collections.abc import Callable
 from typing import Any
 
 from bs4 import BeautifulSoup, Tag
 
 from accessi_code.ai.schemas import StructureCandidate
 from accessi_code.analysis.dom import get_element_identifier
+from accessi_code.analysis.fix_examples import shorten, with_example, wrap_example
 from accessi_code.analysis.structure import block_quote_candidates, inline_quote_candidates, is_hidden
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
@@ -28,6 +31,23 @@ from accessi_code.rgaa.base import RGAATest
 from accessi_code.rgaa.outcomes import Outcome, build_result, make_outcome, not_applicable
 
 
+def inline_quote_example(tag: Tag, quoted: str) -> str:
+    """
+    Citation courte balisée avec <q>, avec ses vrais guillemets avant correction : le navigateur
+    affiche lui-même les guillemets autour de <q>, ils sont donc retirés du texte.
+    """
+    short = shorten(quoted)
+    text = " ".join(tag.get_text(" ", strip=True).split())
+    found = re.search(r"[«“\"]\s*" + re.escape(quoted) + r"\s*[»”\"]", text)
+    before = found.group(0).replace(quoted, short) if found else f"« {short} »"
+    return f"{before} → <q>{short}</q>"
+
+
+def block_quote_example(tag: Tag, text: str) -> str | None:
+    """Bloc de citation entouré de <blockquote>, avec le début de son vrai texte."""
+    return wrap_example(tag, "blockquote", text=text)
+
+
 async def _candidate_outcomes(
     services: Any | None,
     candidates: list[tuple[Tag, str]],
@@ -35,6 +55,7 @@ async def _candidate_outcomes(
     fail: str,
     uncertain: str,
     recommendation: str,
+    example: Callable[[Tag, str], str | None],
 ) -> list[Outcome]:
     items = [
         StructureCandidate(text=text, element_html=str(tag)[:500], context=tag.get_text(" ", strip=True)[:500])
@@ -46,7 +67,8 @@ async def _candidate_outcomes(
             verdict.status,
             get_element_identifier(tag, index),
             verdict.message(fail.format(text=text[:100]), uncertain.format(text=text[:100])),
-            recommendation,
+            with_example(recommendation, example(tag, text)) if verdict.status is TestStatus.FAIL else recommendation,
+            node=tag,
             text=text[:200],
             **verdict.evidence,
         )
@@ -63,6 +85,7 @@ def _existing_outcomes(tags: list[Tag], name: str) -> list[Outcome]:
             get_element_identifier(tag, index),
             f"La balise <{name}> est vide : elle n'indique aucune citation.",
             f"Supprimer la balise <{name}> vide ou y placer la citation.",
+            node=tag,
         )
         for index, tag in enumerate(tags)
     ]
@@ -91,6 +114,7 @@ class Test941(RGAATest):
             fail="La citation « {text} » n'est pas balisée avec <q>.",
             uncertain="Le passage « {text} » pourrait être une citation non balisée.",
             recommendation="Baliser chaque citation courte avec <q>.",
+            example=inline_quote_example,
         )
         return build_result(self, outcomes, empty_summary="Aucune citation courte dans la page.", noun="citation(s)")
 
@@ -118,5 +142,6 @@ class Test942(RGAATest):
             fail="Le bloc de citation « {text} » n'est pas balisé avec <blockquote>.",
             uncertain="Le bloc « {text} » pourrait être une citation non balisée.",
             recommendation="Baliser chaque bloc de citation avec <blockquote>.",
+            example=block_quote_example,
         )
         return build_result(self, outcomes, empty_summary="Aucun bloc de citation dans la page.", noun="citation(s)")

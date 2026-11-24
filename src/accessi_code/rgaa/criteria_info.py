@@ -187,6 +187,35 @@ _ENTRIES = (
         "présenté par le lecteur d'écran comme un vrai tableau de données : une personne aveugle cherche alors "
         "des lignes et des colonnes qui n'ont pas de sens.",
     ),
+    # ---- Thème 9 : structuration de l'information ----
+    CriterionInfo(
+        "9.1",
+        "Dans chaque page web, l’information est-elle structurée par l’utilisation appropriée de titres ?",
+        "Beaucoup de personnes aveugles parcourent une page en sautant de titre en titre avec leur lecteur d'écran, "
+        "comme on lit un sommaire. Si les titres manquent, sont vides ou mal ordonnés, elles ne trouvent pas les "
+        "parties de la page et comprennent mal son organisation.",
+    ),
+    CriterionInfo(
+        "9.2",
+        "Dans chaque page web, la structure du document est-elle cohérente (hors cas particuliers) ?",
+        "Une personne qui utilise un lecteur d'écran peut aller directement au menu, au contenu principal ou au bas "
+        "de page, à condition que ces zones soient signalées comme telles. Sinon, elle doit écouter la page depuis "
+        "le début pour trouver ce qu'elle cherche.",
+    ),
+    CriterionInfo(
+        "9.3",
+        "Dans chaque page web, chaque liste est-elle correctement structurée ?",
+        "Pour une vraie liste, le lecteur d'écran annonce « liste de 5 éléments » puis chaque élément. Si la liste "
+        "est seulement dessinée avec des tirets ou des numéros, une personne aveugle ne sait ni où elle commence, "
+        "ni où elle finit, ni combien d'éléments elle contient.",
+    ),
+    CriterionInfo(
+        "9.4",
+        "Dans chaque page web, chaque citation est-elle correctement indiquée ?",
+        "Une personne qui utilise un lecteur d'écran ne voit pas les guillemets, l'italique ou le retrait qui "
+        "signalent une citation. Si elle n'est pas indiquée comme telle, elle peut prendre les paroles d'une autre "
+        "personne pour celles de l'auteur de la page.",
+    ),
 )
 
 CRITERIA: dict[str, CriterionInfo] = {entry.criterion_id: entry for entry in _ENTRIES}

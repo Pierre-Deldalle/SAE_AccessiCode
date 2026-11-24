@@ -4,7 +4,10 @@ from accessi_code.analysis.fix_examples import (
     attribute_fix_example,
     first_keyboard_fix_example,
     keyboard_focus_example,
+    rename_example,
+    shorten,
     with_example,
+    wrap_example,
 )
 
 
@@ -90,3 +93,48 @@ def test_with_example():
     assert with_example("Ajouter les commandes.", "<a> → <b>") == "Ajouter les commandes. Exemple : <a> → <b>"
     assert with_example("Ajouter les commandes.", None) == "Ajouter les commandes."
     assert with_example(None, "<a> → <b>") is None
+
+
+def test_shorten():
+    assert shorten("  Plan   d'accès ") == "Plan d'accès"
+    assert shorten("abcdefghij", 5) == "abcd…"
+
+
+def test_rename_example_keeps_attributes_and_content():
+    div = _tag('<div id="header" class="haut">Logo</div>')
+
+    assert rename_example(div, "header") == (
+        '<div id="header" class="haut">Logo</div> → <header id="header" class="haut">Logo</header>'
+    )
+
+
+def test_rename_example_changes_attributes_and_text():
+    heading = _tag('<div role="heading">Contact</div>')
+
+    assert rename_example(heading, "div", set_attributes={"aria-level": "2"}, text="Nous écrire") == (
+        '<div role="heading">Contact</div> → <div role="heading" aria-level="2">Nous écrire</div>'
+    )
+    assert rename_example(_tag('<div role="banner">Logo</div>'), "header", remove_attributes=["role"]) == (
+        '<div role="banner">Logo</div> → <header>Logo</header>'
+    )
+
+
+def test_rename_example_shortens_long_content():
+    paragraph = _tag(f"<p>{'mot ' * 30}</p>")
+
+    assert rename_example(paragraph, "h2") == "<p>…</p> → <h2>…</h2>"
+
+
+def test_rename_example_without_change_or_tag():
+    assert rename_example(_tag("<h2>Titre</h2>"), "h2") is None
+    assert rename_example(None, "h2") is None
+
+
+def test_wrap_example():
+    menu = _tag('<ul class="menu"><li>A</li></ul>')
+
+    assert wrap_example(menu, "nav") == '<ul class="menu"><li>A</li></ul> → <nav><ul class="menu"><li>A</li></ul></nav>'
+    assert wrap_example(_tag("<p>« Une citation »</p>"), "blockquote", text="Une citation") == (
+        "<p>Une citation</p> → <blockquote><p>Une citation</p></blockquote>"
+    )
+    assert wrap_example(None, "nav") is None

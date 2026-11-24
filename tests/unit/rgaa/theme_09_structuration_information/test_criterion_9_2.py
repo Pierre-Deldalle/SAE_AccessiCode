@@ -74,3 +74,71 @@ def test_second_main_hidden_with_attribute_passes(context_factory, run_rgaa):
 def test_main_hidden_with_css_only_still_counts(context_factory, run_rgaa):
     html = '<!DOCTYPE html><html><body><main>a</main><main style="display:none">b</main></body></html>'
     assert run(context_factory, run_rgaa, html).status == Status.FAIL
+
+
+# ---- Emplacement des observations ------------------------------------
+
+
+def test_header_zone_finding_is_located(context_factory, run_rgaa):
+    html = '<!DOCTYPE html>\n<html><body>\n<div id="header">Logo</div>\n<main>x</main></body></html>'
+    finding = run(context_factory, run_rgaa, html).findings[0]
+    assert (finding.line, finding.snippet) == (3, '<div id="header">Logo</div>')
+
+
+def test_nav_without_links_finding_is_located(context_factory, run_rgaa):
+    html = "<!DOCTYPE html>\n<html><body>\n<main>x</main>\n<nav><p>Texte</p></nav></body></html>"
+    finding = run(context_factory, run_rgaa, html).findings[0]
+    assert (finding.line, finding.snippet) == (4, "<nav><p>Texte</p></nav>")
+
+
+def test_missing_main_is_located_at_body(context_factory, run_rgaa):
+    html = "<!DOCTYPE html>\n<html>\n<body>\n<p>Contenu</p>\n</body>\n</html>"
+    finding = run(context_factory, run_rgaa, html).findings[0]
+    assert (finding.line, finding.snippet) == (3, "<body> <p>Contenu</p> </body>")
+
+
+def test_extra_main_is_located_at_the_second_visible_main(context_factory, run_rgaa):
+    html = "<!DOCTYPE html>\n<html><body>\n<main>a</main>\n<main hidden>b</main>\n<main>c</main></body></html>"
+    finding = run(context_factory, run_rgaa, html).findings[0]
+    assert (finding.line, finding.snippet) == (5, "<main>c</main>")
+    assert finding.evidence["lines"] == [3, 5]
+
+
+# ---- Corrections proposées -------------------------------------------
+
+
+def body(content: str) -> str:
+    return f"<!DOCTYPE html><html><body>{content}</body></html>"
+
+
+def test_zone_example_renames_the_div_and_drops_the_redundant_role(context_factory, run_rgaa):
+    finding = run(context_factory, run_rgaa, body('<div id="haut" role="banner">Logo</div><main>x</main>')).findings[0]
+    assert finding.recommendation == (
+        "Utiliser la balise <header> pour la zone d'en-tête. "
+        'Exemple : <div id="haut" role="banner">Logo</div> → <header id="haut">Logo</header>'
+    )
+
+
+def test_navigation_list_is_wrapped_in_nav(context_factory, run_rgaa):
+    menu = '<ul class="menu"><li><a href="/">A</a></li><li><a href="/b">B</a></li></ul>'
+    finding = run(context_factory, run_rgaa, body(f"{menu}<main>x</main>")).findings[0]
+    assert finding.recommendation.endswith(f"Exemple : {menu} → <nav>{menu}</nav>")
+
+
+def test_nav_without_links_example(context_factory, run_rgaa):
+    finding = run(context_factory, run_rgaa, body('<nav aria-label="Pages"><p>Texte</p></nav><main>x</main>')).findings[
+        0
+    ]
+    assert finding.recommendation.endswith(
+        'Exemple : <nav aria-label="Pages"><p>Texte</p></nav> → <div><p>Texte</p></div>'
+    )
+
+
+def test_extra_main_example_adds_hidden(context_factory, run_rgaa):
+    finding = run(context_factory, run_rgaa, body('<main>a</main><main class="b">c</main>')).findings[0]
+    assert finding.recommendation.endswith('Exemple : <main class="b"> → <main class="b" hidden="">')
+
+
+def test_missing_main_has_no_example(context_factory, run_rgaa):
+    finding = run(context_factory, run_rgaa, body("<p>Contenu</p>")).findings[0]
+    assert finding.recommendation == "Encadrer le contenu principal de la page avec une balise <main>."
