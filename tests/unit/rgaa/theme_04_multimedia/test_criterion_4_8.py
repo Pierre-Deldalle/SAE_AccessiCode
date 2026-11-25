@@ -334,3 +334,13 @@ def test_criterion_48_multiple_media_one_invalid_fails(
     assert result.status == Status.FAIL
     assert result.tested_elements == 2
     assert len(result.findings) == 2
+
+
+def test_failure_indicates_media_line_and_snippet(context_factory, run_rgaa):
+    html = "<p>Catalogue</p>\n<object data='catalogue.pdf' type='application/pdf'></object>"
+
+    result = run_rgaa(Test481(), context_factory(html))
+
+    assert result.status == Status.FAIL
+    assert result.findings[0].line == 2
+    assert result.findings[0].snippet == '<object data="catalogue.pdf" type="application/pdf"></object>'

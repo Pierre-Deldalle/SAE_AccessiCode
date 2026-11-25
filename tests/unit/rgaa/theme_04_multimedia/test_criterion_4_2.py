@@ -55,3 +55,13 @@ def test_criterion_42_tests_are_registered_in_official_order():
     test_ids = [test.test_id for test in build_default_registry().get_all() if test.criterion_id == "4.2"]
 
     assert test_ids == ["4.2.1", "4.2.2", "4.2.3"]
+
+
+def test_finding_indicates_media_line_and_snippet(context_factory, run_rgaa):
+    html = "<div>\n<audio src='a.mp3'></audio>\n<a href='transcription.html'>Transcription</a>\n</div>"
+
+    result = run_rgaa(Test421(), context_factory(html))
+
+    assert result.status == Status.NEEDS_REVIEW
+    assert result.findings[0].line == 2
+    assert result.findings[0].snippet == '<audio src="a.mp3"></audio>'

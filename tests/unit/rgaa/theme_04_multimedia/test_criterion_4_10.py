@@ -283,3 +283,39 @@ def test_criterion_410_ignores_decorative_media(
     assert result.status == Status.NOT_APPLICABLE
     assert result.tested_elements == 0
     assert result.findings == []
+
+
+def test_criterion_410_javascript_finding_points_to_script_line(context_factory, run_rgaa):
+    html = "<p>Bienvenue</p>\n<script>\nconst son = new Audio('a.mp3');\nson.play();\n</script>"
+
+    result = run_rgaa(Test4101(), context_factory(html))
+
+    assert result.findings[0].element == "script[index=0]"
+    assert result.findings[0].line == 4
+    assert result.findings[0].snippet == "son.play();"
+
+
+def test_criterion_410_media_finding_points_to_media_line(context_factory, run_rgaa):
+    html = "<p>Bienvenue</p>\n<audio autoplay src='a.mp3'></audio>"
+
+    result = run_rgaa(Test4101(), context_factory(html))
+
+    assert result.findings[0].line == 2
+    assert result.findings[0].snippet == '<audio autoplay="" src="a.mp3"></audio>'
+
+
+def test_criterion_410_uncontrolled_media_recommendation_shows_controls_example(context_factory, run_rgaa):
+    result = run_rgaa(Test4101(), context_factory("<audio autoplay src='musique.mp3'></audio>"))
+
+    assert result.findings[0].recommendation.endswith(
+        'Exemple : <audio autoplay="" src="musique.mp3"> → <audio autoplay="" src="musique.mp3" controls="">'
+    )
+
+
+def test_criterion_410_javascript_and_object_have_no_example(context_factory, run_rgaa):
+    html = "<object autoplay data='a.mp3'></object><script>son.play();</script>"
+
+    result = run_rgaa(Test4101(), context_factory(html))
+
+    assert len(result.findings) == 2
+    assert all("Exemple" not in (finding.recommendation or "") for finding in result.findings)

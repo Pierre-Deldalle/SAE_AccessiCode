@@ -17,13 +17,15 @@ class Test12101(RGAATest):
         proof = evidence(context, self.test_id)
         shortcuts = proof.get("single_key_shortcuts")
         if shortcuts is None:
-            if soup.find_all("script") or soup.select("[onkeydown], [onkeypress], [onkeyup]"):
+            # Situé sur le premier gestionnaire clavier, sinon sur le premier script.
+            sources = soup.select("[onkeydown], [onkeypress], [onkeyup]") or soup.find_all("script")
+            if sources:
                 return result(
                     self,
                     1,
                     reviews=[
                         finding(
-                            soup.html or soup,
+                            sources[0],
                             soup,
                             "Présence de raccourcis à touche unique non déterminée.",
                             "Inspecter les écouteurs clavier et renseigner single_key_shortcuts.",

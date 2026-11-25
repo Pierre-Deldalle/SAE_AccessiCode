@@ -295,3 +295,13 @@ def test_criterion_46_other_track_kind_is_not_counted(
     assert result.findings[0].evidence["track_sources"] == []
 
     assert result.findings[0].evidence["has_audio_description_candidate"] is False
+
+
+def test_finding_indicates_media_line_and_snippet(context_factory, run_rgaa):
+    html = "<p>Film</p>\n<video src='v.mp4'></video>"
+
+    result = run_rgaa(Test461(), context_factory(html))
+
+    assert result.status == Status.NEEDS_REVIEW
+    assert result.findings[0].line == 2
+    assert result.findings[0].snippet == '<video src="v.mp4"></video>'

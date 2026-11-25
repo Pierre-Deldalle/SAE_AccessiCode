@@ -58,6 +58,18 @@ def test_1341_without_alternative_is_not_applicable(context_factory, run_rgaa):
     assert run_rgaa(Test1341(), context_factory(html)).status == Status.NOT_APPLICABLE
 
 
+def test_1331_review_is_located_on_the_document_link(context_factory, run_rgaa):
+    # Aucun FAIL automatique en 13.3 : l'emplacement est vérifié sur la vérification demandée.
+    html = '<p>Documents</p>\n<a href="docs/guide.pdf">Guide (PDF)</a>'
+    finding = run_rgaa(Test1331(), context_factory(html)).findings[0]
+    assert (finding.line, finding.snippet) == (2, '<a href="docs/guide.pdf">Guide (PDF)</a>')
+
+
+def test_1341_review_is_located_on_the_document_link(context_factory, run_rgaa):
+    finding = run_rgaa(Test1341(), context_factory(WITH_ALTERNATIVE)).findings[0]
+    assert (finding.line, finding.snippet) == (3, '<a href="docs/rapport.pdf">Rapport annuel (PDF, 2 Mo)</a>')
+
+
 @pytest.mark.parametrize("test", [Test1331(), Test1341()])
 def test_13_3_missing_dom_raises_error(test, context_factory):
     context = context_factory("<p>x</p>")

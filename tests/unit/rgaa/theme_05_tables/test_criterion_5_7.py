@@ -742,3 +742,27 @@ def test_575_table_with_wrong_role_fails(
         "s'applique à une ligne ou une colonne." in f.message
         for f in result.findings
     )
+
+
+def test_571_finding_locates_the_header_cell(context_factory, run_rgaa):
+    html = (
+        "<table>\n<tr><td></td><th>2023</th><th>2024</th></tr>\n<tr><th>Nord</th><td>10</td><td>12</td></tr>\n</table>"
+    )
+    result = run_rgaa(RGAA571(), context_factory(html))
+    assert result.status == Status.FAIL
+    assert [(finding.line, finding.snippet) for finding in result.findings] == [
+        (2, "<th>2023</th>"),
+        (2, "<th>2024</th>"),
+        (3, "<th>Nord</th>"),
+    ]
+
+
+def test_573_finding_locates_the_partial_header(context_factory, run_rgaa):
+    html = (
+        '<table>\n<tr><th rowspan="2">Région</th><th colspan="2" scope="colgroup">Années</th></tr>\n'
+        "<tr><th>2023</th><th>2024</th></tr>\n<tr><th>Nord</th><td>10</td><td>12</td></tr>\n</table>"
+    )
+    result = run_rgaa(RGAA573(), context_factory(html))
+    assert result.status == Status.FAIL
+    assert result.findings[0].line == 2
+    assert result.findings[0].snippet == '<th colspan="2" scope="colgroup">Années</th>'

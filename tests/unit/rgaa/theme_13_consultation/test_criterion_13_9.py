@@ -62,6 +62,58 @@ def test_1391_external_stylesheet(context_factory, run_rgaa):
     assert result.findings[0].element.startswith("s.css")
 
 
+def test_1391_lock_in_script_file_is_located_in_that_file(context_factory, run_rgaa):
+    code = "// Jeu\nfunction start() {}\nscreen.orientation.lock('landscape');\n"
+    result = run_rgaa(Test1391(), context_factory('<script src="jeu.js"></script>', resources={"jeu.js": code}))
+    assert result.status == Status.FAIL
+    finding = result.findings[0]
+    assert (finding.file, finding.line, finding.snippet) == ("jeu.js", 3, "screen.orientation.lock('landscape');")
+
+
+def test_1391_rule_in_stylesheet_file_is_located_in_that_file(context_factory, run_rgaa, tmp_path):
+    context = context_factory("<main><p>Contenu</p></main>")
+    context.css_sources[tmp_path / "css" / "s.css"] = "p { margin: 0 }\n@media (orientation: portrait) {\n  body {\n"
+    context.css_sources[tmp_path / "css" / "s.css"] += "    display: none\n  }\n}\n"
+    result = run_rgaa(Test1391(), context)
+    assert result.status == Status.FAIL
+    finding = result.findings[0]
+    assert (finding.file, finding.line, finding.snippet) == ("s.css", 3, "body {")
+
+
+def test_1391_rule_in_style_tag_is_located_in_the_page(context_factory, run_rgaa):
+    html = "<html><head>\n<style>\n@media (orientation: portrait) {\n  .pub { display: none }\n}\n</style></head>"
+    finding = run_rgaa(Test1391(), context_factory(html)).findings[0]
+    assert (finding.file, finding.line, finding.snippet) == (None, 4, ".pub { display: none }")
+
+
+def test_1391_rotate_message_is_located_on_its_element(context_factory, run_rgaa):
+    html = "<body>\n<main>\n<p>Accueil</p>\n<p>Tournez votre appareil</p>\n</main></body>"
+    finding = run_rgaa(Test1391(), context_factory(html)).findings[0]
+    assert (finding.line, finding.snippet) == (4, "<p>Tournez votre appareil</p>")
+
+
+def test_1391_lock_example_shows_the_line_to_remove(context_factory, run_rgaa):
+    result = run_rgaa(Test1391(), context_factory("<script>\nawait screen.orientation.lock('portrait');\n</script>"))
+    assert result.findings[0].recommendation.endswith(
+        "Exemple : await screen.orientation.lock('portrait'); → ligne supprimée"
+    )
+
+
+def test_1391_global_rule_example_shows_the_rule_to_remove(context_factory, run_rgaa):
+    html = _styled("@media (orientation: portrait) {\n  body {\n    display:  none;\n  }\n}")
+    result = run_rgaa(Test1391(), context_factory(html))
+    assert result.findings[0].recommendation.endswith(
+        "Exemple : @media (orientation: portrait) { body { display: none; } } → règle supprimée"
+    )
+
+
+def test_1391_review_has_no_example(context_factory, run_rgaa):
+    html = _styled("@media (orientation: portrait) { .pub { display: none } }")
+    result = run_rgaa(Test1391(), context_factory(html))
+    assert result.status == Status.NEEDS_REVIEW
+    assert "Exemple" not in result.findings[0].recommendation
+
+
 def test_1391_missing_dom_raises_error(context_factory):
     context = context_factory("<p>x</p>")
     context.dom = None

@@ -123,10 +123,22 @@ def test_listener_target_resolves_ids_selectors_and_variables():
     ]
 
 
-def test_line_of_in_page_and_in_file(tmp_path):
-    soup = BeautifulSoup("<p>x</p>\n<script>\na();\nb();</script>", "html.parser")
-    inline = ScriptSource("s", soup.script.string, tag=soup.script)
-    assert inline.line_of(inline.code.index("b()")) == 4
-    in_file = ScriptSource("app.js", "a();\nb();", path=tmp_path / "app.js")
-    assert in_file.line_of(in_file.code.index("b()")) == 2
-    assert ScriptSource("s", "a();").line_of(0) is None
+def test_inline_script_location_is_a_line_of_the_page(context_factory):
+    html = "<html><body>\n<p>x</p>\n<script>\nvar a = 1;\nwindow.open('pub.html');\n</script></body></html>"
+    [source] = page_scripts(context_factory(html))
+    assert source.location(source.code.index("window.open")) == {
+        "file": None,
+        "line": 5,
+        "snippet": "window.open('pub.html');",
+    }
+
+
+def test_script_file_location_is_a_line_of_that_file(context_factory):
+    code = "// Publicité\n\nwindow.open('pub.html');\n"
+    context = context_factory('<script src="js/pub.js"></script>', resources={"js/pub.js": code})
+    [source] = page_scripts(context)
+    assert source.location(source.code.index("window.open")) == {
+        "file": "pub.js",
+        "line": 3,
+        "snippet": "window.open('pub.html');",
+    }

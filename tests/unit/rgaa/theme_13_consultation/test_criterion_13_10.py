@@ -153,6 +153,101 @@ def test_13123_without_ai_needs_review(context_factory, run_rgaa):
     assert run_rgaa(Test13123(), context_factory(_page(SHAKE))).status == Status.NEEDS_REVIEW
 
 
+# Emplacement des observations ------------------------------------------------
+
+
+def test_13101_failure_in_inline_script_is_located_in_the_page(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=relevance(False))
+    html = f"<html><body>\n<p>Carte</p>\n<script>\n{PINCH}\n</script></body></html>"
+    finding = run_rgaa(Test13101(), context_factory(html), ai).findings[0]
+    assert (finding.file, finding.line, finding.snippet) == (None, 4, PINCH)
+
+
+def test_13102_failure_in_script_file_is_located_in_that_file(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=relevance(False))
+    context = context_factory('<script src="slider.js"></script>', resources={"slider.js": f"var x0;\n{SWIPE}\n"})
+    finding = run_rgaa(Test13102(), context, ai).findings[0]
+    assert (finding.file, finding.line, finding.snippet) == ("slider.js", 2, SWIPE)
+
+
+def test_13111_failure_on_event_attribute_is_located_on_the_element(context_factory, run_rgaa):
+    result = run_rgaa(Test13111(), context_factory('<p>x</p>\n<div onmousedown="supprimer()">Supprimer</div>'))
+    assert result.status == Status.FAIL
+    assert (result.findings[0].line, result.findings[0].snippet) == (
+        2,
+        '<div onmousedown="supprimer()">Supprimer</div>',
+    )
+
+
+def test_13111_failure_in_script_file_is_located_in_that_file(context_factory, run_rgaa):
+    code = "// Liste\n\nel.addEventListener('pointerdown', () => { supprimer() });\n"
+    result = run_rgaa(Test13111(), context_factory('<script src="liste.js"></script>', resources={"liste.js": code}))
+    assert result.status == Status.FAIL
+    finding = result.findings[0]
+    assert (finding.file, finding.line) == ("liste.js", 3)
+    assert finding.snippet == "el.addEventListener('pointerdown', () => { supprimer() });"
+
+
+# Exemples de correction (13.11) ------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("html", "expected"),
+    [
+        (
+            '<div class="x" onmousedown="supprimer()">Supprimer</div>',
+            'Exemple : <div class="x" onmousedown="supprimer()"> → <div class="x" onclick="supprimer()">',
+        ),
+        (
+            _page("el.addEventListener('pointerdown', () => { supprimer() });"),
+            "Exemple : el.addEventListener('pointerdown', () => { supprimer() }); → "
+            "el.addEventListener('click', () => { supprimer() });",
+        ),
+        (
+            _page("function del() { supprimer() }\nel.onmousedown = del;"),
+            "Exemple : el.onmousedown = del; → el.onclick = del;",
+        ),
+    ],
+)
+def test_13111_example_moves_the_action_to_the_click(html, expected, context_factory, run_rgaa):
+    result = run_rgaa(Test13111(), context_factory(html))
+    assert result.status == Status.FAIL
+    assert result.findings[0].recommendation.endswith(expected)
+
+
+def test_13111_review_has_no_example(context_factory, run_rgaa):
+    result = run_rgaa(Test13111(), context_factory('<div onmousedown="armer()" onmouseup="tirer()">Tirer</div>'))
+    assert result.status == Status.NEEDS_REVIEW
+    assert "Exemple" not in result.findings[0].recommendation
+
+
+def test_13101_and_1312_have_no_proposal(context_factory, run_rgaa):
+    # La correction d'un geste ou d'un mouvement est un bouton à ajouter : aucune proposition de texte.
+    ai = text_services(relevance_answer=relevance(False, suggestion="Bouton zoom"))
+    for test, code in ((Test13101(), PINCH), (Test13121(), SHAKE)):
+        result = run_rgaa(test, context_factory(_page(code)), ai)
+        assert result.status == Status.FAIL
+        assert "Proposition" not in result.findings[0].recommendation
+
+
+@pytest.mark.parametrize("test", [Test13121(), Test13123()])
+def test_1312_failure_in_script_file_is_located_in_that_file(test, context_factory, run_rgaa):
+    ai = text_services(relevance_answer=relevance(False))
+    context = context_factory('<script src="secouer.js"></script>', resources={"secouer.js": f"// Secouer\n{SHAKE}\n"})
+    result = run_rgaa(test, context, ai)
+    assert result.status == Status.FAIL
+    finding = result.findings[0]
+    assert (finding.file, finding.line, finding.snippet) == ("secouer.js", 2, SHAKE)
+
+
+def test_13122_failure_in_inline_script_is_located_in_the_page(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=relevance(False))
+    code = "window.addEventListener('userproximity', e => { if (e.near) pause() });"
+    html = f"<html><body>\n<script>\nvar a;\n{code}\n</script></body></html>"
+    finding = run_rgaa(Test13122(), context_factory(html), ai).findings[0]
+    assert (finding.file, finding.line, finding.snippet) == (None, 4, code)
+
+
 @pytest.mark.parametrize("test", [Test13101(), Test13102(), Test13111(), Test13121(), Test13122(), Test13123()])
 def test_13_10_missing_dom_raises_error(test, context_factory):
     context = context_factory("<p>x</p>")

@@ -27,7 +27,30 @@ def test_missing_presentation_role_fails_without_ai(context_factory, run_rgaa):
     result = run_rgaa(Test531(), context_factory(WITHOUT_ROLE), ai)
     assert result.status == Status.FAIL
     assert 'role="presentation"' in result.findings[0].message
+    assert result.findings[0].line == 2
+    assert result.findings[0].snippet == " ".join(WITHOUT_ROLE.split())
+    assert result.findings[0].recommendation.endswith(
+        'Exemple : <table id="mise-en-page"> → <table id="mise-en-page" role="presentation">'
+    )
     ai.text_relevance_analyzer.analyze_relevance.assert_not_called()
+
+
+def test_presentation_role_example_replaces_another_role(context_factory, run_rgaa):
+    html = '<table role="table" class="grille"><tr><td>Logo</td><td>Menu</td></tr></table>'
+    result = run_rgaa(Test531(), context_factory(html), text_services())
+    assert result.status == Status.FAIL
+    assert result.findings[0].recommendation.endswith(
+        'Exemple : <table role="table" class="grille"> → <table role="presentation" class="grille">'
+    )
+
+
+def test_incomprehensible_content_has_no_example_nor_proposal(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=relevance(False, suggestion="Texte réordonné"))
+    result = run_rgaa(Test531(), context_factory(LAYOUT), ai)
+    assert result.status == Status.FAIL
+    assert result.findings[0].recommendation == (
+        "Réorganiser le tableau pour que le contenu, lu cellule par cellule, garde son sens."
+    )
 
 
 def test_comprehensible_content_passes(context_factory, run_rgaa):
@@ -45,6 +68,8 @@ def test_incomprehensible_content_fails(context_factory, run_rgaa):
     assert result.status == Status.FAIL
     assert result.findings[0].element == "table#mise-en-page"
     assert "n'est pas compréhensible" in result.findings[0].message
+    assert result.findings[0].line == 2
+    assert result.findings[0].snippet.startswith('<table role="presentation" id="mise-en-page"> <tr><td>Bienvenue')
 
 
 def test_empty_layout_table_passes_without_ai(context_factory, run_rgaa):

@@ -75,6 +75,8 @@ class CrypticContent:
     alternative: str
     alternative_source: str
     context: str
+    # Élément qui porte l'alternative (l'élément lui-même ou un parent en ligne), None sans alternative.
+    alternative_element: Tag | None = None
 
 
 def _skipped(node: NavigableString) -> bool:
@@ -89,21 +91,21 @@ def _is_ascii_art(text: str) -> bool:
     return len(visible) >= 20 and len(_SYMBOLS.findall(visible)) / len(visible) >= 0.5
 
 
-def _alternative(element: Tag) -> tuple[str, str]:
-    """title de l'élément ou d'un parent en ligne, ou aria-label d'un role=img."""
+def _alternative(element: Tag) -> tuple[str, str, Tag | None]:
+    """title de l'élément ou d'un parent en ligne, ou aria-label d'un role=img ; avec l'élément qui le porte."""
     current: Tag | None = element
     while isinstance(current, Tag):
         if str(current.get("role") or "").strip().lower() == "img":
             label = normalize(str(current.get("aria-label") or ""))
             if label:
-                return label, "aria-label"
+                return label, "aria-label", current
         title = normalize(str(current.get("title") or ""))
         if title:
-            return title, "title"
+            return title, "title", current
         if current.name not in _INLINE:
             break
         current = current.parent if isinstance(current.parent, Tag) else None
-    return "", ""
+    return "", "", None
 
 
 def _context(element: Tag, limit: int = 300) -> str:
@@ -130,18 +132,26 @@ def find_cryptic_contents(soup: BeautifulSoup) -> list[CrypticContent]:
             continue
         if _is_ascii_art(block.get_text()):
             seen_ascii.add(id(block))
-            alternative, source = _alternative(block)
+            alternative, source, carrier = _alternative(block)
             contents.append(
                 CrypticContent(
-                    block, block.get_text().strip("\n"), ASCII_ART_KIND, alternative, source, _surrounding(block)
+                    block,
+                    block.get_text().strip("\n"),
+                    ASCII_ART_KIND,
+                    alternative,
+                    source,
+                    _surrounding(block),
+                    carrier,
                 )
             )
             continue
 
         for pattern, kind in ((EMOTICON, EMOTICON_KIND), (CRYPTIC_SYNTAX, SYNTAX_KIND)):
             for match in pattern.finditer(text):
-                alternative, source = _alternative(element)
-                contents.append(CrypticContent(element, match.group(0), kind, alternative, source, _context(element)))
+                alternative, source, carrier = _alternative(element)
+                contents.append(
+                    CrypticContent(element, match.group(0), kind, alternative, source, _context(element), carrier)
+                )
     return contents
 
 

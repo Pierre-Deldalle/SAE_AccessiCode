@@ -1,6 +1,7 @@
 """12.8 — ordre de tabulation et mises à jour dynamiques."""
 
-from accessi_code.analysis.navigation import evidence, finding, proof_check, result
+from accessi_code.analysis.fix_examples import with_example
+from accessi_code.analysis.navigation import evidence, finding, positive_tabindex_example, proof_check, result
 from accessi_code.models.capabilities import Capability
 from accessi_code.rgaa.base import RGAATest
 
@@ -28,7 +29,10 @@ class Test1281(RGAATest):
                         tag,
                         soup,
                         "tabindex positif : ordre de focus à vérifier.",
-                        "Contrôler Tab et Maj+Tab et privilégier l'ordre DOM.",
+                        with_example(
+                            "Contrôler Tab et Maj+Tab et privilégier l'ordre DOM.",
+                            positive_tabindex_example(tag),
+                        ),
                     )
                 )
         f, r = proof_check(context, self, "tab_order_coherent", focusable[0], soup, "Ordre Tab/Maj+Tab")

@@ -417,3 +417,11 @@ def test_581_all_good_layout_tables_passes(
     assert result.status == Status.PASS
     assert result.findings == []
     assert result.tested_elements == 2
+
+
+def test_581_finding_locates_the_table(context_factory, run_rgaa):
+    html = '<p>Mise en page</p>\n<table role="presentation"><caption>Menu</caption><tr><td>A</td></tr></table>'
+    result = run_rgaa(RGAA581(), context_factory(html))
+    assert result.status == Status.FAIL
+    assert result.findings[0].line == 2
+    assert result.findings[0].snippet == html.split("\n")[1]

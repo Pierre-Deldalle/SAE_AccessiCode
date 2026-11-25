@@ -1,4 +1,8 @@
+import asyncio
+
 from accessi_code.models.result import TestStatus as Status
+from accessi_code.rgaa.registry import TestRegistry
+from accessi_code.rgaa.runner import TestRunner
 from accessi_code.rgaa.tests.theme_04_multimedia.criterion_4_13 import (
     Test4131,
     Test4132,
@@ -115,3 +119,25 @@ def test_4131_adjacent_alternative_passes_without_native_controls(
 
     assert result.status == Status.PASS
     assert result.findings[0].evidence["accessible_alternative"] is True
+
+
+def test_failure_indicates_media_line_and_snippet(context_factory, run_rgaa):
+    # Vidéo sans commandes ni texte autour : aucune interface ni alternative accessible.
+    html = "<main>\n<video src='v.mp4'></video>\n</main>"
+
+    result = run_rgaa(Test4131(), context_factory(html))
+
+    assert result.status == Status.FAIL
+    assert result.findings[0].line == 2
+    assert result.findings[0].snippet == '<video src="v.mp4"></video>'
+
+
+def test_runner_indicates_the_audited_page_as_file(context_factory):
+    # Le thème 4 n'analyse que la page auditée : le runner y rattache chaque observation.
+    context = context_factory("<main>\n<video src='v.mp4'></video>\n</main>")
+
+    [result] = asyncio.run(TestRunner(TestRegistry([Test4131()])).run_all(context))
+
+    assert result.status == Status.FAIL
+    assert result.findings[0].file == "index.html"
+    assert result.findings[0].line == 2

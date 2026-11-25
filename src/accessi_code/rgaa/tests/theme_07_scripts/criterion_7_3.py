@@ -28,7 +28,7 @@ from bs4 import BeautifulSoup, Tag
 
 from accessi_code.ai.schemas import RelevanceItem
 from accessi_code.analysis.components import component_identifier, component_name, component_role, normalize
-from accessi_code.analysis.location import opening_tag, source_file_name
+from accessi_code.analysis.location import opening_tag
 from accessi_code.analysis.scripts import inline_handlers, page_scripts, trigger_at
 from accessi_code.analysis.structure import accessible_text, is_hidden
 from accessi_code.models.audit_context import AuditContext
@@ -260,10 +260,7 @@ class Test732(KeyboardTest):
             for match in BLUR.finditer(source.masked):
                 info = trigger_at(sources, source, match.start(), soup)
                 on_focus = bool(FOCUS_DETAIL.search(info.detail))
-                location = {
-                    "file": source_file_name(context, source.path) if source.path else None,
-                    "line": source.line_of(match.start()),
-                }
+                location = source.location(match.start())
                 outcomes.append(
                     make_outcome(
                         TestStatus.FAIL if on_focus else TestStatus.NEEDS_REVIEW,

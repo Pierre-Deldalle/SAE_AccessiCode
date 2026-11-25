@@ -5,6 +5,8 @@ import asyncio
 import pytest
 
 from accessi_code.models.result import TestStatus as Status
+from accessi_code.rgaa.registry import TestRegistry
+from accessi_code.rgaa.runner import TestRunner
 from accessi_code.rgaa.tests.theme_13_consultation.criterion_13_1 import Test1311, Test1312, Test1313, Test1314
 
 
@@ -116,3 +118,68 @@ def test_13_1_missing_dom_raises_error(context_factory):
     context.dom = None
     with pytest.raises(ValueError, match="13.1.1 nécessite un DOM"):
         asyncio.run(Test1311().run(context))
+
+
+# Emplacement des observations ------------------------------------------------
+
+TIMER_FILE = "// Rafraîchissement\n\nsetInterval(() => { location.reload() }, 60000);\n"
+
+
+@pytest.mark.parametrize(
+    ("test", "content"),
+    [(Test1311(), "30"), (Test1312(), "10; url=/n"), (Test1314(), "600; url=/deconnexion")],
+)
+def test_13_1_meta_failure_is_located_on_the_meta(test, content, context_factory, run_rgaa):
+    html = f'<html><head>\n<title>T</title>\n<meta http-equiv="refresh" content="{content}">\n</head></html>'
+    result = run_rgaa(test, context_factory(html))
+    assert result.status == Status.FAIL
+    assert result.findings[0].line == 3
+    assert result.findings[0].snippet == f'<meta http-equiv="refresh" content="{content}">'
+    assert result.findings[0].file is None
+
+
+def test_1313_inline_script_is_located_in_the_page(context_factory, run_rgaa):
+    html = "<html><body>\n<script>\nvar x;\nsetTimeout(() => { location.assign('/a') }, 5000);\n</script></body></html>"
+    finding = run_rgaa(Test1313(), context_factory(html)).findings[0]
+    assert (finding.file, finding.line) == (None, 4)
+    assert finding.snippet == "setTimeout(() => { location.assign('/a') }, 5000);"
+
+
+def test_1311_script_file_is_located_in_that_file(context_factory, run_rgaa):
+    context = context_factory('<script src="js/minuteur.js"></script>', resources={"js/minuteur.js": TIMER_FILE})
+    finding = run_rgaa(Test1311(), context).findings[0]
+    assert (finding.file, finding.line) == ("minuteur.js", 3)
+    assert finding.snippet == "setInterval(() => { location.reload() }, 60000);"
+
+
+def test_13_1_runner_keeps_the_script_file_and_fills_the_page(context_factory):
+    html = '<html><head>\n<meta http-equiv="refresh" content="30">\n</head><body><script src="m.js"></script></body>'
+    context = context_factory(html, resources={"m.js": TIMER_FILE})
+    [result] = asyncio.run(TestRunner(TestRegistry([Test1311()])).run_all(context))
+    assert [(finding.file, finding.line) for finding in result.findings] == [("index.html", 2), ("m.js", 3)]
+
+
+# Exemples de correction --------------------------------------------------------
+
+
+def test_1311_recommendation_shows_the_refresh_to_remove(context_factory, run_rgaa):
+    result = run_rgaa(Test1311(), context_factory(_page('<meta http-equiv="refresh" content="30">')))
+    assert result.findings[0].recommendation.endswith(
+        'Exemple : <meta http-equiv="refresh" content="30"> → balise supprimée, et dans la page '
+        '<button type="button" onclick="location.reload()">Actualiser</button>'
+    )
+
+
+def test_1312_recommendation_makes_the_redirect_immediate(context_factory, run_rgaa):
+    result = run_rgaa(Test1312(), context_factory(_page('<meta http-equiv="refresh" content="10; url=/a">')))
+    assert result.findings[0].recommendation.endswith(
+        'Exemple : <meta http-equiv="refresh" content="10; url=/a"> → <meta http-equiv="refresh" content="0; url=/a">'
+    )
+
+
+def test_13_1_reviews_and_session_limits_have_no_example(context_factory, run_rgaa):
+    # Contrôle laissé à l'utilisateur ou fin de session : la correction n'est pas mécanique.
+    review = run_rgaa(Test1311(), context_factory(_script("setInterval(() => { location.reload() }, 60000);")))
+    session = run_rgaa(Test1314(), context_factory(_page('<meta http-equiv="refresh" content="600; url=/logout">')))
+    assert "Exemple" not in review.findings[0].recommendation
+    assert "Exemple" not in session.findings[0].recommendation

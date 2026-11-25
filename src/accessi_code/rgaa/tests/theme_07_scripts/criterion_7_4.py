@@ -26,7 +26,7 @@ from bs4 import BeautifulSoup, Tag
 from accessi_code.ai.schemas import RelevanceItem
 from accessi_code.analysis.components import component_identifier, normalize
 from accessi_code.analysis.dom import get_labelledby_text, get_matching_label, get_wrapping_label
-from accessi_code.analysis.location import opening_tag, source_file_name
+from accessi_code.analysis.location import opening_tag
 from accessi_code.analysis.scripts import page_scripts
 from accessi_code.analysis.structure import is_hidden
 from accessi_code.models.audit_context import AuditContext
@@ -234,8 +234,7 @@ class Test741(RGAATest):
                     "pour un élément non identifié : vérifier qu'il s'agit d'un bouton ou d'un lien explicite, "
                     "ou que l'utilisateur est averti.",
                     RECOMMENDATION,
-                    file=source_file_name(context, source.path) if source.path else None,
-                    line=source.line_of(listener.position),
+                    **source.location(listener.position),
                     event=listener.event,
                     change=change,
                     code=source.snippet(listener.position),

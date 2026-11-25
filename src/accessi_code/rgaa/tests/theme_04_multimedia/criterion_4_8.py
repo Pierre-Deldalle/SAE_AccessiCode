@@ -4,6 +4,7 @@ from typing import Any
 
 from bs4 import BeautifulSoup, Tag
 
+from accessi_code.analysis.location import location_fields
 from accessi_code.analysis.media import is_media_exempt, media_identifier
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
@@ -86,6 +87,7 @@ class Test481(RGAATest):
                         "has_alternative_destination": has_alternative,
                         "controls": [_control_information(control) for control in identifiable_controls],
                     },
+                    **location_fields(tag),
                 )
             )
 
@@ -193,6 +195,7 @@ class Test482(RGAATest):
                         "has_alternative_destination": has_destination,
                         "controls": [_control_information(control) for control in identifiable_controls],
                     },
+                    **location_fields(tag),
                 )
             )
 

@@ -7,6 +7,7 @@ from typing import Any
 from accessi_code.config import settings
 from accessi_code.models.result import Finding, TestResult
 from accessi_code.rgaa.default_registry import build_default_registry
+from accessi_code.rgaa.themes import filter_registry_by_themes
 from accessi_code.service.audit_service import AuditService
 from accessi_code.service.audit_services import AuditServices
 from accessi_code.service.default_services import (
@@ -28,6 +29,12 @@ def print_finding(
     finding: Finding,
 ) -> None:
     print(f"      Élément : {finding.element}")
+
+    if finding.line is not None:
+        print(f"      Ligne : {finding.line}")
+
+    if finding.snippet:
+        print(f"      Extrait : {finding.snippet}")
 
     print(f"      Message : {finding.message}")
 
@@ -77,6 +84,7 @@ async def run_debug(
     *,
     use_ai: bool,
     site_name: str,
+    themes: list[int] | None = None,
 ) -> None:
     # ---------------------------------------------------------
     # US 0.0.1 : construction du vrai AuditContext
@@ -108,6 +116,9 @@ async def run_debug(
     # ---------------------------------------------------------
 
     registry = build_default_registry()
+
+    if themes:
+        registry = filter_registry_by_themes(registry, themes)
 
     print_separator("REGISTRE RGAA")
 
@@ -212,6 +223,13 @@ def parse_arguments() -> Any:
         help=("Nom du dossier de test situé dans test_files (défaut : site_demo_rgaa)."),
     )
 
+    parser.add_argument(
+        "--theme",
+        type=int,
+        action="append",
+        help=("Limite l'audit à une thématique RGAA (option répétable, ex. --theme 4 --theme 6)."),
+    )
+
     return parser.parse_args()
 
 
@@ -222,6 +240,7 @@ def main() -> None:
         run_debug(
             use_ai=not arguments.no_ai,
             site_name=arguments.site,
+            themes=arguments.theme,
         )
     )
 

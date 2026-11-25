@@ -80,3 +80,78 @@ def test_933_description_lists(context_factory, run_rgaa):
 
 def test_hidden_list_is_ignored(context_factory, run_rgaa):
     assert run_rgaa(Test931(), context_factory("<ul hidden></ul>"), text_services()).status == Status.NOT_APPLICABLE
+
+
+# ---- Emplacement des observations ------------------------------------
+
+
+def test_931_badly_structured_list_is_located(context_factory, run_rgaa):
+    html = '<p>Menu</p>\n<ul class="services"><div>A</div></ul>'
+    finding = run_rgaa(Test931(), context_factory(html), text_services()).findings[0]
+    assert (finding.line, finding.snippet) == (2, '<ul class="services"><div>A</div></ul>')
+
+
+def test_931_visual_list_is_located(context_factory, run_rgaa):
+    ai = text_services(structure_answer=structure(True))
+    finding = run_rgaa(Test931(), context_factory("<h1>Offres</h1>\n" + BULLETS), ai).findings[0]
+    # BeautifulSoup sérialise les éléments vides sous la forme <br>.
+    assert (finding.line, finding.snippet) == (2, BULLETS.replace("<br>", "<br>"))
+
+
+def test_932_visual_ordered_list_is_located(context_factory, run_rgaa):
+    finding = run_rgaa(Test932(), context_factory("<h1>Étapes</h1>\n" + NUMBERS), text_services()).findings[0]
+    assert (finding.line, finding.snippet) == (2, NUMBERS.replace("<br>", "<br>"))
+
+
+def test_933_description_list_is_located(context_factory, run_rgaa):
+    html = "<p>Glossaire</p>\n<dl><dt>RGAA</dt></dl>"
+    finding = run_rgaa(Test933(), context_factory(html), text_services()).findings[0]
+    assert (finding.line, finding.snippet) == (2, "<dl><dt>RGAA</dt></dl>")
+
+
+# ---- Corrections proposées -------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("html", "example"),
+    [
+        ('<ul><div class="i">A</div></ul>', '<div class="i">A</div> → <li class="i">A</li>'),
+        ('<ul><li>A</li><a href="/b">B</a></ul>', '<a href="/b">B</a> → <li><a href="/b">B</a></li>'),
+        ('<div role="list"><span>A</span></div>', '<span>A</span> → <span role="listitem">A</span>'),
+    ],
+)
+def test_931_badly_structured_list_example(html, example, context_factory, run_rgaa):
+    finding = run_rgaa(Test931(), context_factory(html), text_services()).findings[0]
+    assert finding.recommendation.endswith(f"Exemple : {example}")
+
+
+@pytest.mark.parametrize("html", ["<ul></ul>", "<dl><dt>RGAA</dt></dl>"])
+def test_no_example_when_the_fix_depends_on_content(html, context_factory, run_rgaa):
+    cls = Test933 if html.startswith("<dl") else Test931
+    finding = run_rgaa(cls(), context_factory(html), text_services()).findings[0]
+    assert "Exemple" not in finding.recommendation
+
+
+def test_931_visual_list_example_uses_its_items(context_factory, run_rgaa):
+    html = "<p>- Audit<br>- Formation<br>- Conseil<br>- Suivi</p>"
+    finding = run_rgaa(Test931(), context_factory(html), text_services(structure_answer=structure(True))).findings[0]
+    assert finding.recommendation == (
+        'Baliser la liste avec <ul> et <li> (ou role="list" et role="listitem"). '
+        "Exemple : <p>- Audit<br>- Formation<br>- Conseil<br>- Suivi</p> → "
+        "<ul><li>Audit</li><li>Formation</li><li>Conseil</li><li>…</li></ul>"
+    )
+
+
+def test_931_paragraph_series_example(context_factory, run_rgaa):
+    finding = run_rgaa(Test931(), context_factory("<p>• Audit</p><p>• Formation</p>"), text_services()).findings[0]
+    assert finding.recommendation.endswith("Exemple : <p>• Audit</p> … → <ul><li>Audit</li><li>Formation</li></ul>")
+
+
+def test_932_visual_ordered_list_example(context_factory, run_rgaa):
+    finding = run_rgaa(Test932(), context_factory(NUMBERS), text_services()).findings[0]
+    assert finding.recommendation.endswith("→ <ol><li>Importer</li><li>Analyser</li><li>Corriger</li></ol>")
+
+
+def test_no_example_for_an_uncertain_visual_list(context_factory, run_rgaa):
+    finding = run_rgaa(Test931(), context_factory(BULLETS)).findings[0]
+    assert "Exemple" not in finding.recommendation

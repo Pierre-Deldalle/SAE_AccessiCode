@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from bs4 import BeautifulSoup, Tag
 
+from accessi_code.analysis.location import location_fields
 from accessi_code.analysis.page import (
     is_html5_doctype,
 )
@@ -82,6 +83,7 @@ class Test511(RGAATest):
             findings.append(
                 Finding(
                     element=element,
+                    **location_fields(table),
                     message=("Aucun résumé disponible pour ce tableau de données complexe."),
                     recommendation=("Fournir un passage de texte décrivant la nature et la structure du tableau."),
                 )

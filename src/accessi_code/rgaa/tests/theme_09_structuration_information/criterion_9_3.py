@@ -18,13 +18,56 @@ from bs4 import BeautifulSoup, Tag
 
 from accessi_code.ai.schemas import StructureCandidate
 from accessi_code.analysis.dom import get_element_identifier
-from accessi_code.analysis.structure import is_hidden, list_candidates, list_structure_problems, text_lines
+from accessi_code.analysis.fix_examples import rename_example, shorten, with_example, wrap_example
+from accessi_code.analysis.location import element_snippet
+from accessi_code.analysis.structure import (
+    is_hidden,
+    list_candidates,
+    list_structure_problems,
+    text_lines,
+    visual_list_items,
+)
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
 from accessi_code.models.result import TestResult, TestStatus
 from accessi_code.rgaa.ai_decision import judge_structure
 from accessi_code.rgaa.base import RGAATest
 from accessi_code.rgaa.outcomes import build_result, make_outcome, not_applicable
+
+_NOT_CONTENT = {"script", "style", "template", "noscript"}
+# Nombre d'éléments montrés dans l'exemple d'une liste visuelle à baliser.
+EXAMPLE_ITEMS = 3
+
+
+def list_fix_example(tag: Tag) -> str | None:
+    """
+    Correction du premier enfant mal balisé d'une liste : <li> dans ul / ol (un div, span ou p
+    change de balise, un autre élément est entouré de <li>), role="listitem" dans role="list".
+    Aucun exemple pour une liste vide ou une liste de description : la correction dépend du contenu.
+    """
+    children = [child for child in tag.find_all(True, recursive=False) if child.name not in _NOT_CONTENT]
+    if tag.name in {"ul", "ol"}:
+        wrong = next((child for child in children if child.name != "li"), None)
+        if wrong is None:
+            return None
+        return rename_example(wrong, "li") if wrong.name in {"div", "span", "p"} else wrap_example(wrong, "li")
+    if str(tag.get("role") or "").strip().lower() == "list":
+        wrong = next((child for child in children if str(child.get("role") or "").lower() != "listitem"), None)
+        return rename_example(wrong, wrong.name, set_attributes={"role": "listitem"}) if wrong else None
+    return None
+
+
+def visual_list_example(tag: Tag, *, ordered: bool) -> str | None:
+    """Liste visuelle réécrite avec <ul> ou <ol> et <li>, à partir de ses vrais éléments (les premiers)."""
+    items = visual_list_items(tag, ordered=ordered)
+    if not items:
+        return None
+    name = "ol" if ordered else "ul"
+    shown = "".join(f"<li>{shorten(item, 40)}</li>" for item in items[:EXAMPLE_ITEMS])
+    more = "<li>…</li>" if len(items) > EXAMPLE_ITEMS else ""
+    # Liste faite de paragraphes consécutifs : seul le premier est montré avant la correction.
+    series = len(text_lines(tag)) < len(items)
+    return f"{element_snippet(tag, 100)}{' …' if series else ''} → <{name}>{shown}{more}</{name}>"
 
 
 class _ListTest(RGAATest):
@@ -76,7 +119,8 @@ class _ListTest(RGAATest):
                     TestStatus.FAIL,
                     get_element_identifier(tag, index),
                     "La liste est mal structurée : " + " ; ".join(problems) + ".",
-                    self.recommendation,
+                    with_example(self.recommendation, list_fix_example(tag)),
+                    node=tag,
                 )
                 if problems
                 else make_outcome(TestStatus.PASS)
@@ -100,7 +144,10 @@ class _ListTest(RGAATest):
                         f"Ce passage est une {self.label} qui n'est pas balisée comme telle.",
                         f"Ce passage ressemble à une {self.label} non balisée.",
                     ),
-                    self.recommendation,
+                    with_example(self.recommendation, visual_list_example(tag, ordered=bool(self.candidates_ordered)))
+                    if verdict.status is TestStatus.FAIL
+                    else self.recommendation,
+                    node=tag,
                     text=items[index].text[:200],
                     **verdict.evidence,
                 )

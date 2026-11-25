@@ -4,6 +4,7 @@ from typing import Any
 
 from bs4 import BeautifulSoup
 
+from accessi_code.analysis.location import location_fields
 from accessi_code.analysis.media import (
     find_adjacent_media_alternatives,
     find_temporal_media,
@@ -76,6 +77,7 @@ class _Criterion41Test(RGAATest):
                             "adjacent_link_or_button_candidates": len(alternatives.links_or_buttons),
                             "adjacent_text_candidates": len(alternatives.text_candidates),
                         },
+                        **location_fields(item.tag),
                     )
                 )
             else:
@@ -95,6 +97,7 @@ class _Criterion41Test(RGAATest):
                             "adjacent_link_or_button_candidates": 0,
                             "adjacent_text_candidates": 0,
                         },
+                        **location_fields(item.tag),
                     )
                 )
 

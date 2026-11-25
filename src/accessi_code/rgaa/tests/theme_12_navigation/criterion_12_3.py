@@ -3,7 +3,15 @@
 from urllib.parse import unquote, urlsplit
 
 from accessi_code.analysis.forms import normalize
-from accessi_code.analysis.navigation import evidence, finding, is_sitemap, local_target, pages, result
+from accessi_code.analysis.navigation import (
+    evidence,
+    finding,
+    is_sitemap,
+    local_target,
+    page_file,
+    pages,
+    result,
+)
 from accessi_code.models.capabilities import Capability
 from accessi_code.rgaa.base import RGAATest
 
@@ -38,6 +46,8 @@ class _SitemapTest(RGAATest):
                 ],
             )
         links = soup.find_all("a", href=True)
+        # La page plan du site peut être une autre page que la page auditée.
+        file = page_file(context, soup)
         failures, reviews = [], []
         if self.test_id == "12.3.1":
             known = pages(context)
@@ -53,6 +63,7 @@ class _SitemapTest(RGAATest):
                             "la couverture indirecte reste à évaluer."
                         ),
                         "Vérifier que le plan représente l'architecture et donne accès aux rubriques.",
+                        file=file,
                         missing=sorted(missing),
                     )
                 )
@@ -63,6 +74,7 @@ class _SitemapTest(RGAATest):
                         soup,
                         "L'inventaire complet de l'architecture du site est inconnu.",
                         "Comparer le plan du site à l'architecture réelle.",
+                        file=file,
                     )
                 )
             if not links:
@@ -72,6 +84,7 @@ class _SitemapTest(RGAATest):
                         soup,
                         "Plan du site sans lien.",
                         "Ajouter des liens vers les rubriques du site.",
+                        file=file,
                     )
                 )
             return result(self, 1, failures, reviews)
@@ -85,6 +98,7 @@ class _SitemapTest(RGAATest):
                         "Lien local ou ancre introuvable.",
                         "Corriger la cible du lien.",
                         href=link.get("href"),
+                        file=file,
                     )
                 )
             elif valid is None:
@@ -95,6 +109,7 @@ class _SitemapTest(RGAATest):
                         "Destination non vérifiable hors de l'échantillon local.",
                         "Tester l'URL dans le navigateur ou importer sa cible.",
                         href=link.get("href"),
+                        file=file,
                     )
                 )
             if self.test_id == "12.3.3":
@@ -108,6 +123,7 @@ class _SitemapTest(RGAATest):
                             soup,
                             "L'intitulé ne décrit pas la destination.",
                             "Corriger l'intitulé ou la cible du lien.",
+                            file=file,
                         )
                     )
                 elif value is not True:
@@ -140,6 +156,7 @@ class _SitemapTest(RGAATest):
                             soup,
                             "Pertinence de l'intitulé non vérifiée.",
                             "Comparer le lien à la page réellement atteinte.",
+                            file=file,
                         )
                     )
         return result(self, len(links), failures, reviews)

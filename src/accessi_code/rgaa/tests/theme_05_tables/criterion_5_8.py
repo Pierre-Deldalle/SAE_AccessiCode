@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from bs4 import BeautifulSoup, Tag
 
+from accessi_code.analysis.location import location_fields
 from accessi_code.analysis.tables import (
     find_tables,
     get_row_cells,
@@ -85,6 +86,7 @@ class Test581(RGAATest):
                 findings.append(
                     Finding(
                         element=element,
+                        **location_fields(table),
                         message=self._format_violations_message(violations),
                         recommendation=self._get_recommendation(violations),
                     )

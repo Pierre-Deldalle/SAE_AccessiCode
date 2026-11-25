@@ -19,16 +19,25 @@ from bs4 import BeautifulSoup
 
 from accessi_code.ai.schemas import RelevanceItem
 from accessi_code.analysis.components import component_identifier
-from accessi_code.analysis.cryptic import find_cryptic_contents
+from accessi_code.analysis.cryptic import CrypticContent, find_cryptic_contents
+from accessi_code.analysis.location import opening_tag
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
-from accessi_code.models.result import TestResult
+from accessi_code.models.result import TestResult, TestStatus
 from accessi_code.rgaa.ai_decision import judge_relevance
 from accessi_code.rgaa.base import RGAATest
-from accessi_code.rgaa.outcomes import build_result, make_outcome
+from accessi_code.rgaa.outcomes import Outcome, build_result, make_outcome
+from accessi_code.rgaa.tests.theme_13_consultation.criterion_13_5 import MEANING_PLACEHOLDER
 
 EMPTY_SUMMARY = "Aucun contenu cryptique accompagné d'un attribut title."
 RECOMMENDATION = "Donner une alternative qui exprime le sens du contenu cryptique (« sourire », « à plus tard »…)."
+
+
+def alternative_example(content: CrypticContent, alternative: str | None = None) -> str:
+    """Correction « avant → après » de l'attribut (title ou aria-label) qui porte l'alternative."""
+    carrier = content.alternative_element or content.element
+    after = opening_tag(carrier, **{content.alternative_source or "title": alternative or MEANING_PLACEHOLDER})
+    return f"Exemple : {opening_tag(carrier)} → {after}"
 
 
 class Test1361(RGAATest):
@@ -57,21 +66,26 @@ class Test1361(RGAATest):
         ]
         verdicts = await judge_relevance(services, "cryptic_alternative", items)
 
-        outcomes = [
-            make_outcome(
-                verdict.status,
-                component_identifier(content.element, index),
-                verdict.message(
-                    f"L'alternative « {content.alternative} » ne donne pas le sens du contenu cryptique "
-                    f"« {content.text[:80]} ».",
-                    f"La pertinence de l'alternative « {content.alternative} » du contenu cryptique "
-                    f"« {content.text[:80]} » reste à vérifier.",
-                ),
-                RECOMMENDATION,
-                **item.details,
-                alternative=content.alternative,
-                **verdict.evidence,
+        outcomes: list[Outcome] = []
+        for index, (content, item, verdict) in enumerate(zip(contents, items, verdicts, strict=True)):
+            recommendation = verdict.recommendation(RECOMMENDATION)
+            if verdict.status is TestStatus.FAIL:
+                recommendation += " " + alternative_example(content, verdict.suggestion)
+            outcomes.append(
+                make_outcome(
+                    verdict.status,
+                    component_identifier(content.element, index),
+                    verdict.message(
+                        f"L'alternative « {content.alternative} » ne donne pas le sens du contenu cryptique "
+                        f"« {content.text[:80]} ».",
+                        f"La pertinence de l'alternative « {content.alternative} » du contenu cryptique "
+                        f"« {content.text[:80]} » reste à vérifier.",
+                    ),
+                    recommendation,
+                    node=content.element,
+                    **item.details,
+                    alternative=content.alternative,
+                    **verdict.evidence,
+                )
             )
-            for index, (content, item, verdict) in enumerate(zip(contents, items, verdicts, strict=True))
-        ]
         return build_result(self, outcomes, empty_summary=EMPTY_SUMMARY, noun="alternative(s)")

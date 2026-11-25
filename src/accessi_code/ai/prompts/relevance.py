@@ -46,6 +46,7 @@ RELEVANCE_KINDS: dict[str, RelevanceKind] = {
         rule="RGAA 9.1 : le contenu de chaque titre doit être pertinent.",
         relevant_when="il décrit correctement le contenu de la section qu'il introduit.",
         not_relevant_examples="« Titre », « Section 1 », « Lorem ipsum », un titre sans rapport avec la section.",
+        suggestion="un titre court qui décrit le contenu de la section",
     ),
     "link": RelevanceKind(
         subject="intitulé de lien (nom accessible), éventuellement complété par son contexte",
@@ -112,12 +113,14 @@ RELEVANCE_KINDS: dict[str, RelevanceKind] = {
         rule="RGAA 5.5 : chaque titre de tableau de données doit être pertinent.",
         relevant_when="il identifie le contenu du tableau (en-têtes et premières lignes fournis en contexte).",
         not_relevant_examples="« Tableau », « Tableau 1 », « Données », un titre sans rapport avec le contenu.",
+        suggestion="un titre de tableau court qui identifie son contenu",
     ),
     "table_summary": RelevanceKind(
         subject="résumé de tableau de données complexe",
         rule="RGAA 5.2 : chaque résumé de tableau complexe doit être pertinent.",
         relevant_when="il explique l'organisation du tableau (structure des en-têtes, sens de lecture, contenu).",
         not_relevant_examples="« Tableau », « Résumé », la simple répétition du titre sans expliquer la structure.",
+        suggestion="un résumé court qui explique l'organisation du tableau (en-têtes, sens de lecture)",
     ),
     "layout_table_linearized": RelevanceKind(
         subject=(
@@ -362,12 +365,14 @@ RELEVANCE_KINDS: dict[str, RelevanceKind] = {
             "« @+ » seul en fin de message sans explication, un dessin en art ASCII sans légende, "
             "une émoticône qui porte seule une information (« Résultat : :( »)."
         ),
+        suggestion="une alternative courte (texte d'un attribut title) qui donne le sens du contenu cryptique",
     ),
     "cryptic_alternative": RelevanceKind(
         subject="alternative (attribut title ou aria-label) d'un contenu cryptique fourni dans « cryptic_content »",
         rule="RGAA 13.6 : l'alternative de chaque contenu cryptique doit être pertinente.",
         relevant_when="elle donne le sens du contenu cryptique (« sourire » pour :-), « à plus tard » pour @+).",
         not_relevant_examples="« émoticône », « image », « art ASCII », un texte sans rapport avec le contenu.",
+        suggestion="une alternative courte qui donne le sens du contenu cryptique",
     ),
     "gesture_alternative": RelevanceKind(
         subject=(

@@ -54,6 +54,54 @@ def locate(tag: Tag | None) -> tuple[int | None, str | None]:
     return line, element_snippet(tag)
 
 
+def locate_in_text(tag: Tag | None, offset: int) -> tuple[int | None, str | None]:
+    """
+    Emplacement d'une position dans le texte d'un élément de la page (``<script>``, ``<style>`` en ligne).
+
+    ``offset`` est un indice dans ``tag.get_text()``. La ligne est celle du fichier HTML
+    (ligne de la balise ouvrante + retours à la ligne avant ``offset``) ; l'extrait est la
+    ligne de code correspondante. Position invalide → emplacement de l'élément lui-même.
+    """
+    if not isinstance(tag, Tag):
+        return None, None
+    text = tag.get_text()
+    if not 0 <= offset <= len(text):
+        return locate(tag)
+    start = text.rfind("\n", 0, offset) + 1
+    end = text.find("\n", offset)
+    code = " ".join(text[start : end if end != -1 else len(text)].split())
+    if len(code) > SNIPPET_LIMIT:
+        code = code[: SNIPPET_LIMIT - 1] + "…"
+    line = tag.sourceline + text.count("\n", 0, offset) if isinstance(tag.sourceline, int) else None
+    return line, code or element_snippet(tag)
+
+
+def locate_in_source(text: str, offset: int) -> tuple[int | None, str | None]:
+    """
+    Emplacement d'une position dans le texte d'un fichier (script ``.js``, feuille ``.css``) :
+    (numéro de ligne dans ce fichier, ligne de code correspondante). Position invalide → (None, None).
+    """
+    if not 0 <= offset <= len(text):
+        return None, None
+    start = text.rfind("\n", 0, offset) + 1
+    end = text.find("\n", offset)
+    code = " ".join(text[start : end if end != -1 else len(text)].split())
+    if len(code) > SNIPPET_LIMIT:
+        code = code[: SNIPPET_LIMIT - 1] + "…"
+    return text.count("\n", 0, offset) + 1, code or None
+
+
+def location_fields(tag: Tag | None, offset: int | None = None) -> dict[str, int | str | None]:
+    """
+    Champs ``line`` et ``snippet`` pour un Finding construit à la main :
+    ``Finding(..., **location_fields(tag))``. Avec ``offset``, voir ``locate_in_text``.
+
+    ``file`` n'est pas renseigné : le runner y place la page auditée.
+    """
+    line, snippet = locate(tag) if offset is None else locate_in_text(tag, offset)
+    return {"line": line, "snippet": snippet}
+
+
 def opening_tag(tag: Tag, **changes: str | None) -> str:
     """
     Balise ouvrante de l'élément avec ses vrais attributs, modifiés par ``changes``

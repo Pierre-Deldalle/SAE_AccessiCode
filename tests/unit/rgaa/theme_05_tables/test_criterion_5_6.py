@@ -507,3 +507,11 @@ def test_564_table_with_colspan_rowspan_improper_multi_header_cell_fails(
         "La cellule associée à plusieurs en-têtes doit être structurée au moyen d'un élément <td> ou <th>." in f.message
         for f in result.findings
     )
+
+
+def test_561_finding_locates_the_badly_declared_header(context_factory, run_rgaa):
+    result = run_rgaa(RGAA561(), context_factory(table_with_improper_column_header()))
+    assert result.status == Status.FAIL
+    # Ligne 1 vide (le fragment commence par un saut de ligne), puis <table>, <thead>, <tr>, <span>Nom</span>.
+    assert result.findings[0].line == 5
+    assert result.findings[0].snippet == "<span>Nom</span>"

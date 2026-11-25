@@ -4,6 +4,7 @@ from typing import Any
 
 from bs4 import BeautifulSoup, Tag
 
+from accessi_code.analysis.location import location_fields
 from accessi_code.analysis.media import is_media_exempt, media_identifier
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
@@ -90,6 +91,8 @@ class Test491(RGAATest):
                             "alternative_detected": True,
                             "relevance_requires_manual_review": True,
                         },
+                        # Le finding porte sur l'alternative : on pointe le lien ou bouton.
+                        **location_fields(control),
                     )
                 )
 

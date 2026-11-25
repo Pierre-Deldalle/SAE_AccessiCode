@@ -35,19 +35,22 @@ def make_outcome(
     node: Tag | None = None,
     file: str | None = None,
     line: int | None = None,
+    snippet: str | None = None,
     **evidence: Any,
 ) -> Outcome:
     """
     Outcome avec un Finding, sauf pour PASS et NOT_APPLICABLE sans message.
 
     ``node`` : élément HTML concerné ; sa ligne et son extrait sont ajoutés au Finding.
-    ``file`` / ``line`` : emplacement d'un problème situé hors de la page auditée (fichier .js,
-    feuille .css…) ou dans une balise <script> ; ``line`` prime sur la ligne de ``node``.
+    ``file``, ``line``, ``snippet`` : emplacement donné directement, par exemple dans un
+    fichier autre que la page auditée (script ``.js``, feuille ``.css``) ; ils priment sur
+    ceux de ``node``. Sans ``file``, le runner indique la page auditée.
     """
     if element is None or (status in {TestStatus.PASS, TestStatus.NOT_APPLICABLE} and not message):
         return Outcome(status)
-    node_line, snippet = locate(node)
+    node_line, node_snippet = locate(node)
     line = line if line is not None else node_line
+    snippet = snippet if snippet is not None else node_snippet
     return Outcome(
         status,
         Finding(

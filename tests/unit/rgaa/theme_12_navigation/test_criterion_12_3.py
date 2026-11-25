@@ -29,3 +29,14 @@ def test_no_visual_proof_review(context_factory, run_rgaa):
 
 def test_one_page_na(context_factory, run_rgaa):
     assert run_rgaa(Test1221(), context_factory("<nav>Menu</nav>")).status == Status.NOT_APPLICABLE
+
+
+def test_fail_is_located_on_the_menu_of_the_audited_page(context_factory, run_rgaa):
+    html = '<html>\n<header>\n<nav aria-label="Menu"><a href="/">Accueil</a></nav>\n</header>\n</html>'
+    c = context_factory(html)
+    c.page_doms["page2.html"] = BeautifulSoup(html, "html.parser")
+    c.navigation_evidence["12.2.1"] = {"same_visual_position": False}
+    result = run_rgaa(Test1221(), c)
+    assert result.status == Status.FAIL
+    note = result.findings[0]
+    assert (note.line, note.snippet, note.file) == (3, '<nav aria-label="Menu"><a href="/">Accueil</a></nav>', None)

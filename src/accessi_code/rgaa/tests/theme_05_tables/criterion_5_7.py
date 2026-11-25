@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from bs4 import BeautifulSoup, Tag
 
+from accessi_code.analysis.location import location_fields
 from accessi_code.analysis.tables import (
     COLUMN_HEADER,
     ROW_HEADER,
@@ -114,6 +115,7 @@ class Test571(RGAATest):
                                 header_findings.append(
                                     Finding(
                                         element=element,
+                                        **location_fields(cell),
                                         message=(
                                             "L'en-tête de ligne ou de colonne doit avoir un identifiant "
                                             "unique (id), un attribut scope ou un rôle role='rowheader' ou "
@@ -372,6 +374,7 @@ class Test572(RGAATest):
                                 header_findings.append(
                                     Finding(
                                         element=element,
+                                        **location_fields(cell),
                                         message=(
                                             "L'attribut scope de l'en-tête de ligne ou de colonne n'est pas approprié."
                                         ),
@@ -613,6 +616,7 @@ class Test573(RGAATest):
                     header_findings.append(
                         Finding(
                             element=slot.selector,
+                            **location_fields(cell),
                             message=(
                                 "L'en-tête qui ne s'applique pas à la totalité de la ligne ou de la colonne "
                                 "doit avoir un id unique et ne pas avoir d'attribut scope ni de rôle "
@@ -863,6 +867,7 @@ class Test574(RGAATest):
                                 cell_findings.append(
                                     Finding(
                                         element=element,
+                                        **location_fields(cell),
                                         message=(
                                             "La cellule associée à un ou plusieurs en-têtes possédant un id "
                                             "doit avoir un attribut headers contenant la liste des ids des "
@@ -1071,6 +1076,7 @@ class Test575(RGAATest):
                                 header_findings.append(
                                     Finding(
                                         element=element,
+                                        **location_fields(cell),
                                         message=(
                                             "L'élément avec role='rowheader' ou role='columnheader' doit "
                                             "avoir la valeur appropriée selon qu'il s'applique à une ligne "

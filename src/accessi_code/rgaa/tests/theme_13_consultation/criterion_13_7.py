@@ -59,6 +59,26 @@ RECOMMENDATION = (
 )
 
 
+def interval_example(kind: str, delay_ms: float) -> str:
+    """Délai d'un minuteur porté au minimum qui reste sous 3 flashs par seconde."""
+    minimum = math.ceil(MIN_TOGGLE_INTERVAL_MS)
+    return f"Exemple si l'effet doit être ralenti : {kind}(…, {delay_ms:g}) → {kind}(…, {minimum})"
+
+
+def animation_place(selector: str) -> str:
+    """Où modifier l'animation : attribut style de l'élément ou règle CSS."""
+    return "dans l'attribut style" if selector.endswith("[style]") else f"dans la règle {selector}"
+
+
+def duration_example(selector: str, duration_s: float, flashes_per_cycle: float) -> str:
+    """Durée d'animation, au dixième de seconde supérieur, qui donne strictement moins de 3 flashs par seconde."""
+    slower = round(math.floor(flashes_per_cycle / FLASH_FREQUENCY_LIMIT * 10 + 1e-9) / 10 + 0.1, 1)
+    return (
+        f"Exemple si l'effet doit être ralenti : {animation_place(selector)}, animation-duration: {duration_s:g}s "
+        f"→ animation-duration: {slower:g}s"
+    )
+
+
 def _area_ok(element: Tag) -> bool:
     area = element_area(element)
     return area is not None and area <= FLASH_AREA_LIMIT
@@ -106,6 +126,7 @@ class Test1371(FlashTest):
                     component_identifier(element, index),
                     f"Cette {kind} peut provoquer des flashs : leur fréquence et leur surface restent à vérifier.",
                     RECOMMENDATION,
+                    node=element,
                     kind=kind,
                     area=element_area(element),
                 )
@@ -131,12 +152,14 @@ class Test1372(FlashTest):
                 outcomes.append(make_outcome(TestStatus.PASS))
                 continue
             interval = f"toutes les {call.delay_ms:g} ms" if call.delay_ms is not None else "à un rythme calculé"
+            example = f" {interval_example(call.kind, call.delay_ms)}" if call.delay_ms is not None else ""
             outcomes.append(
                 make_outcome(
                     TestStatus.NEEDS_REVIEW,
                     f"{call.source.label} ({call.kind})",
                     f"Un script modifie la luminosité d'un élément {interval} : risque de flash à vérifier.",
-                    RECOMMENDATION,
+                    RECOMMENDATION + example,
+                    **call.source.location(call.position),
                     delay_ms=call.delay_ms,
                     code=call.source.snippet(call.position),
                 )
@@ -172,7 +195,9 @@ class Test1373(FlashTest):
                     animation.selector,
                     f"L'animation « {animation.keyframes.name} » change la luminosité environ {frequency:.1f} "
                     f"fois par seconde ({repetitions}) : risque de flash à vérifier.",
-                    RECOMMENDATION,
+                    f"{RECOMMENDATION} "
+                    + duration_example(animation.selector, animation.duration_s, flashes_per_cycle),
+                    **animation.location,
                     keyframes=animation.keyframes.name,
                     duration_s=animation.duration_s,
                     frequency=round(frequency, 2),

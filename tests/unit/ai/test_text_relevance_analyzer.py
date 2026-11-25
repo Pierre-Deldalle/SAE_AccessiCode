@@ -188,6 +188,66 @@ async def test_suggestion_is_requested_only_for_kinds_that_ask_for_it() -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
+    ("kind", "requested"),
+    [
+        ("table_title", "propose dans suggestion un titre de tableau"),
+        ("table_summary", "propose dans suggestion un résumé court"),
+        ("layout_table_linearized", None),
+    ],
+)
+async def test_table_kinds_suggestion_request(kind, requested) -> None:
+    llm = FakeModel(batch(RELEVANT))
+    analyzer = OllamaTextRelevanceAnalyzer(llm)
+
+    await analyzer.analyze_relevance(kind, [RelevanceItem("Tableau")])
+
+    if requested:
+        assert requested in llm.prompts[0]
+        assert '"suggestion": null' in llm.prompts[0]
+    else:
+        assert "suggestion" not in llm.prompts[0]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("kind", "requested"),
+    [
+        ("cryptic_context", "propose dans suggestion une alternative courte (texte d'un attribut title)"),
+        ("cryptic_alternative", "propose dans suggestion une alternative courte qui donne le sens"),
+        # La correction d'un geste ou d'un mouvement est un bouton à ajouter, pas un texte à corriger.
+        ("gesture_alternative", None),
+        ("motion_alternative", None),
+        ("motion_disable", None),
+    ],
+)
+async def test_consultation_kinds_suggestion_request(kind, requested) -> None:
+    llm = FakeModel(batch({**NOT_RELEVANT, "suggestion": "à plus tard"}))
+    analyzer = OllamaTextRelevanceAnalyzer(llm)
+
+    [result] = await analyzer.analyze_relevance(kind, [RelevanceItem("@+")])
+
+    if requested:
+        assert requested in llm.prompts[0]
+        assert '"suggestion": null' in llm.prompts[0]
+        assert result.suggestion == "à plus tard"
+    else:
+        assert "suggestion" not in llm.prompts[0]
+
+
+@pytest.mark.asyncio
+async def test_heading_kind_requests_a_suggestion() -> None:
+    llm = FakeModel(batch({**NOT_RELEVANT, "suggestion": "Horaires d'ouverture"}))
+    analyzer = OllamaTextRelevanceAnalyzer(llm)
+
+    [result] = await analyzer.analyze_relevance("heading", [RelevanceItem("Titre")])
+
+    assert "propose dans suggestion un titre court qui décrit le contenu de la section" in llm.prompts[0]
+    assert '"suggestion": null' in llm.prompts[0]
+    assert result.suggestion == "Horaires d'ouverture"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
     ("value", "expected"),
     [
         ("  Plan d'accès   à l'agence ", "Plan d'accès à l'agence"),

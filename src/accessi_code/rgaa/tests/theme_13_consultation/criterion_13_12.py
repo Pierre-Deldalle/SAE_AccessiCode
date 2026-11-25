@@ -119,6 +119,7 @@ class MotionSensorTest(RGAATest):
                     feature.source.label,
                     verdict.message(fail, uncertain),
                     recommendation,
+                    **feature.source.location(feature.position),
                     motion=feature.motion,
                     code=item.text,
                     disable_code=disable_code,

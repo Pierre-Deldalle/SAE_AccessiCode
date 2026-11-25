@@ -87,3 +87,52 @@ def test_1321_missing_dom_raises_error(context_factory):
     context.dom = None
     with pytest.raises(ValueError, match="13.2.1 nécessite un DOM"):
         asyncio.run(Test1321().run(context))
+
+
+def test_1321_failure_in_inline_script_is_located_in_the_page(context_factory, run_rgaa):
+    html = "<html><body>\n<p>Accueil</p>\n<script>\nwindow.open('/pub');\n</script></body></html>"
+    result = run_rgaa(Test1321(), context_factory(html))
+    assert result.status == Status.FAIL
+    finding = result.findings[0]
+    assert (finding.file, finding.line, finding.snippet) == (None, 4, "window.open('/pub');")
+
+
+def test_1321_failure_in_script_file_is_located_in_that_file(context_factory, run_rgaa):
+    code = "// Publicité\nvar url = '/pub';\nwindow.open(url);\n"
+    result = run_rgaa(Test1321(), context_factory('<script src="pub.js"></script>', resources={"pub.js": code}))
+    assert result.status == Status.FAIL
+    finding = result.findings[0]
+    assert (finding.file, finding.line, finding.snippet) == ("pub.js", 3, "window.open(url);")
+
+
+def test_1321_failure_in_event_attribute_is_located_on_the_element(context_factory, run_rgaa):
+    html = "<html>\n<body onload=\"window.open('/pub')\">\n<p>x</p></body></html>"
+    result = run_rgaa(Test1321(), context_factory(html))
+    assert result.status == Status.FAIL
+    assert result.findings[0].line == 2
+    assert result.findings[0].snippet == "<body onload=\"window.open('/pub')\"> <p>x</p></body>"
+
+
+# Exemples de correction --------------------------------------------------------
+
+
+def test_1321_script_failure_moves_the_real_call_to_a_button(context_factory, run_rgaa):
+    result = run_rgaa(Test1321(), context_factory(_script("window.open('/pub', 'pub');")))
+    assert result.findings[0].recommendation.endswith(
+        "Exemple : window.open('/pub', 'pub') exécuté au chargement → "
+        "<button type=\"button\" onclick=\"window.open('/pub', 'pub')\">[intitulé du bouton]</button>"
+    )
+
+
+def test_1321_attribute_failure_removes_the_attribute(context_factory, run_rgaa):
+    result = run_rgaa(Test1321(), context_factory('<body class="p" onload="window.open(\'/pub\')"><p>x</p></body>'))
+    assert result.findings[0].recommendation.endswith(
+        'Exemple : <body class="p" onload="window.open(\'/pub\')"> → <body class="p"> et '
+        '<button type="button" onclick="window.open(\'/pub\')">[intitulé du bouton]</button>'
+    )
+
+
+def test_1321_review_has_no_example(context_factory, run_rgaa):
+    result = run_rgaa(Test1321(), context_factory(_script("setTimeout(() => { window.open('/pub') }, 5000);")))
+    assert result.status == Status.NEEDS_REVIEW
+    assert "Exemple" not in result.findings[0].recommendation

@@ -95,12 +95,13 @@ class GestureTest(RGAATest):
                     f"{self.gesture} reste à vérifier.",
                 ),
                 RECOMMENDATION,
+                **source.location(position),
                 gesture=self.gesture,
                 code=item.text,
                 controls=controls,
                 **verdict.evidence,
             )
-            for (source, _), item, verdict in zip(candidates, items, verdicts, strict=True)
+            for (source, position), item, verdict in zip(candidates, items, verdicts, strict=True)
         ]
         return build_result(self, outcomes, empty_summary=self.empty, noun="fonctionnalité(s)")
 
