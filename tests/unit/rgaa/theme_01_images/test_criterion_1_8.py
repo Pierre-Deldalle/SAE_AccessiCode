@@ -2,6 +2,7 @@
 
 import pytest
 
+from accessi_code.analysis.location import element_snippet
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_01_images.criterion_1_8 import (
     Test181,
@@ -24,9 +25,12 @@ def test_no_element_is_not_applicable(cls, context_factory, run_rgaa):
 
 
 def test_181_replaceable_text_image_fails(context_factory, run_rgaa):
-    result = run_rgaa(Test181(), context_factory(IMG), services(image_profile=TEXT_IMAGE))
+    context = context_factory(f"<p>Offre</p>\n{IMG}")
+    result = run_rgaa(Test181(), context, services(image_profile=TEXT_IMAGE))
     assert result.status == Status.FAIL
     assert "Soldes -50 %" in result.findings[0].message
+    assert result.findings[0].line == 2
+    assert result.findings[0].snippet == element_snippet(context.dom.img)
 
 
 def test_181_image_without_text_is_not_applicable(context_factory, run_rgaa):

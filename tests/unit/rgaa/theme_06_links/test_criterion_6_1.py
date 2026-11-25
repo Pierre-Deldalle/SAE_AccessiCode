@@ -2,7 +2,10 @@
 
 import pytest
 
+from accessi_code.analysis.location import element_snippet
 from accessi_code.models.result import TestStatus as Status
+from accessi_code.rgaa.registry import TestRegistry as Registry
+from accessi_code.rgaa.runner import TestRunner as Runner
 from accessi_code.rgaa.tests.theme_06_links.criterion_6_1 import (
     Test611 as RGAA611,
 )
@@ -175,14 +178,18 @@ def test_svg_link_description_is_sent(context_factory, run_rgaa):
 )
 def test_link_without_label_fails_without_ai(test_class, html, context_factory, run_rgaa):
     ai = text_services()
-    result = run_rgaa(test_class(), context_factory(html), ai)
+    context = context_factory(f"<p>Introduction</p>\n{html}")
+    result = run_rgaa(test_class(), context, ai)
     assert result.status == Status.FAIL
     assert "n'a pas d'intitulé" in result.findings[0].message
+    assert result.findings[0].line == 2
+    assert result.findings[0].snippet == element_snippet(context.dom.a)
     ai.text_relevance_analyzer.analyze_relevance.assert_not_called()
 
 
 def test_explicit_link_passes(context_factory, run_rgaa):
-    result = run_rgaa(RGAA611(), context_factory(TEXT_LINK), text_services(relevance_answer=relevance(True)))
+    ai = text_services(relevance_answer=relevance(True, suggestion="Consulter les tarifs"))
+    result = run_rgaa(RGAA611(), context_factory(TEXT_LINK), ai)
     assert result.status == Status.PASS
     assert result.findings == []
 
@@ -193,11 +200,24 @@ def test_non_explicit_link_fails(context_factory, run_rgaa):
     assert result.status == Status.FAIL
     assert result.findings[0].element == "a#ici"
     assert "« cliquez ici » n'est pas explicite" in result.findings[0].message
+    assert "Proposition :" not in result.findings[0].recommendation
+
+
+def test_non_explicit_link_includes_the_proposed_label(context_factory, run_rgaa):
+    html = '<a href="/tarifs.pdf">cliquez ici</a>'
+    ai = text_services(relevance_answer=relevance(False, suggestion="Consulter les tarifs (PDF)"))
+
+    result = run_rgaa(RGAA611(), context_factory(html), ai)
+
+    assert result.status == Status.FAIL
+    assert result.findings[0].recommendation.endswith(" Proposition : « Consulter les tarifs (PDF) ».")
 
 
 def test_low_confidence_needs_review(context_factory, run_rgaa):
-    ai = text_services(relevance_answer=relevance(False, confidence="low"))
-    assert run_rgaa(RGAA611(), context_factory(TEXT_LINK), ai).status == Status.NEEDS_REVIEW
+    ai = text_services(relevance_answer=relevance(False, confidence="low", suggestion="Consulter les tarifs"))
+    result = run_rgaa(RGAA611(), context_factory(TEXT_LINK), ai)
+    assert result.status == Status.NEEDS_REVIEW
+    assert "Proposition :" not in result.findings[0].recommendation
 
 
 def test_unknown_answer_needs_review(context_factory, run_rgaa):
@@ -216,15 +236,22 @@ def test_ai_exception_gives_error(context_factory, run_rgaa):
     assert run_rgaa(RGAA611(), context_factory(TEXT_LINK), ai).status == Status.ERROR
 
 
-def test_mixed_results_in_one_batch(context_factory, run_rgaa):
-    html = TEXT_LINK + '<a href="/b">ici</a><a href="/c">Plan du site</a><a href="/d"></a>'
+@pytest.mark.asyncio
+async def test_mixed_results_in_one_batch(context_factory):
+    html = "\n".join((TEXT_LINK, '<a href="/b">ici</a>', '<a href="/c">Plan du site</a>', '<a href="/d"></a>'))
     ai = text_services(relevance_answer=[relevance(True), relevance(False), relevance(None)])
-    result = run_rgaa(RGAA611(), context_factory(html), ai)
+    runner = Runner(Registry([RGAA611()]), services=ai)
+    [result] = await runner.run_all(context_factory(html))
     assert result.status == Status.FAIL
     assert ai.text_relevance_analyzer.analyze_relevance.call_count == 1
     assert result.metadata["statuses"]["pass"] == 1
     assert result.metadata["statuses"]["fail"] == 2
     assert result.metadata["statuses"]["needs_review"] == 1
+    assert [(finding.file, finding.line, finding.snippet) for finding in result.findings] == [
+        ("index.html", 2, '<a href="/b">ici</a>'),
+        ("index.html", 3, '<a href="/c">Plan du site</a>'),
+        ("index.html", 4, '<a href="/d"></a>'),
+    ]
 
 
 def test_item_limit(context_factory, run_rgaa, monkeypatch):

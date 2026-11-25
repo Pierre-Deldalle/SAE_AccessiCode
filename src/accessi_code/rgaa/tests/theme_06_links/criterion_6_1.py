@@ -107,6 +107,7 @@ class ExplicitLinkTest(RGAATest):
                     link_identifier(link, position),
                     "Le lien n'a pas d'intitulé : il ne peut pas être explicite.",
                     EMPTY_LABEL_RECOMMENDATION,
+                    node=link,
                     href=link_href(link),
                 )
                 continue
@@ -122,14 +123,16 @@ class ExplicitLinkTest(RGAATest):
         verdicts = await judge_relevance(services, "link", [item for _, item in to_judge])
 
         for (position, item), verdict in zip(to_judge, verdicts, strict=True):
+            link = links[position]
             outcomes[position] = make_outcome(
                 verdict.status,
-                link_identifier(links[position], position),
+                link_identifier(link, position),
                 verdict.message(
                     f"Le lien « {item.text[:100]} » n'est pas explicite, même avec son contexte.",
                     f"Le caractère explicite du lien « {item.text[:100]} » reste à vérifier.",
                 ),
-                RECOMMENDATION,
+                verdict.recommendation(RECOMMENDATION),
+                node=link,
                 label=item.text,
                 context=item.context,
                 **item.details,

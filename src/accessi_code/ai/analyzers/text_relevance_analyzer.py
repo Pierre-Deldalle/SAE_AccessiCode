@@ -12,17 +12,18 @@ from typing import Any
 
 from accessi_code.ai.analyzers._base import (
     DEFAULT_BATCH_SIZE,
+    SUGGESTION_LIMIT,
     JsonAnalyzer,
     read_confidence,
     read_explanation,
     read_strings,
-    read_suggestion,
     read_tristate,
     truncate,
 )
 from accessi_code.ai.cache import AnalysisCache, make_key
 from accessi_code.ai.prompts.relevance import RELEVANCE_BATCH_PROMPT, RELEVANCE_KINDS, suggestion_parts
 from accessi_code.ai.schemas import RelevanceAnalysis, RelevanceItem
+from accessi_code.ai.text_safety import read_suggestion
 
 TEXT_LIMIT = 300
 HTML_LIMIT = 400
@@ -72,7 +73,7 @@ class OllamaTextRelevanceAnalyzer(JsonAnalyzer):
             keys=[make_key("relevance", kind, payload) for payload in payloads],
             payloads=payloads,
             build_prompt=build_prompt,
-            parse_item=_parse_relevance,
+            parse_item=lambda entry: _parse_relevance(entry, asks=bool(spec.suggestion or spec.suggestion_rule)),
             missing_item=_unknown,
             cache=self.cache,
             batch_size=self.batch_size,
@@ -91,16 +92,20 @@ def _payload(item: RelevanceItem, text_limit: int = TEXT_LIMIT) -> dict[str, Any
     return payload
 
 
-def _parse_relevance(entry: dict[str, Any]) -> RelevanceAnalysis:
+def _parse_relevance(entry: dict[str, Any], *, asks: bool = False) -> RelevanceAnalysis:
+    """La proposition n'est gardée que si le type la demande et que l'élément est jugé non pertinent."""
     relevant = read_tristate(entry, "relevant")
     explanation, corrupted = read_explanation(entry)
+    confidence = "low" if corrupted else read_confidence(entry.get("confidence"))
     return RelevanceAnalysis(
         relevant=None if corrupted else relevant,
         explanation=explanation,
         problems=read_strings(entry.get("problems")),
         uncertainties=read_strings(entry.get("uncertainties")),
-        confidence="low" if corrupted else read_confidence(entry.get("confidence")),
-        suggestion=None if corrupted else read_suggestion(entry.get("suggestion")),
+        confidence=confidence,
+        suggestion=read_suggestion(entry.get("suggestion"), max_chars=SUGGESTION_LIMIT)
+        if asks and not corrupted and relevant is False and confidence != "low"
+        else None,
     )
 
 

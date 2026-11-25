@@ -26,8 +26,10 @@ def test_no_element_is_not_applicable(cls, context_factory, run_rgaa):
 
 
 def test_131_relevant_alternative_passes(context_factory, run_rgaa):
-    ai = services(alternative_analysis=alternative(relevant=True))
-    assert run_rgaa(Test131(), context_factory(IMG), ai).status == Status.PASS
+    ai = services(alternative_analysis=alternative(relevant=True, suggestion="Ventes annuelles"))
+    result = run_rgaa(Test131(), context_factory(IMG), ai)
+    assert result.status == Status.PASS
+    assert result.findings == []
     kwargs = ai.image_analyzer.analyze_alternative.await_args.kwargs
     assert kwargs["mode"] == "alternative"
     assert "alt : Ventes 2025" in kwargs["alternative"]
@@ -36,14 +38,28 @@ def test_131_relevant_alternative_passes(context_factory, run_rgaa):
 
 def test_131_irrelevant_alternative_fails(context_factory, run_rgaa):
     ai = services(alternative_analysis=alternative(relevant=False))
-    result = run_rgaa(Test131(), context_factory('<img src="ventes.png" alt="image1.png">'), ai)
+    result = run_rgaa(Test131(), context_factory('<p>Ventes</p>\n<img src="ventes.png" alt="image1.png">'), ai)
     assert result.status == Status.FAIL
     assert result.findings[0].evidence["alternatives"] == {"alt": "image1.png"}
+    assert "Proposition :" not in result.findings[0].recommendation
+    assert (result.findings[0].line, result.findings[0].snippet) == (2, '<img src="ventes.png" alt="image1.png">')
+
+
+def test_131_irrelevant_alternative_includes_the_proposed_text(context_factory, run_rgaa):
+    ai = services(alternative_analysis=alternative(relevant=False, suggestion="Graphique des ventes en 2025"))
+
+    result = run_rgaa(Test131(), context_factory('<img src="ventes.png" alt="image1.png">'), ai)
+
+    assert result.status == Status.FAIL
+    assert result.findings[0].recommendation.endswith(" Proposition : « Graphique des ventes en 2025 ».")
 
 
 def test_131_low_confidence_needs_review(context_factory, run_rgaa):
-    ai = services(alternative_analysis=alternative(relevant=False, confidence="low"))
-    assert run_rgaa(Test131(), context_factory(IMG), ai).status == Status.NEEDS_REVIEW
+    ai = services(alternative_analysis=alternative(relevant=False, confidence="low", suggestion="Ventes annuelles"))
+    result = run_rgaa(Test131(), context_factory(IMG), ai)
+    assert result.status == Status.NEEDS_REVIEW
+    assert "Proposition :" not in result.findings[0].recommendation
+    assert "suggestion" not in result.findings[0].evidence["analysis"]
 
 
 def test_131_unknown_relevance_needs_review(context_factory, run_rgaa):
@@ -129,8 +145,9 @@ def test_138_documented_restitution(context_factory, run_rgaa):
 
 def test_139_concise_alternative(context_factory, run_rgaa):
     ok = services(alternative_analysis=alternative(concise=True))
-    ko = services(alternative_analysis=alternative(concise=False))
+    ko = services(alternative_analysis=alternative(concise=False, suggestion="Ventes 2025"))
     assert run_rgaa(Test139(), context_factory(IMG), ok).status == Status.PASS
     result = run_rgaa(Test139(), context_factory(IMG), ko)
     assert result.status == Status.FAIL
     assert "courte et concise" in result.findings[0].message
+    assert "Proposition : « Ventes 2025 »." in result.findings[0].recommendation

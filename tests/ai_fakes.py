@@ -19,6 +19,7 @@ def relevance(
     relevant: bool | None = True,
     confidence: str = "high",
     problems: list[str] | None = None,
+    *,
     suggestion: str | None = None,
 ):
     return RelevanceAnalysis(
@@ -26,8 +27,8 @@ def relevance(
     )
 
 
-def structure(marked: bool | None = True, confidence: str = "high"):
-    return StructureCandidateAnalysis(marked, "Analyse simulée.", confidence=confidence)
+def structure(marked: bool | None = True, confidence: str = "high", *, suggestion: str | None = None):
+    return StructureCandidateAnalysis(marked, "Analyse simulée.", confidence=confidence, suggestion=suggestion)
 
 
 def sensory(
@@ -35,6 +36,7 @@ def sensory(
     relies_only: bool | None = False,
     alternative: bool | None = True,
     confidence: str = "high",
+    *,
     suggestion: str | None = None,
 ):
     return SensoryAnalysis(

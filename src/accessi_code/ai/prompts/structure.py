@@ -4,6 +4,7 @@ Prompts d'analyse de la structuration de l'information (thème 9).
 - "heading" : RGAA 9.1.3, passage de texte qui a l'apparence ou le rôle d'un titre ;
 - "list" : RGAA 9.3, suite d'éléments présentée comme une liste ;
 - "quote" : RGAA 9.4, citation ;
+- "presentation_quote" : RGAA 8.9, contenu déjà balisé comme une citation ;
 - "caption" : RGAA 1.9, légende d'image ;
 - "status_success", "status_error", "status_progress" : RGAA 7.5, messages de
   statut qui n'ont pas le rôle attendu.
@@ -56,11 +57,18 @@ STRUCTURE_RULES: dict[str, str] = {
         "blockquote pour un bloc). Un passage constitue une citation s'il reproduit les propos ou "
         "l'écrit d'une autre personne ou source."
     ),
+    "presentation_quote": (
+        "RGAA 8.9 : vérifie si le blockquote contient réellement les propos ou l'écrit d'une autre source. "
+        "Ajoute le champ suggestion : si should_be_marked vaut false et confidence vaut medium ou high, "
+        "indique quelles balises employer pour conserver le contenu sans le présenter comme une citation. "
+        "Par exemple : « Remplacer les balises blockquote par des balises div en conservant le contenu. » "
+        "Ne réécris pas le texte. Si la correction est incertaine ou si la citation est pertinente, retourne null."
+    ),
 }
 
 
 STRUCTURE_BATCH_PROMPT = """
-Tu analyses des passages d'une page web qui ne sont pas balisés sémantiquement.
+{subject}
 
 {rule}
 

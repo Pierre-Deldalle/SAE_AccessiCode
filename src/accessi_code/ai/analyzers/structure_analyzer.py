@@ -20,6 +20,7 @@ from accessi_code.ai.analyzers._base import (
 from accessi_code.ai.cache import AnalysisCache, make_key
 from accessi_code.ai.prompts.structure import HEADING_HIERARCHY_PROMPT, STRUCTURE_BATCH_PROMPT, STRUCTURE_RULES
 from accessi_code.ai.schemas import RelevanceAnalysis, StructureCandidate, StructureCandidateAnalysis
+from accessi_code.ai.text_safety import read_suggestion
 
 TEXT_LIMIT = 500
 HTML_LIMIT = 500
@@ -49,6 +50,12 @@ class OllamaStructureAnalyzer(JsonAnalyzer):
         if not candidates:
             return []
 
+        suggest = kind == "presentation_quote"
+        subject = (
+            "Tu analyses des passages déjà balisés comme des citations."
+            if suggest
+            else "Tu analyses des passages d'une page web qui ne sont pas balisés sémantiquement."
+        )
         payloads = [
             {
                 "text": truncate(candidate.text, TEXT_LIMIT),
@@ -61,8 +68,8 @@ class OllamaStructureAnalyzer(JsonAnalyzer):
         return await self._run_batched(
             keys=[make_key("structure", kind, payload) for payload in payloads],
             payloads=payloads,
-            build_prompt=lambda items_json: STRUCTURE_BATCH_PROMPT.format(rule=rule, items=items_json),
-            parse_item=_parse_candidate,
+            build_prompt=lambda items_json: STRUCTURE_BATCH_PROMPT.format(subject=subject, rule=rule, items=items_json),
+            parse_item=lambda entry: _parse_candidate(entry, suggest=suggest),
             missing_item=_unknown_candidate,
             cache=self.cache,
             batch_size=self.batch_size,
@@ -112,14 +119,18 @@ class OllamaStructureAnalyzer(JsonAnalyzer):
         return analysis
 
 
-def _parse_candidate(entry: dict[str, Any]) -> StructureCandidateAnalysis:
+def _parse_candidate(entry: dict[str, Any], *, suggest: bool) -> StructureCandidateAnalysis:
     should_be_marked = read_tristate(entry, "should_be_marked")
     explanation, corrupted = read_explanation(entry)
+    confidence = "low" if corrupted else read_confidence(entry.get("confidence"))
     return StructureCandidateAnalysis(
         should_be_marked=None if corrupted else should_be_marked,
         explanation=explanation,
         uncertainties=read_strings(entry.get("uncertainties")),
-        confidence="low" if corrupted else read_confidence(entry.get("confidence")),
+        confidence=confidence,
+        suggestion=read_suggestion(entry.get("suggestion"))
+        if suggest and should_be_marked is False and confidence != "low"
+        else None,
     )
 
 

@@ -6,6 +6,7 @@ Ne décide d'aucun statut RGAA.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from bs4 import BeautifulSoup, Tag
@@ -15,6 +16,7 @@ from bs4.formatter import HTMLFormatter
 from accessi_code.models.audit_context import AuditContext
 
 SNIPPET_LIMIT = 200
+_SPACES = re.compile(r"[ \t\r\n\f\v]+")
 
 
 class _SourceOrderFormatter(HTMLFormatter):
@@ -34,10 +36,11 @@ def _html(tag: Tag) -> str:
 
 def element_snippet(tag: Tag, limit: int = SNIPPET_LIMIT) -> str:
     """
-    Extrait HTML de l'élément, espaces normalisés : l'élément entier s'il est court,
-    sinon sa seule balise ouvrante ; tronqué à ``limit`` caractères.
+    Extrait HTML de l'élément, espaces normalisés (les espaces insécables, qui peuvent être
+    le problème signalé, sont gardés) : l'élément entier s'il est court, sinon sa seule
+    balise ouvrante ; tronqué à ``limit`` caractères.
     """
-    html = " ".join(_html(tag).split())
+    html = _SPACES.sub(" ", _html(tag)).strip()
     if len(html) > limit:
         # BeautifulSoup échappe « > » dans les valeurs d'attributs : le premier « > » ferme la balise.
         html = html[: html.find(">") + 1] or html
@@ -129,6 +132,18 @@ def source_file_name(context: AuditContext, path: Path | str | None) -> str | No
         relative = path.relative_to(context.workspace_path / "source").as_posix()
     except ValueError:
         relative = None
-    if relative and (original is None or Path(relative).name == original):
+    if relative and original is not None and Path(relative).name != original:
+        # Copie renommée dans le site importé : son dossier, avec le nom d'origine.
+        return Path(relative).with_name(Path(original).name).as_posix()
+    if relative:
         return relative
     return original or path.name
+
+
+_OPENING_TAG = re.compile(r"""<(?:[^>"']|"[^"]*"|'[^']*')*>""")
+
+
+def html_opening_tag(html: str) -> str:
+    """Extrait la balise ouvrante d'un élément HTML sérialisé."""
+    opening = _OPENING_TAG.match(html)
+    return opening.group() if opening is not None else html

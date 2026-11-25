@@ -14,6 +14,7 @@ def analysis(
     *,
     detected_language: str | None = "fr",
     confidence: str = "high",
+    suggestion: str | None = None,
 ) -> LanguageAnalysis:
     return LanguageAnalysis(
         relevant=relevant,
@@ -21,6 +22,7 @@ def analysis(
         explanation="Analyse de langue simulée.",
         uncertainties=[],
         confidence=confidence,
+        suggestion=suggestion,
     )
 
 
@@ -51,12 +53,14 @@ def test_841_wrong_language_with_high_confidence_fails(
     run_rgaa,
 ):
     context = context_factory('<html lang="fr"><body>Welcome to our service.</body></html>')
-    services, _ = page_services(analysis(False, detected_language="en"))
+    suggestion = "Utiliser en comme code de langue de la page."
+    services, _ = page_services(analysis(False, detected_language="en", suggestion=suggestion))
 
     result = run_rgaa(RGAA841(), context, services)
 
     assert result.status == Status.FAIL
     assert result.findings[0].evidence["analysis"]["detected_language"] == "en"
+    assert result.findings[0].recommendation.endswith(f" Proposition : « {suggestion} ».")
 
 
 def test_841_missing_default_language_is_not_applicable(
@@ -130,12 +134,15 @@ def test_841_low_confidence_requires_review_even_with_boolean_verdict(
             False,
             detected_language="fr",
             confidence="low",
+            suggestion="Utiliser fr comme code de langue de la page.",
         )
     )
 
     result = run_rgaa(RGAA841(), context, services)
 
     assert result.status == Status.NEEDS_REVIEW
+    assert "Proposition :" not in result.findings[0].recommendation
+    assert "suggestion" not in result.metadata["analysis"]
 
 
 def test_841_unknown_relevance_requires_review(

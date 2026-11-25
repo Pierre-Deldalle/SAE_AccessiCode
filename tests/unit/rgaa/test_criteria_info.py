@@ -5,29 +5,15 @@ import pytest
 from accessi_code.rgaa.criteria_info import CRITERIA, RGAA_METHOD_URL, criterion_info
 from accessi_code.rgaa.default_registry import build_default_registry
 
-# Thèmes dont les explications sont rédigées ; à compléter au fil des thèmes.
-DOCUMENTED_THEMES = ("2", "3", "4", "5", "7", "9", "11", "12", "13")
-
-REGISTRY_CRITERIA = sorted(
-    {test.criterion_id for test in build_default_registry() if test.criterion_id.split(".")[0] in DOCUMENTED_THEMES}
-)
+REGISTRY_CRITERIA = sorted({test.criterion_id for test in build_default_registry()})
 
 
-def test_documented_themes_have_criteria_in_registry():
-    assert REGISTRY_CRITERIA == sorted(
-        [
-            "2.1",
-            "2.2",
-            *(f"3.{number}" for number in range(1, 4)),
-            *(f"4.{number}" for number in range(1, 14)),
-            *(f"5.{number}" for number in range(1, 9)),
-            *(f"7.{number}" for number in range(1, 6)),
-            *(f"9.{number}" for number in range(1, 5)),
-            *(f"11.{number}" for number in range(1, 14)),
-            *(f"12.{number}" for number in range(1, 12)),
-            *(f"13.{number}" for number in range(1, 13)),
-        ]
-    )
+def test_registry_covers_the_13_themes():
+    assert {criterion.split(".")[0] for criterion in REGISTRY_CRITERIA} == {str(theme) for theme in range(1, 14)}
+
+
+def test_every_entry_is_a_registry_criterion():
+    assert set(CRITERIA) <= set(REGISTRY_CRITERIA)
 
 
 @pytest.mark.parametrize("criterion_id", REGISTRY_CRITERIA)

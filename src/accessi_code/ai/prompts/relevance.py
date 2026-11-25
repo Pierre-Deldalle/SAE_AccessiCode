@@ -29,6 +29,8 @@ class RelevanceKind:
     text_limit: int = 300
     # Texte à proposer lorsque l'élément n'est pas pertinent ; vide : aucune proposition demandée.
     suggestion: str = ""
+    # Consigne de proposition rédigée en entier pour ce type (remplace la consigne commune).
+    suggestion_rule: str = ""
 
 
 RELEVANCE_KINDS: dict[str, RelevanceKind] = {
@@ -60,6 +62,13 @@ RELEVANCE_KINDS: dict[str, RelevanceKind] = {
         ),
         not_relevant_examples=(
             "« cliquez ici », « en savoir plus », « lire la suite », « ici » sans contexte explicite."
+        ),
+        suggestion_rule=(
+            '- ajoute le champ "suggestion" à chaque résultat. Si relevant vaut false et que confidence vaut '
+            "high ou medium, propose un intitulé court en français, prêt à copier et sans balise HTML. "
+            "Précise la destination ou l'action en t'appuyant sur le lien et le contexte fournis. "
+            "Si les données ne permettent pas d'écrire un intitulé sans inventer d'information, retourne null. "
+            "Retourne aussi null si relevant n'est pas false ou si confidence vaut low.\n"
         ),
     ),
     "sitemap_link": RelevanceKind(
@@ -269,6 +278,12 @@ RELEVANCE_KINDS: dict[str, RelevanceKind] = {
             "contact par un autre canal, validation humaine…)."
         ),
         not_relevant_examples="« Recharger l'image », « Nouvelle image », un lien sans rapport avec le CAPTCHA.",
+        suggestion_rule=(
+            '- ajoute le champ "suggestion" à chaque résultat : si relevant vaut false, propose un texte corrigé '
+            "en français lorsque la fonction et le moyen d'accès sont établis par les données. "
+            "N'invente aucun lien ni moyen d'accès. Retourne null si le texte seul ne suffit pas à corriger "
+            "le problème, si les informations manquent, si relevant n'est pas false ou si confidence vaut low.\n"
+        ),
     ),
     "text_language": RelevanceKind(
         subject="langue d'un passage de texte",
@@ -287,6 +302,13 @@ RELEVANCE_KINDS: dict[str, RelevanceKind] = {
             "« Please contact us » dans un passage déclaré en français, une citation en allemand non balisée, "
             "un paragraphe entier dans une autre langue."
         ),
+        suggestion_rule=(
+            '- ajoute le champ "suggestion". Si relevant vaut false et confidence vaut medium ou high, indique '
+            "quel passage précis entourer et quel attribut lang écrire, par exemple : "
+            '« Entourer le passage “Please contact us” avec <span lang="en"> et </span>. » '
+            "Conserve le texte original. Retourne null dans les autres cas "
+            "ou si le passage ou la langue est incertain.\n"
+        ),
         text_limit=1500,
     ),
     "language_change": RelevanceKind(
@@ -297,6 +319,12 @@ RELEVANCE_KINDS: dict[str, RelevanceKind] = {
         ),
         relevant_when="le code correspond à la langue du texte (en pour de l'anglais, de pour de l'allemand…).",
         not_relevant_examples='lang="en" sur un texte en espagnol, lang="fr" sur un texte en anglais.',
+        suggestion_rule=(
+            '- ajoute le champ "suggestion". Si relevant vaut false et confidence vaut medium ou high, indique '
+            "le code de langue à utiliser et l'attribut à corriger (lang ou xml:lang selon le HTML fourni). "
+            'Par exemple : « Remplacer lang="en" par lang="es". » Retourne null dans les autres cas '
+            "ou si le bon code est incertain.\n"
+        ),
     ),
     "script_alternative": RelevanceKind(
         subject="alternative à un contenu ou une fonctionnalité de script",
@@ -475,6 +503,8 @@ SUGGESTION_FIELD = ',\n      "suggestion": null'
 
 def suggestion_parts(kind: RelevanceKind) -> dict[str, str]:
     """Consigne et champ JSON de la proposition, vides si le type n'en demande pas."""
+    if kind.suggestion_rule:
+        return {"suggestion_rule": "\n" + kind.suggestion_rule.strip(), "suggestion_field": SUGGESTION_FIELD}
     if not kind.suggestion:
         return {"suggestion_rule": "", "suggestion_field": ""}
     return {

@@ -55,7 +55,8 @@ class Test871(RGAATest):
 
         outcomes = []
         for segment, verdict in zip(segments, verdicts, strict=True):
-            first = identifier(segment.blocks[0], 0)
+            first_block = segment.blocks[0]
+            first = identifier(first_block, 0)
             element = first if len(segment.blocks) == 1 else f"{first} (+{len(segment.blocks) - 1} bloc(s))"
             problems = list(getattr(verdict.analysis, "problems", []) or [])
             passages = f" Passage(s) concerné(s) : {' ; '.join(problems)}." if problems else ""
@@ -68,7 +69,8 @@ class Test871(RGAATest):
                         f"{segment.lang or 'aucune'}).{passages}",
                         "La langue de ce texte reste à vérifier.",
                     ),
-                    RECOMMENDATION,
+                    verdict.recommendation(RECOMMENDATION),
+                    node=first_block,
                     declared_language=segment.lang,
                     text=segment.text[:300],
                     blocks=len(segment.blocks),

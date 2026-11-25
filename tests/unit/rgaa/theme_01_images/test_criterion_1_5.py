@@ -5,6 +5,7 @@ import pytest
 from accessi_code.ai.schemas import RelevanceAnalysis
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_01_images.criterion_1_5 import Test151, Test152
+from tests.ai_fakes import relevance
 from tests.unit.rgaa.theme_01_images.image_fakes import profile, services
 
 CAPTCHA = '<form><img class="captcha" src="c.png" alt="Code de sécurité"></form>'
@@ -21,7 +22,10 @@ def test_no_captcha_is_not_applicable(cls, context_factory, run_rgaa):
 
 def test_151_captcha_without_any_alternative_fails(context_factory, run_rgaa):
     ai = services()
-    assert run_rgaa(Test151(), context_factory(CAPTCHA), ai).status == Status.FAIL
+    result = run_rgaa(Test151(), context_factory(f"<p>Vérification</p>\n{CAPTCHA}"), ai)
+    assert result.status == Status.FAIL
+    assert result.findings[0].line == 2
+    assert result.findings[0].snippet == '<img class="captcha" src="c.png" alt="Code de sécurité">'
     ai.text_relevance_analyzer.analyze_relevance.assert_not_called()
 
 
@@ -36,6 +40,14 @@ def test_151_relevant_alternative_passes(context_factory, run_rgaa):
 def test_151_irrelevant_alternative_fails(context_factory, run_rgaa):
     ai = services(relevance=[RelevanceAnalysis(False, "Recharge seulement l'image.", confidence="high")])
     assert run_rgaa(Test151(), context_factory(WITH_AUDIO), ai).status == Status.FAIL
+
+
+def test_151_failed_candidate_includes_an_available_proposal(context_factory, run_rgaa):
+    ai = services(relevance=[relevance(False, suggestion="Écouter le code de vérification")])
+    result = run_rgaa(Test151(), context_factory(WITH_AUDIO), ai)
+
+    assert result.status == Status.FAIL
+    assert "Proposition : « Écouter le code de vérification »." in result.findings[0].recommendation
 
 
 def test_151_low_confidence_needs_review(context_factory, run_rgaa):

@@ -24,16 +24,20 @@ def test_empty_element_is_ignored(context_factory, run_rgaa):
 @pytest.mark.parametrize("code", ["english", "e", "xx", ""])
 def test_invalid_code_fails_without_ai(code, context_factory, run_rgaa):
     ai = text_services()
-    result = run_rgaa(Test881(), context_factory(page(f'<span id="c" lang="{code}">Hello</span>')), ai)
+    passage = f'<span id="c" lang="{code}">Hello</span>'
+    result = run_rgaa(Test881(), context_factory(page(f"\n{passage}")), ai)
     assert result.status == Status.FAIL
-    assert "n'est pas valide" in result.findings[0].message
+    [finding] = result.findings
+    assert "n'est pas valide" in finding.message
+    assert (finding.line, finding.snippet) == (2, passage)
     ai.text_relevance_analyzer.analyze_relevance.assert_not_called()
 
 
 def test_valid_code_is_judged(context_factory, run_rgaa):
-    ai = text_services()
+    ai = text_services(relevance_answer=relevance(True, suggestion='Utiliser lang="es".'))
     result = run_rgaa(Test881(), context_factory(page('<span lang="en-GB">Hello world</span>')), ai)
     assert result.status == Status.PASS
+    assert result.findings == []
     kind, items = ai.text_relevance_analyzer.analyze_relevance.call_args.args
     assert kind == "language_change"
     assert items[0].text == "Hello world"
@@ -48,15 +52,24 @@ def test_nested_change_is_masked(context_factory, run_rgaa):
     assert [item.text for item in items] == ["Hello [passage balisé] friends", "Guten Tag"]
 
 
-def test_irrelevant_code_fails(context_factory, run_rgaa):
-    ai = text_services(relevance_answer=relevance(False))
-    result = run_rgaa(Test881(), context_factory(page('<span lang="en">Hola amigos</span>')), ai)
+@pytest.mark.parametrize("suggestion", [None, 'Remplacer lang="en" par lang="es".'])
+def test_irrelevant_code_fails(context_factory, run_rgaa, suggestion):
+    ai = text_services(relevance_answer=relevance(False, suggestion=suggestion))
+    passage = '<span lang="en">Hola amigos</span>'
+    result = run_rgaa(Test881(), context_factory(page(f"\n{passage}")), ai)
     assert result.status == Status.FAIL
-    assert "ne correspond pas" in result.findings[0].message
+    [finding] = result.findings
+    assert "ne correspond pas" in finding.message
+    assert (finding.line, finding.snippet) == (2, passage)
+    if suggestion:
+        assert finding.recommendation.endswith(f" Proposition : « {suggestion} ».")
+    else:
+        assert "Proposition :" not in finding.recommendation
 
 
 def test_html_lang_is_not_a_change(context_factory, run_rgaa):
-    assert run_rgaa(Test881(), context_factory(page("<p>Texte</p>")), text_services()).status == (Status.NOT_APPLICABLE)
+    result = run_rgaa(Test881(), context_factory(page("<p>Texte</p>")), text_services())
+    assert result.status == Status.NOT_APPLICABLE
 
 
 def test_without_ai_needs_review(context_factory, run_rgaa):

@@ -57,6 +57,7 @@ class Test881(RGAATest):
                     identifier(tag, index),
                     f"Le code de langue « {code} » n'est pas valide.",
                     RECOMMENDATION,
+                    node=tag,
                     lang=code,
                 )
             else:
@@ -80,7 +81,8 @@ class Test881(RGAATest):
                     f"Le code de langue « {code} » ne correspond pas à la langue du texte.",
                     f"La pertinence du code de langue « {code} » reste à vérifier.",
                 ),
-                RECOMMENDATION,
+                verdict.recommendation(RECOMMENDATION),
+                node=tag,
                 lang=code,
                 text=text[:300],
                 **verdict.evidence,

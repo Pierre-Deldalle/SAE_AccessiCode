@@ -15,18 +15,21 @@ sans IA :
 
 from __future__ import annotations
 
+from copy import copy
 from typing import Any
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 
 from accessi_code.analysis.language import (
     DIRECTIONS,
     default_direction,
     effective_direction,
+    letter_counts,
     opposite_direction_elements,
     text_direction,
     text_without_marked,
 )
+from accessi_code.analysis.location import html_opening_tag
 from accessi_code.analysis.sensory import identifier
 from accessi_code.analysis.structure import is_hidden
 from accessi_code.models.audit_context import AuditContext
@@ -34,8 +37,24 @@ from accessi_code.models.capabilities import Capability
 from accessi_code.models.result import TestResult, TestStatus
 from accessi_code.rgaa.base import RGAATest
 from accessi_code.rgaa.outcomes import Outcome, build_result, make_outcome, not_applicable
+from accessi_code.rgaa.tests.theme_08_mandatory._common import html_example
 
 LABELS = {"rtl": "de droite à gauche", "ltr": "de gauche à droite"}
+
+
+def _direction_recommendation(tag: Tag, direction: str | None, recommendation: str) -> str:
+    if direction is None or tag.name in {"[document]", "html", "body"} or tag.find(True) is not None:
+        return recommendation
+
+    rtl, ltr = letter_counts(tag.get_text())
+    # Un texte mixte peut nécessiter de baliser un passage seulement.
+    opposite_count = ltr if direction == "rtl" else rtl
+    if opposite_count or not (rtl or ltr):
+        return recommendation
+
+    corrected = copy(tag)
+    corrected["dir"] = direction
+    return html_example(recommendation, html_opening_tag(str(tag)), html_opening_tag(str(corrected)))
 
 
 class _TextDirectionTest(RGAATest):
@@ -65,6 +84,7 @@ class Test8101(_TextDirectionTest):
         outcomes: list[Outcome] = []
         for index, (tag, text) in enumerate(elements):
             actual = effective_direction(tag, default)
+            recommendation = f'Placer le passage dans un élément portant dir="{expected}".'
             outcomes.append(
                 make_outcome(
                     TestStatus.PASS if actual == expected else TestStatus.FAIL,
@@ -73,7 +93,8 @@ class Test8101(_TextDirectionTest):
                     if actual == expected
                     else f"Ce texte écrit {LABELS[expected]} n'est pas placé dans un élément "
                     f'portant dir="{expected}".',
-                    f'Placer le passage dans un élément portant dir="{expected}".',
+                    _direction_recommendation(tag, expected, recommendation) if actual != expected else None,
+                    node=tag,
                     text=text[:200],
                     expected=expected,
                     effective=actual,
@@ -102,19 +123,22 @@ class Test8102(_TextDirectionTest):
         for index, tag in enumerate(elements):
             value = str(tag.get("dir") or "").strip().lower()
             element = identifier(tag, index)
+            text = text_without_marked(tag, attributes=("dir",))
+            direction = text_direction(text)
             if value not in DIRECTIONS:
                 outcomes.append(
                     make_outcome(
                         TestStatus.FAIL,
                         element,
                         f'La valeur dir="{value}" n\'est pas conforme : seules rtl et ltr sont admises.',
-                        "Remplacer la valeur par rtl ou ltr selon le sens de lecture du texte.",
+                        _direction_recommendation(
+                            tag, direction, "Remplacer la valeur par rtl ou ltr selon le sens de lecture du texte."
+                        ),
+                        node=tag,
                         dir=value,
                     )
                 )
                 continue
-            text = text_without_marked(tag, attributes=("dir",))
-            direction = text_direction(text)
             if direction is None:
                 outcomes.append(make_outcome(TestStatus.NOT_APPLICABLE))
                 continue
@@ -126,7 +150,10 @@ class Test8102(_TextDirectionTest):
                     ""
                     if relevant
                     else f'La valeur dir="{value}" ne correspond pas au texte, écrit {LABELS[direction]}.',
-                    f'Utiliser dir="{direction}" pour ce texte.',
+                    _direction_recommendation(tag, direction, f'Utiliser dir="{direction}" pour ce texte.')
+                    if not relevant
+                    else None,
+                    node=tag,
                     dir=value,
                     text_direction=direction,
                     text=text[:200],

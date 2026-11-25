@@ -60,8 +60,11 @@ def test_111_decorative_image_without_alternative_is_not_applicable(context_fact
 
 
 def test_111_functional_image_fails_without_ai(context_factory, run_rgaa):
-    result = run_rgaa(Test111(), context_factory('<a href="/"><img src="home.png"></a>'))
+    result = run_rgaa(Test111(), context_factory('<a href="/">\n  <img src="home.png">\n</a>'))
     assert result.status == Status.FAIL
+    assert result.findings[0].line == 2
+    assert result.findings[0].snippet == '<img src="home.png">'
+    assert "Avant :" not in result.findings[0].recommendation
 
 
 def test_111_low_confidence_needs_review(context_factory, run_rgaa):
@@ -161,6 +164,7 @@ def test_115_svg_with_title_but_without_role_fails(context_factory, run_rgaa):
     result = run_rgaa(Test115(), context_factory("<svg><title>Ventes</title></svg>"), services())
     assert result.status == Status.FAIL
     assert 'role="img"' in result.findings[0].message
+    assert 'Avant : <svg>\nAprès : <svg role="img">' in result.findings[0].recommendation
 
 
 def test_115_hidden_svg_is_not_applicable(context_factory, run_rgaa):

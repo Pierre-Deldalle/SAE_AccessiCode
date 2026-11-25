@@ -30,8 +30,12 @@ def test_141_relevant_captcha_alternative_passes(context_factory, run_rgaa):
 
 
 def test_141_irrelevant_captcha_alternative_fails(context_factory, run_rgaa):
-    ai = services(alternative_analysis=alternative(relevant=False))
-    assert run_rgaa(Test141(), context_factory(CAPTCHA), ai).status == Status.FAIL
+    ai = services(alternative_analysis=alternative(relevant=False, suggestion="Code de sécurité à recopier"))
+    result = run_rgaa(Test141(), context_factory(f"<p>Vérification</p>\n{CAPTCHA}"), ai)
+    assert result.status == Status.FAIL
+    assert "Proposition : « Code de sécurité à recopier »." in result.findings[0].recommendation
+    assert result.findings[0].line == 2
+    assert result.findings[0].snippet == '<img id="captcha" src="captcha.png" alt="Code de sécurité à recopier">'
 
 
 def test_141_low_confidence_needs_review(context_factory, run_rgaa):

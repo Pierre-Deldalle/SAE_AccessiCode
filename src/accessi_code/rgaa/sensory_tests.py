@@ -40,7 +40,7 @@ class SensoryTest(RGAATest):
     kind: ClassVar[str]
     judge_alternative: ClassVar[bool] = False
     # Emplacement (ligne, extrait), proposition de l'IA et exemple de correction des observations :
-    # activés thème par thème (3.1 pour l'instant), pour ne pas changer les résultats des autres thèmes.
+    # activés thème par thème (3.1, 10.9 et 10.10), pour ne pas changer les résultats des autres thèmes.
     detailed_results: ClassVar[bool] = False
 
     noun: ClassVar[str] = "élément(s)"

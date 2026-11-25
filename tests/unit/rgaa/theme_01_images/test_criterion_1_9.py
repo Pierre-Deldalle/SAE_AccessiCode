@@ -33,10 +33,12 @@ def test_191_correct_figure_passes_without_ai(context_factory, run_rgaa):
 
 
 def test_191_figure_without_role_fails(context_factory, run_rgaa):
-    html = '<figure aria-label="Ventes"><img src="g.png" alt="G"><figcaption>Ventes</figcaption></figure>'
+    figure = '<figure aria-label="Ventes">\n<img alt="G" src="g.png">\n<figcaption>Ventes</figcaption></figure>'
+    html = f"<p>Ventes</p>\n{figure}"
     result = run_rgaa(Test191(), context_factory(html), services())
     assert result.status == Status.FAIL
     assert 'role="figure"' in result.findings[0].message
+    assert (result.findings[0].line, result.findings[0].snippet) == (2, " ".join(figure.split()))
 
 
 def test_191_aria_label_different_from_caption_fails(context_factory, run_rgaa):
@@ -44,11 +46,16 @@ def test_191_aria_label_different_from_caption_fails(context_factory, run_rgaa):
     result = run_rgaa(Test191(), context_factory(html), services())
     assert result.status == Status.FAIL
     assert "aria-label" in result.findings[0].message
+    assert 'Avant : <figure aria-label="Autre" role="group">' in result.findings[0].recommendation
+    assert 'Après : <figure aria-label="Ventes" role="group">' in result.findings[0].recommendation
 
 
 def test_191_unlinked_caption_confirmed_by_ai_fails(context_factory, run_rgaa):
     ai = services(caption=StructureCandidateAnalysis(True, "Légende de figure.", confidence="high"))
-    assert run_rgaa(Test191(), context_factory(LOOSE_CAPTION), ai).status == Status.FAIL
+    result = run_rgaa(Test191(), context_factory(LOOSE_CAPTION), ai)
+    assert result.status == Status.FAIL
+    assert 'Après : <figure role="figure" aria-label="Figure 1 : ventes 2025">' in result.findings[0].recommendation
+    assert "<figcaption>Figure 1 : ventes 2025</figcaption>" in result.findings[0].recommendation
     kind, items = ai.structure_analyzer.classify_candidates.call_args.args
     assert kind == "caption"
     assert items[0].text == "Figure 1 : ventes 2025"

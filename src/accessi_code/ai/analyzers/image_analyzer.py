@@ -31,7 +31,7 @@ from accessi_code.ai.schemas import (
     ImageRoleAnalysis,
     VisualObservation,
 )
-from accessi_code.ai.text_safety import clean_explanation
+from accessi_code.ai.text_safety import clean_explanation, read_suggestion
 from accessi_code.analysis.images import (
     DetailedDescription,
     ImageInfo,
@@ -187,6 +187,7 @@ class OllamaImageAnalyzer:
         explanation, corrupted = clean_explanation(data.get("explanation"))
         if corrupted:
             relevant = None
+        confidence = "low" if corrupted else self._get_confidence(data.get("confidence"))
         return DescriptionAnalysis(
             relevant=relevant,
             explanation=explanation,
@@ -194,7 +195,8 @@ class OllamaImageAnalyzer:
             missing_information=self._get_strings(data.get("missing_information")),
             contradictions=self._get_strings(data.get("contradictions")),
             uncertainties=self._get_strings(data.get("uncertainties")),
-            confidence="low" if corrupted else self._get_confidence(data.get("confidence")),
+            confidence=confidence,
+            suggestion=read_suggestion(data.get("suggestion")) if relevant is False and confidence != "low" else None,
         )
 
     async def observe(
@@ -331,6 +333,7 @@ class OllamaImageAnalyzer:
         relevant = read_tristate(data, "relevant")
         concise = read_tristate(data, "concise")
         explanation, corrupted = clean_explanation(data.get("explanation"))
+        confidence = "low" if corrupted else self._get_confidence(data.get("confidence"))
 
         analysis = AlternativeAnalysis(
             relevant=None if corrupted else relevant,
@@ -338,7 +341,10 @@ class OllamaImageAnalyzer:
             explanation=explanation,
             missing_information=self._get_strings(data.get("missing_information")),
             uncertainties=self._get_strings(data.get("uncertainties")),
-            confidence="low" if corrupted else self._get_confidence(data.get("confidence")),
+            confidence=confidence,
+            suggestion=read_suggestion(data.get("suggestion"))
+            if confidence != "low" and (relevant is False or concise is False)
+            else None,
         )
 
         self._alternative_cache.set(key, analysis)

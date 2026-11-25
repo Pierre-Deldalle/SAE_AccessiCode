@@ -191,14 +191,6 @@ def read_explanation(data: dict[str, Any]) -> tuple[str, bool]:
 SUGGESTION_LIMIT = 200
 
 
-def read_suggestion(value: Any) -> str | None:
-    """Proposition du modèle ; absente, vide, non textuelle ou incohérente → None."""
-    if not isinstance(value, str) or not value.strip():
-        return None
-    text, corrupted = clean_explanation(value, max_chars=SUGGESTION_LIMIT)
-    return None if corrupted else text
-
-
 def truncate(text: str, limit: int) -> str:
     """Texte normalisé et tronqué pour rester dans le contexte du modèle."""
     normalized = " ".join((text or "").split())

@@ -14,11 +14,11 @@ from typing import Any
 
 from accessi_code.ai.analyzers._base import (
     DEFAULT_BATCH_SIZE,
+    SUGGESTION_LIMIT,
     JsonAnalyzer,
     read_confidence,
     read_explanation,
     read_strings,
-    read_suggestion,
     read_tristate,
     truncate,
 )
@@ -27,9 +27,11 @@ from accessi_code.ai.prompts.sensory import (
     SENSORY_BATCH_PROMPT,
     SENSORY_IMAGE_PROMPT,
     SENSORY_RULES,
+    SENSORY_SUGGESTION_KINDS,
     sensory_suggestion_parts,
 )
 from accessi_code.ai.schemas import SensoryAnalysis, SensoryCandidate
+from accessi_code.ai.text_safety import read_suggestion
 from accessi_code.analysis.images import ImageInfo
 
 TEXT_LIMIT = 500
@@ -77,7 +79,7 @@ class OllamaSensoryAnalyzer(JsonAnalyzer):
             build_prompt=lambda items_json: SENSORY_BATCH_PROMPT.format(
                 rule=rule, items=items_json, **sensory_suggestion_parts(kind)
             ),
-            parse_item=_parse_sensory,
+            parse_item=lambda entry: _parse_sensory(entry, asks=kind in SENSORY_SUGGESTION_KINDS),
             missing_item=_unknown,
             cache=self.cache,
             batch_size=self.batch_size,
@@ -116,7 +118,7 @@ class OllamaSensoryAnalyzer(JsonAnalyzer):
             )
         )
 
-        analysis = _parse_sensory(data)
+        analysis = _parse_sensory(data, asks=kind in SENSORY_SUGGESTION_KINDS)
         self.cache.set(key, analysis)
         return analysis
 
@@ -128,21 +130,30 @@ def _rule(kind: str) -> str:
     return rule
 
 
-def _parse_sensory(entry: dict[str, Any]) -> SensoryAnalysis:
+def _parse_sensory(entry: dict[str, Any], *, asks: bool = False) -> SensoryAnalysis:
+    """
+    La proposition n'est gardée que si le type la demande, que la caractéristique porte une
+    information et qu'il manque un autre moyen (ou que celui-ci n'est pas pertinent).
+    """
     flags = {
         name: read_tristate(entry, name)
         for name in ("conveys_information", "relies_only_on_sensory", "alternative_relevant")
     }
     explanation, corrupted = read_explanation(entry)
+    confidence = "low" if corrupted else read_confidence(entry.get("confidence"))
     if corrupted:
         flags = dict.fromkeys(flags)
+    relies_only = flags["relies_only_on_sensory"]
+    lacks_alternative = relies_only is True or (relies_only is False and flags["alternative_relevant"] is False)
     return SensoryAnalysis(
         **flags,
         explanation=explanation,
         characteristics=read_strings(entry.get("characteristics")),
         uncertainties=read_strings(entry.get("uncertainties")),
-        confidence="low" if corrupted else read_confidence(entry.get("confidence")),
-        suggestion=None if corrupted else read_suggestion(entry.get("suggestion")),
+        confidence=confidence,
+        suggestion=read_suggestion(entry.get("suggestion"), max_chars=SUGGESTION_LIMIT)
+        if asks and confidence != "low" and flags["conveys_information"] is True and lacks_alternative
+        else None,
     )
 
 

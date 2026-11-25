@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import weakref
 from abc import abstractmethod
+from copy import copy
 from dataclasses import dataclass, field
 from typing import Any, ClassVar
 
@@ -25,10 +26,10 @@ from bs4 import BeautifulSoup, Tag
 from accessi_code.ai.schemas import AlternativeAnalysis, ImageProfile
 from accessi_code.analysis.image_elements import ImageElement, ImageKind, find_image_elements, has_image_file
 from accessi_code.analysis.images import make_local_resource_loader
-from accessi_code.analysis.location import locate
+from accessi_code.analysis.location import html_opening_tag
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
-from accessi_code.models.result import Finding, TestResult, TestStatus
+from accessi_code.models.result import TestResult, TestStatus
 from accessi_code.rgaa.ai_decision import (
     ai_item_limit,
     count_statuses,
@@ -36,6 +37,7 @@ from accessi_code.rgaa.ai_decision import (
     worst_status,
 )
 from accessi_code.rgaa.base import RGAATest
+from accessi_code.rgaa.outcomes import Outcome, make_outcome
 
 NO_AI_MESSAGE = "L'analyse IA n'est pas disponible : la vérification doit être faite manuellement."
 
@@ -74,14 +76,6 @@ class Judgement:
 
 
 @dataclass
-class Outcome:
-    """Statut d'un élément et, si nécessaire, l'observation qui l'explique."""
-
-    status: TestStatus
-    finding: Finding | None = None
-
-
-@dataclass
 class AIBudget:
     """Nombre d'éléments qu'un test peut encore soumettre à l'IA."""
 
@@ -101,28 +95,39 @@ def outcome(
     recommendation: str | None = None,
     *,
     node: Tag | None = None,
+    file: str | None = None,
+    line: int | None = None,
     **evidence: Any,
 ) -> Outcome:
-    """
-    Outcome avec un Finding (sauf pour PASS et NOT_APPLICABLE sans message).
-
-    La ligne et l'extrait HTML sont pris sur ``node`` s'il est fourni, sinon sur
-    la balise de l'image elle-même.
-    """
-    if element is None or (status in {TestStatus.PASS, TestStatus.NOT_APPLICABLE} and not message):
+    """Outcome avec un Finding (sauf pour PASS et NOT_APPLICABLE sans message)."""
+    if element is None:
         return Outcome(status)
-    line, snippet = locate(node if node is not None else element.tag)
-    return Outcome(
+    return make_outcome(
         status,
-        Finding(
-            element=element.key,
-            message=message,
-            recommendation=recommendation,
-            evidence={"kind": element.kind, **evidence},
-            line=line,
-            snippet=snippet,
-        ),
+        element.key,
+        message,
+        recommendation,
+        node=element.tag if node is None and file is None else node,
+        file=file,
+        line=line,
+        **{"kind": element.kind, **evidence},
     )
+
+
+def html_example(recommendation: str, before: str, after: str) -> str:
+    """Ajoute deux extraits courts et complets à une recommandation."""
+    example = f"{recommendation}\nAvant : {before}\nAprès : {after}"
+    # L'affichage des recommandations se limite à 300 caractères après normalisation.
+    if before == after or len(" ".join(example.split())) > 300:
+        return recommendation
+    return example
+
+
+def attribute_example(recommendation: str, tag: Tag, attributes: dict[str, str]) -> str:
+    """Illustre un changement d'attribut sur la balise analysée."""
+    corrected = copy(tag)
+    corrected.attrs.update(attributes)
+    return html_example(recommendation, html_opening_tag(str(tag)), html_opening_tag(str(corrected)))
 
 
 def unresolved(
@@ -130,6 +135,8 @@ def unresolved(
     judgement: Judgement,
     message: str,
     recommendation: str,
+    *,
+    node: Tag | None = None,
 ) -> Outcome:
     """Question restée sans réponse fiable : ERROR si l'IA a échoué, sinon NEEDS_REVIEW."""
     if judgement.source == "error":
@@ -138,6 +145,7 @@ def unresolved(
             element,
             "L'analyse IA de l'élément a échoué.",
             "Relancer l'audit ou vérifier manuellement.",
+            node=node,
             judgement=judgement.evidence,
         )
     detail = judgement.explanation if judgement.source == "ai" and judgement.explanation else ""
@@ -146,7 +154,9 @@ def unresolved(
     if judgement.source == "budget":
         detail = "Limite d'éléments analysés par l'IA atteinte pour ce test."
     full_message = f"{message} {detail}".strip()
-    return outcome(TestStatus.NEEDS_REVIEW, element, full_message, recommendation, judgement=judgement.evidence)
+    return outcome(
+        TestStatus.NEEDS_REVIEW, element, full_message, recommendation, node=node, judgement=judgement.evidence
+    )
 
 
 # ----------------------------------------------------------------------

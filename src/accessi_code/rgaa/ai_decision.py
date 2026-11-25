@@ -93,7 +93,10 @@ def count_statuses(statuses: Iterable[TestStatus]) -> dict[str, int]:
 def analysis_evidence(analysis: Any) -> dict[str, Any]:
     """Réponse de l'IA sous forme de dictionnaire, pour ``Finding.evidence``."""
     if is_dataclass(analysis) and not isinstance(analysis, type):
-        return asdict(analysis)
+        data = asdict(analysis)
+        # La proposition est réservée à la recommandation d'un verdict FAIL.
+        data.pop("suggestion", None)
+        return data
     if isinstance(analysis, dict):
         return dict(analysis)
     return {"value": repr(analysis)}

@@ -42,6 +42,33 @@ async def test_prompt_contains_rgaa_rule_and_items() -> None:
     assert "RGAA 6.1" in prompt
     assert "En savoir plus" in prompt
     assert "/horaires" in prompt
+    assert '"suggestion"' in prompt
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("kind", ["captcha_alternative", "link", "text_language", "language_change"])
+@pytest.mark.parametrize(
+    ("reply", "expected"),
+    [
+        ({"suggestion": " Écouter le code de sécurité. "}, "Écouter le code de sécurité."),
+        ({}, None),
+        ({"suggestion": {"texte": "Écouter le code"}}, None),
+        ({"suggestion": "   "}, None),
+        ({"suggestion": "Écouter le code", "relevant": True}, None),
+        ({"suggestion": "Écouter le code", "confidence": "low"}, None),
+    ],
+)
+async def test_relevance_suggestion_is_optional(kind, reply, expected) -> None:
+    payload = NOT_RELEVANT | reply
+    llm = FakeModel(batch(payload))
+    analyzer = OllamaTextRelevanceAnalyzer(llm)
+
+    [analysis] = await analyzer.analyze_relevance(kind, [RelevanceItem("Aide")])
+
+    assert analysis.suggestion == expected
+    assert analysis.relevant is payload["relevant"]
+    assert analysis.confidence == payload["confidence"]
+    assert '"suggestion"' in llm.prompts[0]
 
 
 @pytest.mark.asyncio
@@ -179,7 +206,7 @@ async def test_suggestion_is_requested_only_for_kinds_that_ask_for_it() -> None:
     analyzer = OllamaTextRelevanceAnalyzer(llm)
 
     await analyzer.analyze_relevance("frame_title", [RelevanceItem("iframe")])
-    await analyzer.analyze_relevance("link", [RelevanceItem("En savoir plus")])
+    await analyzer.analyze_relevance("user_data_field", [RelevanceItem("Quantité")])
 
     assert '"suggestion": null' in llm.prompts[0]
     assert "propose dans suggestion un titre de cadre" in llm.prompts[0]
