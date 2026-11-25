@@ -27,6 +27,8 @@ class RelevanceKind:
     not_relevant_examples: str
     # Longueur maximale du texte jugé (les contenus longs, comme un tableau linéarisé, en ont besoin).
     text_limit: int = 300
+    # Texte à proposer lorsque l'élément n'est pas pertinent ; vide : aucune proposition demandée.
+    suggestion: str = ""
 
 
 RELEVANCE_KINDS: dict[str, RelevanceKind] = {
@@ -37,6 +39,7 @@ RELEVANCE_KINDS: dict[str, RelevanceKind] = {
         not_relevant_examples=(
             "« iframe », « cadre », « frame1 », un nom de fichier, un titre sans rapport avec la source."
         ),
+        suggestion="un titre de cadre court qui décrit son contenu ou sa fonction",
     ),
     "heading": RelevanceKind(
         subject="titre de section (h1 à h6 ou role=heading)",
@@ -69,12 +72,14 @@ RELEVANCE_KINDS: dict[str, RelevanceKind] = {
         rule="RGAA 11.2 : chaque étiquette associée à un champ de formulaire doit être pertinente.",
         relevant_when="elle indique clairement la donnée attendue dans ce champ (en tenant compte du type de champ).",
         not_relevant_examples="« Champ 1 », « Texte », « Saisir », une étiquette sans rapport avec la donnée attendue.",
+        suggestion="une étiquette courte qui indique la donnée attendue dans le champ",
     ),
     "fieldset_legend": RelevanceKind(
         subject="légende d'un regroupement de champs (legend, aria-label ou aria-labelledby du groupe)",
         rule="RGAA 11.7 : chaque légende associée à un regroupement de champs de même nature doit être pertinente.",
         relevant_when="elle décrit la nature commune des champs du groupe (par exemple « Adresse de livraison »).",
         not_relevant_examples="« Groupe », « Formulaire », « Informations » quand elle ne distingue pas le groupe.",
+        suggestion="une légende courte qui décrit la nature commune des champs du groupe",
     ),
     "button": RelevanceKind(
         subject="intitulé de bouton",
@@ -83,6 +88,7 @@ RELEVANCE_KINDS: dict[str, RelevanceKind] = {
         not_relevant_examples=(
             "« Bouton », « OK » quand l'action n'est pas déductible, « Cliquez », une icône décrite."
         ),
+        suggestion="un intitulé de bouton court qui indique l'action déclenchée",
     ),
     "component_name": RelevanceKind(
         subject="nom accessible et rôle d'un composant d'interface géré par script",
@@ -95,6 +101,10 @@ RELEVANCE_KINDS: dict[str, RelevanceKind] = {
         not_relevant_examples=(
             "« div », « composant », « icon », un nom de classe CSS, un nom sans rapport avec l'action, "
             "un rôle link sur un composant qui ouvre un panneau, un rôle button sur un onglet."
+        ),
+        suggestion=(
+            "un nom accessible court qui décrit la fonction du composant et commence par son intitulé visible "
+            "(« visible_label ») s'il en a un"
         ),
     ),
     "table_title": RelevanceKind(
@@ -140,6 +150,7 @@ RELEVANCE_KINDS: dict[str, RelevanceKind] = {
             "(« Courriel » et « Adresse e-mail » sont cohérentes ; « Nom » et « Identifiant » ne le sont pas)."
         ),
         not_relevant_examples="deux étiquettes qui laissent croire à des données différentes pour la même fonction.",
+        suggestion="une étiquette unique à utiliser pour tous ces champs",
     ),
     "field_grouping": RelevanceKind(
         subject="liste des champs d'un formulaire qui ne sont dans aucun regroupement (fieldset ou role=group)",
@@ -167,6 +178,7 @@ RELEVANCE_KINDS: dict[str, RelevanceKind] = {
         rule="RGAA 11.8 : le label de chaque optgroup doit être pertinent.",
         relevant_when="il décrit la catégorie commune des options du groupe (fournies en contexte).",
         not_relevant_examples="« Groupe 1 », « Options », un label sans rapport avec les options.",
+        suggestion="un label court qui décrit la catégorie commune des options du groupe",
     ),
     "error_identification": RelevanceKind(
         subject="message d'erreur affiché pour un champ de formulaire",
@@ -175,6 +187,7 @@ RELEVANCE_KINDS: dict[str, RelevanceKind] = {
             "le message permet de savoir sans ambiguïté quel champ est en erreur (étiquette fournie en contexte)."
         ),
         not_relevant_examples="« Erreur », « Champ invalide », « Veuillez corriger le formulaire ».",
+        suggestion="un message d'erreur qui nomme le champ concerné et dit quoi corriger",
     ),
     "format_instruction": RelevanceKind(
         subject="texte associé à un champ dont la saisie impose un type ou un format",
@@ -189,18 +202,21 @@ RELEVANCE_KINDS: dict[str, RelevanceKind] = {
         not_relevant_examples=(
             "« Date » sans format alors que jj/mm/aaaa est exigé ; « Code » pour un pattern de 5 chiffres."
         ),
+        suggestion="le texte de l'étiquette complété par le format attendu (par exemple « Date (jj/mm/aaaa) »)",
     ),
     "error_suggestion_format": RelevanceKind(
         subject="message d'erreur de saisie",
         rule="RGAA 11.11 : le message d'erreur suggère, si nécessaire, le type et le format de données attendus.",
         relevant_when="le message indique le type ou le format attendu, ou aucune suggestion n'est nécessaire.",
         not_relevant_examples="« Date invalide » sans indiquer le format attendu.",
+        suggestion="le message d'erreur complété par le type ou le format attendu",
     ),
     "error_suggestion_example": RelevanceKind(
         subject="message d'erreur de saisie",
         rule="RGAA 11.11 : le message d'erreur suggère, si nécessaire, des exemples de valeurs attendues.",
         relevant_when="le message propose un exemple de valeur attendue, ou aucun exemple n'est nécessaire.",
         not_relevant_examples="« Numéro invalide » pour un format complexe sans exemple.",
+        suggestion="le message d'erreur complété par un exemple de valeur attendue",
     ),
     "transaction_scope": RelevanceKind(
         subject="formulaire (intitulé, champs et boutons fournis)",
@@ -237,6 +253,7 @@ RELEVANCE_KINDS: dict[str, RelevanceKind] = {
         rule="RGAA 11.13 : la valeur autocomplete doit correspondre à l'information attendue dans le champ.",
         relevant_when="la valeur (fournie dans autocomplete) correspond à la donnée demandée par l'étiquette.",
         not_relevant_examples='autocomplete="email" sur un champ « Téléphone », « given-name » sur « Nom de famille ».',
+        suggestion="la seule valeur autocomplete qui correspond à la donnée demandée (par exemple « tel »)",
     ),
     "captcha_alternative": RelevanceKind(
         subject="moyen proposé à la place d'un CAPTCHA graphique (lien, bouton, CAPTCHA audio…)",
@@ -283,6 +300,49 @@ RELEVANCE_KINDS: dict[str, RelevanceKind] = {
         rule="RGAA 7.2 : chaque alternative à un script doit être pertinente.",
         relevant_when="elle donne accès au même contenu ou à la même fonctionnalité que le script.",
         not_relevant_examples="« Activez JavaScript » seul, un texte sans rapport avec la fonctionnalité.",
+        suggestion=(
+            "une phrase courte qui indique ce que l'alternative doit proposer à la place du script "
+            "(contenu équivalent ou lien vers ce contenu), sans inventer d'adresse"
+        ),
+    ),
+    "keyboard_equivalent": RelevanceKind(
+        subject=(
+            "composant utilisable seulement à la souris (son texte, son code HTML et l'action de son script sont "
+            "fournis) ; le contexte liste les contrôles de la page utilisables au clavier"
+        ),
+        rule=(
+            "RGAA 7.3.1 : un composant contrôlé par un script doit être utilisable au clavier, ou un autre "
+            "élément utilisable au clavier et à la souris doit permettre de réaliser la même action."
+        ),
+        relevant_when=(
+            "un des contrôles listés réalise la même action que le composant (par exemple un lien « Aide » "
+            "qui ouvre la même page qu'un texte cliquable « Aide »)."
+        ),
+        not_relevant_examples=(
+            "aucun contrôle ne réalise cette action, un contrôle au nom proche qui fait autre chose."
+        ),
+    ),
+    "context_change_warning": RelevanceKind(
+        subject=(
+            "texte présenté à l'utilisateur avant un composant dont le script provoque un changement de contexte "
+            "(type fourni dans « change » : nouvelle page, nouvelle fenêtre, envoi de formulaire)"
+        ),
+        rule=(
+            "RGAA 7.4.1 : lorsqu'un script initie un changement de contexte sans bouton ni lien explicite, "
+            "l'utilisateur doit être averti par un texte de l'action du script et du type de changement, "
+            "avant son déclenchement."
+        ),
+        relevant_when=(
+            "le texte annonce clairement ce qui va se passer (par exemple « Choisir une langue ouvre la page "
+            "dans cette langue » pour une liste qui change de page)."
+        ),
+        not_relevant_examples=(
+            "une simple étiquette « Langue », « Note : prix TTC », un texte sans rapport avec le changement."
+        ),
+        suggestion=(
+            "un court texte d'avertissement à placer avant le composant, qui décrit l'action et le changement "
+            "de contexte (par exemple « La sélection ouvre la page correspondante »)"
+        ),
     ),
     # ---- Consultation (thème 13) ----
     "cryptic_context": RelevanceKind(
@@ -378,7 +438,7 @@ Règles :
 - utilise null si les informations ne permettent pas de conclure ;
 - confidence vaut "low", "medium" ou "high" ;
 - retourne un résultat pour chaque id fourni, dans le même ordre ;
-- n'ajoute aucun texte en dehors du JSON.
+- n'ajoute aucun texte en dehors du JSON.{suggestion_rule}
 
 Éléments à évaluer (JSON) :
 {items}
@@ -393,8 +453,26 @@ Retourne uniquement :
       "explanation": "explication courte",
       "problems": [],
       "uncertainties": [],
-      "confidence": "high"
+      "confidence": "high"{suggestion_field}
     }}
   ]
 }}
 """.strip()
+
+# Ajoutés au prompt uniquement pour les types qui demandent une proposition (RelevanceKind.suggestion) :
+# le prompt des autres types reste inchangé.
+SUGGESTION_RULE = (
+    "\n- si relevant vaut false, propose dans suggestion {suggestion}, déduit uniquement des informations "
+    "fournies (source, contexte) ; sinon, ou si les informations ne suffisent pas, suggestion vaut null."
+)
+SUGGESTION_FIELD = ',\n      "suggestion": null'
+
+
+def suggestion_parts(kind: RelevanceKind) -> dict[str, str]:
+    """Consigne et champ JSON de la proposition, vides si le type n'en demande pas."""
+    if not kind.suggestion:
+        return {"suggestion_rule": "", "suggestion_field": ""}
+    return {
+        "suggestion_rule": SUGGESTION_RULE.format(suggestion=kind.suggestion),
+        "suggestion_field": SUGGESTION_FIELD,
+    }

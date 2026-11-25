@@ -35,3 +35,16 @@ def test_low_confidence_no_ai_and_error(context_factory, run_rgaa):
     assert run_rgaa(Test1171(), context_factory(GROUP)).status == Status.NEEDS_REVIEW
     broken = text_services(relevance_answer=RuntimeError("panne"))
     assert run_rgaa(Test1171(), context_factory(GROUP), broken).status == Status.ERROR
+
+
+def test_fail_gives_line_and_snippet(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=relevance(False))
+    finding = run_rgaa(Test1171(), context_factory(f"<p>Intro</p>\n{GROUP}"), ai).findings[0]
+    assert finding.line == 2
+    assert finding.snippet.startswith("<fieldset><legend>Adresse de livraison</legend>")
+
+
+def test_ai_suggestion_is_proposed_on_fail(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=relevance(False, suggestion="Adresse de facturation"))
+    finding = run_rgaa(Test1171(), context_factory(GROUP), ai).findings[0]
+    assert finding.recommendation.endswith("Proposition : « Adresse de facturation ».")

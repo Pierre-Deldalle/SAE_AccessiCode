@@ -158,3 +158,88 @@ def test_713_ai_exception_gives_error(context_factory, run_rgaa):
 def test_713_low_confidence_needs_review(context_factory, run_rgaa):
     ai = text_services(relevance_answer=relevance(False, confidence="low"))
     assert run_rgaa(Test713(), context_factory(MENU_BUTTON), ai).status == Status.NEEDS_REVIEW
+
+
+# Emplacement des observations (ligne et extrait HTML)
+
+
+@pytest.mark.parametrize(
+    ("test_class", "html", "snippet"),
+    [
+        (Test711, '<div id="ouvrir" onclick="open()">Ouvrir</div>', '<div id="ouvrir" onclick="open()">Ouvrir</div>'),
+        (Test712, MENU_BUTTON, MENU_BUTTON),
+        (Test713, '<div onclick="x()">Ouvrir</div>', '<div onclick="x()">Ouvrir</div>'),
+        (
+            Test713,
+            '<button onclick="x()" aria-label="Fermer la fenêtre">Annuler</button>',
+            '<button onclick="x()" aria-label="Fermer la fenêtre">Annuler</button>',
+        ),
+    ],
+)
+def test_findings_give_line_and_snippet(test_class, html, snippet, context_factory, run_rgaa):
+    result = run_rgaa(test_class(), context_factory(f"<p>Introduction</p>\n\n{html}"), text_services())
+    assert result.status in {Status.FAIL, Status.NEEDS_REVIEW}
+    assert (result.findings[0].line, result.findings[0].snippet) == (3, snippet)
+
+
+def test_713_ai_failure_gives_line_and_snippet(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=relevance(False))
+    result = run_rgaa(Test713(), context_factory(f"<p>Introduction</p>\n{MENU_BUTTON}"), ai)
+    assert result.status == Status.FAIL
+    assert (result.findings[0].line, result.findings[0].snippet) == (2, MENU_BUTTON)
+
+
+# Correction concrète : exemple « avant → après » et proposition de l'IA
+
+
+@pytest.mark.parametrize(
+    ("html", "after"),
+    [
+        ('<div onclick="ouvrir()">Ouvrir</div>', '<div onclick="ouvrir()" role="button" tabindex="0">'),
+        (
+            "<span onclick=\"location.href='/aide'\">Aide</span>",
+            '<span onclick="location.href=\'/aide\'" role="link" tabindex="0">',
+        ),
+        (
+            '<div role="checkbox" tabindex="0" onclick="t()">Newsletter</div>',
+            '<div role="checkbox" tabindex="0" onclick="t()" aria-checked="false">',
+        ),
+    ],
+)
+def test_711_recommendation_shows_the_fix(html, after, context_factory, run_rgaa):
+    result = run_rgaa(Test711(), context_factory(html))
+    assert result.status == Status.FAIL
+    assert result.findings[0].recommendation.endswith(f"→ {after}")
+
+
+def test_711_missing_name_alone_has_no_example(context_factory, run_rgaa):
+    result = run_rgaa(Test711(), context_factory('<button onclick="x()"><svg></svg></button>'))
+    assert "Exemple" not in result.findings[0].recommendation
+
+
+def test_713_label_missing_from_name_shows_removal_of_aria_label(context_factory, run_rgaa):
+    html = '<button onclick="x()" aria-label="Fermer la fenêtre">Annuler</button>'
+    result = run_rgaa(Test713(), context_factory(html), text_services())
+    assert result.findings[0].recommendation.endswith(
+        'Exemple : <button onclick="x()" aria-label="Fermer la fenêtre"> → <button onclick="x()">'
+    )
+
+
+def test_713_ai_proposal_is_shown_on_fail(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=relevance(False, suggestion="Ouvrir le menu principal"))
+    result = run_rgaa(Test713(), context_factory(MENU_BUTTON), ai)
+    assert result.status == Status.FAIL
+    recommendation = result.findings[0].recommendation
+    assert "Proposition : « Ouvrir le menu principal »." in recommendation
+    assert recommendation.endswith(
+        '<button id="menu" onclick="toggle()" aria-expanded="false" aria-label="Ouvrir le menu principal">'
+    )
+
+
+def test_713_ai_proposal_is_ignored_when_unsure(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=relevance(False, confidence="low", suggestion="Ouvrir le menu"))
+    result = run_rgaa(Test713(), context_factory(MENU_BUTTON), ai)
+    assert result.status == Status.NEEDS_REVIEW
+    assert result.findings[0].recommendation == (
+        "Donner au composant un nom qui décrit sa fonction et un rôle qui correspond à son comportement."
+    )

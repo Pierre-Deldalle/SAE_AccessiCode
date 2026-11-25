@@ -43,7 +43,7 @@ Règles :
 - utilise null si tu ne peux pas conclure ;
 - confidence vaut "low", "medium" ou "high" ;
 - retourne un résultat pour chaque id fourni ;
-- n'ajoute aucun texte en dehors du JSON.
+- n'ajoute aucun texte en dehors du JSON.{suggestion_rule}
 
 Éléments (JSON) :
 {items}
@@ -60,7 +60,7 @@ Retourne uniquement :
       "characteristics": ["position"],
       "explanation": "explication courte",
       "uncertainties": [],
-      "confidence": "high"
+      "confidence": "high"{suggestion_field}
     }}
   ]
 }}
@@ -89,7 +89,7 @@ Indique :
 - alternative_relevant : si un autre moyen existe, est-il pertinent ? true, false ou null ;
 - characteristics : les caractéristiques utilisées.
 
-Utilise null si tu ne peux pas conclure. confidence vaut "low", "medium" ou "high".
+Utilise null si tu ne peux pas conclure. confidence vaut "low", "medium" ou "high".{image_suggestion_rule}
 
 Retourne uniquement :
 
@@ -100,6 +100,38 @@ Retourne uniquement :
   "characteristics": ["couleur"],
   "explanation": "explication courte",
   "uncertainties": [],
-  "confidence": "medium"
+  "confidence": "medium"{image_suggestion_field}
 }}
 """.strip()
+
+
+# Propositions de correction, demandées seulement pour ces types (les autres prompts restent inchangés).
+SENSORY_SUGGESTIONS: dict[str, dict[str, str]] = {
+    "color": {
+        "text": (
+            "le texte de l'élément corrigé pour donner l'information sans la couleur "
+            "(par exemple « Dossier B : en erreur »)"
+        ),
+        "image": "le texte à ajouter à l'alternative de l'image pour donner l'information sans la couleur",
+    },
+}
+
+_SUGGESTION_CONDITION = "si relies_only_on_sensory vaut true, propose dans suggestion {suggestion}, déduit "
+_SUGGESTION_END = "uniquement des informations fournies ; sinon, ou si elles ne suffisent pas, suggestion vaut null."
+
+
+def sensory_suggestion_parts(kind: str) -> dict[str, str]:
+    """Règle et champ JSON de proposition pour les deux prompts ; vides si le type n'en demande pas."""
+    wanted = SENSORY_SUGGESTIONS.get(kind)
+    if not wanted:
+        return dict.fromkeys(
+            ("suggestion_rule", "suggestion_field", "image_suggestion_rule", "image_suggestion_field"), ""
+        )
+    text_rule = _SUGGESTION_CONDITION.format(suggestion=wanted["text"]) + _SUGGESTION_END
+    image_rule = _SUGGESTION_CONDITION.format(suggestion=wanted["image"]) + _SUGGESTION_END
+    return {
+        "suggestion_rule": "\n- " + text_rule,
+        "suggestion_field": ',\n      "suggestion": null',
+        "image_suggestion_rule": "\n" + image_rule[0].upper() + image_rule[1:],
+        "image_suggestion_field": ',\n  "suggestion": null',
+    }

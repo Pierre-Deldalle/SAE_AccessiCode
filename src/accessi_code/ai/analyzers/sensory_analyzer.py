@@ -18,11 +18,17 @@ from accessi_code.ai.analyzers._base import (
     read_confidence,
     read_explanation,
     read_strings,
+    read_suggestion,
     read_tristate,
     truncate,
 )
 from accessi_code.ai.cache import AnalysisCache, make_key
-from accessi_code.ai.prompts.sensory import SENSORY_BATCH_PROMPT, SENSORY_IMAGE_PROMPT, SENSORY_RULES
+from accessi_code.ai.prompts.sensory import (
+    SENSORY_BATCH_PROMPT,
+    SENSORY_IMAGE_PROMPT,
+    SENSORY_RULES,
+    sensory_suggestion_parts,
+)
 from accessi_code.ai.schemas import SensoryAnalysis, SensoryCandidate
 from accessi_code.analysis.images import ImageInfo
 
@@ -68,7 +74,9 @@ class OllamaSensoryAnalyzer(JsonAnalyzer):
         return await self._run_batched(
             keys=[make_key("sensory", kind, payload) for payload in payloads],
             payloads=payloads,
-            build_prompt=lambda items_json: SENSORY_BATCH_PROMPT.format(rule=rule, items=items_json),
+            build_prompt=lambda items_json: SENSORY_BATCH_PROMPT.format(
+                rule=rule, items=items_json, **sensory_suggestion_parts(kind)
+            ),
             parse_item=_parse_sensory,
             missing_item=_unknown,
             cache=self.cache,
@@ -104,6 +112,7 @@ class OllamaSensoryAnalyzer(JsonAnalyzer):
                 element_html=truncate(image.element_html, HTML_LIMIT),
                 context=truncate(image.context_text, CONTEXT_LIMIT),
                 visual_observations=json.dumps(asdict(visual), ensure_ascii=False),
+                **sensory_suggestion_parts(kind),
             )
         )
 
@@ -133,6 +142,7 @@ def _parse_sensory(entry: dict[str, Any]) -> SensoryAnalysis:
         characteristics=read_strings(entry.get("characteristics")),
         uncertainties=read_strings(entry.get("uncertainties")),
         confidence="low" if corrupted else read_confidence(entry.get("confidence")),
+        suggestion=None if corrupted else read_suggestion(entry.get("suggestion")),
     )
 
 

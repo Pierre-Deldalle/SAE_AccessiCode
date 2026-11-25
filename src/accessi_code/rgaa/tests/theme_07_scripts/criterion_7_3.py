@@ -1,521 +1,285 @@
+"""
+RGAA 4.1.2 — critère 7.3 : chaque script est-il contrôlable par le clavier et par
+tout dispositif de pointage (hors cas particuliers) ?
+
+7.3.1 — chaque élément qui possède un gestionnaire d'événement est utilisable au
+clavier, ou un autre élément de la page permet la même action au clavier :
+- élément natif (bouton, lien, champ…) → PASS ;
+- élément non natif atteignable (tabindex ≥ 0) avec une gestion des touches → PASS ;
+- élément non natif qu'on ne peut pas atteindre au clavier, ou sans aucune gestion
+  des touches → l'existence d'un équivalent est une question de sens, jugée par
+  l'IA (``keyboard_equivalent``) : PASS / FAIL, NEEDS_REVIEW si elle est incertaine
+  ou absente ; FAIL sans IA si la page n'a aucun autre contrôle utilisable au clavier ;
+- gestion des touches possible ailleurs (écoute sur document) → NEEDS_REVIEW ;
+- contenu affiché au survol sans équivalent au focus → NEEDS_REVIEW.
+
+7.3.2 — un script ne retire pas le focus d'un élément qui le reçoit :
+- ``.blur()`` appelé quand un élément reçoit le focus (onfocus, focusin) → FAIL ;
+- autre appel à ``.blur()`` → NEEDS_REVIEW ;
+- aucun appel → PASS (NOT_APPLICABLE si la page n'a aucun script).
+"""
+
 from __future__ import annotations
 
-from typing import Any, Set
+import re
+from typing import Any
 
 from bs4 import BeautifulSoup, Tag
 
+from accessi_code.ai.schemas import RelevanceItem
+from accessi_code.analysis.components import component_identifier, component_name, component_role, normalize
+from accessi_code.analysis.location import opening_tag, source_file_name
+from accessi_code.analysis.scripts import inline_handlers, page_scripts, trigger_at
+from accessi_code.analysis.structure import accessible_text, is_hidden
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
-from accessi_code.models.result import (
-    Finding,
-    TestResult,
-    TestStatus,
-)
+from accessi_code.models.result import TestResult, TestStatus
+from accessi_code.rgaa.ai_decision import judge_relevance
 from accessi_code.rgaa.base import RGAATest
+from accessi_code.rgaa.outcomes import Outcome, build_result, make_outcome, not_applicable
+from accessi_code.rgaa.tests.theme_07_scripts._common import (
+    ACTIVATION_EVENTS,
+    FOCUS_EVENTS,
+    HOVER_EVENTS,
+    KEY_EVENTS,
+    handlers_by_element,
+    is_disabled,
+    is_focusable,
+    is_native_control,
+    native_replacement,
+)
+
+EMPTY_731 = "Aucun élément avec un gestionnaire d'événement contrôlé par un script."
+KEYBOARD_RECOMMENDATION = (
+    'Utiliser un élément natif (button ou lien), ou rendre le composant atteignable (tabindex="0") et '
+    "activable avec les touches Entrée et Espace."
+)
+HOVER_RECOMMENDATION = (
+    "Déclencher aussi l'affichage quand le composant reçoit le focus (onfocus), et le rendre atteignable au "
+    "clavier s'il ne l'est pas."
+)
+BLUR = re.compile(r"\.\s*blur\s*\(\s*\)")
+FOCUS_DETAIL = re.compile(r"événement focus(?:in)?\b")
+BLUR_RECOMMENDATION = "Ne pas retirer le focus d'un élément qui le reçoit (supprimer l'appel à blur())."
 
 
-class Test731(RGAATest):
+class KeyboardTest(RGAATest):
+    criterion_id = "7.3"
+    required_capabilities = frozenset({Capability.DOM})
+
+    def _soup(self, context: AuditContext) -> BeautifulSoup:
+        if not isinstance(context.dom, BeautifulSoup):
+            raise ValueError(f"Le test {self.test_id} nécessite un DOM.")
+        return context.dom
+
+
+def keyboard_controls(soup: BeautifulSoup, exclude: Tag) -> list[str]:
+    """Contrôles natifs de la page, utilisables au clavier, sous la forme « rôle « nom » »."""
+    controls: list[str] = []
+    for element in soup.find_all(True):
+        if element is exclude or not is_native_control(element) or is_disabled(element) or is_hidden(element):
+            continue
+        role, _ = component_role(element)
+        name, _ = component_name(element, soup)
+        entry = f"{role or element.name} « {name} »" if name else ""
+        if entry and entry not in controls:
+            controls.append(entry)
+    return controls[:40]
+
+
+class Test731(KeyboardTest):
+    """7.3.1 : éléments avec un gestionnaire d'événement utilisables au clavier (ou équivalent)."""
+
     test_id = "7.3.1"
-    criterion_id = "7.3"
 
-    required_capabilities = frozenset(
-        {
-            Capability.DOM,
-        }
-    )
+    async def run(self, context: AuditContext, services: Any | None = None) -> TestResult:
+        soup = self._soup(context)
+        sources = page_scripts(context)
+        grouped, global_listeners, _unresolved = handlers_by_element(sources, soup)
+        global_keys = any(listener.event in KEY_EVENTS for listener in global_listeners)
 
-    async def run(
-        self,
-        context: AuditContext,
-        services: Any | None = None,
-    ) -> TestResult:
-        if not isinstance(context.dom, BeautifulSoup):
-            raise ValueError("Le test 7.3.1 nécessite un DOM.")
+        candidates = [
+            handlers
+            for handlers in grouped
+            if handlers.events & (ACTIVATION_EVENTS | HOVER_EVENTS)
+            and not is_hidden(handlers.element)
+            and not is_disabled(handlers.element)
+        ]
+        if not candidates:
+            return not_applicable(self, EMPTY_731)
 
-        soup = context.dom
+        outcomes: list[Outcome | None] = [None] * len(candidates)
+        to_judge: list[tuple[int, str, RelevanceItem]] = []
+        for index, handlers in enumerate(candidates):
+            element = handlers.element
+            identifier = component_identifier(element, index)
+            events = handlers.events
+            evidence = {"events": sorted(events), "code": normalize(handlers.code(events))[:300]}
+            focusable = is_focusable(element)
+            keyboard = is_native_control(element) or (focusable and bool(events & KEY_EVENTS))
 
-        script_elements = self._find_script_controlled_elements(soup)
-
-        if not script_elements:
-            return TestResult(
-                test_id=self.test_id,
-                criterion_id=self.criterion_id,
-                status=TestStatus.NOT_APPLICABLE,
-                summary="Aucun élément avec gestionnaire d'événement script détecté.",
-            )
-
-        findings: list[Finding] = []
-        compliant_count = 0
-
-        for index, element in enumerate(script_elements):
-            if self._is_keyboard_accessible_or_has_equivalent(element, soup):
-                compliant_count += 1
+            if events & ACTIVATION_EVENTS and not keyboard:
+                if focusable and global_keys:
+                    outcomes[index] = make_outcome(
+                        TestStatus.NEEDS_REVIEW,
+                        identifier,
+                        "Le composant reçoit le focus mais ne gère pas lui-même les touches : vérifier que la "
+                        "gestion du clavier ajoutée sur le document l'active avec Entrée et Espace.",
+                        KEYBOARD_RECOMMENDATION,
+                        node=element,
+                        **evidence,
+                    )
+                    continue
+                reason = (
+                    "il ne réagit à aucune touche du clavier"
+                    if focusable
+                    else "on ne peut pas l'atteindre avec la touche Tab"
+                )
+                controls = keyboard_controls(soup, element)
+                recommendation = KEYBOARD_RECOMMENDATION + native_replacement(element, handlers.code(ACTIVATION_EVENTS))
+                if not controls:
+                    outcomes[index] = make_outcome(
+                        TestStatus.FAIL,
+                        identifier,
+                        f"Le composant n'est utilisable qu'à la souris : {reason}, et la page n'a aucun autre "
+                        "contrôle utilisable au clavier.",
+                        recommendation,
+                        node=element,
+                        **evidence,
+                    )
+                    continue
+                to_judge.append(
+                    (
+                        index,
+                        reason,
+                        RelevanceItem(
+                            text=normalize(accessible_text(element))[:200] or "(sans texte)",
+                            element_html=str(element)[:400],
+                            context="Contrôles utilisables au clavier : " + "; ".join(controls),
+                            details={"action": evidence["code"]},
+                        ),
+                    )
+                )
                 continue
 
-            findings.append(
-                Finding(
-                    element=self._get_element_identifier(element, index),
-                    message=(
-                        "L'élément possédant un gestionnaire d'événement script n'est pas "
-                        "accessible au clavier et aucun élément accessible permettant de "
-                        "réaliser la même action n'est présent dans la page."
-                    ),
-                    recommendation=(
-                        "Rendre l'élément accessible au clavier (via tabindex, gestionnaires "
-                        "d'événement clavier appropriés) ou fournir un élément accessible "
-                        "permettant d'accéder aux mêmes fonctionnalités."
-                    ),
+            if events & HOVER_EVENTS and not events & FOCUS_EVENTS:
+                hover_code = handlers.code(HOVER_EVENTS)
+                inline = all(listener.element is not None for listener in handlers.listeners)
+                changes = {"onfocus": hover_code} if inline and hover_code else {}
+                if not focusable:
+                    changes["tabindex"] = "0"
+                example = f" Exemple : {opening_tag(element)} → {opening_tag(element, **changes)}" if changes else ""
+                outcomes[index] = make_outcome(
+                    TestStatus.NEEDS_REVIEW,
+                    identifier,
+                    "Le script réagit au survol de la souris, mais pas au focus : vérifier que la même "
+                    "information est disponible au clavier.",
+                    HOVER_RECOMMENDATION + example,
+                    node=element,
+                    **evidence,
                 )
+                continue
+
+            outcomes[index] = make_outcome(TestStatus.PASS)
+
+        verdicts = await judge_relevance(services, "keyboard_equivalent", [item for _, _, item in to_judge])
+        for (index, reason, item), verdict in zip(to_judge, verdicts, strict=True):
+            handlers = candidates[index]
+            outcomes[index] = make_outcome(
+                verdict.status,
+                component_identifier(handlers.element, index),
+                verdict.message(
+                    f"Le composant n'est utilisable qu'à la souris : {reason}, et aucun autre élément de la page "
+                    "ne permet la même action au clavier.",
+                    f"Le composant n'est utilisable qu'à la souris ({reason}) : l'existence d'un équivalent "
+                    "utilisable au clavier reste à vérifier.",
+                ),
+                KEYBOARD_RECOMMENDATION + native_replacement(handlers.element, handlers.code(ACTIVATION_EVENTS)),
+                node=handlers.element,
+                events=sorted(handlers.events),
+                code=item.details["action"],
+                **verdict.evidence,
             )
 
-        if findings:
-            status = TestStatus.FAIL
-        else:
-            status = TestStatus.PASS
-
-        return TestResult(
-            test_id=self.test_id,
-            criterion_id=self.criterion_id,
-            status=status,
-            summary=(
-                f"{len(script_elements)} élément(s) avec gestionnaire d'événement script : "
-                f"{compliant_count} conforme(s), {len(findings)} non conforme(s)."
-            ),
-            findings=findings,
-            tested_elements=len(script_elements),
-            metadata={
-                "script_controlled_elements": len(script_elements),
-                "keyboard_accessible_or_equivalent": compliant_count,
-                "not_keyboard_accessible_no_equivalent": len(findings),
-            },
+        return build_result(
+            self,
+            [item for item in outcomes if item is not None],
+            empty_summary=EMPTY_731,
+            noun="élément(s) avec gestionnaire d'événement",
         )
 
-    def _find_script_controlled_elements(self, soup: BeautifulSoup) -> list[Tag]:
-        script_elements: set[Tag] = set()
 
-        event_handlers: Set[str] = {
-            "onclick",
-            "ondblclick",
-            "onmousedown",
-            "onmouseup",
-            "onmouseover",
-            "onmousemove",
-            "onmouseout",
-            "onkeypress",
-            "onkeydown",
-            "onkeyup",
-            "onchange",
-            "onsubmit",
-            "onreset",
-            "onselect",
-            "onblur",
-            "onfocus",
-            "ontouchstart",
-            "ontouchend",
-            "ontouchmove",
-            "ontouchcancel",
-            "onpointerdown",
-            "onpointerup",
-            "onpointerover",
-            "onpointerout",
-            "onpointermove",
-            "onpointerenter",
-            "onpointerleave",
-            "ongotpointercapture",
-            "onlostpointercapture",
-        }
+class Test732(KeyboardTest):
+    """7.3.2 : un script ne retire pas le focus d'un élément qui le reçoit."""
 
-        for handler in event_handlers:
-            elements = soup.find_all(attrs={handler: True})
-            script_elements.update(elements)
-
-        return list(script_elements)
-
-    def _is_keyboard_accessible_or_has_equivalent(self, element: Tag, soup: BeautifulSoup) -> bool:
-        if self._is_element_keyboard_accessible(element):
-            return True
-
-        if self._has_accessible_equivalent(element, soup):
-            return True
-
-        return False
-
-    def _is_element_keyboard_accessible(self, element: Tag) -> bool:
-        if not self._can_receive_focus(element):
-            return False
-
-        role = element.get("role")
-        tag_name = element.name.lower() if element.name else ""
-        input_type = element.get("type", "").lower() if element.name == "input" else ""
-
-        is_simple_action = self._is_simple_action(element, role, tag_name, input_type)
-
-        if is_simple_action:
-            return self._can_be_activated_with_enter(element)
-        else:
-            return self._is_usable_with_arrow_keys(element)
-
-    def _can_receive_focus(self, element: Tag) -> bool:
-        if element.get("tabindex") == "-1":
-            return False
-
-        if element.get("disabled") is not None:
-            return False
-
-        if element.get("aria-hidden") == "true":
-            return False
-
-        tag_name = element.name.lower() if element.name else ""
-        naturally_focusable = {"a", "button", "input", "select", "textarea", "iframe"}
-        if tag_name in naturally_focusable:
-            return True
-
-        tabindex = element.get("tabindex")
-        if tabindex is not None:
-            try:
-                tabindex_val = int(tabindex)
-                return tabindex_val >= 0
-            except ValueError:
-                pass
-
-        role = element.get("role")
-        focusable_roles = {
-            "button",
-            "link",
-            "checkbox",
-            "radio",
-            "textbox",
-            "combobox",
-            "listbox",
-            "menuitem",
-            "menuitemcheckbox",
-            "menuitemradio",
-            "option",
-            "progressbar",
-            "scrollbar",
-            "slider",
-            "spinbutton",
-            "switch",
-            "tab",
-            "textbox",
-            "treeitem",
-        }
-        if role and role in focusable_roles:
-            return True
-
-        return False
-
-    def _is_simple_action(self, element: Tag, role: str | None, tag_name: str, input_type: str) -> bool:
-        simple_tags = {"a", "button", "input"}
-        simple_input_types = {"submit", "button", "reset", "checkbox", "radio", "image"}
-        simple_roles = {"button", "link", "checkbox", "radio", "menuitem", "menuitemcheckbox", "menuitemradio"}
-
-        if tag_name in simple_tags:
-            if tag_name == "input":
-                return input_type in simple_input_types
-            return True
-
-        if role in simple_roles:
-            return True
-
-        return False
-
-    def _can_be_activated_with_enter(self, element: Tag) -> bool:
-        tag_name = element.name.lower() if element.name else ""
-        input_type = element.get("type", "").lower() if element.name == "input" else ""
-
-        if tag_name in {"a", "button", "input"}:
-            if tag_name == "input":
-                non_activating_types = {"text", "password", "search", "email", "tel", "url"}
-                return input_type not in non_activating_types
-            return True
-
-        role = element.get("role")
-        activable_roles = {
-            "button",
-            "link",
-            "checkbox",
-            "radio",
-            "menuitem",
-            "menuitemcheckbox",
-            "menuitemradio",
-            "switch",
-        }
-        if role in activable_roles:
-            return True
-
-        keyboard_handlers = {"onkeydown", "onkeyup", "onkeypress"}
-        for handler in keyboard_handlers:
-            if element.get(handler):
-                return True
-
-        return False
-
-    def _is_usable_with_arrow_keys(self, element: Tag) -> bool:
-        role = element.get("role")
-        arrow_key_roles = {
-            "menu",
-            "menubar",
-            "menuitem",
-            "tablist",
-            "tab",
-            "treegrid",
-            "grid",
-            "listbox",
-            "combobox",
-            "slider",
-            "spinbutton",
-            "scrollbar",
-        }
-        if role in arrow_key_roles:
-            return True
-
-        keyboard_handlers = {"onkeydown", "onkeyup", "onkeypress"}
-        for handler in keyboard_handlers:
-            if element.get(handler):
-                return True
-
-        return False
-
-    def _has_accessible_equivalent(self, element: Tag, soup: BeautifulSoup) -> bool:
-        tag_name = element.name.lower() if element.name else ""
-        role = element.get("role")
-
-        element_text = element.get_text(strip=True)
-
-        all_elements = soup.find_all()
-
-        for other in all_elements:
-            if other is element:
-                continue
-
-            if not self._can_receive_focus(other):
-                continue
-
-            other_tag = other.name.lower() if other.name else ""
-            other_role = other.get("role")
-            other_text = other.get_text(strip=True)
-
-            similarity_score = 0
-
-            if tag_name == other_tag:
-                similarity_score += 1
-
-            if role and role == other_role:
-                similarity_score += 2
-
-            if element_text and other_text:
-                if element_text.lower() == other_text.lower():
-                    similarity_score += 2
-                elif element_text.lower() in other_text.lower() or other_text.lower() in element_text.lower():
-                    similarity_score += 1
-
-            if similarity_score >= 2:
-                if self._is_element_keyboard_accessible(other):
-                    return True
-
-        return False
-
-    def _get_element_identifier(self, element: Tag, index: int) -> str:
-        element_id = element.get("id")
-        if isinstance(element_id, str) and element_id.strip():
-            return f"{element.name}#{element_id}"
-
-        return f"{element.name}[index={index}]"
-
-
-class Test732(RGAATest):
     test_id = "7.3.2"
-    criterion_id = "7.3"
 
-    required_capabilities = frozenset(
-        {
-            Capability.DOM,
-        }
-    )
+    async def run(self, context: AuditContext, services: Any | None = None) -> TestResult:
+        soup = self._soup(context)
+        sources = page_scripts(context)
+        handlers = inline_handlers(soup)
+        if not sources and not handlers:
+            return not_applicable(self, "Aucun script dans la page.")
 
-    async def run(
-        self,
-        context: AuditContext,
-        services: Any | None = None,
-    ) -> TestResult:
-        if not isinstance(context.dom, BeautifulSoup):
-            raise ValueError("Le test 7.3.2 nécessite un DOM.")
-
-        soup = context.dom
-
-        focusable_elements = self._find_focusable_elements(soup)
-
-        if not focusable_elements:
-            return TestResult(
-                test_id=self.test_id,
-                criterion_id=self.criterion_id,
-                status=TestStatus.NOT_APPLICABLE,
-                summary="Aucun élément focusable détecté.",
-            )
-
-        findings: list[Finding] = []
-        compliant_count = 0
-
-        for index, element in enumerate(focusable_elements):
-            if self._does_not_remove_focus(element, soup):
-                compliant_count += 1
+        outcomes: list[Outcome] = []
+        for index, handler in enumerate(handlers):
+            if not BLUR.search(handler.code):
                 continue
-
-            findings.append(
-                Finding(
-                    element=self._get_element_identifier(element, index),
-                    message=(
-                        "Un script supprime le focus d'un élément qui le reçoit, "
-                        "ce qui peut désorienter les utilisateurs utilisant le clavier "
-                        "ou des technologies d'assistance."
-                    ),
-                    recommendation=(
-                        "Supprimer toute logique qui enlève le focus d'un élément lorsque "
-                        "celui-ci le reçoit, sauf si cela est absolument nécessaire "
-                        "et qu'un mécanisme de retour de focus approprié est fourni."
-                    ),
+            element = handler.element
+            if handler.event in FOCUS_EVENTS:
+                rest = BLUR.sub("", handler.code).replace("this", "").strip(" ;")
+                example = (
+                    f" Exemple : {opening_tag(element)} → {opening_tag(element, **{'on' + handler.event: None})}"
+                    if not rest
+                    else ""
                 )
-            )
+                outcomes.append(
+                    make_outcome(
+                        TestStatus.FAIL,
+                        component_identifier(element, index),
+                        f"Le focus est retiré de l'élément dès qu'il le reçoit (attribut on{handler.event}).",
+                        BLUR_RECOMMENDATION + example,
+                        node=element,
+                        code=handler.code[:300],
+                    )
+                )
+            else:
+                outcomes.append(
+                    make_outcome(
+                        TestStatus.NEEDS_REVIEW,
+                        component_identifier(element, index),
+                        f"Un appel à blur() dans l'attribut on{handler.event} retire le focus : vérifier qu'il ne "
+                        "le retire pas à un élément qui vient de le recevoir.",
+                        BLUR_RECOMMENDATION,
+                        node=element,
+                        code=handler.code[:300],
+                    )
+                )
 
-        if findings:
-            status = TestStatus.FAIL
-        else:
-            status = TestStatus.PASS
+        for source in sources:
+            for match in BLUR.finditer(source.masked):
+                info = trigger_at(sources, source, match.start(), soup)
+                on_focus = bool(FOCUS_DETAIL.search(info.detail))
+                location = {
+                    "file": source_file_name(context, source.path) if source.path else None,
+                    "line": source.line_of(match.start()),
+                }
+                outcomes.append(
+                    make_outcome(
+                        TestStatus.FAIL if on_focus else TestStatus.NEEDS_REVIEW,
+                        source.label,
+                        "Le script retire le focus d'un élément dès qu'il le reçoit."
+                        if on_focus
+                        else f"Le script retire le focus d'un élément ({info.detail}) : vérifier qu'il ne le retire "
+                        "pas à un élément qui vient de le recevoir.",
+                        BLUR_RECOMMENDATION,
+                        **location,
+                        code=source.snippet(match.start()),
+                    )
+                )
 
-        return TestResult(
-            test_id=self.test_id,
-            criterion_id=self.criterion_id,
-            status=status,
-            summary=(
-                f"{len(focusable_elements)} élément(s) focusable : "
-                f"{compliant_count} conforme(s), {len(findings)} non conforme(s)."
-            ),
-            findings=findings,
-            tested_elements=len(focusable_elements),
-            metadata={
-                "focusable_elements": len(focusable_elements),
-                "does_not_remove_focus": compliant_count,
-                "removes_focus": len(findings),
-            },
-        )
-
-    def _find_focusable_elements(self, soup: BeautifulSoup) -> list[Tag]:
-        focusable: set[Tag] = set()
-
-        naturally_focusable = soup.find_all(["a", "button", "input", "select", "textarea", "iframe"])
-        focusable.update(naturally_focusable)
-
-        tabindex_elements = soup.find_all(attrs={"tabindex": True})
-        for elem in tabindex_elements:
-            tabindex = elem.get("tabindex")
-            if tabindex is not None:
-                try:
-                    tabindex_val = int(tabindex)
-                    if tabindex_val >= -1:
-                        focusable.add(elem)
-                except ValueError:
-                    pass
-
-        focusable_roles = {
-            "button",
-            "link",
-            "checkbox",
-            "radio",
-            "textbox",
-            "combobox",
-            "listbox",
-            "menuitem",
-            "menuitemcheckbox",
-            "menuitemradio",
-            "option",
-            "progressbar",
-            "scrollbar",
-            "slider",
-            "spinbutton",
-            "switch",
-            "tab",
-            "textbox",
-            "treeitem",
-        }
-        for role in focusable_roles:
-            role_elements = soup.find_all(attrs={"role": role})
-            focusable.update(role_elements)
-
-        return list(focusable)
-
-    def _does_not_remove_focus(self, element: Tag, soup: BeautifulSoup) -> bool:
-        blur_handlers = ["onblur", "onfocusout"]
-        for handler in blur_handlers:
-            handler_value = element.get(handler)
-            if handler_value and isinstance(handler_value, str):
-                focus_removal_patterns = [
-                    "blur()",
-                    "focusout()",
-                    "document.activeElement.blur()",
-                    "$(document.activeElement).blur()",
-                    "element.blur()",
-                    "this.blur()",
-                    "setTimeout.*blur",
-                    "requestAnimationFrame.*blur",
-                ]
-                for pattern in focus_removal_patterns:
-                    if pattern in handler_value.lower():
-                        return False
-
-        scripts = soup.find_all("script")
-        for script in scripts:
-            script_content = ""
-            if script.string:
-                script_content = script.string
-            elif script.get("src"):
-                continue
-
-            focus_removal_patterns = [
-                r"\.blur\s*\(",
-                r"\.focusout\s*\(",
-                r"activeElement\s*\.\s*blur\s*\(",
-                r"setTimeout\s*\([^)]*blur",
-                r"requestAnimationFrame\s*\([^)]*blur",
-            ]
-
-            import re
-
-            for pattern in focus_removal_patterns:
-                if re.search(pattern, script_content, re.IGNORECASE):
-                    if self._might_be_associated_with_element(script, element):
-                        return False
-
-        return True
-
-    def _might_be_associated_with_element(self, script: Tag, element: Tag) -> bool:
-        if script.parent == element.parent:
-            return True
-
-        if element.parent:
-            parent_children = list(element.parent.children)
-            try:
-                element_index = parent_children.index(element)
-                script_index = parent_children.index(script)
-                if abs(element_index - script_index) <= 5:
-                    return True
-            except ValueError:
-                pass
-
-        element_id = element.get("id")
-        if element_id and isinstance(element_id, str) and element_id.strip():
-            script_content = ""
-            if script.string:
-                script_content = script.string
-            if element_id in script_content:
-                return True
-
-        return False
-
-    def _get_element_identifier(self, element: Tag, index: int) -> str:
-        """Generate a unique identifier for the element."""
-        element_id = element.get("id")
-        if isinstance(element_id, str) and element_id.strip():
-            return f"{element.name}#{element_id}"
-
-        return f"{element.name}[index={index}]"
+        if not outcomes:
+            result = build_result(self, [make_outcome(TestStatus.PASS)], empty_summary="")
+            result.summary = "Aucun script ne retire le focus d'un élément."
+            return result
+        return build_result(self, outcomes, empty_summary="", noun="retrait(s) du focus")

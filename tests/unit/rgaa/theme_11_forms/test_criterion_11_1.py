@@ -113,3 +113,107 @@ def test_1113_browser_layout_evidence(context_factory, run_rgaa):
     context = context_factory(html)
     context.form_label_layout = {"input#q": {"verified": True, "adjacent": True}}
     assert run_rgaa(Test1113(), context).status == Status.PASS
+
+
+@pytest.mark.parametrize(
+    ("cls", "html", "line", "snippet"),
+    [
+        (Test1111, '<p>Intro</p>\n<input id="q" name="q">', 2, '<input id="q" name="q">'),
+        (Test1112, '<p>Intro</p>\n<label for="absent">Nom</label>', 2, '<label for="absent">Nom</label>'),
+        (Test1113, '<p>Intro</p>\n<input id="q" aria-label="Nom">', 2, '<input id="q" aria-label="Nom">'),
+    ],
+)
+def test_fail_gives_line_and_snippet(cls, html, line, snippet, context_factory, run_rgaa):
+    result = run_rgaa(cls(), context_factory(html))
+    assert result.status == Status.FAIL
+    assert (result.findings[0].line, result.findings[0].snippet) == (line, snippet)
+
+
+# Exemples « avant / après » ------------------------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("html", "after"),
+    [
+        (
+            '<input name="nom" placeholder="Nom">',
+            '<input name="nom" placeholder="Nom"> → <label for="nom">Nom</label>'
+            '<input name="nom" placeholder="Nom" id="nom">',
+        ),
+        (
+            '<input type="radio" name="g" value="f"> Femme',
+            '<input type="radio" name="g" value="f"> Femme → '
+            '<input type="radio" name="g" value="f" id="g-f"> <label for="g-f">Femme</label>',
+        ),
+        (
+            '<p id="nom">x</p><input name="nom">',
+            '<input name="nom"> → <label for="nom-2">[intitulé du champ]</label><input name="nom" id="nom-2">',
+        ),
+        (
+            '<div role="progressbar" aria-valuenow="60"></div>',
+            '<div role="progressbar" aria-valuenow="60"> → '
+            '<div role="progressbar" aria-valuenow="60" aria-label="[intitulé du champ]">',
+        ),
+    ],
+    ids=["placeholder", "radio", "id déjà pris", "composant ARIA"],
+)
+def test_1111_example_adds_a_label(html, after, context_factory, run_rgaa):
+    result = run_rgaa(Test1111(), context_factory(html))
+    assert result.findings[0].recommendation.endswith(f"Exemple : {after}")
+
+
+@pytest.mark.parametrize(
+    ("html", "after"),
+    [
+        ('<label for="x">Courriel</label><input id="mail" type="email">', '<label for="x"> → <label for="mail">'),
+        (
+            '<label for="mail">Courriel</label><input type="email">',
+            '<input type="email"> → <input type="email" id="mail">',
+        ),
+        (
+            '<label for="">Courriel</label><input type="email">',
+            '<label for=""> … <input type="email"> → <label for="input"> … <input type="email" id="input">',
+        ),
+    ],
+    ids=["for corrigé", "id ajouté", "for vide"],
+)
+def test_1112_example_links_the_label_to_its_field(html, after, context_factory, run_rgaa):
+    result = run_rgaa(Test1112(), context_factory(html))
+    assert result.findings[0].recommendation.endswith(f"Exemple : {after}")
+
+
+@pytest.mark.parametrize(
+    "html",
+    [
+        '<label for="d">A</label><input id="d"><span id="d"></span>',
+        '<label for="x">A</label><label for="b">B</label><input id="b">',
+    ],
+    ids=["id en double", "champ déjà étiqueté"],
+)
+def test_1112_no_example_when_the_field_is_uncertain(html, context_factory, run_rgaa):
+    result = run_rgaa(Test1112(), context_factory(html))
+    assert result.status == Status.FAIL
+    assert "Exemple" not in result.findings[0].recommendation
+
+
+@pytest.mark.parametrize(
+    ("html", "after"),
+    [
+        (
+            '<input id="q" aria-label="Nom">',
+            '<input id="q" aria-label="Nom"> → <input id="q" aria-label="Nom" title="Nom">',
+        ),
+        ('<label for="q" hidden>Nom</label><input id="q">', '<input id="q"> → <input id="q" title="Nom">'),
+    ],
+    ids=["aria-label", "label masqué"],
+)
+def test_1113_example_adds_a_title(html, after, context_factory, run_rgaa):
+    result = run_rgaa(Test1113(), context_factory(html))
+    assert result.findings[0].recommendation.endswith(f"Exemple : {after}")
+
+
+def test_1113_remote_labelledby_has_no_example(context_factory, run_rgaa):
+    html = '<p id="t">Nom</p><div><span>x</span></div><div><input id="q" aria-labelledby="t"></div>'
+    result = run_rgaa(Test1113(), context_factory(html))
+    assert result.status == Status.NEEDS_REVIEW
+    assert "Exemple" not in result.findings[0].recommendation

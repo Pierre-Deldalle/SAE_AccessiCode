@@ -87,6 +87,9 @@ class ScriptSource:
     # Comme ``masked``, avec tout le contenu des chaînes effacé (recherche d'identifiants).
     bare: str = ""
     pairs: list[tuple[int, int]] = field(default_factory=list)
+    # Origine du code, pour situer une observation : balise <script> de la page ou fichier .js.
+    tag: Tag | None = None
+    path: Path | None = None
 
     def __post_init__(self) -> None:
         self.masked = mask_code(self.code)
@@ -95,6 +98,16 @@ class ScriptSource:
 
     def snippet(self, position: int, before: int = 120, after: int = 220) -> str:
         return " ".join(self.code[max(0, position - before) : position + after].split())
+
+    def line_of(self, position: int) -> int | None:
+        """
+        Ligne de ``position`` dans son fichier : dans la page pour une balise <script>
+        (son contenu commence sur la ligne de la balise), dans le fichier .js sinon.
+        """
+        offset = self.code.count("\n", 0, position)
+        if self.tag is not None:
+            return self.tag.sourceline + offset if isinstance(self.tag.sourceline, int) else None
+        return offset + 1 if self.path is not None else None
 
 
 @dataclass
@@ -197,17 +210,17 @@ def page_scripts(context: AuditContext) -> list[ScriptSource]:
                 path = (base / parsed.path.lstrip("/")).resolve()
                 if path.is_file() and path not in seen:
                     seen.add(path)
-                    sources.append(ScriptSource(path.name, _read(path)))
+                    sources.append(ScriptSource(path.name, _read(path), path=path))
                 continue
             code = script.string or script.get_text()
             if code and code.strip():
-                sources.append(ScriptSource(f"script[index={index}]", code))
+                sources.append(ScriptSource(f"script[index={index}]", code, tag=script))
 
     for audit_file in context.files:
         path = Path(audit_file.path).resolve()
         if audit_file.extension == ".js" and path.is_file() and path not in seen:
             seen.add(path)
-            sources.append(ScriptSource(path.name, _read(path)))
+            sources.append(ScriptSource(path.name, _read(path), path=path))
     return sources
 
 
@@ -535,3 +548,52 @@ def event_listeners(sources: list[ScriptSource], soup: BeautifulSoup | None, eve
                     ListenerCall(handler.event, handler.code, f"attribut on{handler.event}", element=handler.element)
                 )
     return listeners
+
+
+_BY_ID = r"getElementById\(\s*['\"`]([\w:.-]+)['\"`]\s*\)"
+_BY_SELECTOR = r"querySelector\(\s*['\"`]([^'\"`]+)['\"`]\s*\)"
+_DIRECT_TARGET = re.compile(rf"(?:{_BY_ID}|{_BY_SELECTOR})\s*\.?\s*$")
+_VARIABLE_TARGET = re.compile(r"(?<![\w$.])([\w$]+)\s*\.?\s*$")
+GLOBAL_TARGETS = frozenset({"document", "window", "body"})
+
+
+def _select(soup: BeautifulSoup, element_id: str | None, selector: str | None) -> list[Tag]:
+    if element_id:
+        found = soup.find(id=element_id)
+        return [found] if isinstance(found, Tag) else []
+    try:
+        found = soup.select_one(selector or "")
+    except Exception:  # sélecteur non pris en charge par soupsieve
+        return []
+    return [found] if isinstance(found, Tag) else []
+
+
+def listener_target(sources: list[ScriptSource], soup: BeautifulSoup, listener: ListenerCall) -> Tag | str | None:
+    """
+    Élément visé par une écoute écrite dans un script : ``getElementById("x").addEventListener``,
+    ``querySelector("#x").onclick = …`` ou une variable affectée par l'un d'eux.
+    Retourne l'élément, "document" pour une écoute globale (document, window, body),
+    ou None si la cible ne peut pas être déterminée. Une écoute en attribut vise son élément.
+    """
+    if listener.element is not None:
+        return listener.element
+    if listener.source is None:
+        return None
+    before = listener.source.masked[max(0, listener.position - 200) : listener.position]
+    direct = _DIRECT_TARGET.search(before)
+    if direct:
+        found = _select(soup, direct.group(1), direct.group(2))
+        return found[0] if found else None
+    variable = _VARIABLE_TARGET.search(before)
+    if variable is None:
+        return None
+    name = variable.group(1)
+    if name in GLOBAL_TARGETS:
+        return "document"
+    assignment = re.compile(rf"(?<![\w$.]){re.escape(name)}\s*=\s*(?:document\s*\.\s*)?(?:{_BY_ID}|{_BY_SELECTOR})")
+    for source in sources:
+        match = assignment.search(source.masked)
+        if match:
+            found = _select(soup, match.group(1), match.group(2))
+            return found[0] if found else None
+    return None

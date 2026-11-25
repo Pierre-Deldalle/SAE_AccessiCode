@@ -366,12 +366,14 @@ def color_property_candidates(context: AuditContext) -> list[Candidate]:
         if tag.name in PHRASING_TAGS or tag.name in LAYOUT_TAGS or not _visible_in_body(tag):
             continue
         reasons: list[str] = []
+        evidence: dict[str, Any] = {}
         if tag.name == "a" and tag.has_attr("href"):
             removed = _underline_removed(tag, sheet)
             block = tag.find_parent(["p", "li", "td", "dd", "blockquote"])
             link_text = normalize(tag.get_text(" ", strip=True))
             if removed and isinstance(block, Tag) and len(normalize(block.get_text(" ", strip=True))) > len(link_text):
                 reasons.append(f"lien dans un texte sans soulignement ({removed})")
+                evidence["underline_removed"] = removed
         reasons.extend(_declarations(tag, state_rules, COLOR_PROPERTIES))
         if tag.name != "a":
             reasons.extend(f"style en ligne : {value}" for value in _color_values(inline_style(tag), COLOR_PROPERTIES))
@@ -385,7 +387,7 @@ def color_property_candidates(context: AuditContext) -> list[Candidate]:
                 text=text[:TEXT_LIMIT] or f"(élément {tag.name} sans texte)",
                 html=str(tag)[:400],
                 context=f"Couleur appliquée : {' ; '.join(reasons)[:250]} — {element_context(tag)}",
-                evidence={"colors": reasons},
+                evidence={"colors": reasons, **evidence},
             )
         )
     return candidates

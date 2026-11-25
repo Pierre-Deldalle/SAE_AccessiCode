@@ -26,12 +26,14 @@ from accessi_code.analysis.dom import (
     get_wrapping_label,
 )
 from accessi_code.analysis.forms import button_name, button_visible, field_description, form_context
+from accessi_code.analysis.location import opening_tag
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
 from accessi_code.models.result import Finding, TestResult, TestStatus
 from accessi_code.rgaa.ai_decision import judge_relevance
 from accessi_code.rgaa.base import RGAATest
 from accessi_code.rgaa.outcomes import build_result, make_outcome, not_applicable
+from accessi_code.rgaa.tests.theme_11_forms._examples import example
 from accessi_code.rgaa.tests.theme_11_forms.criterion_11_1 import adjacent_button
 
 
@@ -102,6 +104,12 @@ class _LabelRelevanceTest(RGAATest):
             return [value if valid else ""]
         return []
 
+    def _suggestion_example(self, field: Tag, suggestion: str | None) -> str:
+        """Proposition de l'IA écrite dans l'attribut du champ (title ou aria-label)."""
+        if not suggestion or self.mechanism not in {"title", "aria-label"}:
+            return ""
+        return example(opening_tag(field), opening_tag(field, **{self.mechanism: suggestion}))
+
     async def run(self, context: AuditContext, services: Any | None = None) -> TestResult:
         soup = context.dom
         if not isinstance(soup, BeautifulSoup):
@@ -119,6 +127,7 @@ class _LabelRelevanceTest(RGAATest):
                             get_element_identifier(field, index),
                             f"L'étiquette {self.mechanism} est vide ou référence un passage absent.",
                             recommendation,
+                            node=field,
                         )
                     )
                 else:
@@ -146,7 +155,8 @@ class _LabelRelevanceTest(RGAATest):
                         f"L'étiquette {self.mechanism} « {label[:100]} » n'indique pas la fonction du champ.",
                         f"La pertinence de l'étiquette {self.mechanism} « {label[:100]} » reste à vérifier.",
                     ),
-                    recommendation,
+                    verdict.recommendation(recommendation) + self._suggestion_example(field, verdict.suggestion),
+                    node=field,
                     label=label,
                     **verdict.evidence,
                 )
@@ -334,6 +344,7 @@ class Test1126(RGAATest):
                 get_element_identifier(field, index),
                 "Le bouton adjacent qui sert d'étiquette n'a aucun intitulé.",
                 recommendation,
+                node=field,
             )
             for field, index, text in candidates
             if not text
@@ -358,7 +369,8 @@ class Test1126(RGAATest):
                         f"Le bouton adjacent « {text[:100]} » n'indique pas la fonction du champ.",
                         f"La pertinence du bouton adjacent « {text[:100]} » comme étiquette reste à vérifier.",
                     ),
-                    recommendation,
+                    verdict.recommendation(recommendation),
+                    node=field,
                     button_text=text,
                     **verdict.evidence,
                 )

@@ -138,6 +138,10 @@ class RelevanceAnalysis:
 
     confidence: AIConfidence = "low"
 
+    # Texte corrigé proposé par le modèle lorsque le texte n'est pas pertinent
+    # (seulement pour les types qui le demandent) ; None sinon.
+    suggestion: str | None = None
+
 
 # ----------------------------------------------------------------------
 # Images
@@ -230,6 +234,10 @@ class SensoryAnalysis:
     uncertainties: list[str] = field(default_factory=list)
 
     confidence: AIConfidence = "low"
+
+    # Texte corrigé proposé lorsque l'information repose uniquement sur la caractéristique
+    # (demandé seulement pour les types de SENSORY_SUGGESTIONS).
+    suggestion: str | None = None
 
 
 # ----------------------------------------------------------------------

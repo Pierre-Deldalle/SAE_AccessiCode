@@ -133,3 +133,46 @@ def test_11107_invalid_field_with_format(context_factory, run_rgaa):
     assert run_rgaa(Test11107(), context_factory(html)).status == Status.NEEDS_REVIEW
     broken = text_services(relevance_answer=RuntimeError("panne"))
     assert run_rgaa(Test11107(), context_factory(html), broken).status == Status.ERROR
+
+
+def test_fail_gives_line_and_snippet(context_factory, run_rgaa):
+    html = (
+        '<form>\n<label for="a">Nom</label><input id="a" required>\n<label for="b">Ville</label><input id="b">\n</form>'
+    )
+    finding = run_rgaa(Test11102(), context_factory(html)).findings[0]
+    assert (finding.line, finding.snippet) == (2, '<input id="a" required="">')
+
+
+def test_required_without_mention_shows_label_example(context_factory, run_rgaa):
+    html = '<form><label for="a">Nom</label><input id="a" required><label for="b">Ville</label><input id="b"></form>'
+    finding = run_rgaa(Test11102(), context_factory(html)).findings[0]
+    assert finding.recommendation.endswith(
+        'Exemple : <label for="a">Nom</label> → <label for="a">Nom (obligatoire)</label>'
+    )
+
+
+def test_invalid_field_without_message_shows_describedby_example(context_factory, run_rgaa):
+    html = (
+        '<form><label for="a">Nom</label><input id="a" required aria-invalid="true">'
+        '<label for="b">Ville</label><input id="b"></form>'
+    )
+    finding = run_rgaa(Test11104(), context_factory(html)).findings[0]
+    assert finding.recommendation.endswith(
+        'Exemple : <input id="a" required="" aria-invalid="true"> → '
+        '<input id="a" required="" aria-invalid="true" aria-describedby="a-erreur"> '
+        'et <p id="a-erreur">[message d\'erreur]</p>'
+    )
+
+
+def test_error_identification_fail_shows_proposition_and_aria_invalid(context_factory, run_rgaa):
+    html = (
+        '<form><label for="d">Date</label><input id="d" required aria-describedby="e">'
+        '<p id="e" role="alert">Erreur</p></form>'
+    )
+    ai = text_services(relevance_answer=relevance(False, suggestion="Erreur : la date est obligatoire."))
+    finding = run_rgaa(Test11103(), context_factory(html), ai).findings[0]
+    assert finding.recommendation.endswith(
+        "Proposition : « Erreur : la date est obligatoire. ». "
+        'Exemple : <input id="d" required="" aria-describedby="e"> → '
+        '<input id="d" required="" aria-describedby="e" aria-invalid="true">'
+    )

@@ -120,3 +120,64 @@ def test_1126_field_with_visible_label_is_out_of_scope(context_factory, run_rgaa
 def test_1126_empty_button_fails(context_factory, run_rgaa):
     html = '<form><input type="search" aria-label="Rechercher"><button></button></form>'
     assert run_rgaa(Test1126(), context_factory(html), text_services()).status == Status.FAIL
+
+
+def test_empty_label_fail_gives_line_and_snippet(context_factory, run_rgaa):
+    html = '<form>\n<label for="m"></label>\n<input id="m" type="email">\n</form>'
+    finding = run_rgaa(Test1121(), context_factory(html), text_services()).findings[0]
+    assert (finding.line, finding.snippet) == (3, '<input id="m" type="email">')
+
+
+def test_ai_fail_gives_line_and_snippet(context_factory, run_rgaa):
+    html = '<form>\n<input id="q" title="Champ">\n</form>'
+    ai = text_services(relevance_answer=relevance(False))
+    finding = run_rgaa(Test1122(), context_factory(html), ai).findings[0]
+    assert (finding.line, finding.snippet) == (2, '<input id="q" title="Champ">')
+
+
+def test_adjacent_button_fail_points_to_the_field(context_factory, run_rgaa):
+    html = '<form>\n<input id="s" type="search" aria-label="Recherche"><button></button>\n</form>'
+    finding = run_rgaa(Test1126(), context_factory(html), text_services()).findings[0]
+    assert (finding.line, finding.snippet) == (2, '<input id="s" type="search" aria-label="Recherche">')
+
+
+# Proposition de l'IA -------------------------------------------------------------------------------------------------
+
+BASE = "Rédiger une étiquette qui indique précisément la donnée attendue dans le champ."
+
+
+def test_ai_suggestion_is_shown_in_the_attribute_on_fail(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=relevance(False, suggestion="Rechercher un produit"))
+    finding = run_rgaa(Test1122(), context_factory('<form><input id="q" title="Champ"></form>'), ai).findings[0]
+    assert finding.recommendation == (
+        f"{BASE} Proposition : « Rechercher un produit ». "
+        'Exemple : <input id="q" title="Champ"> → <input id="q" title="Rechercher un produit">'
+    )
+
+
+def test_ai_suggestion_for_a_label_element_has_no_example(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=relevance(False, suggestion="Adresse e-mail"))
+    html = '<form><label for="m">Champ 1</label><input id="m" type="email"></form>'
+    finding = run_rgaa(Test1121(), context_factory(html), ai).findings[0]
+    assert finding.recommendation == f"{BASE} Proposition : « Adresse e-mail »."
+
+
+@pytest.mark.parametrize(
+    ("answer", "status"),
+    [
+        (relevance(False, confidence="low", suggestion="Nom de famille"), Status.NEEDS_REVIEW),
+        (relevance(False), Status.FAIL),
+    ],
+    ids=["confiance faible", "sans suggestion"],
+)
+def test_no_proposition_without_a_certain_suggestion(answer, status, context_factory, run_rgaa):
+    ai = text_services(relevance_answer=answer)
+    result = run_rgaa(Test1122(), context_factory('<form><input id="q" title="Champ"></form>'), ai)
+    assert result.status == status
+    assert result.findings[0].recommendation == BASE
+
+
+def test_suggestion_on_pass_is_ignored(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=relevance(True, suggestion="Autre"))
+    result = run_rgaa(Test1122(), context_factory('<form><input id="q" title="Nom de famille"></form>'), ai)
+    assert (result.status, result.findings) == (Status.PASS, [])

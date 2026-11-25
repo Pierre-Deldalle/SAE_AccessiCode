@@ -27,12 +27,20 @@ from accessi_code.analysis.forms import (
     referenced_text,
 )
 from accessi_code.analysis.images import ImageInfo, resolve_image_source
+from accessi_code.analysis.location import opening_tag
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
 from accessi_code.models.result import TestResult, TestStatus
 from accessi_code.rgaa.ai_decision import NO_AI_MESSAGE, get_analyzer, judge_relevance
 from accessi_code.rgaa.base import RGAATest
 from accessi_code.rgaa.outcomes import build_result, make_outcome, not_applicable
+from accessi_code.rgaa.tests.theme_11_forms._examples import example
+
+
+def _visible_name_example(tag: Tag, visible: str, missing: list[str]) -> str:
+    """Attributs de nom (aria-label, title, alt, value) qui reprennent l'intitulé visible ; aria-labelledby exclu."""
+    changes = {source: visible for source in missing if source != "aria-labelledby"}
+    return example(opening_tag(tag), opening_tag(tag, **changes)) if changes else ""
 
 
 def _comparable(text: str) -> str:
@@ -85,7 +93,11 @@ class Test1191(RGAATest):
             else:
                 outcomes.append(
                     make_outcome(
-                        TestStatus.FAIL, identifier(tag, soup), "Le bouton n'a pas d'intitulé.", recommendation
+                        TestStatus.FAIL,
+                        identifier(tag, soup),
+                        "Le bouton n'a pas d'intitulé.",
+                        recommendation,
+                        node=tag,
                     )
                 )
 
@@ -108,7 +120,8 @@ class Test1191(RGAATest):
                         f"L'intitulé « {name[:100]} » n'indique pas l'action du bouton.",
                         f"La pertinence de l'intitulé « {name[:100]} » reste à vérifier.",
                     ),
-                    recommendation,
+                    verdict.recommendation(recommendation),
+                    node=tag,
                     accessible_name=name,
                     **verdict.evidence,
                 )
@@ -157,7 +170,9 @@ class Test1192(RGAATest):
                 + ", ".join(f"{source} « {sources[source][:80]} »" for source in missing)
                 + "."
             ),
-            "Faire commencer le nom accessible par l'intitulé visible du bouton.",
+            "Faire commencer le nom accessible par l'intitulé visible du bouton."
+            + ("" if symbol_only else _visible_name_example(tag, visible, missing)),
+            node=tag,
             visible_text=visible,
             sources=sources,
         )
@@ -171,6 +186,7 @@ class Test1192(RGAATest):
                 identifier(tag, soup),
                 f"Le texte affiché dans l'image du bouton doit être comparé à son nom accessible. {NO_AI_MESSAGE}",
                 recommendation,
+                node=tag,
             )
         src = clean(tag.get("src"))
         base_dir = context.html_path.parent if context.html_path is not None else None
@@ -193,6 +209,7 @@ class Test1192(RGAATest):
                 identifier(tag, soup),
                 "L'analyse IA de l'image du bouton a échoué.",
                 "Relancer l'audit ou vérifier manuellement.",
+                node=tag,
                 error=f"{type(error).__name__}: {error}",
             )
         if profile.confidence == "low" or profile.contains_text is None:
@@ -201,11 +218,16 @@ class Test1192(RGAATest):
                 identifier(tag, soup),
                 "Le texte affiché dans l'image du bouton n'a pas pu être lu avec certitude.",
                 recommendation,
+                node=tag,
             )
         if profile.contains_text is False or not profile.text_content:
             return make_outcome(TestStatus.NOT_APPLICABLE)
         if not sources:
             return make_outcome(
-                TestStatus.FAIL, identifier(tag, soup), "Le bouton image n'a pas de nom accessible.", recommendation
+                TestStatus.FAIL,
+                identifier(tag, soup),
+                "Le bouton image n'a pas de nom accessible.",
+                recommendation,
+                node=tag,
             )
         return self._compare(tag, soup, profile.text_content, sources)

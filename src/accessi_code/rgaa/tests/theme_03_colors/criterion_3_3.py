@@ -13,6 +13,7 @@ from accessi_code.models.capabilities import Capability
 from accessi_code.models.color_style import NonTextContrastSample
 from accessi_code.models.result import Finding, TestResult, TestStatus
 from accessi_code.rgaa.base import RGAATest
+from accessi_code.rgaa.tests.theme_03_colors._contrast import contrast_example
 
 CONTRAST_THRESHOLD = 3.0
 
@@ -175,7 +176,10 @@ def _evaluate_non_text_samples(
                 Finding(
                     element=sample.element,
                     message=(f"Le rapport de contraste est {ratio:.2f}:1 alors que {CONTRAST_THRESHOLD}:1 est requis."),
-                    recommendation=("Modifier les couleurs afin d'obtenir un rapport de contraste d'au moins 3:1."),
+                    recommendation=(
+                        "Modifier les couleurs afin d'obtenir un rapport de contraste d'au moins 3:1."
+                        + contrast_example(sample.foreground_color, sample.background_color, CONTRAST_THRESHOLD)
+                    ),
                     evidence={
                         "ratio": ratio,
                         "required_ratio": CONTRAST_THRESHOLD,

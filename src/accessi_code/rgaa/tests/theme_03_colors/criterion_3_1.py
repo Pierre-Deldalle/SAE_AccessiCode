@@ -16,8 +16,11 @@ la couleur porte une information et si un autre moyen la transmet aussi :
 
 from __future__ import annotations
 
-from bs4 import BeautifulSoup
+import re
 
+from bs4 import BeautifulSoup, Tag
+
+from accessi_code.analysis.location import opening_tag
 from accessi_code.analysis.sensory import (
     COLOR_INDICATION,
     Candidate,
@@ -34,10 +37,28 @@ RECOMMENDATION = (
 )
 
 
+_NO_UNDERLINE = re.compile(r"(text-decoration(?:-line)?\s*:\s*)none", re.IGNORECASE)
+
+
+def _underlined(css: str) -> str:
+    return _NO_UNDERLINE.sub(lambda match: match.group(1) + "underline", css)
+
+
+def underline_example(link: Tag, removed: str | None) -> str:
+    """Exemple qui rétablit le soulignement, dans le style en ligne ou dans la règle CSS qui l'a retiré."""
+    if not removed:
+        return ""
+    if removed.startswith("style en ligne"):
+        after = opening_tag(link, style=_underlined(str(link.get("style") or "")))
+        return f" Exemple : {opening_tag(link)} → {after}"
+    return f" Exemple : {removed} → {_underlined(removed)}"
+
+
 class ColorTest:
     kind = "color"
     criterion_id = "3.1"
     recommendation = RECOMMENDATION
+    detailed_results = True
 
 
 class Test311(ColorTest, SensoryTextTest):
@@ -90,6 +111,10 @@ class Test314(ColorTest, SensoryTextTest):
 
     def candidates(self, context: AuditContext, soup: BeautifulSoup) -> list[Candidate]:
         return color_property_candidates(context)
+
+    def example(self, candidate: Candidate) -> str:
+        """Lien distingué du texte par sa seule couleur : le soulignement retiré est rétabli."""
+        return underline_example(candidate.tag, candidate.evidence.get("underline_removed"))
 
 
 class Test315(ColorTest, SensoryMediaTest):

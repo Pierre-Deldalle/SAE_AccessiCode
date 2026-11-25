@@ -274,3 +274,108 @@ def test_item_limit(context_factory, run_rgaa, monkeypatch):
     result = run_rgaa(Test312(), context_factory(html), text_services())
     assert result.status == Status.NEEDS_REVIEW
     assert "Limite" in result.findings[0].message
+
+
+# ---------------------------------------------------------------------------
+# Emplacement des observations (ligne et extrait de l'élément)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("test_class", "html", "snippet"),
+    [
+        (Test311, COLORED_WORD, '<span id="etat" style="color: red">indisponible</span>'),
+        (Test312, COLOR_TEXT, '<p id="aide">Les champs en rouge sont obligatoires.</p>'),
+        (Test313, IMAGE, '<img id="graphe" src="ventes.png" alt="Ventes par région">'),
+        (
+            Test314,
+            '<style>a { text-decoration: none }</style><p>Consultez <a href="/cgv">nos conditions</a> avant.</p>',
+            '<a href="/cgv">nos conditions</a>',
+        ),
+    ],
+    ids=["3.1.1", "3.1.2", "3.1.3", "3.1.4"],
+)
+def test_fail_gives_line_and_snippet(test_class, html, snippet, context_factory, run_rgaa):
+    answer = sensory(relies_only=True)
+    ai = text_services(sensory_answer=answer, sensory_image_answer=answer)
+    result = run_rgaa(test_class(), context_factory(f"<p>Intro</p>\n{html}"), ai)
+    assert result.status == Status.FAIL
+    assert (result.findings[0].line, result.findings[0].snippet) == (2, snippet)
+
+
+@pytest.mark.parametrize(
+    ("test_class", "html"),
+    [
+        (Test315, '<video src="a.mp4"></video>'),
+        (Test316, '<object data="carte.swf" type="application/x-shockwave-flash"></object>'),
+    ],
+    ids=["3.1.5", "3.1.6"],
+)
+def test_media_review_gives_line_and_snippet(test_class, html, context_factory, run_rgaa):
+    result = run_rgaa(test_class(), context_factory(f"<p>Intro</p>\n{html}"), text_services())
+    assert result.status == Status.NEEDS_REVIEW
+    assert (result.findings[0].line, result.findings[0].snippet) == (2, html)
+
+
+# ---------------------------------------------------------------------------
+# Correction : proposition de l'IA et exemple « avant / après »
+# ---------------------------------------------------------------------------
+
+BASE = (
+    "Transmettre aussi l'information par un autre moyen que la couleur : texte explicite, "
+    "symbole, motif, soulignement ou mise en forme."
+)
+
+
+def test_ai_suggestion_is_proposed_on_fail(context_factory, run_rgaa):
+    ai = text_services(sensory_answer=sensory(relies_only=True, suggestion="Statut : indisponible (en rupture)"))
+    finding = run_rgaa(Test311(), context_factory(COLORED_WORD), ai).findings[0]
+    assert finding.recommendation == f"{BASE} Proposition : « Statut : indisponible (en rupture) »."
+
+
+@pytest.mark.parametrize(
+    ("answer", "status"),
+    [
+        (sensory(relies_only=True, confidence="low", suggestion="Texte"), Status.NEEDS_REVIEW),
+        (sensory(relies_only=True), Status.FAIL),
+    ],
+    ids=["confiance faible", "sans suggestion"],
+)
+def test_no_proposition_without_a_certain_suggestion(answer, status, context_factory, run_rgaa):
+    result = run_rgaa(Test311(), context_factory(COLORED_WORD), text_services(sensory_answer=answer))
+    assert result.status == status
+    assert result.findings[0].recommendation == BASE
+
+
+def test_suggestion_on_pass_is_ignored(context_factory, run_rgaa):
+    ai = text_services(sensory_answer=sensory(relies_only=False, suggestion="Autre"))
+    result = run_rgaa(Test311(), context_factory(COLORED_WORD), ai)
+    assert (result.status, result.findings) == (Status.PASS, [])
+
+
+@pytest.mark.parametrize(
+    ("html", "example"),
+    [
+        (
+            "<style>a.lien { color: red; text-decoration: none }</style>"
+            '<p>Consultez <a class="lien" href="/cgv">nos conditions</a> avant.</p>',
+            "a.lien { text-decoration: none } → a.lien { text-decoration: underline }",
+        ),
+        (
+            '<p>Consultez <a href="/cgv" style="text-decoration: none">nos conditions</a> avant.</p>',
+            '<a href="/cgv" style="text-decoration: none"> → <a href="/cgv" style="text-decoration: underline">',
+        ),
+    ],
+    ids=["règle CSS", "style en ligne"],
+)
+def test_314_link_without_underline_shows_an_example(html, example, context_factory, run_rgaa):
+    ai = text_services(sensory_answer=sensory(relies_only=True))
+    finding = run_rgaa(Test314(), context_factory(html), ai).findings[0]
+    assert finding.recommendation == f"{BASE} Exemple : {example}"
+
+
+def test_314_example_only_on_fail(context_factory, run_rgaa):
+    html = '<style>a { text-decoration: none }</style><p>Consultez <a href="/cgv">nos conditions</a> avant.</p>'
+    result = run_rgaa(Test314(), context_factory(html), text_services(sensory_answer=sensory(conveys=None)))
+    assert result.status == Status.NEEDS_REVIEW
+    assert result.findings[0].recommendation == BASE

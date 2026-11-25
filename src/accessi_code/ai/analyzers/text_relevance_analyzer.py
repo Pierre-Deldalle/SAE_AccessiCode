@@ -16,11 +16,12 @@ from accessi_code.ai.analyzers._base import (
     read_confidence,
     read_explanation,
     read_strings,
+    read_suggestion,
     read_tristate,
     truncate,
 )
 from accessi_code.ai.cache import AnalysisCache, make_key
-from accessi_code.ai.prompts.relevance import RELEVANCE_BATCH_PROMPT, RELEVANCE_KINDS
+from accessi_code.ai.prompts.relevance import RELEVANCE_BATCH_PROMPT, RELEVANCE_KINDS, suggestion_parts
 from accessi_code.ai.schemas import RelevanceAnalysis, RelevanceItem
 
 TEXT_LIMIT = 300
@@ -64,6 +65,7 @@ class OllamaTextRelevanceAnalyzer(JsonAnalyzer):
                 relevant_when=spec.relevant_when,
                 not_relevant_examples=spec.not_relevant_examples,
                 items=items_json,
+                **suggestion_parts(spec),
             )
 
         return await self._run_batched(
@@ -98,6 +100,7 @@ def _parse_relevance(entry: dict[str, Any]) -> RelevanceAnalysis:
         problems=read_strings(entry.get("problems")),
         uncertainties=read_strings(entry.get("uncertainties")),
         confidence="low" if corrupted else read_confidence(entry.get("confidence")),
+        suggestion=None if corrupted else read_suggestion(entry.get("suggestion")),
     )
 
 

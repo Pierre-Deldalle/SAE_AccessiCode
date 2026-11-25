@@ -85,3 +85,57 @@ def test_low_confidence_no_ai_and_error(context_factory, run_rgaa):
     assert run_rgaa(Test11131(), context_factory(html)).status == Status.NEEDS_REVIEW
     broken = text_services(relevance_answer=RuntimeError("panne"))
     assert run_rgaa(Test11131(), context_factory(html), broken).status == Status.ERROR
+
+
+def test_fail_gives_line_and_snippet(context_factory, run_rgaa):
+    html = field("Code postal").replace("<input", "\n<input")
+    finding = run_rgaa(Test11131(), context_factory(html), text_services()).findings[0]
+    assert (finding.line, finding.snippet) == (2, '<input id="f">')
+
+
+def user_field_ai(answer):
+    """Le champ concerne l'utilisateur ; ``answer`` juge la valeur autocomplete."""
+    ai = text_services()
+    ai.text_relevance_analyzer.analyze_relevance.side_effect = lambda kind, items: (
+        [relevance(True) if kind == "user_data_field" else answer] * len(items)
+    )
+    return ai
+
+
+@pytest.mark.parametrize(
+    ("html", "after"),
+    [
+        (field("Code postal"), '<input id="f"> → <input id="f" autocomplete="postal-code">'),
+        (
+            field("Votre contact", "type='email'"),
+            '<input id="f" type="email"> → <input id="f" type="email" autocomplete="email">',
+        ),
+        (
+            field("Votre petit nom", "autocomplete='work given-name'"),
+            '<input id="f" autocomplete="work given-name"> → <input id="f" autocomplete="given-name">',
+        ),
+    ],
+    ids=["étiquette connue", "type du champ", "valeur mal formée"],
+)
+def test_deduced_autocomplete_value_is_shown(html, after, context_factory, run_rgaa):
+    finding = run_rgaa(Test11131(), context_factory(html), user_field_ai(relevance(True))).findings[0]
+    assert finding.recommendation.endswith(f"Exemple : {after}")
+
+
+def test_unknown_purpose_has_no_example(context_factory, run_rgaa):
+    finding = run_rgaa(Test11131(), context_factory(field("Votre contact")), user_field_ai(relevance(True))).findings[0]
+    assert "Exemple" not in finding.recommendation
+
+
+@pytest.mark.parametrize(
+    ("suggestion", "example"),
+    [
+        ("tel", ' Exemple : <input id="f" autocomplete="email"> → <input id="f" autocomplete="tel">'),
+        ("téléphone", ""),
+    ],
+    ids=["valeur valide", "valeur inventée"],
+)
+def test_ai_suggestion_is_used_only_when_valid(suggestion, example, context_factory, run_rgaa):
+    html = field("Votre numéro de portable", "autocomplete='email'")
+    result = run_rgaa(Test11131(), context_factory(html), user_field_ai(relevance(False, suggestion=suggestion)))
+    assert result.findings[0].recommendation.endswith(f"Proposition : « {suggestion} ».{example}")

@@ -15,8 +15,15 @@ from accessi_code.ai.schemas import RelevanceAnalysis, SensoryAnalysis, Structur
 from accessi_code.service.audit_services import AuditServices
 
 
-def relevance(relevant: bool | None = True, confidence: str = "high", problems: list[str] | None = None):
-    return RelevanceAnalysis(relevant, "Analyse simulée.", problems=problems or [], confidence=confidence)
+def relevance(
+    relevant: bool | None = True,
+    confidence: str = "high",
+    problems: list[str] | None = None,
+    suggestion: str | None = None,
+):
+    return RelevanceAnalysis(
+        relevant, "Analyse simulée.", problems=problems or [], confidence=confidence, suggestion=suggestion
+    )
 
 
 def structure(marked: bool | None = True, confidence: str = "high"):
@@ -28,8 +35,11 @@ def sensory(
     relies_only: bool | None = False,
     alternative: bool | None = True,
     confidence: str = "high",
+    suggestion: str | None = None,
 ):
-    return SensoryAnalysis(conveys, relies_only, alternative, "Analyse simulée.", confidence=confidence)
+    return SensoryAnalysis(
+        conveys, relies_only, alternative, "Analyse simulée.", confidence=confidence, suggestion=suggestion
+    )
 
 
 def _responder(value: Any):

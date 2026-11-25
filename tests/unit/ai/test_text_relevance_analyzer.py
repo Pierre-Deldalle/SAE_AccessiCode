@@ -2,6 +2,7 @@ import aiohttp
 import pytest
 
 from accessi_code.ai.analyzers.text_relevance_analyzer import OllamaTextRelevanceAnalyzer
+from accessi_code.ai.prompts.relevance import RELEVANCE_KINDS
 from accessi_code.ai.schemas import RelevanceItem
 from tests.unit.ai.fakes import FakeModel, batch
 
@@ -170,3 +171,82 @@ async def test_empty_list_does_not_call_the_model() -> None:
 
     assert await analyzer.analyze_relevance("heading", []) == []
     assert llm.call_count == 0
+
+
+@pytest.mark.asyncio
+async def test_suggestion_is_requested_only_for_kinds_that_ask_for_it() -> None:
+    llm = FakeModel(batch(RELEVANT), batch(RELEVANT))
+    analyzer = OllamaTextRelevanceAnalyzer(llm)
+
+    await analyzer.analyze_relevance("frame_title", [RelevanceItem("iframe")])
+    await analyzer.analyze_relevance("link", [RelevanceItem("En savoir plus")])
+
+    assert '"suggestion": null' in llm.prompts[0]
+    assert "propose dans suggestion un titre de cadre" in llm.prompts[0]
+    assert "suggestion" not in llm.prompts[1]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("  Plan d'accès   à l'agence ", "Plan d'accès à l'agence"),
+        (None, None),
+        ("", None),
+        (42, None),
+        (["Carte"], None),
+        ("carte carte carte carte carte", None),
+    ],
+)
+async def test_suggestion_is_read_or_ignored(value, expected) -> None:
+    entry = {**NOT_RELEVANT, "suggestion": value}
+    analyzer = OllamaTextRelevanceAnalyzer(FakeModel(batch(entry)))
+
+    [result] = await analyzer.analyze_relevance("frame_title", [RelevanceItem("iframe")])
+
+    assert result.relevant is False
+    assert result.suggestion == expected
+
+
+@pytest.mark.asyncio
+async def test_missing_suggestion_field_does_not_break_analysis() -> None:
+    analyzer = OllamaTextRelevanceAnalyzer(FakeModel(batch(NOT_RELEVANT)))
+
+    [result] = await analyzer.analyze_relevance("frame_title", [RelevanceItem("iframe")])
+
+    assert (result.relevant, result.confidence, result.suggestion) == (False, "high", None)
+
+
+@pytest.mark.parametrize(
+    ("kind", "asks"),
+    [
+        *[
+            (kind, True)
+            for kind in (
+                "form_label",
+                "label_consistency",
+                "fieldset_legend",
+                "optgroup_label",
+                "button",
+                "error_identification",
+                "format_instruction",
+                "error_suggestion_format",
+                "error_suggestion_example",
+                "autocomplete_value",
+            )
+        ],
+        # Décisions oui / non du thème 11 : aucun texte à proposer.
+        *[
+            (kind, False)
+            for kind in (
+                "field_grouping",
+                "option_grouping",
+                "transaction_scope",
+                "sensitive_data_modification",
+                "user_data_field",
+            )
+        ],
+    ],
+)
+def test_form_kinds_ask_for_a_suggestion_only_for_texts(kind, asks) -> None:
+    assert bool(RELEVANCE_KINDS[kind].suggestion) is asks

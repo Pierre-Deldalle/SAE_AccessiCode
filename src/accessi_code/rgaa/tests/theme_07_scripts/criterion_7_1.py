@@ -15,6 +15,7 @@ ou un rôle WAI-ARIA de composant d'interface (``analysis/components.py``).
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from bs4 import BeautifulSoup, Tag
@@ -30,6 +31,7 @@ from accessi_code.analysis.components import (
     script_components,
     visible_label,
 )
+from accessi_code.analysis.location import opening_tag
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
 from accessi_code.models.result import TestResult, TestStatus
@@ -44,6 +46,33 @@ API_RECOMMENDATION = (
     "ou utiliser un élément HTML natif équivalent."
 )
 NAME_RECOMMENDATION = "Donner au composant un nom qui décrit sa fonction et un rôle qui correspond à son comportement."
+
+# Gestionnaire qui change de page : le composant se comporte comme un lien.
+NAVIGATION = re.compile(r"location|href|window\.open|navigate", re.IGNORECASE)
+# Valeur initiale proposée pour un état obligatoire absent (à adapter à l'état réel du composant).
+# Attributs qui remplacent l'intitulé visible : les retirer rend au composant son intitulé.
+NAME_OVERRIDES = frozenset({"aria-label", "aria-labelledby"})
+STATE_EXAMPLES = {"aria-checked": "false", "aria-expanded": "false", "aria-valuenow": "[valeur actuelle]"}
+
+
+def example(element: Tag, changes: dict[str, str | None]) -> str:
+    """« Exemple : avant → après » sur la balise réelle du composant ; vide sans changement."""
+    if not changes:
+        return ""
+    return f" Exemple : {opening_tag(element)} → {opening_tag(element, **changes)}"
+
+
+def api_changes(element: Tag, role: str, states: list[str]) -> dict[str, str | None]:
+    """Attributs à ajouter pour exposer un rôle et les états obligatoires (le nom dépend du sens)."""
+    changes: dict[str, str | None] = {}
+    if not role:
+        handlers = " ".join(str(value) for name, value in element.attrs.items() if str(name).startswith("on"))
+        changes["role"] = "link" if NAVIGATION.search(handlers) else "button"
+        if not element.has_attr("tabindex"):
+            changes["tabindex"] = "0"
+    for state in states:
+        changes[state] = STATE_EXAMPLES.get(state, "[valeur]")
+    return changes
 
 
 class ComponentTest(RGAATest):
@@ -87,7 +116,8 @@ class Test711(ComponentTest):
                     f"Le composant n'expose pas ses informations d'accessibilité : {' ; '.join(problems)}."
                     if problems
                     else "",
-                    API_RECOMMENDATION,
+                    API_RECOMMENDATION + example(element, api_changes(element, role, states)),
+                    node=element,
                     role=role,
                     role_source=role_source,
                     name=name,
@@ -117,6 +147,7 @@ class Test712(ComponentTest):
                     "La restitution de ce composant (nom, rôle, valeur, changements d'état) doit être vérifiée "
                     "avec une technologie d'assistance.",
                     "Tester le composant avec un lecteur d'écran (NVDA, JAWS, VoiceOver).",
+                    node=element,
                     role=component_role(element)[0],
                 )
                 for index, element in enumerate(components)
@@ -159,7 +190,8 @@ class Test713(ComponentTest):
                     TestStatus.FAIL,
                     identifier,
                     f"Le composant n'a pas {missing} : il ne peut pas être pertinent.",
-                    NAME_RECOMMENDATION,
+                    NAME_RECOMMENDATION + example(element, api_changes(element, role, [])),
+                    node=element,
                     **evidence,
                 )
                 continue
@@ -169,7 +201,9 @@ class Test713(ComponentTest):
                     TestStatus.FAIL,
                     identifier,
                     f"Le nom accessible « {name} » ne contient pas l'intitulé visible « {label} ».",
-                    "Faire commencer le nom accessible par l'intitulé visible du composant.",
+                    "Faire commencer le nom accessible par l'intitulé visible du composant."
+                    + (example(element, {name_source: None}) if name_source in NAME_OVERRIDES else ""),
+                    node=element,
                     **evidence,
                 )
                 continue
@@ -190,6 +224,9 @@ class Test713(ComponentTest):
 
         verdicts = await judge_relevance(services, "component_name", [item for _, item in to_judge])
         for (position, item), verdict in zip(to_judge, verdicts, strict=True):
+            recommendation = verdict.recommendation(NAME_RECOMMENDATION)
+            if verdict.suggestion:
+                recommendation += example(components[position], {"aria-label": verdict.suggestion})
             outcomes[position] = make_outcome(
                 verdict.status,
                 component_identifier(components[position], position),
@@ -197,7 +234,8 @@ class Test713(ComponentTest):
                     f"Le nom « {item.text} » ou le rôle {item.details['role']} du composant n'est pas pertinent.",
                     f"La pertinence du nom « {item.text} » et du rôle {item.details['role']} reste à vérifier.",
                 ),
-                NAME_RECOMMENDATION,
+                recommendation,
+                node=components[position],
                 **item.details,
                 **verdict.evidence,
             )
