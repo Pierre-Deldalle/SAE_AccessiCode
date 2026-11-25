@@ -48,6 +48,7 @@ class Test1331(RGAATest):
                     "accessible proposée : vérifier que le document est accessible par lui-même.",
                     f"Rendre le document {document.format} accessible (structure balisée, titres, alternatives "
                     "des images, ordre de lecture) ou proposer à côté une version accessible (page HTML…).",
+                    node=document.link,
                     href=document.href,
                     format=document.format,
                 )

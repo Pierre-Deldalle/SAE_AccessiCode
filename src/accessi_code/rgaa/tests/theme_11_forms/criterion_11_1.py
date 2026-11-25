@@ -19,12 +19,14 @@ from bs4 import BeautifulSoup, Tag
 
 from accessi_code.analysis.dom import find_form_fields, get_element_identifier, get_labelledby_text
 from accessi_code.analysis.forms import clean, identifier
+from accessi_code.analysis.location import opening_tag
 from accessi_code.analysis.structure import is_hidden
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
 from accessi_code.models.result import TestResult, TestStatus
 from accessi_code.rgaa.base import RGAATest
 from accessi_code.rgaa.outcomes import build_result, make_outcome, not_applicable
+from accessi_code.rgaa.tests.theme_11_forms._examples import example, free_id, label_example
 
 _HIDDEN_CLASSES = {"sr-only", "visually-hidden", "screen-reader-only", "sr-only-focusable", "hidden"}
 _BUTTON_TYPES = {"submit", "button", "image", "reset"}
@@ -113,7 +115,9 @@ class Test1111(RGAATest):
                     TestStatus.FAIL,
                     identifier(field, soup),
                     "Le champ n'a aucune étiquette (aria-labelledby, aria-label, label for ou title).",
-                    'Associer une étiquette au champ, par exemple <label for="id-du-champ">.',
+                    "Associer au champ une étiquette (balise label reliée par l'attribut for, "
+                    "ou aria-label pour un composant ARIA)." + label_example(field, soup),
+                    node=field,
                     wrapping_label=field.find_parent("label") is not None,
                     adjacent_button=adjacent_button(field) is not None,
                 )
@@ -153,7 +157,9 @@ class Test1112(RGAATest):
                     TestStatus.FAIL,
                     identifier(label, soup),
                     problem,
-                    "Donner au champ un id unique et le reporter dans l'attribut for du label.",
+                    "Donner au champ un id unique et le reporter dans l'attribut for du label."
+                    + _for_example(label, target, matches, soup, field_ids),
+                    node=label,
                     label=label.get_text(" ", strip=True)[:100],
                 )
                 if problem
@@ -200,7 +206,9 @@ class Test1113(RGAATest):
                         "aria-labelledby": "L'étiquette référencée par aria-labelledby n'est pas accolée au champ ; "
                         "sa proximité visuelle doit être vérifiée.",
                     }[reason],
-                    "Ajouter un attribut title explicite ou un texte visible accolé au champ.",
+                    "Ajouter un attribut title explicite ou un texte visible accolé au champ."
+                    + (_title_example(field, soup, reason) if status is TestStatus.FAIL else ""),
+                    node=field,
                     reason=reason,
                 )
             )
@@ -225,6 +233,41 @@ class Test1113(RGAATest):
         if clean(field.get("aria-label")):
             return "aria-label"
         return None
+
+
+def _for_example(label: Tag, target: str, matches: list, soup: BeautifulSoup, field_ids: set[int]) -> str:
+    """
+    Correction du lien label / champ quand le champ visé se déduit sans ambiguïté : premier
+    champ qui suit le label (ou qu'il contient) et qui n'a pas déjà une autre étiquette.
+    Aucun exemple pour un identifiant en double : c'est à l'auteur de choisir quel élément le garde.
+    """
+    if len(matches) > 1:
+        return ""
+    field = label.find_next(lambda tag: id(tag) in field_ids)
+    if not isinstance(field, Tag) or field.find_parent("label") not in (None, label):
+        return ""
+    if any(other is not label for other in labels_for(field, soup)):
+        return ""
+    field_id = clean(field.get("id"))
+    if field_id:
+        return example(opening_tag(label), opening_tag(label, **{"for": field_id}))
+    if target and not matches:
+        return example(opening_tag(field), opening_tag(field, id=target))
+    new_id = free_id(field, soup)
+    return example(
+        f"{opening_tag(label)} … {opening_tag(field)}",
+        f"{opening_tag(label, **{'for': new_id})} … {opening_tag(field, id=new_id)}",
+    )
+
+
+def _title_example(field: Tag, soup: BeautifulSoup, reason: str) -> str:
+    """title reprenant le texte de l'étiquette invisible (aria-label ou label masqué)."""
+    if reason == "aria-label":
+        text = clean(field.get("aria-label"))
+    else:
+        labels = [*labels_for(field, soup), field.find_parent("label")]
+        text = next((clean(label.get_text(" ", strip=True)) for label in labels if isinstance(label, Tag)), "")
+    return example(opening_tag(field), opening_tag(field, title=text)) if text else ""
 
 
 def _labelledby_adjacent(field: Tag, soup: BeautifulSoup) -> bool:

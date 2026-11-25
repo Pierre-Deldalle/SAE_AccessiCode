@@ -4,6 +4,7 @@ from typing import Any
 
 from bs4 import BeautifulSoup, NavigableString, Tag
 
+from accessi_code.analysis.location import location_fields
 from accessi_code.analysis.media import (
     find_temporal_media,
     is_media_exempt,
@@ -90,6 +91,7 @@ class Test471(RGAATest):
                         "has_following_text": has_following_text,
                         "media_identified": has_identifying_text,
                     },
+                    **location_fields(tag),
                 )
             )
 

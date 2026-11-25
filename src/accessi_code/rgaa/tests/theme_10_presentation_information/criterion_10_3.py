@@ -25,6 +25,7 @@ import soupsieve
 from bs4 import BeautifulSoup, Tag
 
 from accessi_code.analysis.css import inline_style, stylesheet_rules
+from accessi_code.analysis.location import source_file_name
 from accessi_code.analysis.sensory import identifier
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
@@ -86,13 +87,14 @@ class Test1031(RGAATest):
         soup = context.dom
 
         outcomes: list[Outcome] = []
-        for rule in stylesheet_rules(context):
+        for rule in stylesheet_rules(context, with_location=True):
             declarations = reordering(rule.properties)
             if not declarations:
                 continue
             elements = _matched(soup, rule.selector)
             if not elements:
                 continue
+            path = rule.source.removeprefix("external:") if rule.source.startswith("external:") else context.html_path
             outcomes.append(
                 make_outcome(
                     TestStatus.NEEDS_REVIEW,
@@ -100,6 +102,9 @@ class Test1031(RGAATest):
                     f"La règle « {rule.selector} {{ {'; '.join(declarations)} }} » peut afficher "
                     f"{len(elements)} élément(s) dans un ordre différent de celui du code.",
                     RECOMMENDATION,
+                    file=source_file_name(context, path) if path is not None else None,
+                    line=rule.line_number,
+                    snippet=rule.snippet,
                     declarations=declarations,
                     source=rule.source,
                     elements=[identifier(tag, index) for index, tag in enumerate(elements[:5])],
@@ -116,6 +121,7 @@ class Test1031(RGAATest):
                         f"Le style en ligne « {'; '.join(declarations)} » peut afficher cet élément "
                         "dans un ordre différent de celui du code.",
                         RECOMMENDATION,
+                        node=tag,
                         declarations=declarations,
                         source="inline",
                     )

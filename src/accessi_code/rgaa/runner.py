@@ -4,6 +4,7 @@ import asyncio
 from collections.abc import Awaitable, Callable
 from typing import Any
 
+from accessi_code.analysis.location import source_file_name
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.result import (
     TestResult,
@@ -49,12 +50,17 @@ class TestRunner:
         """
         results: list[TestResult] = []
         total = len(self.registry)
+        page_file = source_file_name(context, context.html_path) if context.html_path is not None else None
 
         for test in self.registry:
             result = await self._run_test(
                 test,
                 context,
             )
+            if page_file is not None:
+                for finding in result.findings:
+                    if finding.line is not None and finding.file is None:
+                        finding.file = page_file
 
             results.append(result)
 
@@ -131,7 +137,20 @@ class TestRunner:
                 validation_error,
             )
 
+        self._add_source_file(result, context)
         return result
+
+    @staticmethod
+    def _add_source_file(result: TestResult, context: AuditContext) -> None:
+        """
+        Indique la page auditée comme fichier des observations qui ont une ligne
+        sans fichier : un test qui relève un problème dans un autre fichier
+        (script, feuille de style, autre page) renseigne ``file`` lui-même.
+        """
+        name = source_file_name(context, context.html_path)
+        for finding in result.findings:
+            if finding.line is not None and finding.file is None:
+                finding.file = name
 
     @staticmethod
     def _get_missing_capabilities(

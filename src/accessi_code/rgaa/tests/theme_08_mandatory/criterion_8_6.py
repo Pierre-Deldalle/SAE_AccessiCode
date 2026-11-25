@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import asdict
 from typing import Any
 
 from bs4 import BeautifulSoup
@@ -17,6 +16,7 @@ from accessi_code.models.result import (
     TestResult,
     TestStatus,
 )
+from accessi_code.rgaa.ai_decision import Verdict, analysis_evidence
 from accessi_code.rgaa.base import RGAATest
 
 
@@ -123,7 +123,7 @@ class Test861(RGAATest):
         evidence = {
             "title": page.title,
             "heading": page.main_heading,
-            "analysis": asdict(analysis),
+            "analysis": analysis_evidence(analysis),
         }
 
         if analysis.confidence == "low":
@@ -155,6 +155,7 @@ class Test861(RGAATest):
             )
 
         if analysis.relevant is False:
+            verdict = Verdict(TestStatus.FAIL, analysis=analysis)
             return TestResult(
                 self.test_id,
                 self.criterion_id,
@@ -164,7 +165,9 @@ class Test861(RGAATest):
                     Finding(
                         element="title",
                         message=analysis.explanation,
-                        recommendation=("Rédiger un titre pertinent permettant d'identifier la page."),
+                        recommendation=verdict.recommendation(
+                            "Rédiger un titre pertinent permettant d'identifier la page."
+                        ),
                         evidence=evidence,
                     )
                 ],

@@ -51,10 +51,21 @@ def test_8101_unmarked_rtl_text_fails(body, context_factory, run_rgaa):
 
 
 def test_8101_rtl_page_requires_ltr_marking(context_factory, run_rgaa):
-    body = f'<p>{ARABIC}</p><p id="en">Welcome to our website</p>'
+    passage = '<p id="en">Welcome to our website</p>'
+    body = f"<p>{ARABIC}</p>\n{passage}"
     result = run_rgaa(Test8101(), context_factory(page(body, "rtl")))
     assert result.status == Status.FAIL
-    assert result.findings[0].element == "p#en"
+    [finding] = result.findings
+    assert finding.element == "p#en"
+    assert (finding.line, finding.snippet) == (2, passage)
+    assert finding.recommendation.endswith('\nAvant : <p id="en">\nAprès : <p dir="ltr" id="en">')
+
+
+def test_8101_mixed_text_does_not_set_dir_on_the_whole_paragraph(context_factory, run_rgaa):
+    result = run_rgaa(Test8101(), context_factory(page(f"<p>Bienvenue : {ARABIC}</p>")))
+    assert result.status == Status.FAIL
+    [finding] = result.findings
+    assert "Après :" not in finding.recommendation
 
 
 def test_8101_hidden_text_is_ignored(context_factory, run_rgaa):
@@ -72,9 +83,13 @@ def test_8102_no_dir_is_not_applicable(context_factory, run_rgaa):
 
 @pytest.mark.parametrize("value", ["auto", "right", ""])
 def test_8102_invalid_value_fails(value, context_factory, run_rgaa):
-    result = run_rgaa(Test8102(), context_factory(page(f'<p dir="{value}">{ARABIC}</p>')))
+    passage = f'<p dir="{value}">{ARABIC}</p>'
+    result = run_rgaa(Test8102(), context_factory(page(f"\n{passage}")))
     assert result.status == Status.FAIL
-    assert "n'est pas conforme" in result.findings[0].message
+    [finding] = result.findings
+    assert "n'est pas conforme" in finding.message
+    assert (finding.line, finding.snippet) == (2, passage)
+    assert finding.recommendation.endswith(f'\nAvant : <p dir="{value}">\nAprès : <p dir="rtl">')
 
 
 @pytest.mark.parametrize(("value", "text"), [("rtl", ARABIC), ("ltr", "Hello"), ("rtl", HEBREW)])
@@ -83,9 +98,14 @@ def test_8102_relevant_value_passes(value, text, context_factory, run_rgaa):
 
 
 def test_8102_irrelevant_value_fails(context_factory, run_rgaa):
-    result = run_rgaa(Test8102(), context_factory(page('<p dir="rtl">Bonjour à tous</p>')))
+    opening = '<p dir="rtl">'
+    passage = f"{opening}{'Bonjour à tous. ' * 20}</p>"
+    result = run_rgaa(Test8102(), context_factory(page(f"\n{passage}")))
     assert result.status == Status.FAIL
-    assert "ne correspond pas au texte" in result.findings[0].message
+    [finding] = result.findings
+    assert "ne correspond pas au texte" in finding.message
+    assert (finding.line, finding.snippet) == (2, opening)
+    assert finding.recommendation.endswith('\nAvant : <p dir="rtl">\nAprès : <p dir="ltr">')
 
 
 def test_8102_nested_dir_is_judged_separately(context_factory, run_rgaa):

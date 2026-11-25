@@ -188,6 +188,9 @@ def read_explanation(data: dict[str, Any]) -> tuple[str, bool]:
     return clean_explanation(data.get("explanation"))
 
 
+SUGGESTION_LIMIT = 200
+
+
 def truncate(text: str, limit: int) -> str:
     """Texte normalisé et tronqué pour rester dans le contexte du modèle."""
     normalized = " ".join((text or "").split())

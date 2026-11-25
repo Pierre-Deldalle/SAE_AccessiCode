@@ -26,6 +26,7 @@ from typing import Any
 from bs4 import BeautifulSoup
 
 from accessi_code.analysis.components import component_identifier, interface_controls, script_components
+from accessi_code.analysis.location import opening_tag
 from accessi_code.analysis.scripts import ListenerCall, event_listeners, page_scripts
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
@@ -64,6 +65,40 @@ def _has_release(listener: ListenerCall, listeners: list[ListenerCall]) -> bool:
     return any(other.source is listener.source for other in listeners if other.event in UP_EVENTS)
 
 
+def _location(listener: ListenerCall) -> dict[str, Any]:
+    """Attribut on… : l'élément qui le porte ; script : la ligne de l'écoute dans son code."""
+    if listener.element is not None:
+        return {"node": listener.element}
+    if listener.source is not None:
+        return listener.source.location(listener.position)
+    return {}
+
+
+def click_example(listener: ListenerCall) -> str:
+    """
+    Action déplacée de l'appui au clic (déclenché au relâchement), avec le vrai code :
+    attribut on… remplacé par onclick, ou nom de l'événement remplacé par « click » dans le script.
+    """
+    event = listener.event
+    if listener.element is not None:
+        attribute = next(name for name in listener.element.attrs if str(name).lower() == f"on{event}")
+        after = opening_tag(listener.element, **{attribute: None, "onclick": listener.code})
+        return f" Exemple : {opening_tag(listener.element)} → {after}"
+    if listener.source is None:
+        return ""
+    line = listener.source.location(listener.position)["snippet"]
+    if not isinstance(line, str):
+        return ""
+    fixed = re.sub(
+        rf"(['\"`]){event}\1|\bon{event}\b",
+        lambda match: f"{match.group(1)}click{match.group(1)}" if match.group(1) else "onclick",
+        line,
+        count=1,
+        flags=re.IGNORECASE,
+    )
+    return "" if fixed == line else f" Exemple : {line} → {fixed}"
+
+
 class Test13111(RGAATest):
     test_id = "13.11.1"
     criterion_id = "13.11"
@@ -91,6 +126,7 @@ class Test13111(RGAATest):
                 continue
             element = component_identifier(listener.element, index) if listener.element is not None else listener.label
             evidence = {"event": listener.event, "code": " ".join(listener.code.split())[:300]}
+            location = _location(listener)
             if _has_release(listener, listeners) or undo:
                 means = (
                     "un gestionnaire de relâchement"
@@ -104,6 +140,7 @@ class Test13111(RGAATest):
                         f"Une action est déclenchée à l'appui ({listener.event}) ; la page propose {means} : "
                         "vérifier que l'action peut être annulée.",
                         RECOMMENDATION,
+                        **location,
                         **evidence,
                     )
                 )
@@ -114,7 +151,8 @@ class Test13111(RGAATest):
                         element,
                         f"Une action est déclenchée dès l'appui ({listener.event}), sans annulation possible au "
                         "relâchement ni moyen de l'annuler (non conforme sauf cas particulier, comme un jeu).",
-                        RECOMMENDATION,
+                        RECOMMENDATION + click_example(listener),
+                        **location,
                         **evidence,
                     )
                 )

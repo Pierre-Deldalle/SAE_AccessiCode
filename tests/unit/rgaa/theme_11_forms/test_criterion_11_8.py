@@ -79,3 +79,32 @@ def test_1183_empty_label_fails_without_ai(context_factory, run_rgaa):
     html = '<select><optgroup label=" "><option>A</option></optgroup></select>'
     assert run_rgaa(Test1183(), context_factory(html), ai).status == Status.FAIL
     ai.text_relevance_analyzer.analyze_relevance.assert_not_called()
+
+
+def test_optgroup_fail_gives_line_and_snippet(context_factory, run_rgaa):
+    html = '<select>\n<optgroup id="g"><option>Paris</option></optgroup>\n</select>'
+    finding = run_rgaa(Test1182(), context_factory(html)).findings[0]
+    assert (finding.line, finding.snippet) == (2, '<optgroup id="g"><option>Paris</option></optgroup>')
+
+
+def test_optgroup_without_label_shows_an_example(context_factory, run_rgaa):
+    html = '<select><optgroup id="g"><option>Paris</option></optgroup></select>'
+    finding = run_rgaa(Test1182(), context_factory(html)).findings[0]
+    assert finding.recommendation.endswith(
+        'Exemple : <optgroup id="g"> → <optgroup id="g" label="[catégorie des options]">'
+    )
+
+
+def test_empty_optgroup_label_shows_an_example(context_factory, run_rgaa):
+    html = '<select><optgroup label=""><option>Paris</option></optgroup></select>'
+    finding = run_rgaa(Test1183(), context_factory(html), text_services()).findings[0]
+    assert finding.recommendation.endswith('Exemple : <optgroup label=""> → <optgroup label="[catégorie des options]">')
+
+
+def test_ai_suggestion_is_written_in_the_label(context_factory, run_rgaa):
+    html = '<select><optgroup label="Groupe 1"><option>Paris</option></optgroup></select>'
+    ai = text_services(relevance_answer=relevance(False, suggestion="France"))
+    finding = run_rgaa(Test1183(), context_factory(html), ai).findings[0]
+    assert finding.recommendation.endswith(
+        'Proposition : « France ». Exemple : <optgroup label="Groupe 1"> → <optgroup label="France">'
+    )

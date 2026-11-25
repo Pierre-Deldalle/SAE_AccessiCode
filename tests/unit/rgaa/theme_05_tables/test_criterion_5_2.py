@@ -57,10 +57,45 @@ def test_legacy_summary_attribute_only_outside_html5(context_factory, run_rgaa):
 
 def test_irrelevant_summary_fails(context_factory, run_rgaa):
     ai = text_services(relevance_answer=relevance(False))
-    result = run_rgaa(Test521(), context_factory(COMPLEX), ai)
+    result = run_rgaa(Test521(), context_factory("<p>Ventes</p>\n\n" + COMPLEX), ai)
     assert result.status == Status.FAIL
     assert result.findings[0].element == "table#ventes"
     assert "n'est pas pertinent" in result.findings[0].message
+    # Tableau long : l'extrait se limite à sa balise ouvrante.
+    assert result.findings[0].line == 3
+    assert result.findings[0].snippet == '<table id="ventes">'
+
+
+RECOMMENDATION = "Rédiger un résumé qui explique la structure du tableau (organisation des en-têtes, sens de lecture)."
+PROPOSAL = "Chaque ligne est un produit ; les colonnes donnent les ventes du premier puis du second semestre."
+
+
+def test_irrelevant_summary_shows_ai_proposal(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=relevance(False, suggestion=PROPOSAL))
+    result = run_rgaa(Test521(), context_factory(COMPLEX), ai)
+    assert result.status == Status.FAIL
+    assert result.findings[0].recommendation == f"{RECOMMENDATION} Proposition : « {PROPOSAL} »."
+
+
+def test_irrelevant_summary_without_proposal(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=relevance(False))
+    result = run_rgaa(Test521(), context_factory(COMPLEX), ai)
+    assert result.status == Status.FAIL
+    assert result.findings[0].recommendation == RECOMMENDATION
+
+
+def test_proposal_is_ignored_when_ai_is_unsure(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=relevance(False, confidence="low", suggestion=PROPOSAL))
+    result = run_rgaa(Test521(), context_factory(COMPLEX), ai)
+    assert result.status == Status.NEEDS_REVIEW
+    assert result.findings[0].recommendation == RECOMMENDATION
+
+
+def test_proposal_is_ignored_on_pass(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=relevance(True, suggestion=PROPOSAL))
+    result = run_rgaa(Test521(), context_factory(COMPLEX), ai)
+    assert result.status == Status.PASS
+    assert result.findings == []
 
 
 def test_low_confidence_needs_review(context_factory, run_rgaa):

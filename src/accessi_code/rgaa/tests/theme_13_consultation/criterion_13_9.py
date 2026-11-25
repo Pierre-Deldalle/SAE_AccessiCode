@@ -17,9 +17,10 @@ Les règles qui ne font qu'adapter la mise en page (largeurs, colonnes) sont con
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from typing import Any
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 
 from accessi_code.analysis.animations import block_end, css_texts
 from accessi_code.analysis.components import normalize
@@ -46,16 +47,52 @@ SUMMARY_OK = "Aucun blocage de l'orientation de l'écran repéré."
 ORIENTATIONS = {"portrait": "portrait", "landscape": "paysage"}
 
 
-def orientation_rules(context: AuditContext) -> list[tuple[str, str, str, str]]:
-    """(source, orientation, sélecteur, déclarations) des règles placées dans @media (orientation: …)."""
-    rules: list[tuple[str, str, str, str]] = []
-    for label, text in css_texts(context):
+@dataclass
+class OrientationRule:
+    """Règle placée dans @media (orientation: …)."""
+
+    label: str
+    orientation: str
+    selector: str
+    declarations: str
+    # Champs file, line, snippet d'un Finding : emplacement de la règle dans sa feuille de style.
+    location: dict[str, Any]
+
+
+def orientation_rules(context: AuditContext) -> list[OrientationRule]:
+    """Règles placées dans @media (orientation: …), une par sélecteur."""
+    rules: list[OrientationRule] = []
+    for sheet in css_texts(context):
+        text = sheet.text
         for media in ORIENTATION_MEDIA.finditer(text):
             body = text[media.end() : block_end(text, media.end() - 1)]
             for rule in re.finditer(r"([^{}]+)\{([^{}]*)\}", body):
-                for selector in rule.group(1).split(","):
-                    rules.append((label, media.group(1).lower(), selector.strip(), rule.group(2)))
+                selectors = rule.group(1)
+                offset = media.end() + rule.start(1) + len(selectors) - len(selectors.lstrip())
+                for selector in selectors.split(","):
+                    rules.append(
+                        OrientationRule(
+                            sheet.label,
+                            media.group(1).lower(),
+                            selector.strip(),
+                            rule.group(2),
+                            sheet.location(offset),
+                        )
+                    )
     return rules
+
+
+def rotate_message_element(soup: BeautifulSoup) -> Tag | None:
+    """Élément le plus précis dont le texte invite à tourner l'appareil (premier message de la page)."""
+    root = soup.body or soup
+    found: Tag | None = None
+    for tag in root.find_all(True):
+        if tag.name in {"script", "style"} or not ROTATE_MESSAGE.search(normalize(tag.get_text(" ", strip=True))):
+            continue
+        if found is not None and found not in tag.parents:
+            break  # autre branche du document : le premier message est déjà trouvé
+        found = tag
+    return found or (root if isinstance(root, Tag) else None)
 
 
 class Test1391(RGAATest):
@@ -71,41 +108,49 @@ class Test1391(RGAATest):
         outcomes: list[Outcome] = []
         for source in page_scripts(context):
             for match in LOCK.finditer(source.masked):
+                location = source.location(match.start())
+                example = f" Exemple : {location['snippet']} → ligne supprimée" if location["snippet"] else ""
                 outcomes.append(
                     make_outcome(
                         TestStatus.FAIL,
                         source.label,
                         "Le script verrouille l'orientation de l'écran : le contenu n'est consultable que dans une "
                         "orientation (non conforme sauf si l'orientation est essentielle, par exemple un jeu).",
-                        "Retirer le verrouillage de l'orientation et adapter la page aux deux orientations.",
+                        "Retirer le verrouillage de l'orientation et adapter la page aux deux orientations." + example,
+                        **location,
                         code=source.snippet(match.start()),
                     )
                 )
 
-        for label, orientation, selector, declarations in orientation_rules(context):
-            name = ORIENTATIONS[orientation]
-            global_rule = bool(GLOBAL_SELECTOR.match(selector))
-            if global_rule and (HIDES.search(declarations) or ROTATES.search(declarations)):
-                effect = "masque" if HIDES.search(declarations) else "fait pivoter"
+        for rule in orientation_rules(context):
+            name = ORIENTATIONS[rule.orientation]
+            element = f"{rule.label} : @media (orientation: {rule.orientation}) {rule.selector}"
+            global_rule = bool(GLOBAL_SELECTOR.match(rule.selector))
+            if global_rule and (HIDES.search(rule.declarations) or ROTATES.search(rule.declarations)):
+                effect = "masque" if HIDES.search(rule.declarations) else "fait pivoter"
                 outcomes.append(
                     make_outcome(
                         TestStatus.FAIL,
-                        f"{label} : @media (orientation: {orientation}) {selector}",
+                        element,
                         f"En mode {name}, la feuille de style {effect} toute la page.",
-                        "Afficher le contenu dans les deux orientations en adaptant la mise en page.",
-                        declarations=normalize(declarations),
+                        "Afficher le contenu dans les deux orientations en adaptant la mise en page. "
+                        f"Exemple : @media (orientation: {rule.orientation}) {{ {rule.selector} "
+                        f"{{ {normalize(rule.declarations).strip()} }} }} → règle supprimée",
+                        **rule.location,
+                        declarations=normalize(rule.declarations),
                     )
                 )
-            elif HIDES.search(declarations):
+            elif HIDES.search(rule.declarations):
                 outcomes.append(
                     make_outcome(
                         TestStatus.NEEDS_REVIEW,
-                        f"{label} : @media (orientation: {orientation}) {selector}",
-                        f"En mode {name}, la feuille de style masque « {selector} » : vérifier que ce contenu reste "
-                        "disponible autrement dans cette orientation.",
+                        element,
+                        f"En mode {name}, la feuille de style masque « {rule.selector} » : vérifier que ce contenu "
+                        "reste disponible autrement dans cette orientation.",
                         "Vérifier que tout le contenu et toutes les fonctionnalités restent disponibles en portrait "
                         "et en paysage.",
-                        declarations=normalize(declarations),
+                        **rule.location,
+                        declarations=normalize(rule.declarations),
                     )
                 )
 
@@ -119,6 +164,7 @@ class Test1391(RGAATest):
                     f"La page invite à changer l'orientation de l'écran (« {message.group(0)} ») : vérifier que le "
                     "contenu reste consultable dans les deux orientations.",
                     "Adapter la page aux deux orientations plutôt que demander de tourner l'appareil.",
+                    node=rotate_message_element(soup),
                 )
             )
 

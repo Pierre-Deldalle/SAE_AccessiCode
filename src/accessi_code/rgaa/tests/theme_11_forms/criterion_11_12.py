@@ -101,6 +101,7 @@ class _TransactionTest(RGAATest):
                         ),
                         "Vérifier si la validation du formulaire a des conséquences financières, juridiques ou "
                         "modifie des données.",
+                        node=form,
                         **verdict.evidence,
                     )
                 )
@@ -120,6 +121,7 @@ class _TransactionTest(RGAATest):
                 "Aucun mécanisme de correction, de récupération ou de confirmation n'est disponible "
                 "(vérification documentée).",
                 "Ajouter une confirmation explicite, une étape de vérification ou un moyen d'annuler ou de récupérer.",
+                node=form,
                 form_index=index,
             )
         mechanisms = visible_mechanisms(form, soup)
@@ -131,6 +133,7 @@ class _TransactionTest(RGAATest):
             "Aucun mécanisme de confirmation ou de correction n'est visible dans la page : vérifier ce qui est "
             "proposé après la validation du formulaire.",
             "Ajouter une case de confirmation explicite ou une étape de vérification avant validation.",
+            node=form,
             form_index=index,
         )
 

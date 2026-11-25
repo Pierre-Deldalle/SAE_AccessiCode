@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from bs4 import BeautifulSoup, Tag
 
+from accessi_code.analysis.location import location_fields
 from accessi_code.analysis.tables import (
     COLUMN_HEADER,
     ROW_HEADER,
@@ -73,6 +74,7 @@ def _build_result(
     findings = [
         Finding(
             element=slot.selector,
+            **location_fields(slot.item),
             message=message,
             recommendation=recommendation,
             evidence={"tag": slot.item.name, "role": cell_role(slot.item) or None},

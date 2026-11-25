@@ -17,6 +17,7 @@ from accessi_code.ai.schemas import (
     LanguageAnalysis,
     TitleAnalysis,
 )
+from accessi_code.ai.text_safety import read_suggestion
 
 
 class OllamaPageAnalyzer:
@@ -46,6 +47,7 @@ class OllamaPageAnalyzer:
         data = await self._generate_json(prompt)
 
         relevant = self._get_relevant(data)
+        confidence = self._get_confidence(data.get("confidence"))
 
         return LanguageAnalysis(
             relevant=relevant,
@@ -60,7 +62,8 @@ class OllamaPageAnalyzer:
                 fallback=("La correspondance entre la langue déclarée et le contenu n'a pas pu être déterminée."),
             ),
             uncertainties=self._get_strings(data.get("uncertainties")),
-            confidence=self._get_confidence(data.get("confidence")),
+            confidence=confidence,
+            suggestion=read_suggestion(data.get("suggestion")) if relevant is False and confidence != "low" else None,
         )
 
     async def analyze_title(
@@ -88,6 +91,7 @@ class OllamaPageAnalyzer:
         )
 
         relevant = self._get_relevant(data)
+        confidence = self._get_confidence(data.get("confidence"))
 
         return TitleAnalysis(
             relevant=relevant,
@@ -97,7 +101,8 @@ class OllamaPageAnalyzer:
             ),
             contradictions=self._get_strings(data.get("contradictions")),
             uncertainties=self._get_strings(data.get("uncertainties")),
-            confidence=self._get_confidence(data.get("confidence")),
+            confidence=confidence,
+            suggestion=read_suggestion(data.get("suggestion")) if relevant is False and confidence != "low" else None,
         )
 
     async def _generate_json(

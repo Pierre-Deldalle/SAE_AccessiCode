@@ -1,240 +1,247 @@
+"""
+RGAA 4.1.2 — critère 7.4 : pour chaque script qui initie un changement de
+contexte, l'utilisateur est-il averti ou en a-t-il le contrôle ?
+
+Changements de contexte repérés dans le code des gestionnaires d'événement :
+nouvelle fenêtre (window.open), nouvelle page (location, history), envoi de
+formulaire (submit()).
+
+7.4.1 — chaque changement vérifie une de ces conditions : il est initié par un
+bouton ou un lien explicite, ou l'utilisateur est averti par un texte avant :
+- clic sur un bouton ou un lien natif → PASS ;
+- sinon (choix dans une liste, saisie, clic sur un élément non natif…), aucun texte
+  autour du composant → FAIL ; un texte existe → l'IA juge s'il avertit
+  (``context_change_warning``) : PASS / FAIL, NEEDS_REVIEW si elle est incertaine
+  ou absente ;
+- écoute de script dont l'élément n'est pas trouvé → NEEDS_REVIEW.
+"""
+
 from __future__ import annotations
 
 import re
-from typing import Any, Set
+from typing import Any
 
 from bs4 import BeautifulSoup, Tag
 
+from accessi_code.ai.schemas import RelevanceItem
+from accessi_code.analysis.components import component_identifier, normalize
+from accessi_code.analysis.dom import get_labelledby_text, get_matching_label, get_wrapping_label
+from accessi_code.analysis.location import opening_tag
+from accessi_code.analysis.scripts import page_scripts
+from accessi_code.analysis.structure import is_hidden
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
-from accessi_code.models.result import (
-    Finding,
-    TestResult,
-    TestStatus,
-)
+from accessi_code.models.result import TestResult, TestStatus
+from accessi_code.rgaa.ai_decision import judge_relevance
 from accessi_code.rgaa.base import RGAATest
+from accessi_code.rgaa.outcomes import Outcome, build_result, make_outcome, not_applicable
+from accessi_code.rgaa.tests.theme_07_scripts._common import (
+    ACTIVATION_EVENTS,
+    ElementHandlers,
+    handlers_by_element,
+    is_explicit_button_or_link,
+    is_text_field,
+    native_replacement,
+)
+
+CONTEXT_CHANGES: tuple[tuple[re.Pattern[str], str], ...] = (
+    (re.compile(r"(?<![\w$])window\s*\.\s*open\s*\("), "nouvelle fenêtre"),
+    (
+        re.compile(
+            r"(?<![\w$])(?:window\s*\.\s*|document\s*\.\s*)?location(?:\s*\.\s*href)?\s*=(?!=)"
+            r"|location\s*\.\s*(?:assign|replace)\s*\(|history\s*\.\s*(?:back|forward|go)\s*\("
+        ),
+        "nouvelle page",
+    ),
+    (re.compile(r"\.\s*submit\s*\(\s*\)"), "envoi de formulaire"),
+)
+EMPTY_SUMMARY = (
+    "Aucun script ne provoque de changement de contexte (nouvelle page, nouvelle fenêtre, envoi de formulaire)."
+)
+RECOMMENDATION = (
+    "Déclencher le changement de contexte par un bouton ou un lien explicite, ou avertir l'utilisateur par un "
+    "texte placé avant le composant."
+)
+EVENT_LABELS = {
+    "change": "un choix dans une liste ou un champ",
+    "input": "une saisie",
+    "blur": "la sortie du champ",
+    "focusout": "la sortie du champ",
+    "focus": "l'arrivée sur le composant",
+    "focusin": "l'arrivée sur le composant",
+    "keydown": "une touche",
+    "keyup": "une touche",
+    "keypress": "une touche",
+    "mouseover": "le survol",
+    "mouseenter": "le survol",
+}
+
+
+def context_change(code: str) -> str | None:
+    """Type de changement de contexte provoqué par ``code``, ou None."""
+    for pattern, label in CONTEXT_CHANGES:
+        if pattern.search(code):
+            return label
+    return None
+
+
+def warning_text(element: Tag, soup: BeautifulSoup) -> str:
+    """Textes présentés avec le composant : étiquette, title, description, texte qui le précède."""
+    parts: list[str] = []
+    for label in (get_matching_label(element, soup), get_wrapping_label(element)):
+        if isinstance(label, Tag):
+            parts.append(label.get_text(" ", strip=True))
+    valid, described = get_labelledby_text(element, soup)
+    if valid:
+        parts.append(described)
+    for attribute in ("aria-label", "title"):
+        parts.append(str(element.get(attribute) or ""))
+    if not is_text_field(element) and element.name != "input":
+        # Texte du composant lui-même (« Aide (ouvre une nouvelle page) ») ; pas pour une liste, dont le
+        # texte est celui des options.
+        parts.append(element.get_text(" ", strip=True))
+    for reference in str(element.get("aria-describedby") or "").split():
+        target = soup.find(id=reference)
+        if isinstance(target, Tag):
+            parts.append(target.get_text(" ", strip=True))
+    previous = element.find_previous_sibling()
+    if isinstance(previous, Tag) and not is_hidden(previous):
+        parts.append(previous.get_text(" ", strip=True))
+    if isinstance(element.parent, Tag):
+        before = [
+            str(node) if not isinstance(node, Tag) else node.get_text(" ", strip=True)
+            for node in element.previous_siblings
+            if not (isinstance(node, Tag) and (node.name in {"script", "style"} or is_hidden(node)))
+        ]
+        parts.append(" ".join(reversed(before)))
+    unique: list[str] = []
+    for part in (normalize(part) for part in parts):
+        if part and part not in unique:
+            unique.append(part)
+    return " — ".join(unique)[:400]
+
+
+def _example(element: Tag, event: str, code: str) -> str:
+    """Correction « avant → après » : bouton de validation pour un champ, élément natif sinon."""
+    if event in ACTIVATION_EVENTS:
+        return native_replacement(element, code)
+    if is_text_field(element) and element.has_attr(f"on{event}"):
+        return (
+            f" Exemple : {opening_tag(element)} → {opening_tag(element, **{'on' + event: None})} suivi de "
+            '<button type="button">Valider</button>, qui exécute l\'action.'
+        )
+    return ""
 
 
 class Test741(RGAATest):
     test_id = "7.4.1"
     criterion_id = "7.4"
+    required_capabilities = frozenset({Capability.DOM})
 
-    required_capabilities = frozenset(
-        {
-            Capability.DOM,
-        }
-    )
-
-    async def run(
-        self,
-        context: AuditContext,
-        services: Any | None = None,
-    ) -> TestResult:
-        if not isinstance(context.dom, BeautifulSoup):
-            raise ValueError("Le test 7.4.1 nécessite un DOM.")
-
+    async def run(self, context: AuditContext, services: Any | None = None) -> TestResult:
         soup = context.dom
+        if not isinstance(soup, BeautifulSoup):
+            raise ValueError(f"Le test {self.test_id} nécessite un DOM.")
 
-        script_elements = self._find_script_controlled_elements(soup)
+        sources = page_scripts(context)
+        grouped, _global, unresolved = handlers_by_element(sources, soup)
 
-        if not script_elements:
-            return TestResult(
-                test_id=self.test_id,
-                criterion_id=self.criterion_id,
-                status=TestStatus.NOT_APPLICABLE,
-                summary="Aucun composant d'interface généré ou contrôlé par script détecté.",
-            )
+        outcomes: list[Outcome | None] = []
+        to_judge: list[tuple[int, ElementHandlers, str, str, RelevanceItem]] = []
+        for index, handlers in enumerate(grouped):
+            element = handlers.element
+            changes = [
+                (listener, change)
+                for listener in handlers.listeners
+                if (change := context_change(listener.code)) is not None
+            ]
+            if not changes:
+                continue
+            listener, change = changes[0]
+            event = listener.event
+            evidence = {"event": event, "change": change, "code": normalize(listener.code)[:300]}
 
-        findings: list[Finding] = []
-        compliant_count = 0
-
-        for index, element in enumerate(script_elements):
-            if self._is_explicit_button_or_link(element) or self._has_warning_text(element, soup):
-                compliant_count += 1
+            if event in ACTIVATION_EVENTS and is_explicit_button_or_link(element):
+                outcomes.append(make_outcome(TestStatus.PASS))
                 continue
 
-            findings.append(
-                Finding(
-                    element=self._get_element_identifier(element, index),
-                    message=(
-                        "Le script d'ouverture n'avertit pas l'utilisateur de l'ouverture d'une nouvelle "
-                        "fenêtre et n'est pas initié par un bouton ou un lien explicite."
-                    ),
-                    recommendation=(
-                        "Ajouter un texte d'avertissement (ex: [ouvre nouvelle fenêtre]) près du composant, "
-                        "ou remplacer l'élément par un bouton ou un lien explicite."
+            trigger = (
+                "un clic sur un élément qui n'est ni un bouton ni un lien"
+                if event in ACTIVATION_EVENTS
+                else (EVENT_LABELS.get(event, f"l'événement {event}"))
+            )
+            text = warning_text(element, soup)
+            if not text:
+                outcomes.append(
+                    make_outcome(
+                        TestStatus.FAIL,
+                        component_identifier(element, index),
+                        f"Le script provoque un changement de contexte ({change}) déclenché par {trigger}, sans "
+                        "bouton ni lien explicite et sans texte qui en avertit l'utilisateur.",
+                        RECOMMENDATION + _example(element, event, listener.code),
+                        node=element,
+                        **evidence,
+                    )
+                )
+                continue
+            outcomes.append(None)
+            to_judge.append(
+                (
+                    len(outcomes) - 1,
+                    handlers,
+                    trigger,
+                    change,
+                    RelevanceItem(
+                        text=text,
+                        element_html=str(element)[:400],
+                        context=f"Déclenché par {trigger}",
+                        details={"change": change, "action": evidence["code"]},
                     ),
                 )
             )
 
-        if findings:
-            status = TestStatus.FAIL
-        else:
-            status = TestStatus.PASS
+        verdicts = await judge_relevance(services, "context_change_warning", [entry[-1] for entry in to_judge])
+        for (position, handlers, trigger, change, item), verdict in zip(to_judge, verdicts, strict=True):
+            element = handlers.element
+            listener = next(entry for entry in handlers.listeners if context_change(entry.code))
+            outcomes[position] = make_outcome(
+                verdict.status,
+                component_identifier(element, grouped.index(handlers)),
+                verdict.message(
+                    f"Le script provoque un changement de contexte ({change}) déclenché par {trigger}, et le texte "
+                    "présenté n'en avertit pas l'utilisateur.",
+                    f"Le script provoque un changement de contexte ({change}) déclenché par {trigger} : vérifier "
+                    "que le texte présenté en avertit l'utilisateur.",
+                ),
+                verdict.recommendation(RECOMMENDATION) + _example(element, listener.event, listener.code),
+                node=element,
+                event=listener.event,
+                change=change,
+                warning_text=item.text,
+                **verdict.evidence,
+            )
 
-        return TestResult(
-            test_id=self.test_id,
-            criterion_id=self.criterion_id,
-            status=status,
-            summary=(
-                f"{len(script_elements)} composant(s) d'interface généré(s) ou contrôlé(s) par script : "
-                f"{compliant_count} conforme(s), {len(findings)} non conforme(s)."
-            ),
-            findings=findings,
-            tested_elements=len(script_elements),
-            metadata={
-                "script_controlled_elements": len(script_elements),
-                "compliant_elements": compliant_count,
-                "non_compliant_elements": len(findings),
-            },
-        )
+        for listener in unresolved:
+            change = context_change(listener.code)
+            if change is None or listener.source is None:
+                continue
+            source = listener.source
+            outcomes.append(
+                make_outcome(
+                    TestStatus.NEEDS_REVIEW,
+                    source.label,
+                    f"Le script provoque un changement de contexte ({change}) sur l'événement {listener.event}, "
+                    "pour un élément non identifié : vérifier qu'il s'agit d'un bouton ou d'un lien explicite, "
+                    "ou que l'utilisateur est averti.",
+                    RECOMMENDATION,
+                    **source.location(listener.position),
+                    event=listener.event,
+                    change=change,
+                    code=source.snippet(listener.position),
+                )
+            )
 
-    def _find_script_controlled_elements(self, soup: BeautifulSoup) -> list[Tag]:
-        script_elements: set[Tag] = set()
-
-        event_handlers: Set[str] = {
-            "onclick",
-            "ondblclick",
-            "onmousedown",
-            "onmouseup",
-            "onmouseover",
-            "onmousemove",
-            "onmouseout",
-            "onkeypress",
-            "onkeydown",
-            "onkeyup",
-            "onchange",
-            "onsubmit",
-            "onreset",
-            "onselect",
-            "onblur",
-            "onfocus",
-        }
-
-        for handler in event_handlers:
-            elements = soup.find_all(attrs={handler: True})
-            script_elements.update(elements)
-
-        return list(script_elements)
-
-    def _is_explicit_button_or_link(self, element: Tag) -> bool:
-        name = element.name.lower()
-
-        if name == "button":
-            return True
-        elif name == "input":
-            input_type = element.get("type", "").lower()
-            return input_type in ("button", "submit", "image")
-        elif name == "a":
-            return True
-
-        return False
-
-    def _has_warning_text(self, element: Tag, soup: BeautifulSoup) -> bool:
-        if self._element_text_contains_warning(element.get_text()):
-            return True
-
-        title = element.get("title")
-        if title and self._element_text_contains_warning(title):
-            return True
-
-        aria_label = element.get("aria-label")
-        if aria_label and self._element_text_contains_warning(aria_label):
-            return True
-
-        return self._has_nearby_warning_text(element, soup)
-
-    def _element_text_contains_warning(self, text: str | None) -> bool:
-        if not text or not isinstance(text, str):
-            return False
-
-        text = text.strip()
-        if not text:
-            return False
-
-        if re.search(r"\[[^\]]*\]", text):
-            bracketed_matches = re.findall(r"\[([^\]]*)\]", text)
-            for match in bracketed_matches:
-                if self._contains_warning_indicators(match):
-                    return True
-
-        if self._starts_with_warning_prefix(text):
-            return True
-
-        return self._contains_warning_indicators(text)
-
-    def _starts_with_warning_prefix(self, text: str) -> bool:
-        text_lower = text.lower().strip()
-        warning_prefixes = [
-            "attention :",
-            "attention !",
-            "attention",
-            "warning :",
-            "warning !",
-            "warning",
-            "mise en garde :",
-            "mise en garde !",
-            "mise en garde",
-            "note :",
-            "note !",
-            "note",
-        ]
-
-        for prefix in warning_prefixes:
-            if text_lower.startswith(prefix):
-                return True
-        return False
-
-    def _contains_warning_indicators(self, text: str) -> bool:
-        text_lower = text.lower().strip()
-
-        context_change_indicators = [
-            "nouvelle fenêtre",
-            "nouvel onglet",
-            "nouvelle page",
-            "popup",
-            "boîte de dialogue",
-            "dialogue",
-            "fenêtre modale",
-            "onglet externe",
-            "site externe",
-            "lien externe",
-            "téléchargement",
-            "download",
-            "ouverture",
-            "ouvre",
-            "ouvrir",
-            "ouvrira",
-            "action irréversible",
-            "external",
-            "new window",
-            "new tab",
-            "external link",
-        ]
-
-        for indicator in context_change_indicators:
-            if indicator in text_lower:
-                return True
-
-        return False
-
-    def _has_nearby_warning_text(self, element: Tag, soup: BeautifulSoup) -> bool:
-        parent = element.parent
-        if not parent:
-            return False
-
-        for child in parent.children:
-            if hasattr(child, "get_text"):
-                child_text = child.get_text()
-                if self._element_text_contains_warning(child_text):
-                    if child != element:
-                        return True
-
-        return False
-
-    def _get_element_identifier(self, element: Tag, index: int) -> str:
-        element_id = element.get("id")
-        if isinstance(element_id, str) and element_id.strip():
-            return f"{element.name}#{element_id}"
-
-        return f"{element.name}[index={index}]"
+        found = [item for item in outcomes if item is not None]
+        if not found:
+            return not_applicable(self, EMPTY_SUMMARY)
+        return build_result(self, found, empty_summary=EMPTY_SUMMARY, noun="changement(s) de contexte")

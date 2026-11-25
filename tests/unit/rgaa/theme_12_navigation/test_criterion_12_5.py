@@ -40,3 +40,21 @@ def test_missing_link_fail(context_factory, run_rgaa):
 
 def test_one_page_na(context_factory, run_rgaa):
     assert run_rgaa(Test1241(), context_factory('<a href="plan.html">Plan du site</a>')).status == Status.NOT_APPLICABLE
+
+
+def test_missing_link_fail_is_located_on_the_page_without_link(context_factory, run_rgaa):
+    c = ctx(context_factory, '<html lang="fr">\n<main>Sans plan</main>\n</html>')
+    result = run_rgaa(Test1241(), c)
+    assert result.status == Status.FAIL
+    note = result.findings[0]
+    assert (note.file, note.line, note.snippet) == ("page2.html", 1, '<html lang="fr"> <main>Sans plan</main> </html>')
+    assert note.evidence["pages"] == ["page2.html"]
+
+
+def test_visual_fail_is_located_on_the_link_of_the_audited_page(context_factory, run_rgaa):
+    html = '<html>\n<header>\n<a href="plan.html">Plan du site</a>\n</header>\n</html>'
+    c = context_factory(html)
+    c.page_doms["page2.html"] = BeautifulSoup(html, "html.parser")
+    c.navigation_evidence["12.4.2"] = {"same_visual_position": False}
+    note = run_rgaa(Test1242(), c).findings[0]
+    assert (note.file, note.line, note.snippet) == (None, 3, '<a href="plan.html">Plan du site</a>')

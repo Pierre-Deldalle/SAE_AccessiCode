@@ -43,6 +43,7 @@ class DescriptionAnalysis:
     uncertainties: list[str] = field(default_factory=list)
 
     confidence: AIConfidence = "low"
+    suggestion: str | None = None
 
 
 @dataclass
@@ -58,6 +59,7 @@ class LanguageAnalysis:
     uncertainties: list[str] = field(default_factory=list)
 
     confidence: AIConfidence = "low"
+    suggestion: str | None = None
 
 
 @dataclass
@@ -74,6 +76,7 @@ class TitleAnalysis:
     uncertainties: list[str] = field(default_factory=list)
 
     confidence: AIConfidence = "low"
+    suggestion: str | None = None
 
 
 @dataclass
@@ -137,6 +140,11 @@ class RelevanceAnalysis:
     uncertainties: list[str] = field(default_factory=list)
 
     confidence: AIConfidence = "low"
+    suggestion: str | None = None
+
+    # Texte corrigé proposé par le modèle lorsque le texte n'est pas pertinent
+    # (seulement pour les types qui le demandent) ; None sinon.
+    suggestion: str | None = None
 
 
 # ----------------------------------------------------------------------
@@ -185,6 +193,7 @@ class AlternativeAnalysis:
     uncertainties: list[str] = field(default_factory=list)
 
     confidence: AIConfidence = "low"
+    suggestion: str | None = None
 
 
 # ----------------------------------------------------------------------
@@ -230,6 +239,11 @@ class SensoryAnalysis:
     uncertainties: list[str] = field(default_factory=list)
 
     confidence: AIConfidence = "low"
+    suggestion: str | None = None
+
+    # Texte corrigé proposé lorsque l'information repose uniquement sur la caractéristique
+    # (demandé seulement pour les types de SENSORY_SUGGESTIONS).
+    suggestion: str | None = None
 
 
 # ----------------------------------------------------------------------
@@ -241,6 +255,7 @@ StructureKind = Literal[
     "heading",
     "list",
     "quote",
+    "presentation_quote",
     "caption",
     "status_success",
     "status_error",
@@ -271,3 +286,4 @@ class StructureCandidateAnalysis:
     uncertainties: list[str] = field(default_factory=list)
 
     confidence: AIConfidence = "low"
+    suggestion: str | None = None

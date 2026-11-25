@@ -262,3 +262,11 @@ def test_541_all_good_tables_passes(
     assert result.status == Status.PASS
     assert result.findings == []
     assert result.tested_elements == 2
+
+
+def test_541_finding_locates_the_table(context_factory, run_rgaa):
+    html = '<p>Liste</p>\n<table id="noms"><tr><th>Nom</th></tr><tr><td>Alice</td></tr></table>'
+    result = run_rgaa(RGAA541(), context_factory(html))
+    assert result.status == Status.FAIL
+    assert result.findings[0].line == 2
+    assert result.findings[0].snippet == '<table id="noms"><tr><th>Nom</th></tr><tr><td>Alice</td></tr></table>'

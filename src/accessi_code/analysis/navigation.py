@@ -7,12 +7,15 @@ par l'appelant. Aucune position CSS ni interaction clavier n'est inférée du DO
 from __future__ import annotations
 
 from collections.abc import Mapping
-from pathlib import PurePosixPath
+from html import escape
+from pathlib import Path, PurePosixPath
 from urllib.parse import unquote, urlsplit
 
-from bs4 import Tag
+from bs4 import BeautifulSoup, Tag
 
 from accessi_code.analysis.dom import get_element_identifier
+from accessi_code.analysis.fix_examples import attribute_fix_example
+from accessi_code.analysis.location import locate, opening_tag, source_file_name
 from accessi_code.models.result import Finding, TestResult, TestStatus
 
 
@@ -156,12 +159,122 @@ def local_target(href, source_key, known_pages, source_soup):
     return True
 
 
-def finding(tag, soup, message, recommendation, **extra):
+def page_file(context, soup):
+    """
+    Fichier, tel que l'utilisateur l'a fourni, de la page ``soup`` de ``page_doms``.
+
+    None pour la page auditée : le runner la renseigne lui-même.
+    """
+    if soup is None or soup is context.dom:
+        return None
+    source = context.workspace_path / "source"
+    for key, page in (getattr(context, "page_doms", None) or {}).items():
+        if page is not soup:
+            continue
+        for item in context.files:
+            path = Path(item.path)
+            try:
+                relative = path.relative_to(source).as_posix()
+            except ValueError:
+                relative = path.name
+            if relative == key:
+                return source_file_name(context, path)
+        return key
+    return None
+
+
+def finding(tag, soup, message, recommendation, *, file=None, **extra):
+    """
+    Observation sur ``tag`` (élément de ``soup``), avec sa ligne et son extrait HTML.
+
+    ``file`` : fichier de ``soup`` lorsqu'il ne s'agit pas de la page auditée (voir ``page_file``).
+    """
     try:
         element = get_element_identifier(tag, list(soup.find_all(True)).index(tag))
     except ValueError, AttributeError:
         element = "document"
-    return Finding(element, message, recommendation, evidence=extra)
+    # Le document entier n'a pas de ligne : seul un élément est situé.
+    line, snippet = (None, None) if isinstance(tag, BeautifulSoup) else locate(tag)
+    return Finding(element, message, recommendation, evidence=extra, line=line, snippet=snippet, file=file)
+
+
+SKIP_LINK_TEXT = "Aller au contenu principal"
+
+# Éléments qui reçoivent le focus sans tabindex (un lien seulement avec href).
+_NATIVELY_FOCUSABLE = frozenset({"area", "button", "input", "select", "summary", "textarea"})
+
+# Champs de formulaire qui ne sont pas des zones de saisie.
+_NOT_ENTRIES = frozenset({"hidden", "submit", "button", "reset", "image"})
+
+
+def _free_id(soup, base):
+    """``base``, ou ``base-2``, ``base-3``… si cet id est déjà pris dans la page."""
+    candidate, number = base, 1
+    while soup.find(id=candidate) is not None:
+        number += 1
+        candidate = f"{base}-{number}"
+    return candidate
+
+
+def body_start_example(soup, html):
+    """Exemple « <body> → <body>html » : ``html`` placé au tout début du corps de la page."""
+    body = soup.find("body")
+    if body is None:
+        return f"placer {html} au tout début de la page"
+    return f"{opening_tag(body)} → {opening_tag(body)}{html}"
+
+
+def skip_link_example(soup, main):
+    """
+    Exemple d'ajout d'un lien d'évitement vers ``main`` en début de page, avec les vraies valeurs.
+
+    Si ``main`` n'a pas d'id, l'exemple lui en donne un (« contenu », ou une variante libre).
+    """
+    if not isinstance(main, Tag):
+        return None
+    target = str(main.get("id") or "").strip()
+    parts = []
+    if not target:
+        target = _free_id(soup, "contenu")
+        parts.append(attribute_fix_example(main, set_attributes={"id": target}))
+    parts.append(body_start_example(soup, f'<a href="#{escape(target)}">{SKIP_LINK_TEXT}</a>'))
+    return " ; ".join(parts)
+
+
+def search_zone_example(field):
+    """
+    Exemple pour signaler un champ de recherche comme zone de recherche : ``role="search"``
+    sur son formulaire, ou un conteneur ``<div role="search">`` s'il n'en a pas.
+
+    None si le champ est déjà dans une zone de recherche, ou si son formulaire contient
+    d'autres champs (formulaire de contact…) : en faire une zone de recherche serait faux.
+    """
+    if not isinstance(field, Tag) or field.find_parent(attrs={"role": "search"}) or field.find_parent("search"):
+        return None
+    form = field.find_parent("form")
+    if form is None:
+        return f'{opening_tag(field)} → <div role="search">{opening_tag(field)}</div>'
+    entries = [
+        tag
+        for tag in form.find_all(["input", "select", "textarea"])
+        if str(tag.get("type", "")).lower() not in _NOT_ENTRIES
+    ]
+    if entries != [field]:
+        return None
+    return attribute_fix_example(form, set_attributes={"role": "search"})
+
+
+def positive_tabindex_example(tag):
+    """
+    Exemple pour rendre à un élément sa place dans l'ordre du code : ``tabindex`` retiré
+    s'il reçoit le focus sans lui, sinon ramené à ``0``.
+    """
+    if not isinstance(tag, Tag):
+        return None
+    native = tag.name in _NATIVELY_FOCUSABLE or (tag.name == "a" and tag.get("href") is not None)
+    if native:
+        return attribute_fix_example(tag, remove_attributes=["tabindex"])
+    return attribute_fix_example(tag, set_attributes={"tabindex": "0"})
 
 
 def result(test, count, failures=None, reviews=None, *, empty="Aucun élément concerné.", metadata=None):

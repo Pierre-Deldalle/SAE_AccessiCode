@@ -76,7 +76,8 @@ class Test521(RGAATest):
                     "Le résumé du tableau de données complexe n'est pas pertinent.",
                     "La pertinence du résumé du tableau de données complexe reste à vérifier.",
                 ),
-                RECOMMENDATION,
+                verdict.recommendation(RECOMMENDATION),
+                node=table,
                 summaries=[{"source": source, "text": text} for source, text in summaries],
                 **verdict.evidence,
             )

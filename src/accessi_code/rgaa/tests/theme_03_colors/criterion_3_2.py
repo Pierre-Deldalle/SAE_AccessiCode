@@ -13,6 +13,7 @@ from accessi_code.models.capabilities import Capability
 from accessi_code.models.color_style import TextContrastSample
 from accessi_code.models.result import Finding, TestResult, TestStatus
 from accessi_code.rgaa.base import RGAATest
+from accessi_code.rgaa.tests.theme_03_colors._contrast import contrast_example
 
 
 def _is_partial_automatic_context(context: AuditContext) -> bool:
@@ -244,6 +245,7 @@ def _evaluate_samples(
                     message=(f"Le rapport de contraste est {ratio:.2f}:1 alors que {threshold}:1 est requis."),
                     recommendation=(
                         "Modifier les couleurs du texte ou de son arrière-plan afin d'obtenir un contraste suffisant."
+                        + contrast_example(sample.color, sample.background_color, threshold, "color")
                     ),
                     evidence={
                         "ratio": ratio,
@@ -531,7 +533,10 @@ class Test325(RGAATest):
                     Finding(
                         element=sample.element,
                         message=("Le mécanisme de contraste ne présente pas un contraste suffisant."),
-                        recommendation=("Corriger les couleurs utilisées par le mécanisme."),
+                        recommendation=(
+                            "Corriger les couleurs utilisées par le mécanisme."
+                            + contrast_example(sample.color, sample.background_color, threshold, "color")
+                        ),
                         evidence={
                             "ratio": ratio,
                             "required_ratio": threshold,

@@ -20,7 +20,9 @@ from bs4 import BeautifulSoup, Tag
 
 from accessi_code.ai.schemas import RelevanceAnalysis, RelevanceItem, StructureCandidate
 from accessi_code.analysis.dom import get_element_identifier
+from accessi_code.analysis.fix_examples import rename_example, with_example
 from accessi_code.analysis.structure import (
+    HEADING_TAGS,
     Heading,
     heading_candidates,
     headings,
@@ -53,15 +55,35 @@ def _identifier(tag: Tag, soup: BeautifulSoup) -> str:
     return get_element_identifier(tag, soup.find_all(tag.name).index(tag))
 
 
-def suspicious_levels(outline: list[Heading]) -> list[str]:
-    """Sauts de niveau et premier titre qui n'est pas de niveau 1."""
-    remarks: list[str] = []
+def heading_example(tag: Tag, level: int, text: str | None = None) -> str | None:
+    """
+    Titre corrigé avec ses vrais attributs : niveau ``level`` (balise hx, ou aria-level pour
+    role="heading") et, si ``text`` est donné, nouveau contenu.
+    """
+    if tag.name in HEADING_TAGS:
+        return rename_example(tag, f"h{level}", text=text)
+    return rename_example(tag, tag.name, set_attributes={"aria-level": str(level)}, text=text)
+
+
+def level_after_previous(tag: Tag, soup: BeautifulSoup, outline: list[Heading]) -> int:
+    """
+    Niveau d'exemple pour un titre à baliser : un niveau sous le titre qui le précède dans la page
+    (1 s'il n'y en a pas). Ce n'est qu'un exemple : le bon niveau dépend du plan de la page.
+    """
+    position = {id(item): index for index, item in enumerate(soup.find_all(True))}
+    before = [item for item in outline if position.get(id(item.tag), -1) < position.get(id(tag), -1)]
+    return min(before[-1].level + 1, 6) if before else 1
+
+
+def suspicious_headings(outline: list[Heading]) -> list[tuple[Heading, str]]:
+    """Titres en cause (premier titre qui n'est pas de niveau 1, titre après un saut de niveau) et remarque."""
+    found: list[tuple[Heading, str]] = []
     if outline and outline[0].level != 1:
-        remarks.append(f"le premier titre est de niveau {outline[0].level} : « {outline[0].text[:80]} »")
+        found.append((outline[0], f"le premier titre est de niveau {outline[0].level} : « {outline[0].text[:80]} »"))
     for previous, current in zip(outline, outline[1:], strict=False):
         if current.level > previous.level + 1:
-            remarks.append(f"h{previous.level} → h{current.level} : « {current.text[:80]} »")
-    return remarks
+            found.append((current, f"h{previous.level} → h{current.level} : « {current.text[:80]} »"))
+    return found
 
 
 class Test911(RGAATest):
@@ -77,8 +99,10 @@ class Test911(RGAATest):
         if not outline:
             return not_applicable(self, "Aucun titre dans la page.")
 
-        remarks = suspicious_levels(outline)
+        suspicious = suspicious_headings(outline)
+        remarks = [remark for _, remark in suspicious]
         metadata = {"headings": len(outline), "levels": [item.level for item in outline], "remarks": remarks}
+        concerned = [item for item, _ in suspicious]
         if not remarks:
             return TestResult(
                 self.test_id,
@@ -98,6 +122,7 @@ class Test911(RGAATest):
                 recommendation,
                 outline,
                 metadata,
+                concerned,
             )
         try:
             analysis = await analyzer.analyze_heading_hierarchy([(item.level, item.text) for item in outline], remarks)
@@ -105,7 +130,7 @@ class Test911(RGAATest):
                 raise TypeError("RelevanceAnalysis attendu.")
         except Exception as error:
             metadata["error"] = f"{type(error).__name__}: {error}"
-            return self._result(TestStatus.ERROR, AI_ERROR_MESSAGE, "Relancer l'audit.", outline, metadata)
+            return self._result(TestStatus.ERROR, AI_ERROR_MESSAGE, "Relancer l'audit.", outline, metadata, concerned)
 
         metadata["analysis"] = analysis_evidence(analysis)
         status = status_from_verdict(analysis.relevant, analysis.confidence)
@@ -124,10 +149,25 @@ class Test911(RGAATest):
             if status is TestStatus.FAIL
             else f"La pertinence de la hiérarchie des titres reste incertaine. {analysis.explanation}".strip()
         )
-        return self._result(status, message, recommendation, outline, metadata)
+        if status is TestStatus.FAIL:
+            # Exemple sur le premier titre en cause : niveau qui supprime le saut.
+            index = next(position for position, item in enumerate(outline) if item is concerned[0])
+            level = outline[index - 1].level + 1 if index else 1
+            recommendation = with_example(recommendation, heading_example(concerned[0].tag, level))
+        return self._result(status, message, recommendation, outline, metadata, concerned)
 
-    def _result(self, status, message, recommendation, outline, metadata) -> TestResult:
-        outcome = make_outcome(status, "titres de la page", message, recommendation, remarks=metadata["remarks"])
+    def _result(self, status, message, recommendation, outline, metadata, concerned: list[Heading]) -> TestResult:
+        # L'observation porte sur toute la hiérarchie : elle est située au premier titre en cause,
+        # les lignes de tous les titres en cause sont gardées dans les preuves.
+        outcome = make_outcome(
+            status,
+            "titres de la page",
+            message,
+            recommendation,
+            node=concerned[0].tag,
+            remarks=metadata["remarks"],
+            lines=[item.tag.sourceline for item in concerned],
+        )
         return TestResult(
             self.test_id,
             self.criterion_id,
@@ -158,7 +198,13 @@ class Test912(RGAATest):
         for item in outline:
             if not item.text:
                 outcomes.append(
-                    make_outcome(TestStatus.FAIL, _identifier(item.tag, soup), "Le titre est vide.", recommendation)
+                    make_outcome(
+                        TestStatus.FAIL,
+                        _identifier(item.tag, soup),
+                        "Le titre est vide.",
+                        recommendation,
+                        node=item.tag,
+                    )
                 )
 
         items = [
@@ -180,12 +226,21 @@ class Test912(RGAATest):
                         f"Le titre « {item.text[:100]} » n'est pas pertinent.",
                         f"La pertinence du titre « {item.text[:100]} » reste à vérifier.",
                     ),
-                    recommendation,
+                    _proposal(verdict, item, recommendation),
+                    node=item.tag,
                     heading=item.text,
                     **verdict.evidence,
                 )
             )
         return build_result(self, outcomes, empty_summary="Aucun titre dans la page.", noun="titre(s)")
+
+
+def _proposal(verdict: Any, item: Heading, recommendation: str) -> str:
+    """Recommandation complétée, pour un FAIL, par le titre proposé par l'IA et l'exemple corrigé."""
+    if not verdict.suggestion:
+        return recommendation
+    example = heading_example(item.tag, item.level, verdict.suggestion)
+    return with_example(verdict.recommendation(recommendation), example) or recommendation
 
 
 class Test913(RGAATest):
@@ -211,7 +266,12 @@ class Test913(RGAATest):
                 TestStatus.FAIL,
                 _identifier(tag, soup),
                 "L'élément a role=\"heading\" mais pas d'attribut aria-level valide (1 à 6).",
-                'Ajouter aria-level="x" ou utiliser une balise hx.',
+                with_example(
+                    'Ajouter aria-level="x" (x : niveau du titre dans le plan de la page, de 1 à 6) '
+                    "ou utiliser une balise hx.",
+                    heading_example(tag, level_after_previous(tag, soup, outline)),
+                ),
+                node=tag,
             )
             for tag in invalid
         ]
@@ -234,7 +294,13 @@ class Test913(RGAATest):
                         f"Le passage « {item.text[:100]} » est un titre mais n'est pas balisé comme tel.",
                         f"Le passage « {item.text[:100]} » ressemble à un titre non balisé.",
                     ),
-                    recommendation,
+                    with_example(
+                        recommendation,
+                        rename_example(tag, f"h{level_after_previous(tag, soup, outline)}", text=item.text),
+                    )
+                    if verdict.status is TestStatus.FAIL
+                    else recommendation,
+                    node=tag,
                     text=item.text,
                     **verdict.evidence,
                 )

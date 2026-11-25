@@ -13,13 +13,15 @@ Le contenu vérifie une de ces conditions :
 
 from __future__ import annotations
 
+from html import escape
 from typing import Any
 
 from bs4 import BeautifulSoup
 
 from accessi_code.ai.schemas import RelevanceItem
 from accessi_code.analysis.components import component_identifier
-from accessi_code.analysis.cryptic import find_cryptic_contents
+from accessi_code.analysis.cryptic import ASCII_ART_KIND, CrypticContent, find_cryptic_contents
+from accessi_code.analysis.location import opening_tag
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
 from accessi_code.models.result import TestResult, TestStatus
@@ -29,9 +31,24 @@ from accessi_code.rgaa.outcomes import Outcome, build_result, make_outcome
 
 EMPTY_SUMMARY = "Aucun contenu cryptique (art ASCII, émoticône, syntaxe cryptique) dans la page."
 RECOMMENDATION = (
-    'Donner un attribut title au contenu cryptique (par exemple <span title="sourire">:-)</span>) '
-    "ou expliquer son sens dans le texte qui l'entoure."
+    "Donner une alternative au contenu cryptique (attribut title) ou expliquer son sens dans le texte qui l'entoure."
 )
+# Texte à remplacer dans l'exemple : l'alternative dépend du sens du contenu.
+MEANING_PLACEHOLDER = "[sens du contenu]"
+
+
+def cryptic_example(content: CrypticContent, alternative: str | None = None) -> str:
+    """
+    Correction « avant → après » avec le vrai contenu : un dessin en art ASCII devient une image
+    (role="img" et aria-label) ; une émoticône ou une abréviation est entourée d'un span avec un title.
+    """
+    alternative = alternative or MEANING_PLACEHOLDER
+    if content.kind == ASCII_ART_KIND:
+        after = opening_tag(content.element, role="img", **{"aria-label": alternative})
+        return f"Exemple : {opening_tag(content.element)} → {after}"
+    text = escape(content.text, quote=False)
+    span = opening_tag(BeautifulSoup("", "html.parser").new_tag("span"), title=alternative)
+    return f"Exemple : {text} → {span}{text}</span>"
 
 
 class Test1351(RGAATest):
@@ -66,6 +83,9 @@ class Test1351(RGAATest):
         verdicts = await judge_relevance(services, "cryptic_context", [item for _, item in to_judge])
         for (position, item), verdict in zip(to_judge, verdicts, strict=True):
             content = contents[position]
+            recommendation = verdict.recommendation(RECOMMENDATION)
+            if verdict.status is TestStatus.FAIL:
+                recommendation += " " + cryptic_example(content, verdict.suggestion)
             outcomes[position] = make_outcome(
                 verdict.status,
                 component_identifier(content.element, position),
@@ -75,7 +95,8 @@ class Test1351(RGAATest):
                     f"Le sens du contenu cryptique ({content.kind}) « {item.text[:80]} » donné par le contexte "
                     "reste à vérifier.",
                 ),
-                RECOMMENDATION,
+                recommendation,
+                node=content.element,
                 kind=content.kind,
                 cryptic_content=item.text,
                 context=item.context,

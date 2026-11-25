@@ -100,3 +100,38 @@ def test_without_ai_needs_review(context_factory, run_rgaa):
 def test_ai_exception_gives_error(context_factory, run_rgaa):
     ai = text_services(structure_answer=RuntimeError("panne"))
     assert run_rgaa(Test751(), context_factory(SUCCESS), ai).status == Status.ERROR
+
+
+# Emplacement des observations (ligne et extrait HTML)
+
+
+@pytest.mark.parametrize(("test_class", "html"), [(Test751, SUCCESS), (Test752, ERROR), (Test753, PROGRESS)])
+def test_unmarked_status_message_gives_line_and_snippet(test_class, html, context_factory, run_rgaa):
+    ai = text_services(structure_answer=structure(True))
+    result = run_rgaa(test_class(), context_factory(f"<h1>Contact</h1>\n{html}"), ai)
+    assert result.status == Status.FAIL
+    assert (result.findings[0].line, result.findings[0].snippet) == (2, html)
+
+
+# Correction concrète : exemple « avant → après »
+
+
+@pytest.mark.parametrize(
+    ("test_class", "html", "after"),
+    [
+        (Test751, SUCCESS, '<div id="msg" role="status">'),
+        (Test752, ERROR, '<p id="err" role="alert">'),
+        (Test753, PROGRESS, '<div id="up" role="status">'),
+    ],
+)
+def test_unmarked_status_message_shows_the_role_to_add(test_class, html, after, context_factory, run_rgaa):
+    ai = text_services(structure_answer=structure(True))
+    result = run_rgaa(test_class(), context_factory(html), ai)
+    assert result.findings[0].recommendation.endswith(f"→ {after}")
+
+
+def test_uncertain_status_message_has_no_example(context_factory, run_rgaa):
+    ai = text_services(structure_answer=structure(True, confidence="low"))
+    result = run_rgaa(Test751(), context_factory(SUCCESS), ai)
+    assert result.status == Status.NEEDS_REVIEW
+    assert "Exemple" not in result.findings[0].recommendation

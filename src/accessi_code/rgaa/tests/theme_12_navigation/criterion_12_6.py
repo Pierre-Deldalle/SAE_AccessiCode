@@ -1,6 +1,7 @@
 """12.6.1 — zones repérables / évitables, notamment par landmarks."""
 
-from accessi_code.analysis.navigation import finding, result, searches
+from accessi_code.analysis.fix_examples import attribute_fix_example, with_example
+from accessi_code.analysis.navigation import finding, result, search_zone_example, searches
 from accessi_code.models.capabilities import Capability
 from accessi_code.rgaa.base import RGAATest
 
@@ -30,7 +31,11 @@ class Test1261(RGAATest):
                         tag,
                         soup,
                         "Rôle explicite différent du rôle attendu.",
-                        "Vérifier la sémantique et le repérage de cette zone.",
+                        with_example(
+                            "Vérifier la sémantique et le repérage de cette zone ; "
+                            "si l'élément joue bien son rôle habituel, retirer l'attribut role.",
+                            attribute_fix_example(tag, remove_attributes=["role"]),
+                        ),
                     )
                 )
             elif role in {"banner", "navigation", "main", "contentinfo", "search"} or (expected and role is None):
@@ -52,7 +57,10 @@ class Test1261(RGAATest):
                         tag,
                         soup,
                         "Repérage ou évitement de la zone non démontré.",
-                        "Ajouter un landmark adapté, un titre ou un lien d'accès rapide.",
+                        with_example(
+                            "Ajouter un landmark adapté, un titre ou un lien d'accès rapide.",
+                            search_zone_example(tag),
+                        ),
                     )
                 )
         return result(self, len(zones), failures, reviews)

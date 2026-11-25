@@ -2,6 +2,7 @@ import aiohttp
 import pytest
 
 from accessi_code.ai.analyzers.text_relevance_analyzer import OllamaTextRelevanceAnalyzer
+from accessi_code.ai.prompts.relevance import RELEVANCE_KINDS
 from accessi_code.ai.schemas import RelevanceItem
 from tests.unit.ai.fakes import FakeModel, batch
 
@@ -41,6 +42,33 @@ async def test_prompt_contains_rgaa_rule_and_items() -> None:
     assert "RGAA 6.1" in prompt
     assert "En savoir plus" in prompt
     assert "/horaires" in prompt
+    assert '"suggestion"' in prompt
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("kind", ["captcha_alternative", "link", "text_language", "language_change"])
+@pytest.mark.parametrize(
+    ("reply", "expected"),
+    [
+        ({"suggestion": " Écouter le code de sécurité. "}, "Écouter le code de sécurité."),
+        ({}, None),
+        ({"suggestion": {"texte": "Écouter le code"}}, None),
+        ({"suggestion": "   "}, None),
+        ({"suggestion": "Écouter le code", "relevant": True}, None),
+        ({"suggestion": "Écouter le code", "confidence": "low"}, None),
+    ],
+)
+async def test_relevance_suggestion_is_optional(kind, reply, expected) -> None:
+    payload = NOT_RELEVANT | reply
+    llm = FakeModel(batch(payload))
+    analyzer = OllamaTextRelevanceAnalyzer(llm)
+
+    [analysis] = await analyzer.analyze_relevance(kind, [RelevanceItem("Aide")])
+
+    assert analysis.suggestion == expected
+    assert analysis.relevant is payload["relevant"]
+    assert analysis.confidence == payload["confidence"]
+    assert '"suggestion"' in llm.prompts[0]
 
 
 @pytest.mark.asyncio
@@ -170,3 +198,142 @@ async def test_empty_list_does_not_call_the_model() -> None:
 
     assert await analyzer.analyze_relevance("heading", []) == []
     assert llm.call_count == 0
+
+
+@pytest.mark.asyncio
+async def test_suggestion_is_requested_only_for_kinds_that_ask_for_it() -> None:
+    llm = FakeModel(batch(RELEVANT), batch(RELEVANT))
+    analyzer = OllamaTextRelevanceAnalyzer(llm)
+
+    await analyzer.analyze_relevance("frame_title", [RelevanceItem("iframe")])
+    await analyzer.analyze_relevance("user_data_field", [RelevanceItem("Quantité")])
+
+    assert '"suggestion": null' in llm.prompts[0]
+    assert "propose dans suggestion un titre de cadre" in llm.prompts[0]
+    assert "suggestion" not in llm.prompts[1]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("kind", "requested"),
+    [
+        ("table_title", "propose dans suggestion un titre de tableau"),
+        ("table_summary", "propose dans suggestion un résumé court"),
+        ("layout_table_linearized", None),
+    ],
+)
+async def test_table_kinds_suggestion_request(kind, requested) -> None:
+    llm = FakeModel(batch(RELEVANT))
+    analyzer = OllamaTextRelevanceAnalyzer(llm)
+
+    await analyzer.analyze_relevance(kind, [RelevanceItem("Tableau")])
+
+    if requested:
+        assert requested in llm.prompts[0]
+        assert '"suggestion": null' in llm.prompts[0]
+    else:
+        assert "suggestion" not in llm.prompts[0]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("kind", "requested"),
+    [
+        ("cryptic_context", "propose dans suggestion une alternative courte (texte d'un attribut title)"),
+        ("cryptic_alternative", "propose dans suggestion une alternative courte qui donne le sens"),
+        # La correction d'un geste ou d'un mouvement est un bouton à ajouter, pas un texte à corriger.
+        ("gesture_alternative", None),
+        ("motion_alternative", None),
+        ("motion_disable", None),
+    ],
+)
+async def test_consultation_kinds_suggestion_request(kind, requested) -> None:
+    llm = FakeModel(batch({**NOT_RELEVANT, "suggestion": "à plus tard"}))
+    analyzer = OllamaTextRelevanceAnalyzer(llm)
+
+    [result] = await analyzer.analyze_relevance(kind, [RelevanceItem("@+")])
+
+    if requested:
+        assert requested in llm.prompts[0]
+        assert '"suggestion": null' in llm.prompts[0]
+        assert result.suggestion == "à plus tard"
+    else:
+        assert "suggestion" not in llm.prompts[0]
+
+
+@pytest.mark.asyncio
+async def test_heading_kind_requests_a_suggestion() -> None:
+    llm = FakeModel(batch({**NOT_RELEVANT, "suggestion": "Horaires d'ouverture"}))
+    analyzer = OllamaTextRelevanceAnalyzer(llm)
+
+    [result] = await analyzer.analyze_relevance("heading", [RelevanceItem("Titre")])
+
+    assert "propose dans suggestion un titre court qui décrit le contenu de la section" in llm.prompts[0]
+    assert '"suggestion": null' in llm.prompts[0]
+    assert result.suggestion == "Horaires d'ouverture"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("  Plan d'accès   à l'agence ", "Plan d'accès à l'agence"),
+        (None, None),
+        ("", None),
+        (42, None),
+        (["Carte"], None),
+        ("carte carte carte carte carte", None),
+    ],
+)
+async def test_suggestion_is_read_or_ignored(value, expected) -> None:
+    entry = {**NOT_RELEVANT, "suggestion": value}
+    analyzer = OllamaTextRelevanceAnalyzer(FakeModel(batch(entry)))
+
+    [result] = await analyzer.analyze_relevance("frame_title", [RelevanceItem("iframe")])
+
+    assert result.relevant is False
+    assert result.suggestion == expected
+
+
+@pytest.mark.asyncio
+async def test_missing_suggestion_field_does_not_break_analysis() -> None:
+    analyzer = OllamaTextRelevanceAnalyzer(FakeModel(batch(NOT_RELEVANT)))
+
+    [result] = await analyzer.analyze_relevance("frame_title", [RelevanceItem("iframe")])
+
+    assert (result.relevant, result.confidence, result.suggestion) == (False, "high", None)
+
+
+@pytest.mark.parametrize(
+    ("kind", "asks"),
+    [
+        *[
+            (kind, True)
+            for kind in (
+                "form_label",
+                "label_consistency",
+                "fieldset_legend",
+                "optgroup_label",
+                "button",
+                "error_identification",
+                "format_instruction",
+                "error_suggestion_format",
+                "error_suggestion_example",
+                "autocomplete_value",
+            )
+        ],
+        # Décisions oui / non du thème 11 : aucun texte à proposer.
+        *[
+            (kind, False)
+            for kind in (
+                "field_grouping",
+                "option_grouping",
+                "transaction_scope",
+                "sensitive_data_modification",
+                "user_data_field",
+            )
+        ],
+    ],
+)
+def test_form_kinds_ask_for_a_suggestion_only_for_texts(kind, asks) -> None:
+    assert bool(RELEVANCE_KINDS[kind].suggestion) is asks

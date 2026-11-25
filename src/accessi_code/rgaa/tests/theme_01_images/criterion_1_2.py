@@ -10,14 +10,18 @@ information. Les conditions du test sont ensuite vérifiées dans le DOM.
 
 from __future__ import annotations
 
+from copy import copy
+
 from bs4 import Tag
 
 from accessi_code.analysis.image_elements import ImageElement
+from accessi_code.analysis.location import html_opening_tag
 from accessi_code.models.result import TestStatus
 from accessi_code.rgaa.tests.theme_01_images._common import (
     Evaluation,
     ImageTest,
     Outcome,
+    html_example,
     outcome,
     unresolved,
 )
@@ -44,6 +48,23 @@ class _DecorativeTest(ImageTest):
         """Conditions du test non respectées (liste vide : conforme)."""
         raise NotImplementedError
 
+    def correct_markup(self, element: ImageElement, tag: Tag) -> bool:
+        """Applique la correction à la copie de la balise si un exemple est possible."""
+        raise NotImplementedError
+
+    def recommendation_for(self, element: ImageElement) -> str:
+        before = element.tag
+        after = copy(before)
+        for attribute in _TEXT_ATTRIBUTES:
+            after.attrs.pop(attribute, None)
+        if not self.correct_markup(element, after):
+            return self.recommendation
+
+        before_html, after_html = str(before), str(after)
+        if before.contents == after.contents:
+            before_html, after_html = html_opening_tag(before_html), html_opening_tag(after_html)
+        return html_example(self.recommendation, before_html, after_html)
+
     async def evaluate(self, element: ImageElement, evaluation: Evaluation) -> Outcome:
         decorative = await evaluation.decorative(element)
         if decorative.value is False:
@@ -63,7 +84,7 @@ class _DecorativeTest(ImageTest):
             TestStatus.FAIL,
             element,
             "L'image de décoration n'est pas ignorée par les technologies d'assistance : " + " ; ".join(problems) + ".",
-            self.recommendation,
+            self.recommendation_for(element),
             decorative=decorative.evidence,
         )
 
@@ -72,6 +93,10 @@ class _AltDecorativeTest(_DecorativeTest):
     """img / area : alt vide seul, ou aria-hidden="true", ou role="presentation"."""
 
     recommendation = 'Utiliser alt="" sans title ni aria-label, ou ajouter aria-hidden="true".'
+
+    def correct_markup(self, element: ImageElement, tag: Tag) -> bool:
+        tag["alt"] = ""
+        return True
 
     def problems(self, element: ImageElement) -> list[str]:
         if element.aria_hidden or element.presentation_role:
@@ -105,6 +130,21 @@ class Test122(_AltDecorativeTest):
 
 class _HiddenDecorativeTest(_DecorativeTest):
     """object, svg, canvas, embed : aria-hidden="true" et aucune alternative."""
+
+    def correct_markup(self, element: ImageElement, tag: Tag) -> bool:
+        tag["aria-hidden"] = "true"
+        if element.kind in {"object", "canvas"} and "content" in element.alternatives:
+            if tag.find(True) is not None:
+                return False
+            tag.clear()
+        if element.kind == "svg":
+            for description in tag.find_all(["title", "desc"]):
+                description.extract()
+        if element.kind in {"svg", "canvas"}:
+            for child in tag.find_all(True):
+                for attribute in _TEXT_ATTRIBUTES:
+                    child.attrs.pop(attribute, None)
+        return True
 
     def problems(self, element: ImageElement) -> list[str]:
         problems = []

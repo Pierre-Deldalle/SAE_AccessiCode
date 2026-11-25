@@ -37,15 +37,31 @@ def profile(
     )
 
 
-def alternative(relevant: bool | None = True, concise: bool | None = True, confidence: str = "high"):
+def alternative(
+    relevant: bool | None = True,
+    concise: bool | None = True,
+    confidence: str = "high",
+    *,
+    suggestion: str | None = None,
+):
     return AlternativeAnalysis(
-        relevant=relevant, concise=concise, explanation="Analyse simulée.", confidence=confidence
+        relevant=relevant, concise=concise, explanation="Analyse simulée.", confidence=confidence, suggestion=suggestion
     )
 
 
-def description(relevant: bool | None = True, *, detailed: bool | None = True, confidence: str = "high"):
+def description(
+    relevant: bool | None = True,
+    *,
+    detailed: bool | None = True,
+    confidence: str = "high",
+    suggestion: str | None = None,
+):
     return DescriptionAnalysis(
-        relevant=relevant, explanation="Analyse simulée.", is_detailed_description=detailed, confidence=confidence
+        relevant=relevant,
+        explanation="Analyse simulée.",
+        is_detailed_description=detailed,
+        confidence=confidence,
+        suggestion=suggestion,
     )
 
 

@@ -81,3 +81,13 @@ def test_documented_evidence_has_priority(cls, proof, expected, context_factory,
     context.form_transaction_evidence = {0: proof}
     assert run_rgaa(cls(), context, ai).status == expected
     ai.text_relevance_analyzer.analyze_relevance.assert_not_called()
+
+
+def test_fail_gives_line_and_snippet(context_factory, run_rgaa):
+    context = context_factory(ORDER.replace("<form>", '\n<form id="paiement">'))
+    context.form_transaction_evidence = {
+        0: {"in_scope": True, "reversible": False, "review_and_correct": False, "explicit_confirmation": False}
+    }
+    finding = run_rgaa(Test11121(), context, text_services()).findings[0]
+    assert finding.line == 2
+    assert finding.snippet.startswith('<form id="paiement">')

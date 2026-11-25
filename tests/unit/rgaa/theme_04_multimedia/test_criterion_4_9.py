@@ -262,3 +262,13 @@ def test_criterion_49_ignores_decorative_media(
     assert result.status == Status.NOT_APPLICABLE
     assert result.tested_elements == 0
     assert result.findings == []
+
+
+def test_finding_points_to_the_alternative_link(context_factory, run_rgaa):
+    html = "<div>\n<object data='c.pdf'></object>\n<a href='catalogue.html'>Version HTML du catalogue</a>\n</div>"
+
+    result = run_rgaa(Test491(), context_factory(html))
+
+    assert result.status == Status.NEEDS_REVIEW
+    assert result.findings[0].line == 3
+    assert result.findings[0].snippet == '<a href="catalogue.html">Version HTML du catalogue</a>'

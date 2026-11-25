@@ -25,3 +25,11 @@ def test_single_page_na(context_factory, run_rgaa):
     c = context_factory("<html><main>Bonjour</main></html>")
     c.site_inventory_complete = True
     assert run_rgaa(Test1211(), c).status == Status.NOT_APPLICABLE
+
+
+def test_fail_is_located_on_the_audited_page(context_factory, run_rgaa):
+    c = context_factory('<html lang="fr">\n<main>Bonjour</main>\n</html>')
+    c.page_doms["other.html"] = c.dom
+    c.site_inventory_complete = True
+    [note] = run_rgaa(Test1211(), c).findings
+    assert (note.line, note.snippet, note.file) == (1, '<html lang="fr"> <main>Bonjour</main> </html>', None)

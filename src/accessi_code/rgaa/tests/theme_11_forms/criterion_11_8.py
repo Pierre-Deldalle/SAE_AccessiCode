@@ -23,6 +23,7 @@ from accessi_code.models.result import TestResult, TestStatus
 from accessi_code.rgaa.ai_decision import judge_relevance
 from accessi_code.rgaa.base import RGAATest
 from accessi_code.rgaa.outcomes import build_result, make_outcome, not_applicable
+from accessi_code.rgaa.tests.theme_11_forms._examples import optgroup_example
 
 # En dessous, une liste ne peut pas raisonnablement contenir plusieurs catégories.
 MIN_OPTIONS_FOR_GROUPING = 4
@@ -70,6 +71,7 @@ class Test1181(RGAATest):
                         identifier(tag, soup),
                         f"{len(outside)} option(s) restent hors des groupes : vérifier leur appartenance.",
                         "Placer chaque option dans le groupe correspondant à sa catégorie.",
+                        node=tag,
                     )
                     if outside
                     else make_outcome(TestStatus.PASS)
@@ -99,6 +101,7 @@ class Test1181(RGAATest):
                     identifier(tag, soup),
                     verdict.message(fail, "La nécessité de regrouper les options reste à vérifier."),
                     "Utiliser un select natif et regrouper les options de même nature avec optgroup.",
+                    node=tag,
                     **verdict.evidence,
                 )
             )
@@ -126,7 +129,8 @@ class Test1182(RGAATest):
                 TestStatus.FAIL,
                 identifier(tag, soup),
                 "L'élément optgroup ne possède pas d'attribut label.",
-                "Ajouter un attribut label décrivant ce groupe d'options.",
+                "Ajouter un attribut label décrivant ce groupe d'options." + optgroup_example(tag),
+                node=tag,
             )
             for tag in groups
         ]
@@ -150,7 +154,13 @@ class Test1183(RGAATest):
 
         recommendation = "Rédiger un label qui décrit la catégorie commune des options du groupe."
         outcomes = [
-            make_outcome(TestStatus.FAIL, identifier(tag, soup), "Le label de l'optgroup est vide.", recommendation)
+            make_outcome(
+                TestStatus.FAIL,
+                identifier(tag, soup),
+                "Le label de l'optgroup est vide.",
+                recommendation + optgroup_example(tag),
+                node=tag,
+            )
             for tag in groups
             if not clean(tag.get("label"))
         ]
@@ -166,7 +176,9 @@ class Test1183(RGAATest):
                         f"Le label « {item.text[:100]} » ne décrit pas les options du groupe.",
                         f"La pertinence du label « {item.text[:100]} » reste à vérifier.",
                     ),
-                    recommendation,
+                    verdict.recommendation(recommendation)
+                    + (optgroup_example(tag, verdict.suggestion) if verdict.suggestion else ""),
+                    node=tag,
                     label=item.text,
                     **verdict.evidence,
                 )

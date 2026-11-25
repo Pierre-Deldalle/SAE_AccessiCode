@@ -11,6 +11,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from bs4 import Tag
+
+from accessi_code.analysis.location import locate
 from accessi_code.models.result import Finding, TestResult, TestStatus
 from accessi_code.rgaa.ai_decision import count_statuses, worst_status
 
@@ -28,12 +31,38 @@ def make_outcome(
     element: str | None = None,
     message: str = "",
     recommendation: str | None = None,
+    *,
+    node: Tag | None = None,
+    file: str | None = None,
+    line: int | None = None,
+    snippet: str | None = None,
     **evidence: Any,
 ) -> Outcome:
-    """Outcome avec un Finding, sauf pour PASS et NOT_APPLICABLE sans message."""
+    """
+    Outcome avec un Finding, sauf pour PASS et NOT_APPLICABLE sans message.
+
+    ``node`` : élément HTML concerné ; sa ligne et son extrait sont ajoutés au Finding.
+    ``file``, ``line``, ``snippet`` : emplacement donné directement, par exemple dans un
+    fichier autre que la page auditée (script ``.js``, feuille ``.css``) ; ils priment sur
+    ceux de ``node``. Sans ``file``, le runner indique la page auditée.
+    """
     if element is None or (status in {TestStatus.PASS, TestStatus.NOT_APPLICABLE} and not message):
         return Outcome(status)
-    return Outcome(status, Finding(element=element, message=message, recommendation=recommendation, evidence=evidence))
+    node_line, node_snippet = locate(node)
+    line = line if line is not None else node_line
+    snippet = snippet if snippet is not None else node_snippet
+    return Outcome(
+        status,
+        Finding(
+            element=element,
+            message=message,
+            recommendation=recommendation,
+            evidence=evidence,
+            line=line,
+            snippet=snippet,
+            file=file,
+        ),
+    )
 
 
 def build_result(

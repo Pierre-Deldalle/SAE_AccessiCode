@@ -64,3 +64,12 @@ def test_criterion_41_tests_are_registered_in_official_order():
     test_ids = [test.test_id for test in build_default_registry().get_all() if test.criterion_id == "4.1"]
 
     assert test_ids == ["4.1.1", "4.1.2", "4.1.3"]
+
+
+def test_finding_indicates_media_line_and_snippet(context_factory, run_rgaa):
+    html = "<main>\n<h1>Podcast</h1>\n<audio src='episode.mp3'></audio>\n</main>"
+
+    result = run_rgaa(RGAA411(), context_factory(html))
+
+    assert result.findings[0].line == 3
+    assert result.findings[0].snippet == '<audio src="episode.mp3"></audio>'

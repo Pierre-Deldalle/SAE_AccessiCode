@@ -4,6 +4,8 @@ from typing import Any
 
 from bs4 import BeautifulSoup, Tag
 
+from accessi_code.analysis.fix_examples import attribute_fix_example, with_example
+from accessi_code.analysis.location import location_fields
 from accessi_code.analysis.media import (
     TemporalMedia,
     find_adjacent_media_alternatives,
@@ -60,6 +62,7 @@ class Test431(RGAATest):
                         element=element_id,
                         message="Une piste ou une alternative de sous-titres candidats a été détectée.",
                         evidence=evidence,
+                        **location_fields(item.tag),
                     )
                 )
             else:
@@ -72,6 +75,7 @@ class Test431(RGAATest):
                             "ou une version alternative sous-titrée accessible via un lien/bouton adjacent."
                         ),
                         evidence=evidence,
+                        **location_fields(item.tag),
                     )
                 )
 
@@ -143,19 +147,24 @@ class Test432(RGAATest):
                         element=element_id,
                         message='Les pistes de sous-titres utilisent bien l\'attribut kind="captions".',
                         evidence=evidence,
+                        **location_fields(item.tag),
                     )
                 )
             else:
                 statuses.append(TestStatus.FAIL)
                 shown = ", ".join(f'kind="{kind}"' if kind else "sans attribut kind" for kind in wrong_kinds)
+                # La ligne indiquée est celle de la première piste à corriger.
+                first_wrong_track = next(track for track in tracks if _track_kind(track) != "captions")
                 findings.append(
                     Finding(
                         element=element_id,
                         message=f'Piste(s) de sous-titres non conforme(s) : {shown} au lieu de kind="captions".',
-                        recommendation=(
-                            'Utiliser l\'attribut kind="captions" sur les pistes de sous-titres synchronisés.'
+                        recommendation=with_example(
+                            'Utiliser l\'attribut kind="captions" sur les pistes de sous-titres synchronisés.',
+                            attribute_fix_example(first_wrong_track, set_attributes={"kind": "captions"}),
                         ),
                         evidence=evidence,
+                        **location_fields(first_wrong_track),
                     )
                 )
 

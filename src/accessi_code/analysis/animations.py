@@ -18,7 +18,8 @@ from urllib.parse import urlparse
 from bs4 import BeautifulSoup, Tag
 
 from accessi_code.analysis.components import component_name, normalize
-from accessi_code.analysis.css import inline_style, stylesheet_rules
+from accessi_code.analysis.css import _parse_css_properties, inline_style
+from accessi_code.analysis.location import locate, locate_in_source, locate_in_text, source_file_name
 from accessi_code.models.audit_context import AuditContext
 
 LIGHT_PROPERTIES = frozenset(
@@ -140,6 +141,8 @@ class CSSAnimation:
     alternate: bool
     # Surface cumulée des éléments animés (px²), si toutes les dimensions sont connues.
     area: float | None = None
+    # Emplacement de la déclaration (règle CSS ou attribut style) : champs file, line, snippet d'un Finding.
+    location: dict[str, int | str | None] = field(default_factory=dict)
 
     @property
     def cyclic(self) -> bool:
@@ -154,15 +157,41 @@ class CSSAnimation:
         return bool(self.keyframes.properties & properties)
 
 
-def css_texts(context: AuditContext) -> list[tuple[str, str]]:
-    """(source, texte sans commentaires) des balises style puis des fichiers CSS fournis."""
-    texts: list[tuple[str, str]] = []
+@dataclass
+class StyleSource:
+    """Feuille de style de la page : balise ``<style>`` de la page auditée ou fichier CSS fourni."""
+
+    label: str
+    # Texte dont les commentaires sont remplacés par des espaces : les positions et les
+    # retours à la ligne du code source sont conservés.
+    text: str
+    element: Tag | None = None
+    # Fichier CSS tel que l'utilisateur l'a fourni (None pour une balise <style>).
+    file: str | None = None
+
+    def location(self, offset: int) -> dict[str, int | str | None]:
+        """Champs ``file``, ``line`` et ``snippet`` d'un Finding situé à ``offset`` dans la feuille."""
+        if self.element is not None:
+            line, snippet = locate_in_text(self.element, offset)
+            return {"file": None, "line": line, "snippet": snippet}
+        line, snippet = locate_in_source(self.text, offset)
+        return {"file": self.file, "line": line, "snippet": snippet}
+
+
+def _blank_comments(text: str) -> str:
+    return re.sub(r"/\*.*?\*/", lambda match: re.sub(r"[^\n]", " ", match.group()), text, flags=re.DOTALL)
+
+
+def css_texts(context: AuditContext) -> list[StyleSource]:
+    """Feuilles de style, commentaires effacés : balises style puis fichiers CSS fournis."""
+    texts: list[StyleSource] = []
     if isinstance(context.dom, BeautifulSoup):
         for index, style in enumerate(context.dom.find_all("style")):
             if style.string:
-                texts.append((f"style[index={index}]", style.string))
-    texts += [(Path(path).name, text) for path, text in (context.css_sources or {}).items()]
-    return [(label, re.sub(r"/\*.*?\*/", "", text, flags=re.DOTALL)) for label, text in texts]
+                texts.append(StyleSource(f"style[index={index}]", _blank_comments(style.string), element=style))
+    for path, text in (context.css_sources or {}).items():
+        texts.append(StyleSource(Path(path).name, _blank_comments(text), file=source_file_name(context, path)))
+    return texts
 
 
 def block_end(text: str, opening: int) -> int:
@@ -193,7 +222,8 @@ def _offset(selector: str) -> float:
 def page_keyframes(context: AuditContext) -> dict[str, Keyframes]:
     """Règles @keyframes des feuilles de style, par nom."""
     result: dict[str, Keyframes] = {}
-    for _label, text in css_texts(context):
+    for sheet in css_texts(context):
+        text = sheet.text
         for match in _KEYFRAMES.finditer(text):
             body = text[match.end() : block_end(text, match.end() - 1)]
             steps: list[tuple[float, dict[str, str]]] = []
@@ -300,20 +330,23 @@ def css_animations(context: AuditContext) -> list[CSSAnimation]:
     frames = page_keyframes(context)
     animations: list[CSSAnimation] = []
 
-    sources: list[tuple[str, dict[str, str], list[Tag]]] = []
-    for rule in stylesheet_rules(context):
-        if "animation" not in " ".join(rule.properties) or _INTERACTION_PSEUDO.search(rule.selector):
-            continue
-        for selector in _split_top_level(rule.selector):
-            elements = _matching(soup, selector)
-            if elements:
-                sources.append((selector, rule.properties, elements))
+    sources: list[tuple[str, dict[str, str], list[Tag], dict[str, int | str | None]]] = []
+    for sheet in css_texts(context):
+        for selector_list, properties, offset in _located_rules(sheet.text):
+            if "animation" not in " ".join(properties) or _INTERACTION_PSEUDO.search(selector_list):
+                continue
+            for selector in _split_top_level(selector_list):
+                elements = _matching(soup, selector)
+                if elements:
+                    sources.append((selector, properties, elements, sheet.location(offset)))
     for element in soup.find_all(style=True):
         properties = inline_style(element)
         if any(key.startswith("animation") for key in properties):
-            sources.append((f"{element.name}[style]", properties, [element]))
+            line, snippet = locate(element)
+            location = {"file": None, "line": line, "snippet": snippet}
+            sources.append((f"{element.name}[style]", properties, [element], location))
 
-    for selector, properties, elements in sources:
+    for selector, properties, elements, location in sources:
         for entry in parse_animations({key.lower(): value for key, value in properties.items()}):
             keyframes = frames.get(str(entry["name"]))
             if keyframes is None:
@@ -328,9 +361,30 @@ def css_animations(context: AuditContext) -> list[CSSAnimation]:
                     float(entry["iterations"]),  # type: ignore[arg-type]
                     bool(entry["alternate"]),
                     _total_area(elements, properties),
+                    dict(location),
                 )
             )
     return animations
+
+
+_RULE = re.compile(r"([^{}]+)\{([^{}]*)\}")
+
+
+def _located_rules(text: str) -> list[tuple[str, dict[str, str], int]]:
+    """
+    (sélecteurs, propriétés, position du premier sélecteur) des règles d'une feuille, y compris
+    celles placées dans @media / @supports. Les règles @ (@font-face…) sont ignorées.
+    """
+    rules: list[tuple[str, dict[str, str], int]] = []
+    for match in _RULE.finditer(text):
+        selector = match.group(1)
+        if not selector.strip() or selector.strip().startswith("@"):
+            continue
+        properties = _parse_css_properties(match.group(2))
+        if properties:
+            offset = match.start(1) + len(selector) - len(selector.lstrip())
+            rules.append((selector.strip(), properties, offset))
+    return rules
 
 
 def _total_area(elements: list[Tag], properties: dict[str, str]) -> float | None:

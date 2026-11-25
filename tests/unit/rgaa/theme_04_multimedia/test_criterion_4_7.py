@@ -423,3 +423,13 @@ def test_criterion_471_mixed_media_returns_non_compliant(
     assert result.findings[0].evidence["media_identified"] is True
 
     assert result.findings[1].evidence["media_identified"] is False
+
+
+def test_failure_indicates_media_line_and_snippet(context_factory, run_rgaa):
+    html = "<p>Bienvenue</p>\n<div><video src='v.mp4'></video></div>"
+
+    result = run_rgaa(Test471(), context_factory(html))
+
+    assert result.status == Status.FAIL
+    assert result.findings[0].line == 2
+    assert result.findings[0].snippet == '<video src="v.mp4"></video>'

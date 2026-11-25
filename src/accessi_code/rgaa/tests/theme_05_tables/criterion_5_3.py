@@ -19,6 +19,7 @@ from typing import Any
 from bs4 import BeautifulSoup, Tag
 
 from accessi_code.ai.schemas import RelevanceItem
+from accessi_code.analysis.location import opening_tag
 from accessi_code.analysis.tables import (
     find_tables,
     has_header_cells,
@@ -73,7 +74,8 @@ class Test531(RGAATest):
                     TestStatus.FAIL,
                     identifier,
                     "Le tableau de mise en forme n'a pas d'attribut role=\"presentation\".",
-                    ROLE_RECOMMENDATION,
+                    f"{ROLE_RECOMMENDATION} Exemple : {opening_tag(table)} → {opening_tag(table, role='presentation')}",
+                    node=table,
                 )
                 continue
             text = linearized_table_text(table)
@@ -96,6 +98,7 @@ class Test531(RGAATest):
                     "La compréhension du contenu linéarisé du tableau de mise en forme reste à vérifier.",
                 ),
                 ORDER_RECOMMENDATION,
+                node=table,
                 linearized=text[:500],
                 **verdict.evidence,
             )

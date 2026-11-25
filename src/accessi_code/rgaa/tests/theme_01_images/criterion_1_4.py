@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from accessi_code.analysis.image_elements import ImageElement
 from accessi_code.models.result import TestStatus
-from accessi_code.rgaa.ai_decision import analysis_evidence, status_from_verdict
+from accessi_code.rgaa.ai_decision import Verdict, analysis_evidence, status_from_verdict
 from accessi_code.rgaa.tests.theme_01_images._common import (
     Evaluation,
     ImageTest,
@@ -67,7 +67,7 @@ class _CaptchaAlternativeTest(ImageTest):
             status,
             element,
             f"{message} {analysis.explanation}".strip(),
-            self.recommendation,
+            Verdict(status, analysis=analysis).recommendation(self.recommendation),
             alternatives=element.alternatives,
             analysis=analysis_evidence(analysis),
         )

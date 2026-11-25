@@ -4,6 +4,7 @@ from typing import Any
 
 from bs4 import BeautifulSoup
 
+from accessi_code.analysis.location import location_fields
 from accessi_code.analysis.media import (
     TemporalMedia,
     find_adjacent_media_alternatives,
@@ -59,6 +60,7 @@ class _Criterion42Test(RGAATest):
                         "l'information du média."
                     ),
                     evidence=_alternative_evidence(item),
+                    **location_fields(item.tag),
                 )
             )
 

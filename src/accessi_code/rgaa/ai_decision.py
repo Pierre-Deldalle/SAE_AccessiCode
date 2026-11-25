@@ -93,7 +93,10 @@ def count_statuses(statuses: Iterable[TestStatus]) -> dict[str, int]:
 def analysis_evidence(analysis: Any) -> dict[str, Any]:
     """Réponse de l'IA sous forme de dictionnaire, pour ``Finding.evidence``."""
     if is_dataclass(analysis) and not isinstance(analysis, type):
-        return asdict(analysis)
+        data = asdict(analysis)
+        # La proposition est réservée à la recommandation d'un verdict FAIL.
+        data.pop("suggestion", None)
+        return data
     if isinstance(analysis, dict):
         return dict(analysis)
     return {"value": repr(analysis)}
@@ -145,6 +148,18 @@ class Verdict:
             return AI_ERROR_MESSAGE
         head = fail if self.status is TestStatus.FAIL else uncertain
         return f"{head} {self.explanation}".strip()
+
+    @property
+    def suggestion(self) -> str | None:
+        """Texte corrigé proposé par l'IA, retenu uniquement pour une non-conformité (FAIL)."""
+        if self.status is not TestStatus.FAIL:
+            return None
+        value = getattr(self.analysis, "suggestion", None)
+        return value.strip() if isinstance(value, str) and value.strip() else None
+
+    def recommendation(self, base: str) -> str:
+        """Recommandation du test, complétée par la proposition de l'IA s'il y en a une."""
+        return f"{base} Proposition : « {self.suggestion} »." if self.suggestion else base
 
 
 async def judge_batch(

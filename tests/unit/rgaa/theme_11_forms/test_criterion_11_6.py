@@ -1,5 +1,7 @@
 """Critère RGAA 11.6 : légende des regroupements."""
 
+import pytest
+
 from accessi_code.models.result import TestStatus as Status
 from accessi_code.rgaa.tests.theme_11_forms.criterion_11_6 import Test1161
 
@@ -42,3 +44,35 @@ def test_unstructured_radios_with_only_labels_fail(context_factory, run_rgaa):
     result = run_rgaa(Test1161(), context_factory(html))
     assert result.status == Status.FAIL
     assert "appartenance" in result.findings[0].message
+
+
+def test_fail_gives_line_and_snippet(context_factory, run_rgaa):
+    html = f'<p>Intro</p>\n<fieldset id="g">{FIELDS}</fieldset>'
+    finding = run_rgaa(Test1161(), context_factory(html)).findings[0]
+    assert (finding.line, finding.snippet) == (2, f'<fieldset id="g">{FIELDS.replace(chr(39), chr(34))}</fieldset>')
+
+
+@pytest.mark.parametrize(
+    ("group", "closing", "after"),
+    [
+        (
+            '<fieldset id="g">',
+            "</fieldset>",
+            '<fieldset id="g"> → <fieldset id="g"><legend>[nature commune des champs]</legend>',
+        ),
+        (
+            '<fieldset id="g"><legend></legend>',
+            "</fieldset>",
+            "<legend></legend> → <legend>[nature commune des champs]</legend>",
+        ),
+        (
+            '<div role="group">',
+            "</div>",
+            '<div role="group"> → <div role="group" aria-label="[nature commune des champs]">',
+        ),
+    ],
+    ids=["fieldset", "legend vide", "groupe ARIA"],
+)
+def test_fail_shows_a_legend_example(group, closing, after, context_factory, run_rgaa):
+    finding = run_rgaa(Test1161(), context_factory(f"{group}{FIELDS}{closing}")).findings[0]
+    assert finding.recommendation.endswith(f"Exemple : {after}")

@@ -20,6 +20,8 @@ _HIDDEN_STYLE = re.compile(r"display\s*:\s*none|visibility\s*:\s*hidden", re.IGN
 _TITLE_CLASS = re.compile(r"\b(title|titre|heading|headline|intertitre)\b", re.IGNORECASE)
 _BULLET_LINE = re.compile(r"^\s*([-–—•●▪◦*✓✔→>])\s+\S")
 _NUMBERED_LINE = re.compile(r"^\s*(\d{1,2}|[a-z])[.)]\s+\S", re.IGNORECASE)
+_BULLET_MARKER = re.compile(r"^\s*[-–—•●▪◦*✓✔→>]\s+")
+_NUMBER_MARKER = re.compile(r"^\s*(\d{1,2}|[a-z])[.)]\s+", re.IGNORECASE)
 _INLINE_QUOTE = re.compile(r"«\s*([^«»]{15,400}?)\s*»|“([^“”]{15,400}?)”|\"([^\"]{15,400}?)\"")
 _QUOTE_CLASS = re.compile(r"\b(quote|citation|cite|temoignage|témoignage)\b", re.IGNORECASE)
 _SKIPPED_TAGS = {"script", "style", "template", "noscript"}
@@ -205,6 +207,26 @@ def list_candidates(soup: BeautifulSoup, *, ordered: bool) -> list[Tag]:
             candidates.append(paragraph)
             seen.add(id(paragraph))
     return candidates
+
+
+def visual_list_items(tag: Tag, *, ordered: bool) -> list[str]:
+    """
+    Textes des éléments d'une liste visuelle repérée par ``list_candidates``, sans leur puce
+    ou leur numéro : lignes du bloc, ou paragraphes consécutifs à partir de ``tag``.
+    """
+    pattern = _NUMBERED_LINE if ordered else _BULLET_LINE
+    marker = _NUMBER_MARKER if ordered else _BULLET_MARKER
+    lines = [line for line in text_lines(tag) if pattern.match(line)]
+    if len(lines) < 2:
+        lines = []
+        paragraph: Tag | None = tag
+        while paragraph is not None and paragraph.name == "p":
+            text = paragraph.get_text(" ", strip=True)
+            if not pattern.match(text):
+                break
+            lines.append(text)
+            paragraph = paragraph.find_next_sibling()
+    return [" ".join(marker.sub("", line, count=1).split()) for line in lines]
 
 
 def list_structure_problems(tag: Tag) -> list[str]:

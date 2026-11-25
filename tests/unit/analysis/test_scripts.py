@@ -7,6 +7,7 @@ from accessi_code.analysis.scripts import (
     ScriptSource,
     Trigger,
     event_listeners,
+    listener_target,
     mask_code,
     numeric_value,
     page_scripts,
@@ -100,3 +101,44 @@ def test_page_scripts_reads_inline_and_local_files(context_factory):
     html = '<script src="app.js"></script><script>inline()</script><script type="application/json">{}</script>'
     context = context_factory(html, resources={"app.js": "fichier()"})
     assert [source.label for source in page_scripts(context)] == ["app.js", "script[index=1]"]
+
+
+def test_listener_target_resolves_ids_selectors_and_variables():
+    soup = BeautifulSoup('<div id="a"></div><div class="b"></div>', "html.parser")
+    code = (
+        'const x = document.getElementById("a");\n'
+        'x.addEventListener("keydown", k);\n'
+        'document.querySelector(".b").onclick = go;\n'
+        'document.addEventListener("keyup", f);\n'
+        'foo().bar.addEventListener("click", g);'
+    )
+    source = ScriptSource("s", code)
+    listeners = event_listeners([source], soup, {"keydown", "click", "keyup"})
+    targets = [(listener.event, listener_target([source], soup, listener)) for listener in listeners]
+    assert targets == [
+        ("keydown", soup.find(id="a")),
+        ("keyup", "document"),
+        ("click", None),
+        ("click", soup.find(class_="b")),
+    ]
+
+
+def test_inline_script_location_is_a_line_of_the_page(context_factory):
+    html = "<html><body>\n<p>x</p>\n<script>\nvar a = 1;\nwindow.open('pub.html');\n</script></body></html>"
+    [source] = page_scripts(context_factory(html))
+    assert source.location(source.code.index("window.open")) == {
+        "file": None,
+        "line": 5,
+        "snippet": "window.open('pub.html');",
+    }
+
+
+def test_script_file_location_is_a_line_of_that_file(context_factory):
+    code = "// Publicité\n\nwindow.open('pub.html');\n"
+    context = context_factory('<script src="js/pub.js"></script>', resources={"js/pub.js": code})
+    [source] = page_scripts(context)
+    assert source.location(source.code.index("window.open")) == {
+        "file": "pub.js",
+        "line": 3,
+        "snippet": "window.open('pub.html');",
+    }

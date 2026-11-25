@@ -49,3 +49,16 @@ def test_low_confidence_no_ai_and_error(context_factory, run_rgaa):
     assert run_rgaa(Test11111(), context_factory(ERROR)).status == Status.NEEDS_REVIEW
     broken = text_services(relevance_answer=RuntimeError("panne"))
     assert run_rgaa(Test11111(), context_factory(ERROR), broken).status == Status.ERROR
+
+
+def test_fail_gives_line_and_snippet(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=relevance(False))
+    finding = run_rgaa(Test11112(), context_factory(ERROR.replace("<input", "\n<input")), ai).findings[0]
+    assert finding.line == 2
+    assert finding.snippet.startswith('<input id="d" type="date"')
+
+
+def test_ai_suggestion_is_proposed_on_fail(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=relevance(False, suggestion="Erreur : date invalide, format jj/mm/aaaa."))
+    finding = run_rgaa(Test11112(), context_factory(ERROR), ai).findings[0]
+    assert finding.recommendation.endswith("Proposition : « Erreur : date invalide, format jj/mm/aaaa. ».")

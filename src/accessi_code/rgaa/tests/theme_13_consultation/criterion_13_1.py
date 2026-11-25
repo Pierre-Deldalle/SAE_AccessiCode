@@ -25,6 +25,7 @@ from typing import Any
 
 from bs4 import BeautifulSoup, Tag
 
+from accessi_code.analysis.location import opening_tag
 from accessi_code.analysis.scripts import TimerCall, page_scripts, timer_calls
 from accessi_code.models.audit_context import AuditContext
 from accessi_code.models.capabilities import Capability
@@ -43,6 +44,7 @@ REDIRECT = re.compile(
     r"(?<![\w$])(?:window\s*\.\s*|document\s*\.\s*)?location(?:\s*\.\s*href)?\s*=(?!=)|location\s*\.\s*(?:assign|replace)\s*\("
 )
 SESSION = re.compile(r"logout|log-out|signout|sign-out|d[ée]connex|deconnect|session|expir", re.IGNORECASE)
+RELOAD_BUTTON = '<button type="button" onclick="location.reload()">Actualiser</button>'
 REVIEW_RECOMMENDATION = (
     "Vérifier que l'utilisateur peut arrêter ou relancer le procédé, augmenter la limite d'au moins dix fois, "
     "ou qu'il est averti et dispose d'au moins vingt secondes pour la prolonger."
@@ -94,6 +96,7 @@ def _timer_outcome(call: TimerCall, what: str) -> Outcome:
         _timer_identifier(call),
         f"Un script {what} {delay} : le contrôle laissé à l'utilisateur reste à vérifier.",
         REVIEW_RECOMMENDATION,
+        **call.source.location(call.position),
         **evidence,
     )
 
@@ -129,7 +132,9 @@ class Test1311(TimeLimitTest):
                     _meta_identifier(meta),
                     f"La page se rafraîchit toutes les {meta.delay:g} secondes par une balise meta, "
                     "sans que l'utilisateur puisse arrêter ni prolonger ce délai.",
-                    "Supprimer le rafraîchissement automatique ou le remplacer par un bouton « Actualiser ».",
+                    "Supprimer le rafraîchissement automatique ou le remplacer par un bouton « Actualiser ». "
+                    f"Exemple : {opening_tag(meta.element)} → balise supprimée, et dans la page {RELOAD_BUTTON}",
+                    node=meta.element,
                     delay_seconds=meta.delay,
                 )
             )
@@ -159,7 +164,10 @@ class Test1312(TimeLimitTest):
                     _meta_identifier(meta),
                     f"La balise meta redirige vers « {meta.url} » après {meta.delay:g} secondes : "
                     "la redirection n'est pas immédiate.",
-                    'Rendre la redirection immédiate (content="0; url=…") ou faire la redirection côté serveur.',
+                    "Rendre la redirection immédiate ou faire la redirection côté serveur. "
+                    f"Exemple : {opening_tag(meta.element)} → "
+                    f"{opening_tag(meta.element, content=f'0; url={meta.url}')}",
+                    node=meta.element,
                     delay_seconds=meta.delay,
                     url=meta.url,
                 )
@@ -208,6 +216,7 @@ class Test1314(TimeLimitTest):
                     f"La session se termine après {meta.delay:g} secondes par une balise meta "
                     f"(« {meta.url} ») : l'utilisateur ne peut ni la supprimer ni la prolonger.",
                     "Avertir l'utilisateur avant la fin de session et lui permettre de la prolonger.",
+                    node=meta.element,
                     delay_seconds=meta.delay,
                     url=meta.url,
                 )

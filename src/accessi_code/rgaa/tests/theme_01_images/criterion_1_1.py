@@ -17,6 +17,7 @@ from accessi_code.rgaa.tests.theme_01_images._common import (
     Evaluation,
     ImageTest,
     Outcome,
+    attribute_example,
     outcome,
     unresolved,
 )
@@ -36,6 +37,20 @@ ALLOWED = {
 
 def allowed_alternatives(element: ImageElement) -> list[str]:
     return [source for source in ALLOWED[element.kind] if source in element.alternatives]
+
+
+def _role_recommendation(element: ImageElement, fallback: str) -> str:
+    if (
+        element.kind in {"svg", "object", "embed", "canvas"}
+        and not element.has_role_img
+        and allowed_alternatives(element)
+    ):
+        return attribute_example(
+            'Ajouter role="img" en conservant l\'alternative existante.',
+            element.tag,
+            {"role": "img"},
+        )
+    return fallback
 
 
 def has_adjacent_alternative(element: ImageElement) -> bool:
@@ -73,7 +88,13 @@ class _AlternativeTest(ImageTest):
                 "L'élément n'a pas d'alternative textuelle et son rôle informatif n'a pas pu être établi.",
                 "Vérifier si l'image est porteuse d'information ; si oui, lui donner une alternative.",
             )
-        return outcome(TestStatus.FAIL, element, self.missing_message, self.recommendation, role=role.evidence)
+        return outcome(
+            TestStatus.FAIL,
+            element,
+            self.missing_message,
+            _role_recommendation(element, self.recommendation),
+            role=role.evidence,
+        )
 
 
 class Test111(_AlternativeTest):
@@ -194,7 +215,7 @@ class Test115(_AlternativeTest):
             TestStatus.FAIL,
             element,
             f"Le svg porteur d'information n'a pas {' ni '.join(missing)}.",
-            'Ajouter role="img" sur la balise <svg> et une alternative textuelle.',
+            _role_recommendation(element, 'Ajouter role="img" sur la balise <svg> et une alternative textuelle.'),
             role=role.evidence,
         )
 

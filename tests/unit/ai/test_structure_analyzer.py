@@ -40,6 +40,31 @@ async def test_list_and_quote_use_their_own_rules() -> None:
 
 
 @pytest.mark.asyncio
+async def test_presentation_quote_suggestion_is_optional() -> None:
+    failure = {"should_be_marked": False, "explanation": "Texte courant.", "confidence": "high"}
+    proposal = {"suggestion": " Remplacer blockquote par div. "}
+    llm = FakeModel(
+        batch(
+            failure | proposal,
+            failure | {"suggestion": ["div"]},
+            failure,
+            failure | proposal | {"should_be_marked": True},
+            failure | proposal | {"confidence": "low"},
+        )
+    )
+    analyzer = OllamaStructureAnalyzer(llm)
+
+    items = [StructureCandidate(f"Passage {i}") for i in range(5)]
+    results = await analyzer.classify_candidates("presentation_quote", items)
+
+    assert [result.suggestion for result in results] == ["Remplacer blockquote par div.", None, None, None, None]
+    assert [result.should_be_marked for result in results] == [False, False, False, True, False]
+    assert results[-1].confidence == "low"
+    assert "RGAA 8.9" in llm.prompts[0]
+    assert "suggestion" in llm.prompts[0]
+
+
+@pytest.mark.asyncio
 async def test_unknown_kind_raises() -> None:
     with pytest.raises(ValueError):
         await OllamaStructureAnalyzer(FakeModel()).classify_candidates("table", [StructureCandidate("x")])

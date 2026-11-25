@@ -113,3 +113,40 @@ def test_722_missing_dom_raises_error(context_factory):
         import asyncio
 
         asyncio.run(Test722().run(context, AuditServices()))
+
+
+# Emplacement des observations (ligne et extrait HTML)
+
+
+def test_721_empty_noscript_gives_line_and_snippet(context_factory, run_rgaa):
+    result = run_rgaa(Test721(), context_factory("<script>go()</script>\n<noscript>  </noscript>"), text_services())
+    assert result.status == Status.FAIL
+    assert (result.findings[0].line, result.findings[0].snippet) == (2, "<noscript> </noscript>")
+
+
+def test_721_irrelevant_alternative_gives_line_and_snippet(context_factory, run_rgaa):
+    html = "<script>go()</script>\n\n<noscript>Activez JavaScript.</noscript>"
+    result = run_rgaa(Test721(), context_factory(html), text_services(relevance_answer=relevance(False)))
+    assert result.status == Status.FAIL
+    assert (result.findings[0].line, result.findings[0].snippet) == (3, "<noscript>Activez JavaScript.</noscript>")
+
+
+# Proposition de l'IA
+
+
+def test_721_ai_proposal_is_shown_on_fail(context_factory, run_rgaa):
+    html = "<script>go()</script><noscript>Activez JavaScript.</noscript>"
+    ai = text_services(
+        relevance_answer=relevance(False, suggestion="Afficher la liste des agences sous forme de tableau")
+    )
+    result = run_rgaa(Test721(), context_factory(html), ai)
+    assert result.findings[0].recommendation.endswith(
+        "Proposition : « Afficher la liste des agences sous forme de tableau »."
+    )
+
+
+def test_721_ai_proposal_is_ignored_on_pass(context_factory, run_rgaa):
+    ai = text_services(relevance_answer=relevance(True, suggestion="Autre texte"))
+    result = run_rgaa(Test721(), context_factory(NOSCRIPT), ai)
+    assert result.status == Status.PASS
+    assert result.findings == []
