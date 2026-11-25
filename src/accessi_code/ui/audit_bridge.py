@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from accessi_code.ai.token_usage import TokenUsage
 from accessi_code.rgaa.themes import parse_theme_label
 from accessi_code.service.audit_orchestrator import (
     AuditOrchestrator,
@@ -47,6 +48,9 @@ class UIAuditResult:
     summaries: tuple[ThemeSummary, ...] = ()
     notices: list[str] = field(default_factory=list)
     error: str | None = None
+    # Tokens consommés par l'IA et durée totale de l'audit, en secondes.
+    tokens_used: int = 0
+    duration_seconds: float = 0.0
 
 
 def uploaded_paths(files: Any) -> tuple[Path, ...]:
@@ -96,13 +100,14 @@ async def run_audit_from_ui(
     theme_labels: list[str] | None,
     orchestrator: AuditOrchestrator | None = None,
     on_progress: AuditProgressCallback | None = None,
+    token_usage: TokenUsage | None = None,
 ) -> UIAuditResult:
     """Lance l'audit et retourne les synthèses, ou un message d'erreur lisible."""
     request = build_audit_request(url, files, theme_labels)
     orchestrator = orchestrator or get_orchestrator()
 
     try:
-        outcome = await orchestrator.run(request, on_progress)
+        outcome = await orchestrator.run(request, on_progress, token_usage=token_usage)
     except AuditRequestError as error:
         return UIAuditResult(error=str(error))
     except Exception as error:  # Erreur inattendue : on informe sans planter l'interface.
@@ -113,22 +118,36 @@ async def run_audit_from_ui(
         selected=request.themes,
         implemented=outcome.implemented_themes,
     )
-    return UIAuditResult(summaries=summaries, notices=outcome.notices)
+    return UIAuditResult(
+        summaries=summaries,
+        notices=outcome.notices,
+        tokens_used=getattr(outcome, "tokens_used", 0),
+        duration_seconds=getattr(outcome, "duration_seconds", 0.0),
+    )
 
 
 # Intervalle de mise à jour de l'affichage pendant un test long.
 HEARTBEAT_SECONDS = 1.0
 
 
-def advance_clock(progress: AuditProgress, seconds: float) -> AuditProgress:
-    """Même état d'avancement, avec un temps écoulé et un temps restant actualisés."""
+def advance_clock(progress: AuditProgress, seconds: float, tokens_used: int | None = None) -> AuditProgress:
+    """
+    Même état d'avancement, avec le temps écoulé, le temps restant et les tokens actualisés.
+
+    Le temps restant diminue avec le temps écoulé, sans descendre sous celui des étapes
+    qui n'ont pas encore commencé (``remaining_floor_seconds``) : un test plus long que
+    prévu ne fait pas croire que l'audit est presque fini.
+    """
     if progress.step == AuditStep.DONE or progress.elapsed_seconds is None:
         return progress
     remaining = progress.remaining_seconds
+    if remaining is not None:
+        remaining = max(progress.remaining_floor_seconds or 0.0, remaining - seconds, 0.0)
     return dataclasses.replace(
         progress,
         elapsed_seconds=progress.elapsed_seconds + seconds,
-        remaining_seconds=None if remaining is None else max(0.0, remaining - seconds),
+        remaining_seconds=remaining,
+        tokens_used=max(progress.tokens_used, tokens_used or 0),
     )
 
 
@@ -149,7 +168,11 @@ async def stream_audit(
     Si l'appelant arrête l'itération (page fermée), l'audit est annulé.
     """
     queue: asyncio.Queue[AuditProgress] = asyncio.Queue()
-    task = asyncio.create_task(run_audit_from_ui(url, files, theme_labels, orchestrator, queue.put_nowait))
+    # Compteur lu à chaque seconde : les tokens avancent aussi pendant un long test.
+    usage = TokenUsage()
+    task = asyncio.create_task(
+        run_audit_from_ui(url, files, theme_labels, orchestrator, queue.put_nowait, token_usage=usage)
+    )
     loop = asyncio.get_running_loop()
     last_sent: AuditProgress | None = None
     last_sent_at = 0.0
@@ -161,7 +184,7 @@ async def stream_audit(
             if not getter.done():
                 getter.cancel()
                 if not task.done() and last_sent is not None:
-                    yield advance_clock(last_sent, loop.time() - last_sent_at)
+                    yield advance_clock(last_sent, loop.time() - last_sent_at, usage.total)
                 continue
             latest = getter.result()
             # Plusieurs tests rapides : on n'affiche que l'état le plus récent.

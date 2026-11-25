@@ -25,6 +25,7 @@ from collections.abc import Awaitable, Callable, Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from accessi_code.ai.token_usage import TokenUsage, track_tokens
 from accessi_code.input.context_builder import AuditContextBuilder
 from accessi_code.input.file_classifier import is_html_file, pick_main_html
 from accessi_code.models.audit_result import AuditResult
@@ -87,6 +88,9 @@ class AuditOutcome:
     executed_themes: frozenset[int]
     # Informations à signaler à l'utilisateur (URL ignorée, etc.).
     notices: list[str] = field(default_factory=list)
+    # Tokens consommés par les appels à l'IA et durée totale de l'audit, en secondes.
+    tokens_used: int = 0
+    duration_seconds: float = 0.0
 
 
 ServicesFactory = Callable[[], AuditServices]
@@ -200,16 +204,28 @@ class AuditOrchestrator:
         self,
         request: AuditRequest,
         on_progress: AuditProgressCallback | None = None,
+        *,
+        token_usage: TokenUsage | None = None,
     ) -> AuditOutcome:
         """
         Exécute l'audit demandé.
 
-        ``on_progress`` reçoit l'avancement réel (étape, tests terminés)
-        ainsi que le temps écoulé et le temps restant estimé.
+        ``on_progress`` reçoit l'avancement réel (étape, tests terminés),
+        le temps écoulé, le temps restant estimé et les tokens consommés.
+        ``token_usage`` : compteur à remplir (l'appelant peut le lire pendant l'audit).
 
         Raises:
             AuditRequestError: si la demande ne permet pas de lancer un audit.
         """
+        with track_tokens(token_usage) as usage:
+            return await self._run(request, on_progress, usage)
+
+    async def _run(
+        self,
+        request: AuditRequest,
+        on_progress: AuditProgressCallback | None,
+        usage: TokenUsage,
+    ) -> AuditOutcome:
         started = time.perf_counter()
         notices = self._validate(request)
 
@@ -247,6 +263,7 @@ class AuditOrchestrator:
             done: int = 0,
             last: str | None = None,
             remaining: float | None = None,
+            floor: float | None = None,
         ) -> None:
             await notify_progress(
                 on_progress,
@@ -258,14 +275,20 @@ class AuditOrchestrator:
                     error_test_ids=tuple(errors),
                     elapsed_seconds=time.perf_counter() - started,
                     remaining_seconds=remaining,
+                    remaining_floor_seconds=floor,
                     enrichment_needed=with_enrichment,
                     ai_available=ai_available,
+                    tokens_used=usage.total,
                 ),
             )
 
         # 1. Préparation : copie et analyse des fichiers, hors boucle asyncio.
         estimate = self.timing.estimate(test_ids, with_enrichment=with_enrichment)
-        await report(AuditStep.PREPARATION, remaining=estimate.seconds)
+        await report(
+            AuditStep.PREPARATION,
+            remaining=estimate.seconds,
+            floor=estimate.seconds - self.timing.preparation_seconds(),
+        )
         step_start = time.perf_counter()
         builder = AuditContextBuilder(workspace_root=self.workspace_root)
         try:
@@ -279,9 +302,11 @@ class AuditOrchestrator:
         self.timing.record_preparation(time.perf_counter() - step_start)
 
         if ai_available is False:
-            # Les tests IA concluent aussitôt « non testé » au lieu d'attendre l'échec de connexion.
+            # Les tests IA concluent aussitôt « non testé » au lieu d'attendre l'échec de connexion :
+            # le temps restant s'appuie donc sur les durées mesurées sans IA.
             services = AuditServices()
             notices.append(AI_UNAVAILABLE_NOTICE)
+            tracker = RemainingTimeTracker(self.timing, test_ids, with_ai=False)
         else:
             services = self._get_services()
             if self._services_notice:
@@ -292,6 +317,7 @@ class AuditOrchestrator:
             await report(
                 AuditStep.ENRICHMENT,
                 remaining=self.timing.enrichment_seconds() + tracker.remaining_seconds(0),
+                floor=tracker.remaining_seconds(0),
             )
             step_start = time.perf_counter()
             enrichment_notice = await self._enrich(context)
@@ -301,7 +327,7 @@ class AuditOrchestrator:
                 notices.append(enrichment_notice)
 
         # 3. Tests RGAA, chronométrés un par un.
-        await report(AuditStep.TESTS, remaining=tracker.remaining_seconds(0))
+        await report(AuditStep.TESTS, remaining=tracker.remaining_seconds(0), floor=tracker.remaining_after_current(0))
         last_tick = time.perf_counter()
 
         async def on_test_done(done: int, total_tests: int, test_result: TestResult) -> None:
@@ -311,9 +337,12 @@ class AuditOrchestrator:
             last_tick = now
 
             tracker.record(done - 1, duration)
-            # Un test non exécuté ou en erreur ne reflète pas sa durée normale.
-            # Sans IA, les tests IA sont anormalement rapides : leurs durées ne sont pas retenues.
-            if ai_available is not False and test_result.status not in (TestStatus.NOT_TESTED, TestStatus.ERROR):
+            # Un test en erreur ne reflète pas sa durée normale. Sans IA, les tests IA concluent
+            # aussitôt « non testé » : leurs durées sont conservées à part (audits sans IA).
+            if ai_available is False:
+                if test_result.status != TestStatus.ERROR:
+                    self.timing.record_test(test_result.test_id, duration, with_ai=False)
+            elif test_result.status not in (TestStatus.NOT_TESTED, TestStatus.ERROR):
                 self.timing.record_test(test_result.test_id, duration)
             if test_result.status == TestStatus.ERROR:
                 errors.append(test_result.test_id)
@@ -323,6 +352,7 @@ class AuditOrchestrator:
                 done=done,
                 last=test_result.test_id,
                 remaining=tracker.remaining_seconds(done),
+                floor=tracker.remaining_after_current(done),
             )
 
         result = await AuditService(registry=registry, services=services).audit(context, on_test_done)
@@ -338,6 +368,8 @@ class AuditOrchestrator:
             implemented_themes=available,
             executed_themes=executed,
             notices=notices,
+            tokens_used=usage.total,
+            duration_seconds=time.perf_counter() - started,
         )
 
     def _should_check_ai(self) -> bool:

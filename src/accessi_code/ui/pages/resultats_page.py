@@ -35,12 +35,12 @@ __all__ = [
 ]
 
 
-def results_updates(summaries: tuple[ThemeSummary, ...], notices: list[str]) -> list:
+def results_updates(summaries: tuple[ThemeSummary, ...], notices: list[str], stats: str = "") -> list:
     """
-    Mises à jour Gradio, dans l'ordre :
-    état des résultats, avertissements, détail, puis les 13 cartes.
+    Mises à jour Gradio, dans l'ordre : état des résultats, avertissements
+    (précédés de la durée et des tokens de l'audit), détail, puis les 13 cartes.
     """
-    notices_md = build_notices(notices)
+    notices_md = build_notices(notices, stats)
     return [
         summaries,
         gr.update(value=notices_md, visible=bool(notices_md)),
@@ -112,7 +112,8 @@ def build_resultats_page():
                 "## Détail du thème",
                 elem_id="resultats-detail-title",
             )
-            theme_detail = gr.Markdown(
+            # Détail en HTML (voir ui/theme_detail_view.py) : textes échappés à la construction.
+            theme_detail = gr.HTML(
                 DEFAULT_THEME_DETAIL,
                 elem_id="resultats-detail-content",
             )

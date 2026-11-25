@@ -209,6 +209,15 @@
     text-align: center;
 }
 
+/* Tokens consommés par l'IA, juste sous le temps. */
+.accessicode-progress-tokens {
+    margin: 2px 0 0 !important;
+    font-family: var(--font-body) !important;
+    font-size: 13px !important;
+    color: #475569 !important;
+    text-align: center;
+}
+
 .accessicode-progress-alert {
     margin: 12px 0 0 !important;
     padding: 8px 12px;

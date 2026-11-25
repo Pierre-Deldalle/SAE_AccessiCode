@@ -47,6 +47,11 @@ class AuditProgress:
     # Temps écoulé depuis le lancement et temps restant estimé, en secondes.
     elapsed_seconds: float | None = None
     remaining_seconds: float | None = None
+    # Temps restant des étapes qui n'ont pas encore commencé : entre deux mises à jour,
+    # le temps restant affiché diminue avec le temps écoulé sans descendre en dessous.
+    remaining_floor_seconds: float | None = None
+    # Tokens consommés par les appels à l'IA depuis le lancement (question et réponse).
+    tokens_used: int = 0
     # False si l'analyse du rendu n'est pas nécessaire pour les thématiques cochées.
     enrichment_needed: bool = True
     # False si le serveur d'IA ne répond pas ; None tant que ce n'est pas vérifié.

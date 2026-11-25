@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from html import escape
 
+from accessi_code.ai.token_usage import format_tokens
 from accessi_code.service.audit_progress import (
     STEP_LABELS,
     STEP_ORDER,
@@ -97,6 +98,17 @@ def _timing(progress: AuditProgress | None) -> str:
     return '<p class="accessicode-progress-timing">' + escape(" · ".join(parts)) + "</p>"
 
 
+def _tokens(progress: AuditProgress | None) -> str:
+    """Tokens consommés par l'IA depuis le lancement, affichés sous le temps."""
+    if progress is None or progress.step == AuditStep.DONE:
+        return ""
+    if progress.ai_available is False:
+        value = "aucun (IA indisponible)"
+    else:
+        value = format_tokens(progress.tokens_used)
+    return '<p class="accessicode-progress-tokens">' + escape(f"Tokens utilisés par l'IA : {value}") + "</p>"
+
+
 AI_WARNING_TEXT = "IA non disponible, certains tests ne seront pas évalués."
 
 
@@ -147,6 +159,7 @@ def render_progress(progress: AuditProgress | None) -> str:
         + bar
         + f'<p class="accessicode-progress-description" aria-live="polite">{escape(_description(progress))}</p>'
         + _timing(progress)
+        + _tokens(progress)
         + _ai_warning(progress)
         + alert
         + "</div>"

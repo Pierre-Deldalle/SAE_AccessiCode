@@ -8,6 +8,7 @@ from typing import Any
 import aiohttp
 
 from accessi_code.ai.clients.base import BaseModelEndpoint, cap_max_tokens
+from accessi_code.ai.token_usage import record_response
 
 ImageInput = str | Path | bytes | bytearray
 
@@ -52,6 +53,7 @@ class OllamaVLM(BaseModelEndpoint):
         if not isinstance(data, dict):
             raise ValueError("La réponse Ollama n'est pas un objet JSON.")
 
+        record_response(data)
         return data
 
     @staticmethod

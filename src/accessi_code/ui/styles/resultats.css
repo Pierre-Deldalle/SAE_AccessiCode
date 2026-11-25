@@ -576,3 +576,220 @@
     color: #17212b !important;
     opacity: 1 !important;
 }
+
+
+/* =========================================
+   DÉTAIL HTML D'UNE THÉMATIQUE (ui/theme_detail_view.py)
+   Le statut est toujours écrit en toutes lettres : la couleur n'est qu'un repère.
+   ========================================= */
+
+#resultats-detail-content .ac-detail {
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.6;
+    color: #17212b;
+}
+
+#resultats-detail-content .ac-theme-title {
+    margin: 0 0 8px;
+    font-family: var(--font-title);
+    font-size: 20px;
+    color: #17212b;
+}
+
+#resultats-detail-content .ac-overview p {
+    margin: 4px 0;
+}
+
+#resultats-detail-content .ac-warning {
+    padding: 8px 12px;
+    border-left: 4px solid #b42318;
+    background: #fff1f0;
+}
+
+#resultats-detail-content .ac-muted {
+    color: #4b5563;
+    font-size: 14px;
+}
+
+#resultats-detail-content .ac-group {
+    margin-top: 24px;
+}
+
+#resultats-detail-content .ac-group > h3 {
+    margin: 0 0 10px;
+    font-family: var(--font-title);
+    font-size: 17px;
+    color: #17212b;
+}
+
+/* Critère : bloc dépliable. */
+#resultats-detail-content .ac-criterion {
+    margin: 0 0 10px;
+    border: 1px solid #d5dadd;
+    border-left: 6px solid #9aa4ae;
+    border-radius: 6px;
+    background: #ffffff;
+}
+
+#resultats-detail-content .ac-criterion.ac-status-fail { border-left-color: #b42318; }
+#resultats-detail-content .ac-criterion.ac-status-review { border-left-color: #0ca0b0; }
+#resultats-detail-content .ac-criterion.ac-status-unevaluated { border-left-color: #6b7280; }
+#resultats-detail-content .ac-criterion.ac-status-pass { border-left-color: #027a48; }
+
+#resultats-detail-content .ac-criterion > summary {
+    padding: 12px 14px;
+    cursor: pointer;
+    list-style-position: inside;
+}
+
+#resultats-detail-content .ac-criterion > summary:focus-visible {
+    outline: 3px solid #0153c6;
+    outline-offset: 2px;
+}
+
+#resultats-detail-content .ac-criterion-body {
+    padding: 0 16px 14px;
+}
+
+#resultats-detail-content .ac-badge {
+    display: inline-block;
+    margin-right: 6px;
+    padding: 1px 8px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    background: #e5e7eb;
+    color: #1f2937;
+}
+
+#resultats-detail-content .ac-badge-fail { background: #fee4e2; color: #912018; }
+#resultats-detail-content .ac-badge-review { background: #dff6f8; color: #065a63; }
+#resultats-detail-content .ac-badge-pass { background: #d1fadf; color: #05603a; }
+
+#resultats-detail-content .ac-impact {
+    margin: 4px 0 6px;
+}
+
+#resultats-detail-content .ac-link a {
+    color: #0153c6;
+    font-weight: 600;
+    text-decoration: underline;
+}
+
+#resultats-detail-content .ac-link a:focus-visible {
+    outline: 3px solid #0153c6;
+    outline-offset: 2px;
+}
+
+/* Tests et observations. */
+#resultats-detail-content .ac-test {
+    margin-top: 12px;
+}
+
+#resultats-detail-content .ac-test-title {
+    margin: 0 0 6px;
+}
+
+#resultats-detail-content .ac-findings {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+#resultats-detail-content .ac-finding {
+    margin: 0 0 10px;
+    padding: 12px 14px;
+    border: 1px solid #e2e6ea;
+    border-radius: 6px;
+    background: #f9fafb;
+}
+
+#resultats-detail-content .ac-location {
+    margin: 0 0 4px;
+    font-size: 14px;
+}
+
+#resultats-detail-content .ac-place {
+    font-weight: 700;
+    color: #0153c6;
+}
+
+#resultats-detail-content .ac-element code {
+    font-size: 13px;
+    color: #374151;
+    background: transparent;
+}
+
+#resultats-detail-content .ac-message {
+    margin: 4px 0 8px;
+}
+
+#resultats-detail-content .ac-label,
+#resultats-detail-content .ac-step {
+    margin: 8px 0 4px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #374151;
+}
+
+#resultats-detail-content .ac-code {
+    margin: 0;
+    padding: 8px 10px;
+    border: 1px solid #d5dadd;
+    border-radius: 4px;
+    background: #ffffff;
+    color: #17212b;
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+#resultats-detail-content .ac-code-after {
+    border-color: #6ce9a6;
+    background: #f6fef9;
+}
+
+#resultats-detail-content .ac-fix {
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px dashed #d5dadd;
+}
+
+#resultats-detail-content .ac-fix-text {
+    margin: 0 0 6px;
+}
+
+#resultats-detail-content .ac-proposal {
+    margin: 6px 0;
+    padding: 8px 12px;
+    border-left: 4px solid #0153c6;
+    background: #edf4fc;
+}
+
+#resultats-detail-content .ac-proposal p {
+    margin: 2px 0;
+}
+
+/* Les paragraphes du détail restent des blocs (Gradio peut les afficher en ligne). */
+#resultats-detail-content .ac-detail p,
+#resultats-detail-content .ac-detail pre,
+#resultats-detail-content .ac-detail ul,
+#resultats-detail-content .ac-detail li,
+#resultats-detail-content .ac-detail section,
+#resultats-detail-content .ac-detail details {
+    display: block;
+}
+
+#resultats-detail-content .ac-detail summary {
+    display: list-item;
+}
+
+#resultats-detail-content .ac-test > .ac-fix-text {
+    margin: 0 0 8px;
+    padding: 6px 10px;
+    border-left: 3px solid #0ca0b0;
+    background: #f0fafb;
+}

@@ -37,15 +37,20 @@ DEFAULT_SECONDS_BY_TEST: dict[str, float] = {
     "8.9.1": 9.0,
     "8.10.1": 9.0,
 }
+# Sans IA, un test jamais mesuré dans ce mode prend au plus cette durée : les tests
+# qui dépendent de l'IA concluent aussitôt « non testé ».
+NO_AI_MAX_SECONDS = 0.5
 DEFAULT_ENRICHMENT_SECONDS = 4.0
 DEFAULT_PREPARATION_SECONDS = 0.5
 
 # Poids d'une nouvelle mesure dans la moyenne glissante.
 NEW_MEASURE_WEIGHT = 0.5
 # Bornes de la correction de rythme appliquée pendant l'audit.
-MIN_PACE, MAX_PACE = 0.25, 4.0
-# En dessous de cette durée estimée, le rythme observé n'est pas fiable.
-MIN_SECONDS_FOR_PACE = 2.0
+MIN_PACE, MAX_PACE = 0.2, 5.0
+# Rythme « neutre » supposé au départ, en secondes d'audit : le rythme observé ne
+# remplace l'estimation que progressivement, ce qui évite les sauts du temps restant
+# sur les premiers tests (rythme = (réel + PACE_PRIOR) / (estimé + PACE_PRIOR)).
+PACE_PRIOR_SECONDS = 20.0
 
 _FILE_VERSION = 1
 
@@ -72,16 +77,35 @@ class AuditTimingStore:
         self.path = Path(path) if path is not None else None
         self.defaults = dict(DEFAULT_SECONDS_BY_TEST if defaults is None else defaults)
         self.tests: dict[str, float] = {}
+        # Durées mesurées lors des audits sans IA (serveur indisponible).
+        self.tests_without_ai: dict[str, float] = {}
         self.enrichment: float | None = None
         self.preparation: float | None = None
         self._load()
 
     # Lecture des durées
 
-    def test_seconds(self, test_id: str) -> float:
+    def test_seconds(self, test_id: str, *, with_ai: bool = True) -> float:
+        """
+        Durée mesurée du test ; sinon sa valeur de départ ; sinon la durée médiane des
+        tests mesurés de sa thématique (un nouveau test ressemble à ses voisins) ;
+        sinon la durée d'un contrôle déterministe.
+
+        Sans IA : durée mesurée sans IA, sinon la durée avec IA plafonnée à NO_AI_MAX_SECONDS.
+        """
+        if not with_ai:
+            if test_id in self.tests_without_ai:
+                return self.tests_without_ai[test_id]
+            return min(self.test_seconds(test_id), NO_AI_MAX_SECONDS)
         if test_id in self.tests:
             return self.tests[test_id]
-        return self.defaults.get(test_id, DEFAULT_TEST_SECONDS)
+        if test_id in self.defaults:
+            return self.defaults[test_id]
+        theme = _theme(test_id)
+        neighbours = sorted(value for key, value in self.tests.items() if _theme(key) == theme)
+        if neighbours:
+            return neighbours[len(neighbours) // 2]
+        return DEFAULT_TEST_SECONDS
 
     def is_measured(self, test_id: str) -> bool:
         return test_id in self.tests
@@ -106,8 +130,9 @@ class AuditTimingStore:
 
     # Enregistrement des mesures
 
-    def record_test(self, test_id: str, seconds: float) -> None:
-        self.tests[test_id] = _smooth(self.tests.get(test_id), seconds)
+    def record_test(self, test_id: str, seconds: float, *, with_ai: bool = True) -> None:
+        measures = self.tests if with_ai else self.tests_without_ai
+        measures[test_id] = _smooth(measures.get(test_id), seconds)
 
     def record_enrichment(self, seconds: float) -> None:
         self.enrichment = _smooth(self.enrichment, seconds)
@@ -122,6 +147,7 @@ class AuditTimingStore:
         data = {
             "version": _FILE_VERSION,
             "tests": {test_id: round(value, 4) for test_id, value in sorted(self.tests.items())},
+            "tests_without_ai": {test_id: round(value, 4) for test_id, value in sorted(self.tests_without_ai.items())},
             "enrichment": self.enrichment,
             "preparation": self.preparation,
         }
@@ -147,6 +173,9 @@ class AuditTimingStore:
         tests = data.get("tests")
         if isinstance(tests, dict):
             self.tests = {str(key): float(value) for key, value in tests.items() if _is_duration(value)}
+        without_ai = data.get("tests_without_ai")
+        if isinstance(without_ai, dict):
+            self.tests_without_ai = {str(key): float(value) for key, value in without_ai.items() if _is_duration(value)}
         if _is_duration(data.get("enrichment")):
             self.enrichment = float(data["enrichment"])
         if _is_duration(data.get("preparation")):
@@ -162,26 +191,37 @@ class RemainingTimeTracker:
     plus rapide ou plus lent que lors des audits précédents).
     """
 
-    def __init__(self, store: AuditTimingStore, test_ids: Iterable[str]):
+    def __init__(self, store: AuditTimingStore, test_ids: Iterable[str], *, with_ai: bool = True):
         self.store = store
         self.test_ids = list(test_ids)
+        self.with_ai = with_ai
         self._estimated_done = 0.0
         self._actual_done = 0.0
 
     def record(self, index: int, actual_seconds: float) -> None:
         """Note la durée réelle du test d'indice ``index`` dans l'ordre d'exécution."""
         if 0 <= index < len(self.test_ids):
-            self._estimated_done += self.store.test_seconds(self.test_ids[index])
+            self._estimated_done += self.store.test_seconds(self.test_ids[index], with_ai=self.with_ai)
             self._actual_done += max(0.0, actual_seconds)
 
     def pace(self) -> float:
-        if self._estimated_done < MIN_SECONDS_FOR_PACE or self._actual_done <= 0:
-            return 1.0
-        return min(MAX_PACE, max(MIN_PACE, self._actual_done / self._estimated_done))
+        """Rapport entre durée réelle et durée estimée des tests terminés, lissé par PACE_PRIOR_SECONDS."""
+        ratio = (self._actual_done + PACE_PRIOR_SECONDS) / (self._estimated_done + PACE_PRIOR_SECONDS)
+        return min(MAX_PACE, max(MIN_PACE, ratio))
 
     def remaining_seconds(self, done_tests: int) -> float:
-        remaining = sum(self.store.test_seconds(test_id) for test_id in self.test_ids[done_tests:])
+        """Temps restant estimé quand ``done_tests`` tests sont terminés."""
+        remaining = sum(
+            self.store.test_seconds(test_id, with_ai=self.with_ai) for test_id in self.test_ids[done_tests:]
+        )
         return remaining * self.pace()
+
+    def remaining_after_current(self, done_tests: int) -> float:
+        """
+        Temps restant des tests qui suivent celui en cours : le temps restant affiché
+        ne descend jamais en dessous, même si le test en cours dure plus que prévu.
+        """
+        return self.remaining_seconds(done_tests + 1)
 
 
 def format_duration(seconds: float) -> str:
@@ -202,6 +242,10 @@ def _smooth(previous: float | None, measure: float) -> float:
     if previous is None:
         return measure
     return (1 - NEW_MEASURE_WEIGHT) * previous + NEW_MEASURE_WEIGHT * measure
+
+
+def _theme(test_id: str) -> str:
+    return test_id.split(".", 1)[0]
 
 
 def _is_duration(value: object) -> bool:

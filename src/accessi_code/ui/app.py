@@ -32,6 +32,7 @@ from accessi_code.ui.pages.resultats_page import (
     reset_updates,
     results_updates,
 )
+from accessi_code.ui.results_view import audit_stats
 
 UI_DIR = Path(__file__).parent
 STYLES_DIR = UI_DIR / "styles"
@@ -169,7 +170,7 @@ async def run_audit(url, files, themes):
             gr.update(visible=True),
             gr.update(visible=False),
             gr.update(value="", visible=False),
-            *results_updates(item.summaries, item.notices),
+            *results_updates(item.summaries, item.notices, audit_stats(item.duration_seconds, item.tokens_used)),
         ]
 
 
@@ -211,9 +212,27 @@ def confirm_return_home():
     )
 
 
+# L'interface est conçue en clair. Gradio passe en mode sombre quand le système l'est
+# (classe « dark ») : les composants natifs (liste des fichiers déposés, cases…)
+# deviendraient noirs avec un texte foncé illisible. On garde donc le thème clair.
+FORCE_LIGHT_THEME_JS = """() => {
+    const keepLight = () => {
+        for (const element of document.querySelectorAll(".dark")) {
+            element.classList.remove("dark");
+        }
+    };
+    keepLight();
+    new MutationObserver(keepLight).observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ["class"],
+        subtree: true,
+    });
+}"""
+
+
 def launch_options() -> dict:
-    """Styles et thème de l'application, à passer à app.launch() (Gradio 6)."""
-    return {"css": CSS, "theme": gr.themes.Base()}
+    """Styles, thème et script de l'application, à passer à app.launch() (Gradio 6)."""
+    return {"css": CSS, "theme": gr.themes.Base(), "js": FORCE_LIGHT_THEME_JS}
 
 
 def create_app():

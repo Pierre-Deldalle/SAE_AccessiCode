@@ -97,3 +97,40 @@ def test_percent_only_when_known():
     assert AuditProgress(AuditStep.TESTS, total_tests=0).percent is None
     assert AuditProgress(AuditStep.TESTS, done_tests=1, total_tests=4).percent == 25
     assert AuditProgress(AuditStep.DONE, done_tests=4, total_tests=4).percent == 100
+
+
+@pytest.mark.asyncio
+async def test_orchestrator_counts_tokens_and_gives_a_time_floor(tmp_path):
+    from accessi_code.ai.token_usage import TokenUsage, record_response
+
+    html = tmp_path / "page.html"
+    html.write_text("<html lang='fr'><body></body></html>", encoding="utf-8")
+
+    def ai_test(test_id: str):
+        test = make_test(test_id)
+        original = test.run
+
+        async def run(context, services=None):
+            record_response({"prompt_eval_count": 900, "eval_count": 100})  # un appel à l'IA
+            return await original(context, services)
+
+        test.run = run
+        return test
+
+    def registry():
+        return Registry([ai_test("1.1.1"), ai_test("1.1.2")])
+
+    orchestrator = AuditOrchestrator(workspace_root=tmp_path / "ws", registry_factory=registry, services_factory=None)
+    usage = TokenUsage()
+    events: list[AuditProgress] = []
+    outcome = await orchestrator.run(
+        AuditRequest(files=(html,), themes=frozenset({1})), events.append, token_usage=usage
+    )
+
+    assert [e.tokens_used for e in events if e.step == AuditStep.TESTS] == [0, 1000, 2000]
+    assert outcome.tokens_used == usage.total == 2000
+    assert outcome.duration_seconds > 0
+    # Le plancher (tests pas encore commencés) ne dépasse jamais le temps restant.
+    for event in events:
+        if event.remaining_floor_seconds is not None:
+            assert event.remaining_floor_seconds <= event.remaining_seconds + 1e-9

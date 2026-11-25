@@ -39,7 +39,7 @@ def test_errors_are_listed_and_escaped():
 
 
 class FakeOrchestrator:
-    async def run(self, request, on_progress=None):
+    async def run(self, request, on_progress=None, **_options):
         on_progress(AuditProgress(AuditStep.PREPARATION, total_tests=1))
         on_progress(AuditProgress(AuditStep.DONE, done_tests=1, total_tests=1))
         raise RuntimeError("fin simulée")
@@ -61,7 +61,7 @@ class SlowOrchestrator:
     def __init__(self):
         self.cancelled = asyncio.Event()
 
-    async def run(self, request, on_progress=None):
+    async def run(self, request, on_progress=None, **_options):
         on_progress(AuditProgress(AuditStep.TESTS, done_tests=0, total_tests=5))
         try:
             await asyncio.sleep(3600)
@@ -135,7 +135,7 @@ def test_advance_clock_keeps_progress_and_moves_time():
 class LongTestOrchestrator:
     """Un seul état de progression, puis un long « test IA »."""
 
-    async def run(self, request, on_progress=None):
+    async def run(self, request, on_progress=None, **_options):
         on_progress(AuditProgress(AuditStep.TESTS, 0, 1, elapsed_seconds=1.0, remaining_seconds=30.0))
         await asyncio.sleep(2.5)
         raise RuntimeError("fin simulée")
@@ -159,3 +159,31 @@ def test_ai_warning_shown_only_when_ai_is_unavailable():
     assert "IA non disponible, certains tests ne seront pas évalués." in unavailable
     assert "IA non disponible" not in available
     assert "IA non disponible" not in unknown
+
+
+def test_tokens_are_shown_under_the_time():
+    html = render_progress(
+        AuditProgress(AuditStep.TESTS, 3, 10, elapsed_seconds=12, remaining_seconds=75, tokens_used=12345)
+    )
+    timing = html.index("accessicode-progress-timing")
+    tokens = html.index("accessicode-progress-tokens")
+    assert timing < tokens
+    assert "Tokens utilisés par l&#x27;IA : 12 345 tokens" in html
+
+
+def test_tokens_without_ai_say_so():
+    html = render_progress(AuditProgress(AuditStep.TESTS, 1, 4, elapsed_seconds=2, ai_available=False))
+    assert "aucun (IA indisponible)" in html
+
+
+def test_advance_clock_never_goes_below_the_tests_not_started():
+    # Test long en cours : 40 s restants au total, dont 30 s pour les tests suivants.
+    progress = AuditProgress(
+        AuditStep.TESTS, 2, 5, elapsed_seconds=10, remaining_seconds=40, remaining_floor_seconds=30, tokens_used=50
+    )
+
+    assert advance_clock(progress, 5).remaining_seconds == 35
+    later = advance_clock(progress, 25, tokens_used=800)
+    assert later.remaining_seconds == 30  # le test en cours dure plus que prévu
+    assert later.tokens_used == 800
+    assert advance_clock(progress, 1, tokens_used=10).tokens_used == 50  # jamais en baisse

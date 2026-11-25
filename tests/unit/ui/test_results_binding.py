@@ -32,7 +32,7 @@ class FakeOrchestrator:
     def __init__(self, error: Exception):
         self.error = error
 
-    async def run(self, request, on_progress=None):
+    async def run(self, request, on_progress=None, **_options):
         raise self.error
 
 
@@ -89,8 +89,9 @@ def test_detail_lists_tests_findings_and_escapes_html():
 
     assert "Test 6.2.1" in detail and "Non conforme" in detail
     assert "Ajouter un intitulé." in detail
-    assert "Contrôles à vérifier manuellement" in detail
-    assert "<a href" not in detail  # HTML de la page auditée neutralisé.
+    assert "Critères à vérifier manuellement" in detail
+    assert '<a href="/x"' not in detail  # HTML de la page auditée neutralisé…
+    assert "&lt;a href=&quot;/x&quot;&gt;" in detail  # … et affiché tel quel.
     assert "$x$" not in detail  # Pas d'interprétation LaTeX.
 
 

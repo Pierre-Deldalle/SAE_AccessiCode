@@ -654,3 +654,129 @@
     color: #17212b !important;
     opacity: 1 !important;
 }
+
+
+/* =========================================
+   LISTE DES FICHIERS DÉPOSÉS
+   Lignes claires et bordées (et non les blocs sombres par défaut de Gradio).
+   ========================================= */
+
+#file-drop-zone table.file-preview {
+    width: 100% !important;
+    margin-top: 36px !important;
+    border-collapse: separate !important;
+    border-spacing: 0 6px !important;
+    background: transparent !important;
+}
+
+#file-drop-zone tr.file,
+#file-drop-zone tr.file:nth-child(odd),
+#file-drop-zone tr.file:nth-child(even) {
+    background: transparent !important;
+}
+
+#file-drop-zone tr.file td {
+    padding: 9px 12px !important;
+    border-top: 1px solid #d5dadd !important;
+    border-bottom: 1px solid #d5dadd !important;
+    background: #ffffff !important;
+    color: #17212b !important;
+    font-family: var(--font-body) !important;
+    font-size: 14px !important;
+}
+
+#file-drop-zone tr.file td:first-child {
+    border-left: 4px solid #0ca0b0 !important;
+    border-radius: 6px 0 0 6px !important;
+}
+
+#file-drop-zone tr.file td:last-child {
+    border-right: 1px solid #d5dadd !important;
+    border-radius: 0 6px 6px 0 !important;
+    width: 1% !important;
+}
+
+#file-drop-zone tr.file:hover td {
+    background: #edf4fc !important;
+}
+
+#file-drop-zone td.filename .stem {
+    color: #17212b !important;
+    font-weight: 600 !important;
+}
+
+#file-drop-zone td.filename .ext {
+    color: #475569 !important;
+}
+
+#file-drop-zone td.download a {
+    color: #0153c6 !important;
+    font-size: 13px !important;
+    text-decoration: none !important;
+}
+
+#file-drop-zone .label-clear-button {
+    width: 28px !important;
+    height: 28px !important;
+    border-radius: 50% !important;
+    color: #b42318 !important;
+    font-size: 18px !important;
+    line-height: 1 !important;
+}
+
+#file-drop-zone .label-clear-button:hover {
+    background: #fee4e2 !important;
+}
+
+#file-drop-zone .label-clear-button:focus-visible {
+    outline: 3px solid #0153c6 !important;
+    outline-offset: 2px !important;
+}
+
+/* Boutons « ajouter » et « tout retirer » : au-dessus de la liste, sans la chevaucher. */
+#file-drop-zone .icon-button-wrapper.top-panel {
+    top: 6px !important;
+    right: 8px !important;
+    padding: 2px 4px !important;
+    border: 1px solid #d5dadd !important;
+    border-radius: 6px !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+}
+
+#file-drop-zone .icon-button-wrapper.top-panel::before,
+#file-drop-zone .icon-button-wrapper.top-panel::after {
+    display: none !important;
+}
+
+#file-drop-zone .icon-button-wrapper.top-panel button {
+    color: #0153c6 !important;
+}
+
+/* Gradio étire le panneau d'icônes sur toute la zone et ajoute un espacement aux lignes. */
+#file-drop-zone .icon-button-wrapper.top-panel {
+    height: auto !important;
+    bottom: auto !important;
+    gap: 6px !important;
+    align-items: center !important;
+}
+
+#file-drop-zone tr.file {
+    padding: 0 !important;
+    margin: 0 !important;
+    align-items: stretch !important;
+}
+
+#file-drop-zone tr.file td {
+    display: flex !important;
+    align-items: center !important;
+}
+
+#file-drop-zone tr.file td.filename {
+    flex: 1 1 auto !important;
+}
+
+/* La règle « #file-drop-zone > div » (hauteur minimale de la zone) vise aussi ce panneau. */
+#file-drop-zone > .icon-button-wrapper.top-panel {
+    min-height: 0 !important;
+}
