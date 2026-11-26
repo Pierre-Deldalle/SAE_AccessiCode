@@ -5,13 +5,12 @@ Accueil -> Préparation -> Chargement -> Résultats
                   |
                   -> Explications -> Préparation
 
-La sortie de l'accueil utilise un fondu de 350 ms.
+L'accueil laisse automatiquement place à la préparation après un fondu.
 « Lancer l'audit » exécute le moteur RGAA via ui/audit_bridge.py, avec
 une progression réelle sur la page de chargement ;
 la page de résultats affiche les synthèses par thématique.
 """
 
-import asyncio
 from pathlib import Path
 
 import gradio as gr
@@ -37,8 +36,30 @@ from accessi_code.ui.results_view import audit_stats
 UI_DIR = Path(__file__).parent
 STYLES_DIR = UI_DIR / "styles"
 
-ACCUEIL_CLASSES = ["page-container"]
-ACCUEIL_FADE_CLASSES = ["page-container", "accueil-fade-out"]
+ACCUEIL_TRANSITION_JS = """async () => {
+    if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        // Attend le rendu initial de l'accueil ou son remontage après les résultats.
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+        const app = document.querySelector("gradio-app");
+        const accueil = (app?.shadowRoot ?? document).querySelector("#accueil-page");
+        const progress = accueil?.querySelector(".accueil-progress-fill");
+
+        await progress?.animate(
+            [{ transform: "scaleX(0)" }, { transform: "scaleX(1)" }],
+            { duration: 3500, easing: "ease-out", fill: "forwards" }
+        ).finished;
+        await accueil?.animate(
+            [{ opacity: 1 }, { opacity: 0 }],
+            { duration: 350, easing: "ease-in-out", fill: "forwards" }
+        ).finished;
+    }
+
+    return [
+        { __type__: "update", visible: false },
+        { __type__: "update", visible: true },
+    ];
+}"""
 
 
 # Appelé après chaque changement de page, une fois les composants mis à jour.
@@ -87,21 +108,6 @@ CSS = (
     + "\n"
     + SCORE_CSS
 )
-
-
-def start_accueil_transition():
-    """Déclenche le fondu avant de quitter l'accueil."""
-    return gr.update(elem_classes=ACCUEIL_FADE_CLASSES)
-
-
-async def finish_accueil_transition():
-    """Laisse le fondu se terminer avant de changer de page (350 ms)."""
-    await asyncio.sleep(0.35)
-
-    return (
-        gr.update(visible=False),
-        gr.update(visible=True),
-    )
 
 
 def open_explications():
@@ -200,10 +206,7 @@ def confirm_return_home():
     """Réinitialise l'interface et retourne à l'accueil."""
     return (
         gr.update(visible=False),  # Résultats
-        gr.update(
-            visible=True,
-            elem_classes=ACCUEIL_CLASSES,
-        ),  # Accueil
+        gr.update(visible=True),  # Accueil
         gr.update(visible=False),  # Confirmation
         gr.update(value=""),  # URL
         gr.update(value=None),  # Fichiers
@@ -239,7 +242,7 @@ def create_app():
     """Crée l'application Gradio principale (à lancer avec launch_options())."""
 
     with gr.Blocks(title="AccessiCode") as app:
-        accueil_page, start_button = build_accueil_page()
+        accueil_page = build_accueil_page()
 
         (
             preparation_audit_page,
@@ -269,17 +272,13 @@ def create_app():
         # Sorties communes à l'affichage et à la remise à zéro des résultats.
         results_outputs = [results_state, audit_notices, theme_detail, *theme_buttons]
 
-        start_button.click(
-            fn=start_accueil_transition,
-            inputs=[],
-            outputs=[accueil_page],
-            show_progress="hidden",
-        ).then(
-            fn=finish_accueil_transition,
-            inputs=[],
-            outputs=[accueil_page, preparation_audit_page],
-            show_progress="hidden",
-        ).then(fn=None, js=SCROLL_TO_TOP_JS, inputs=[], outputs=[], queue=False)
+        accueil_transition = {
+            "fn": None,
+            "js": ACCUEIL_TRANSITION_JS,
+            "outputs": [accueil_page, preparation_audit_page],
+            "queue": False,
+        }
+        app.load(**accueil_transition)
 
         help_button.click(
             fn=open_explications,
@@ -358,7 +357,7 @@ def create_app():
                 *results_outputs,
             ],
             show_progress="hidden",
-        ).then(fn=None, js=SCROLL_TO_TOP_JS, inputs=[], outputs=[], queue=False)
+        ).then(**accueil_transition).then(fn=None, js=SCROLL_TO_TOP_JS, inputs=[], outputs=[], queue=False)
 
     return app
 

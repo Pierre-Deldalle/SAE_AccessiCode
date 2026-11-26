@@ -346,7 +346,7 @@ python -m accessi_code.ui.app
 
 ### Réaliser un audit
 
-1. Sur la page d'accueil, cliquer pour **commencer**.
+1. Ouvrir AccessiCode. La préparation de l'audit s'affiche automatiquement après l'accueil.
 2. **Importer** le fichier HTML de la page à auditer, avec ses ressources (images, etc.).
 3. **Choisir les thématiques** RGAA à auditer (toutes sont cochées par défaut ; boutons « Tout sélectionner » / « Tout désélectionner »).
 4. Cliquer sur **« Lancer l'audit »** et suivre la progression.

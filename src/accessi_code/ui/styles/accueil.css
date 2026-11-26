@@ -3,7 +3,7 @@
  * AccessiCode — Page d'accueil
  *
  * Mise en page volontairement sobre :
- * titre, logo et bouton d'accès.
+ * titre, logo et barre de progression.
  *
  * Les couleurs respectent la charte graphique.
  */
@@ -71,67 +71,25 @@
     object-fit: contain !important;
 }
 
-/* Bouton principal */
+/* Progression de l'ouverture */
 
-#accueil-button {
-    box-sizing: border-box;
-
+#accueil-progress {
     width: min(290px, 100%) !important;
-    min-height: 54px !important;
-
     margin: 4px auto 0 !important;
-    padding: 12px 20px !important;
-
-    border: 1px solid #0153c6 !important;
-    border-radius: 5px !important;
-
-    background-color: #0153c6 !important;
-    color: #ffffff !important;
-
-    font-family: var(--font-body) !important;
-    font-size: 16px !important;
-    font-weight: 600 !important;
-    line-height: 1.4 !important;
-
-    text-align: center !important;
-
-    cursor: pointer;
-
-    transition:
-        background-color 150ms ease,
-        border-color 150ms ease,
-        box-shadow 150ms ease;
 }
 
-/* Survol : variation sobre du bleu principal */
-
-#accueil-button:hover {
-    background-color: #0045a6 !important;
-    border-color: #0045a6 !important;
-    color: #ffffff !important;
+.accueil-progress-track {
+    height: 5px;
+    overflow: hidden;
+    border-radius: 5px;
+    background-color: var(--color-background-muted);
 }
 
-/* Retour visuel au clic */
-
-#accueil-button:active {
-    background-color: #003b8f !important;
-    border-color: #003b8f !important;
-    box-shadow: inset 0 2px 4px rgb(0 0 0 / 12%);
-}
-
-/* Navigation au clavier */
-
-#accueil-button:focus-visible {
-    outline: 3px solid #0ca0b0 !important;
-    outline-offset: 4px !important;
-}
-
-/* Désactivation du mouvement si demandée */
-
-@media (prefers-reduced-motion: reduce) {
-    #accueil-button {
-        transition: none !important;
-    }
+.accueil-progress-fill {
+    height: 100%;
+    background-color: var(--color-primary);
+    transform: scaleX(0);
+    transform-origin: left;
 }
 
 /* Petits écrans */
@@ -151,13 +109,6 @@
     #accueil-logo {
         width: min(300px, 85vw) !important;
     }
-
-    #accueil-button {
-        width: min(290px, 100%) !important;
-        min-height: 52px !important;
-
-        font-size: 16px !important;
-    }
 }
 
 /* Fenêtres peu hautes */
@@ -172,26 +123,5 @@
 
     #accueil-logo {
         width: min(270px, 70vw) !important;
-    }
-}
-
-
-/* =========================================
-   TRANSITION DE SORTIE DE L'ACCUEIL
-   ========================================= */
-
-#accueil-page {
-    opacity: 1;
-    transition: opacity 350ms ease-in-out;
-}
-
-#accueil-page.accueil-fade-out {
-    opacity: 0 !important;
-    pointer-events: none !important;
-}
-
-@media (prefers-reduced-motion: reduce) {
-    #accueil-page {
-        transition: none !important;
     }
 }

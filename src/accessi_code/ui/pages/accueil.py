@@ -6,7 +6,6 @@ from pathlib import Path
 
 import gradio as gr
 
-from accessi_code.ui.components.bouton_component import create_button
 from accessi_code.ui.components.image_component import create_image
 
 # Chemin vers les ressources graphiques utilisées sur la page.
@@ -32,12 +31,11 @@ def build_accueil_page():
             elem_id="accueil-logo",
         )
 
-        # Bouton permettant d'accéder à la suite de l'application.
-        start_button = create_button(
-            "Accéder à l'application",
-            variant="primary",
-            elem_id="accueil-button",
+        gr.HTML(
+            '<div class="accueil-progress-track" role="progressbar" aria-label="Ouverture d’AccessiCode">'
+            '<div class="accueil-progress-fill"></div>'
+            "</div>",
+            elem_id="accueil-progress",
         )
 
-    # Le bouton est retourné pour pouvoir lui associer une action ailleurs.
-    return accueil_page, start_button
+    return accueil_page
